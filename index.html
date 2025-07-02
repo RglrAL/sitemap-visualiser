@@ -11540,6 +11540,7 @@ function analyzeURLPatterns() {
             withTrailingSlash: 0,
             withParameters: 0,
             nonDescriptive: 0
+		longURLs: 0 
         },
         depthDistribution: {},
         fileExtensions: {},
@@ -11563,6 +11564,7 @@ function analyzeURLPatterns() {
         }
         
         if (url.length > 160) {
+		analysis.stats.longURLs++;
             analysis.issues.critical.push({
                 url: url,
                 issue: 'URL too long (' + url.length + ' characters)',
@@ -11571,6 +11573,7 @@ function analyzeURLPatterns() {
             });
             analysis.healthScore -= 2;
         } else if (url.length > 140) {
+		analysis.stats.longURLs++;
             analysis.issues.warning.push({
                 url: url,
                 issue: 'URL quite long (' + url.length + ' characters)',
@@ -11851,6 +11854,15 @@ if (!isException) {
             impact: 'Modern, cleaner URLs that are platform-agnostic'
         });
     }
+
+	if (analysis.stats.longURLs > 0) {
+    analysis.recommendations.push({
+        priority: 'medium',
+        title: 'Shorten Long URLs',
+        description: `${analysis.stats.longURLs} URLs are longer than 140 characters. Consider shortening them for better user experience and SEO.`,
+        impact: 'Improved user experience, better social media sharing, and enhanced SEO performance'
+    });
+}
     
     // Ensure health score doesn't go below 0
     analysis.healthScore = Math.max(0, Math.round(analysis.healthScore));
@@ -11899,12 +11911,12 @@ function generateURLPatternHTML(analysis) {
                 <div style="font-size: 2rem; font-weight: bold; color: #4a90e2;">${analysis.stats.avgLength}</div>
                 <div style="color: #666; margin-top: 5px;">Avg Length</div>
             </div>
-            <div style="background: ${analysis.issues.critical.length > 0 ? '#ffebee' : '#e8f5e8'}; padding: 20px; border-radius: 10px; text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: ${analysis.issues.critical.length > 0 ? '#f44336' : '#4caf50'};">
-                    ${analysis.issues.critical.length}
-                </div>
-                <div style="color: #666; margin-top: 5px;">Critical Issues</div>
-            </div>
+            <div style="background: ${analysis.stats.longURLs > 0 ? '#ffebee' : '#e8f5e8'}; padding: 20px; border-radius: 10px; text-align: center;">
+    <div style="font-size: 2rem; font-weight: bold; color: ${analysis.stats.longURLs > 0 ? '#f44336' : '#4caf50'};">
+        ${analysis.stats.longURLs}
+    </div>
+    <div style="color: #666; margin-top: 5px;">Long URLs</div>
+</div>
             <div style="background: ${analysis.issues.warning.length > 0 ? '#fff8e1' : '#e8f5e8'}; padding: 20px; border-radius: 10px; text-align: center;">
                 <div style="font-size: 2rem; font-weight: bold; color: ${analysis.issues.warning.length > 0 ? '#ff9800' : '#4caf50'};">
                     ${analysis.issues.warning.length}
@@ -11927,6 +11939,13 @@ function generateURLPatternHTML(analysis) {
             color: analysis.stats.withUppercase > 0 ? '#f44336' : '#4caf50',
             icon: '⚠️'
         },
+	{
+    label: 'Long URLs (>140 chars)',
+    count: analysis.stats.longURLs,
+    percentage: Math.round(analysis.stats.longURLs / analysis.totalURLs * 100),
+    color: analysis.stats.longURLs > 0 ? '#f44336' : '#4caf50',
+    icon: '📏'
+},
         {
             label: 'Non-descriptive URLs',
             count: analysis.stats.nonDescriptive,
