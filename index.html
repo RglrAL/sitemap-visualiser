@@ -11625,56 +11625,19 @@ function analyzeURLPatterns() {
 	    
        // Enhanced Non-descriptive URLs - Direct Replacement
 const nonDescriptivePatterns = [
+    // Most specific patterns first (anchored to start)
     {
-        pattern: /\/(?:page|p)\d+(?:\/|$)/i,
-        description: 'Pagination patterns (page1, p123)',
+        pattern: /^\/\d{4}-\d{1,2}-\d{1,2}(?:\/|$)/,
+        description: 'URL starting with ISO date only (2024-01-15)',
         severity: 'moderate'
     },
     {
-        pattern: /\/(?:item|product|post|article|entry|record)\d+(?:\/|$)/i,
-        description: 'Generic item/product IDs (item123, product456)',
-        severity: 'severe'
-    },
-    {
-        pattern: /\/(?:untitled|default|test|temp|draft|sample|placeholder)(?:\d+)?(?:\/|$)/i,
-        description: 'Placeholder/test content (untitled, test, draft)',
-        severity: 'severe'
-    },
-    {
-        pattern: /\/new\d*(?:\/|$)/i,
-        description: 'Generic "new" patterns (new, new1, new2024)',
+        pattern: /^\/\d{1,2}-\d{1,2}-\d{4}(?:\/|$)/,
+        description: 'URL starting with date only (01-15-2024)',
         severity: 'moderate'
     },
-    {
-        pattern: /\/[a-f0-9]{8,}(?:\/|$)/i,
-        description: 'Long hexadecimal strings (database IDs, hashes)',
-        severity: 'severe'
-    },
-    {
-        pattern: /\/\d{8,}(?:\/|$)/,
-        description: 'Long numeric IDs (12345678)',
-        severity: 'severe'
-    },
-    {
-        pattern: /\/[A-Z0-9]{6,}(?:\/|$)/,
-        description: 'Random uppercase codes (ABC123DEF)',
-        severity: 'moderate'
-    },
-    {
-        pattern: /\/(?:tmp|temp)_[a-z0-9]+(?:\/|$)/i,
-        description: 'Temporary file patterns (tmp_abc123)',
-        severity: 'moderate'
-    },
-    {
-        pattern: /\/(?:id|ref|key)\d+(?:\/|$)/i,
-        description: 'Generic ID patterns (id123, ref456)',
-        severity: 'severe'
-    },
-    {
-        pattern: /\/[a-z]\d+(?:\/|$)/i,
-        description: 'Single letter + number patterns (a123, x456)',
-        severity: 'moderate'
-    },
+    
+    // Specific date patterns (before general numeric patterns)
     {
         pattern: /\/\d{4}\/\d{1,2}\/\d{1,2}(?:\/|$)/,
         description: 'Date-only URL segments (2024/01/15)',
@@ -11685,14 +11648,64 @@ const nonDescriptivePatterns = [
         description: 'Numeric date format (20240115)',
         severity: 'moderate'
     },
+    
+    // Hexadecimal patterns (before general alphanumeric)
     {
-        pattern: /^\/\d{1,2}-\d{1,2}-\d{4}(?:\/|$)/,
-        description: 'URL starting with date only (01-15-2024)',
+        pattern: /\/[a-f0-9]{8,}(?:\/|$)/i,
+        description: 'Long hexadecimal strings (database IDs, hashes)',
+        severity: 'severe'
+    },
+    
+    // Specific word + number patterns
+    {
+        pattern: /\/(?:item|product|post|article|entry|record)\d+(?:\/|$)/i,
+        description: 'Generic item/product IDs (item123, product456)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/(?:id|ref|key)\d+(?:\/|$)/i,
+        description: 'Generic ID patterns (id123, ref456)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/(?:page|p)\d+(?:\/|$)/i,
+        description: 'Pagination patterns (page1, p123)',
+        severity: 'moderate'
+    },
+    
+    // Placeholder/test content
+    {
+        pattern: /\/(?:untitled|default|test|temp|draft|sample|placeholder)(?:\d+)?(?:\/|$)/i,
+        description: 'Placeholder/test content (untitled, test, draft)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/(?:tmp|temp)_[a-z0-9]+(?:\/|$)/i,
+        description: 'Temporary file patterns (tmp_abc123)',
+        severity: 'moderate'
+    },
+    
+    // Generic patterns
+    {
+        pattern: /\/new\d*(?:\/|$)/i,
+        description: 'Generic "new" patterns (new, new1, new2024)',
+        severity: 'moderate'
+    },
+    
+    // Numeric and alphanumeric patterns (after more specific patterns)
+    {
+        pattern: /\/\d{9,}(?:\/|$)/,
+        description: 'Long numeric IDs (123456789+)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/[A-Z0-9]{6,}(?:\/|$)/,
+        description: 'Random uppercase codes (ABC123DEF)',
         severity: 'moderate'
     },
     {
-        pattern: /^\/\d{4}-\d{1,2}-\d{1,2}(?:\/|$)/,
-        description: 'URL starting with ISO date only (2024-01-15)',
+        pattern: /\/[a-z]\d+(?:\/|$)/i,
+        description: 'Single letter + number patterns (a123, x456)',
         severity: 'moderate'
     }
 ];
@@ -11736,6 +11749,8 @@ if (!isException) {
             recommendation = 'Replace pagination URLs with descriptive content URLs. Use canonical tags for paginated content.';
         } else if (matchedPatterns.some(m => m.description.includes('ID') || m.description.includes('hexadecimal'))) {
             recommendation = 'Replace database IDs/hashes with SEO-friendly slugs like "/product-name" instead of "/item123"';
+        } else if (matchedPatterns.some(m => m.description.includes('test') || m.description.includes('temp'))) {
+            recommendation = 'Remove test/temporary URLs from production sitemap or replace with descriptive URLs';
         }
         
         analysis.issues.warning.push({
