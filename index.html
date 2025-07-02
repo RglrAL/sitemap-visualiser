@@ -11619,6 +11619,7 @@ function analyzeURLPatterns() {
         
         // Non-descriptive URLs
         // Enhanced Non-descriptive URLs - Direct Replacement
+// Enhanced Non-descriptive URLs - Direct Replacement
 const nonDescriptivePatterns = [
     {
         pattern: /\/(?:page|p)\d+(?:\/|$)/i,
@@ -11668,6 +11669,26 @@ const nonDescriptivePatterns = [
     {
         pattern: /\/[a-z]\d+(?:\/|$)/i,
         description: 'Single letter + number patterns (a123, x456)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/\d{4}\/\d{1,2}\/\d{1,2}(?:\/|$)/,
+        description: 'Date-only URLs (2024/01/15)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/\d{8}(?:\/|$)/,
+        description: 'Numeric date format (20240115)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/\d{1,2}-\d{1,2}-\d{4}(?:\/|$)/,
+        description: 'Date format with dashes (01-15-2024)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/\d{4}-\d{1,2}-\d{1,2}(?:\/|$)/,
+        description: 'ISO date format (2024-01-15)',
         severity: 'moderate'
     }
 ];
