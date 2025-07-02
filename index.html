@@ -11570,11 +11570,11 @@ function analyzeURLPatterns() {
                 type: 'length'
             });
             analysis.healthScore -= 2;
-        } else if (url.length > 90) {
+        } else if (url.length > 140) {
             analysis.issues.warning.push({
                 url: url,
                 issue: 'URL quite long (' + url.length + ' characters)',
-                recommendation: 'Consider shortening URL to under 90 characters',
+                recommendation: 'Consider shortening URL to under 140 characters',
                 type: 'length'
             });
             analysis.healthScore -= 1;
