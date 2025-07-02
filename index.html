@@ -11692,7 +11692,7 @@ function analyzeURLPatterns() {
     if (analysis.stats.withUppercase > 0) {
         analysis.recommendations.push({
             priority: 'high',
-            title: 'Standardize URL Case',
+            title: 'Standardise URL Case',
             description: `${analysis.stats.withUppercase} URLs contain uppercase letters. Convert all URLs to lowercase for consistency and better SEO.`,
             impact: 'Improves URL consistency and prevents duplicate content issues'
         });
@@ -11719,7 +11719,7 @@ function analyzeURLPatterns() {
     if (Object.keys(analysis.patterns).length > 20) {
         analysis.recommendations.push({
             priority: 'medium',
-            title: 'Standardize URL Patterns',
+            title: 'Standardise URL Patterns',
             description: `Found ${Object.keys(analysis.patterns).length} different URL patterns. Consider consolidating similar patterns.`,
             impact: 'Easier maintenance and better site structure'
         });
