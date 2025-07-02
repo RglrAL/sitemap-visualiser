@@ -11562,11 +11562,11 @@ function analyzeURLPatterns() {
             analysis.stats.minLength = url.length;
         }
         
-        if (url.length > 115) {
+        if (url.length > 160) {
             analysis.issues.critical.push({
                 url: url,
                 issue: 'URL too long (' + url.length + ' characters)',
-                recommendation: 'Shorten URL to under 115 characters for better SEO',
+                recommendation: 'Shorten URL to under 160 characters for better SEO',
                 type: 'length'
             });
             analysis.healthScore -= 2;
