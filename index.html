@@ -11616,10 +11616,11 @@ function analyzeURLPatterns() {
             });
             analysis.healthScore -= 0.5;
         }
-        
-        // Non-descriptive URLs
-        // Enhanced Non-descriptive URLs - Direct Replacement
-// Enhanced Non-descriptive URLs - Direct Replacement
+
+
+
+	    
+       // Enhanced Non-descriptive URLs - Direct Replacement
 const nonDescriptivePatterns = [
     {
         pattern: /\/(?:page|p)\d+(?:\/|$)/i,
@@ -11637,8 +11638,8 @@ const nonDescriptivePatterns = [
         severity: 'severe'
     },
     {
-        pattern: /\/new(?:\d+|_\d+|-\d+)?(?:\/|$)/i,
-        description: 'Generic "new" patterns (new, new1, new_2024)',
+        pattern: /\/new\d*(?:\/|$)/i,
+        description: 'Generic "new" patterns (new, new1, new2024)',
         severity: 'moderate'
     },
     {
@@ -11673,7 +11674,7 @@ const nonDescriptivePatterns = [
     },
     {
         pattern: /\/\d{4}\/\d{1,2}\/\d{1,2}(?:\/|$)/,
-        description: 'Date-only URLs (2024/01/15)',
+        description: 'Date-only URL segments (2024/01/15)',
         severity: 'moderate'
     },
     {
@@ -11682,13 +11683,13 @@ const nonDescriptivePatterns = [
         severity: 'moderate'
     },
     {
-        pattern: /\/\d{1,2}-\d{1,2}-\d{4}(?:\/|$)/,
-        description: 'Date format with dashes (01-15-2024)',
+        pattern: /^\/\d{1,2}-\d{1,2}-\d{4}(?:\/|$)/,
+        description: 'URL starting with date only (01-15-2024)',
         severity: 'moderate'
     },
     {
-        pattern: /\/\d{4}-\d{1,2}-\d{1,2}(?:\/|$)/,
-        description: 'ISO date format (2024-01-15)',
+        pattern: /^\/\d{4}-\d{1,2}-\d{1,2}(?:\/|$)/,
+        description: 'URL starting with ISO date only (2024-01-15)',
         severity: 'moderate'
     }
 ];
