@@ -11707,11 +11707,11 @@ function analyzeURLPatterns() {
         });
     }
     
-    if (analysis.stats.avgLength > 75) {
+    if (analysis.stats.avgLength > 150) {
         analysis.recommendations.push({
             priority: 'medium',
             title: 'Shorten Long URLs',
-            description: `Average URL length is ${analysis.stats.avgLength} characters. Aim for under 75 characters.`,
+            description: `Average URL length is ${analysis.stats.avgLength} characters. Aim for under 150 characters.`,
             impact: 'Improved user experience and social media sharing'
         });
     }
