@@ -11618,17 +11618,113 @@ function analyzeURLPatterns() {
         }
         
         // Non-descriptive URLs
-        const nonDescriptivePatterns = /\/(page\d+|item\d+|untitled|default|test|temp|new\d*|[a-f0-9]{8,})\b/i;
-        if (nonDescriptivePatterns.test(path)) {
-            analysis.stats.nonDescriptive++;
-            analysis.issues.warning.push({
-                url: url,
-                issue: 'Non-descriptive URL',
-                recommendation: 'Use descriptive, keyword-rich URLs',
-                type: 'non-descriptive'
-            });
-            analysis.healthScore -= 1.5;
+        // Enhanced Non-descriptive URLs - Direct Replacement
+const nonDescriptivePatterns = [
+    {
+        pattern: /\/(?:page|p)\d+(?:\/|$)/i,
+        description: 'Pagination patterns (page1, p123)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/(?:item|product|post|article|entry|record)\d+(?:\/|$)/i,
+        description: 'Generic item/product IDs (item123, product456)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/(?:untitled|default|test|temp|draft|sample|placeholder)(?:\d+)?(?:\/|$)/i,
+        description: 'Placeholder/test content (untitled, test, draft)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/new(?:\d+|_\d+|-\d+)?(?:\/|$)/i,
+        description: 'Generic "new" patterns (new, new1, new_2024)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/[a-f0-9]{8,}(?:\/|$)/i,
+        description: 'Long hexadecimal strings (database IDs, hashes)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/\d{8,}(?:\/|$)/,
+        description: 'Long numeric IDs (12345678)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/[A-Z0-9]{6,}(?:\/|$)/,
+        description: 'Random uppercase codes (ABC123DEF)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/(?:tmp|temp)_[a-z0-9]+(?:\/|$)/i,
+        description: 'Temporary file patterns (tmp_abc123)',
+        severity: 'moderate'
+    },
+    {
+        pattern: /\/(?:id|ref|key)\d+(?:\/|$)/i,
+        description: 'Generic ID patterns (id123, ref456)',
+        severity: 'severe'
+    },
+    {
+        pattern: /\/[a-z]\d+(?:\/|$)/i,
+        description: 'Single letter + number patterns (a123, x456)',
+        severity: 'moderate'
+    }
+];
+
+// Exception patterns for legitimate cases
+const legitExceptions = [
+    /\/api\//,
+    /\/admin\//,
+    /\/v\d+\//,
+    /\/[a-f0-9]{8,}\.(jpg|jpeg|png|gif|pdf|css|js|svg|ico|woff|woff2|ttf)$/i
+];
+
+// Check if URL should be excluded
+const isException = legitExceptions.some(pattern => pattern.test(path));
+
+if (!isException) {
+    let matchedPatterns = [];
+    let totalScore = 0;
+    
+    // Check each pattern
+    nonDescriptivePatterns.forEach((patternObj) => {
+        if (patternObj.pattern.test(path)) {
+            matchedPatterns.push(patternObj);
+            
+            // Calculate score based on severity
+            const severityScores = { 'moderate': 1.0, 'severe': 2.0 };
+            totalScore += severityScores[patternObj.severity] || 1.0;
         }
+    });
+    
+    // If any patterns matched, record the issue
+    if (matchedPatterns.length > 0) {
+        analysis.stats.nonDescriptive++;
+        
+        const descriptions = matchedPatterns.map(match => match.description).join(', ');
+        const maxSeverity = matchedPatterns.some(m => m.severity === 'severe') ? 'severe' : 'moderate';
+        
+        // Generate specific recommendation
+        let recommendation = 'Use descriptive, keyword-rich URLs';
+        if (matchedPatterns.some(m => m.description.includes('Pagination'))) {
+            recommendation = 'Replace pagination URLs with descriptive content URLs. Use canonical tags for paginated content.';
+        } else if (matchedPatterns.some(m => m.description.includes('ID') || m.description.includes('hexadecimal'))) {
+            recommendation = 'Replace database IDs/hashes with SEO-friendly slugs like "/product-name" instead of "/item123"';
+        }
+        
+        analysis.issues.warning.push({
+            url: url,
+            issue: `Non-descriptive URL: ${descriptions}`,
+            recommendation: recommendation,
+            type: 'non-descriptive',
+            severity: maxSeverity
+        });
+        
+        // Apply variable score penalty (capped at 3.0)
+        analysis.healthScore -= Math.min(totalScore, 3.0);
+    }
+}
         
         // File extension analysis
         const extMatch = path.match(/\.([a-zA-Z0-9]+)$/);
