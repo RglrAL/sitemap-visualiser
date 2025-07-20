@@ -9,6 +9,14 @@
         SCOPES: 'https://www.googleapis.com/auth/webmasters.readonly'
     };
 
+    // Add this new function to handle GAPI ready
+    function handleGAPIReady() {
+        console.log('Handling Google API ready state...');
+        if (window.gapi && !gapiInitialized) {
+            gapi.load('client:auth2', initGoogleClient);
+        }
+    }
+
     // GSC data storage
     let gscDataMap = new Map();
     let gscConnected = false;
@@ -18,6 +26,7 @@
     // Export to global scope for access from main app
     window.GSCIntegration = {
         init: initGSCIntegration,
+        handleGAPIReady: handleGAPIReady,  // Add this
         isConnected: () => gscConnected,
         hasData: () => gscDataLoaded,
         getData: (url) => gscDataMap.get(url),
@@ -129,6 +138,13 @@
 
     // Initialize Google Client
     function initGoogleClient() {
+        console.log('Initializing Google client...');
+        
+        if (!window.gapi || !window.gapi.client) {
+            console.error('Google API client not available');
+            setTimeout(initGoogleClient, 1000); // Retry
+            return;
+        }
         gapi.client.init({
             apiKey: GSC_CONFIG.API_KEY,
             clientId: GSC_CONFIG.CLIENT_ID,
