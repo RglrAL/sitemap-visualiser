@@ -12449,6 +12449,13 @@ document.addEventListener('DOMContentLoaded', function() {
             lastTouchEnd = now;
         }, false);
     }
+
+ // Initialize GSC Integration
+    if (window.GSCIntegration) {
+        GSCIntegration.init();
+    }
+
+	
 });
 
 
