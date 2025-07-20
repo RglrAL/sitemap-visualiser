@@ -1,10 +1,9 @@
-// gsc-integration-module.js - Fixed timing issues
+// gsc-integration-module.js - Fixed version
 
 (function() {
-    // Configuration
+    // Configuration - Remove API_KEY as it's not needed for OAuth2
     const GSC_CONFIG = {
         CLIENT_ID: '550630256834-9quh64fnqhfse6s488c8gutstuqcch04.apps.googleusercontent.com',
-        API_KEY: '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',
         DISCOVERY_DOCS: ['https://www.googleapis.com/discovery/v1/apis/searchconsole/v1/rest'],
         SCOPES: 'https://www.googleapis.com/auth/webmasters.readonly'
     };
@@ -16,7 +15,14 @@
     let gscDataLoaded = false;
     let tokenClient = null;
     let accessToken = null;
-    let fetchInProgress = false; // Prevent duplicate fetches
+    let fetchInProgress = false;
+    let gapiInited = false;
+    let gisInited = false;
+
+    // Debug logging helper
+    function debugLog(message, data = null) {
+        console.log(`[GSC Integration] ${message}`, data || '');
+    }
 
     // Create event system for better coordination
     const gscEvents = {
@@ -28,6 +34,7 @@
             this.listeners[event].push(callback);
         },
         emit: function(event, data) {
+            debugLog(`Event emitted: ${event}`, data);
             if (this.listeners[event]) {
                 this.listeners[event].forEach(callback => callback(data));
             }
@@ -43,12 +50,23 @@
         toggleConnection: toggleGSCConnection,
         fetchData: fetchGSCDataForSitemap,
         events: gscEvents,
-        reset: resetGSCData // Add reset function
+        reset: resetGSCData,
+        debug: {
+            getStatus: () => ({
+                gscConnected,
+                gscDataLoaded,
+                gapiInited,
+                gisInited,
+                fetchInProgress,
+                dataCount: gscDataMap.size,
+                hasAccessToken: !!accessToken
+            })
+        }
     };
 
     // Initialize the integration
     function initGSCIntegration() {
-        console.log('GSC Integration initializing...');
+        debugLog('Initializing GSC Integration...');
         
         // Add GSC button to nav
         addGSCButton();
@@ -59,7 +77,7 @@
         // Initialize Google API client
         initializeGoogleAPI();
         
-        // Hook into sitemap loading with better timing
+        // Hook into sitemap loading
         hookIntoSitemapLoader();
         
         // Hook into tooltip display
@@ -69,132 +87,342 @@
         listenForTreeReady();
     }
 
-    // Initialize Google API with new GIS
+    // Initialize Google API with better error handling
     function initializeGoogleAPI() {
-        // Load the Google API client library
-        if (window.gapi) {
+        debugLog('Initializing Google APIs...');
+        
+        // Load GAPI
+        if (typeof gapi !== 'undefined') {
+            debugLog('GAPI already available, loading client...');
             gapi.load('client', initializeGapiClient);
         } else {
-            console.warn('GAPI not loaded yet, waiting...');
-            setTimeout(initializeGoogleAPI, 100);
+            debugLog('Waiting for GAPI to load...');
+            // Check every 100ms for up to 5 seconds
+            let attempts = 0;
+            const checkGapi = setInterval(() => {
+                attempts++;
+                if (typeof gapi !== 'undefined') {
+                    clearInterval(checkGapi);
+                    debugLog('GAPI loaded after ' + attempts + ' attempts');
+                    gapi.load('client', initializeGapiClient);
+                } else if (attempts > 50) {
+                    clearInterval(checkGapi);
+                    console.error('[GSC Integration] GAPI failed to load after 5 seconds');
+                    alert('Failed to load Google APIs. Please refresh the page.');
+                }
+            }, 100);
         }
         
-        // Load the Google Identity Services library
-        if (!document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
-            const script = document.createElement('script');
-            script.src = 'https://accounts.google.com/gsi/client';
-            script.onload = initializeGIS;
-            document.head.appendChild(script);
-        } else if (window.google && window.google.accounts) {
-            initializeGIS();
-        }
+        // Initialize GIS
+        initializeGIS();
     }
 
-    // Initialize GAPI client (for API calls only)
+    // Initialize GAPI client without API key
     function initializeGapiClient() {
+        debugLog('Initializing GAPI client...');
+        
+        // Initialize without apiKey for OAuth2-only flow
         gapi.client.init({
-            apiKey: GSC_CONFIG.API_KEY,
             discoveryDocs: GSC_CONFIG.DISCOVERY_DOCS,
         }).then(() => {
-            console.log('Google API client initialized');
+            debugLog('GAPI client initialized successfully');
+            gapiInited = true;
             gscEvents.emit('gapiReady');
         }).catch((error) => {
-            console.error('Error initializing GAPI client:', error);
+            console.error('[GSC Integration] Error initializing GAPI client:', error);
+            alert('Failed to initialize Google API client. Error: ' + error.message);
         });
     }
 
-    // Initialize Google Identity Services
+    // Initialize Google Identity Services with better checking
     function initializeGIS() {
-        if (!window.google || !window.google.accounts) {
-            console.log('GIS not ready, retrying...');
-            setTimeout(initializeGIS, 100);
+        debugLog('Initializing Google Identity Services...');
+        
+        // Check if GIS is already loaded
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+            createTokenClient();
             return;
         }
         
-        console.log('Initializing Google Identity Services...');
-        
-        // Create token client
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: GSC_CONFIG.CLIENT_ID,
-            scope: GSC_CONFIG.SCOPES,
-            callback: handleAuthResponse,
-        });
-        
-        console.log('GIS initialized successfully');
-        gscEvents.emit('gisReady');
+        // Wait for GIS to load
+        let attempts = 0;
+        const checkGis = setInterval(() => {
+            attempts++;
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+                clearInterval(checkGis);
+                debugLog('GIS loaded after ' + attempts + ' attempts');
+                createTokenClient();
+            } else if (attempts > 50) {
+                clearInterval(checkGis);
+                console.error('[GSC Integration] GIS failed to load after 5 seconds');
+                alert('Failed to load Google Identity Services. Please check your internet connection.');
+            }
+        }, 100);
+    }
+
+    // Create token client
+    function createTokenClient() {
+        try {
+            debugLog('Creating token client...');
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GSC_CONFIG.CLIENT_ID,
+                scope: GSC_CONFIG.SCOPES,
+                callback: handleAuthResponse,
+                error_callback: (error) => {
+                    console.error('[GSC Integration] Token client error:', error);
+                    alert('Authentication error: ' + (error.message || 'Unknown error'));
+                }
+            });
+            
+            debugLog('Token client created successfully');
+            gisInited = true;
+            gscEvents.emit('gisReady');
+        } catch (error) {
+            console.error('[GSC Integration] Failed to create token client:', error);
+            alert('Failed to initialize authentication. Error: ' + error.message);
+        }
     }
 
     // Handle authentication response
     function handleAuthResponse(response) {
+        debugLog('Handling auth response...', response);
+        
         if (response.error) {
-            console.error('Authentication error:', response);
+            console.error('[GSC Integration] Authentication error:', response);
             updateConnectionStatus(false);
+            alert('Authentication failed: ' + (response.error_description || response.error));
             return;
         }
         
         // Store access token
         accessToken = response.access_token;
+        debugLog('Access token received');
         
         // Set the token for API calls
-        if (window.gapi && gapi.client) {
+        if (gapi && gapi.client) {
             gapi.client.setToken({ access_token: accessToken });
+            debugLog('Token set in GAPI client');
         }
         
         updateConnectionStatus(true);
         gscEvents.emit('authenticated');
-
-        console.log('Auth successful. Checking for sitemap...');
-        console.log('Tree data exists:', !!window.treeData);
-        console.log('GSC data already loaded:', gscDataLoaded);
-        console.log('Fetch in progress:', fetchInProgress);
         
         // Try to fetch data if conditions are met
         tryFetchGSCData();
     }
 
-    // New function to check conditions and fetch GSC data
-    function tryFetchGSCData() {
-        if (gscConnected && window.treeData && !gscDataLoaded && !fetchInProgress) {
-            console.log('All conditions met, fetching GSC data...');
-            fetchGSCDataForSitemap();
-        } else {
-            console.log('Conditions not met for fetching:', {
-                connected: gscConnected,
-                treeData: !!window.treeData,
-                dataLoaded: gscDataLoaded,
-                fetchInProgress: fetchInProgress
-            });
-        }
-    }
-
-    // Reset GSC data (useful when loading new sitemap)
-    function resetGSCData() {
-        gscDataMap.clear();
-        gscDataLoaded = false;
-        fetchInProgress = false;
-        gscSiteUrl = null;
-        console.log('GSC data reset');
-    }
-
-    // Toggle connection
+    // Toggle connection with better error handling
     function toggleGSCConnection() {
+        debugLog('Toggle connection called. Current state:', gscConnected);
+        
         if (gscConnected) {
-            // Revoke token and disconnect
+            // Disconnect
             if (accessToken) {
                 google.accounts.oauth2.revoke(accessToken, () => {
-                    console.log('Access token revoked');
+                    debugLog('Access token revoked');
                 });
             }
             updateConnectionStatus(false);
             resetGSCData();
         } else {
-            // Request authorization
+            // Connect
+            if (!gisInited) {
+                alert('Google Identity Services is still loading. Please wait a moment and try again.');
+                return;
+            }
+            
+            if (!gapiInited) {
+                alert('Google API client is still loading. Please wait a moment and try again.');
+                return;
+            }
+            
             if (tokenClient) {
-                tokenClient.requestAccessToken();
+                debugLog('Requesting access token...');
+                try {
+                    tokenClient.requestAccessToken({ prompt: '' });
+                } catch (error) {
+                    console.error('[GSC Integration] Error requesting access token:', error);
+                    alert('Failed to open authentication window. Please check your popup blocker.');
+                }
             } else {
-                alert('Google Identity Services is still loading. Please try again.');
+                alert('Authentication system not initialized. Please refresh the page.');
             }
         }
+    }
+
+    // Try to fetch GSC data with better logging
+    function tryFetchGSCData() {
+        debugLog('Trying to fetch GSC data...', {
+            connected: gscConnected,
+            treeData: !!window.treeData,
+            dataLoaded: gscDataLoaded,
+            fetchInProgress: fetchInProgress
+        });
+        
+        if (gscConnected && window.treeData && !gscDataLoaded && !fetchInProgress) {
+            debugLog('All conditions met, fetching GSC data...');
+            fetchGSCDataForSitemap();
+        }
+    }
+
+    // Fetch GSC data for sitemap with better error handling
+    async function fetchGSCDataForSitemap() {
+        if (!window.treeData || !accessToken || fetchInProgress) {
+            debugLog('Cannot fetch GSC data - conditions not met');
+            return;
+        }
+        
+        fetchInProgress = true;
+        showGSCLoadingIndicator();
+        
+        try {
+            // Ensure GAPI client is ready
+            if (!gapiInited) {
+                debugLog('Waiting for GAPI to initialize...');
+                await new Promise(resolve => {
+                    gscEvents.on('gapiReady', resolve);
+                });
+            }
+            
+            debugLog('Fetching site list...');
+            
+            // First, list available sites
+            const sitesResponse = await gapi.client.request({
+                path: 'https://www.googleapis.com/webmasters/v3/sites',
+                method: 'GET'
+            });
+            
+            const sites = sitesResponse.result.siteEntry || [];
+            debugLog('Found sites:', sites);
+            
+            if (sites.length === 0) {
+                hideGSCLoadingIndicator();
+                fetchInProgress = false;
+                alert('No Search Console properties found for your account. Please add your website to Google Search Console first.');
+                return;
+            }
+            
+            // Try to match the current domain
+            const currentDomain = window.treeData.name;
+            let matchedSite = sites.find(site => 
+                site.siteUrl.includes(currentDomain) || 
+                currentDomain.includes(new URL(site.siteUrl).hostname)
+            );
+            
+            if (!matchedSite) {
+                matchedSite = await showSiteSelector(sites);
+                if (!matchedSite) {
+                    hideGSCLoadingIndicator();
+                    fetchInProgress = false;
+                    return;
+                }
+            }
+            
+            gscSiteUrl = matchedSite.siteUrl;
+            debugLog('Using site:', gscSiteUrl);
+            
+            // Collect all URLs from the tree
+            const allUrls = [];
+            function collectUrls(node) {
+                if (node.url) allUrls.push(node.url);
+                if (node.children) {
+                    node.children.forEach(child => collectUrls(child));
+                }
+            }
+            collectUrls(window.treeData);
+            
+            debugLog(`Collected ${allUrls.length} URLs to fetch GSC data for`);
+            
+            // Fetch data in batches
+            await fetchGSCDataInBatches(allUrls);
+            
+            gscDataLoaded = true;
+            fetchInProgress = false;
+            hideGSCLoadingIndicator();
+            showGSCSuccessMessage();
+            gscEvents.emit('dataLoaded');
+            updateVisibleTooltips();
+            
+        } catch (error) {
+            console.error('[GSC Integration] Error fetching GSC data:', error);
+            hideGSCLoadingIndicator();
+            fetchInProgress = false;
+            
+            // Better error messages
+            if (error.status === 401) {
+                updateConnectionStatus(false);
+                alert('Your session has expired. Please reconnect to Google Search Console.');
+            } else if (error.status === 403) {
+                alert('Permission denied. Please make sure you have access to this Search Console property.');
+            } else {
+                alert('Error loading Search Console data: ' + (error.message || 'Unknown error'));
+            }
+        }
+    }
+
+    // Fetch GSC data in batches with better error handling
+    async function fetchGSCDataInBatches(urls, batchSize = 10) {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        debugLog(`Fetching data in batches of ${batchSize}`);
+        
+        for (let i = 0; i < urls.length; i += batchSize) {
+            const batchUrls = urls.slice(i, i + batchSize);
+            
+            try {
+                const response = await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                        endDate: today.toISOString().split('T')[0],
+                        dimensions: ['page'],
+                        dimensionFilterGroups: [{
+                            filters: batchUrls.map(url => ({
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: url
+                            }))
+                        }],
+                        rowLimit: 1000
+                    }
+                });
+                
+                const rows = response.result.rows || [];
+                debugLog(`Batch ${i/batchSize + 1}: Got ${rows.length} results`);
+                
+                rows.forEach(row => {
+                    const url = row.keys[0];
+                    gscDataMap.set(url, {
+                        clicks: row.clicks || 0,
+                        impressions: row.impressions || 0,
+                        ctr: row.ctr || 0,
+                        position: row.position || 0
+                    });
+                });
+                
+                updateGSCLoadingProgress((i + batchSize) / urls.length * 100);
+                
+            } catch (error) {
+                console.error('[GSC Integration] Error fetching batch:', error);
+                // Continue with next batch even if one fails
+            }
+            
+            // Add delay between batches to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        debugLog(`Fetching complete. Total URLs with data: ${gscDataMap.size}`);
+    }
+
+    // Reset GSC data
+    function resetGSCData() {
+        gscDataMap.clear();
+        gscDataLoaded = false;
+        fetchInProgress = false;
+        gscSiteUrl = null;
+        debugLog('GSC data reset');
     }
 
     // Update connection status
@@ -209,21 +437,22 @@
                 gscBtn.classList.add('connected');
                 gscBtn.style.background = '#4caf50';
                 gscBtn.style.color = 'white';
-                gscIcon.textContent = '✓';
-                gscText.textContent = 'GSC Connected';
+                if (gscIcon) gscIcon.textContent = '✓';
+                if (gscText) gscText.textContent = 'GSC Connected';
             } else {
                 gscBtn.classList.remove('connected');
                 gscBtn.style.background = '';
                 gscBtn.style.color = '';
-                gscIcon.textContent = '🔍';
-                gscText.textContent = 'Connect GSC';
+                if (gscIcon) gscIcon.textContent = '🔍';
+                if (gscText) gscText.textContent = 'Connect GSC';
             }
         }
+        
+        debugLog('Connection status updated:', connected);
     }
 
     // Add GSC button to navigation
     function addGSCButton() {
-        // Wait for nav to be ready
         const checkAndAdd = () => {
             const navBar = document.querySelector('.nav-group') || document.querySelector('.nav-bar');
             if (!navBar) {
@@ -231,7 +460,6 @@
                 return;
             }
             
-            // Check if button already exists
             if (document.getElementById('gscConnectBtn')) return;
             
             const gscButton = document.createElement('button');
@@ -243,13 +471,14 @@
                 <span id="gscText">Connect GSC</span>
             `;
             
-            // Insert before Reports dropdown
             const reportsDropdown = document.getElementById('reportsDropdown');
             if (reportsDropdown) {
                 navBar.insertBefore(gscButton, reportsDropdown);
             } else {
                 navBar.appendChild(gscButton);
             }
+            
+            debugLog('GSC button added to navigation');
         };
         
         checkAndAdd();
@@ -312,164 +541,19 @@
         document.head.appendChild(style);
     }
 
-    // Fetch GSC data for sitemap
-    async function fetchGSCDataForSitemap() {
-        if (!window.treeData || !accessToken || fetchInProgress) {
-            console.log('Cannot fetch GSC data:', {
-                treeData: !!window.treeData,
-                accessToken: !!accessToken,
-                fetchInProgress: fetchInProgress
-            });
-            return;
-        }
-        
-        // Set flag to prevent duplicate fetches
-        fetchInProgress = true;
-        
-        showGSCLoadingIndicator();
-        
-        try {
-            // Ensure GAPI client is ready
-            if (!window.gapi || !gapi.client || !gapi.client.webmasters) {
-                console.log('GAPI client not ready, waiting...');
-                await new Promise(resolve => {
-                    gscEvents.on('gapiReady', resolve);
-                });
-            }
-            
-            // Use the webmasters API directly
-            const sitesResponse = await gapi.client.webmasters.sites.list({});
-            const sites = sitesResponse.result.siteEntry || [];
-            
-            if (sites.length === 0) {
-                hideGSCLoadingIndicator();
-                fetchInProgress = false;
-                alert('No Search Console properties found for your account.');
-                return;
-            }
-            
-            // Try to match the current domain
-            const currentDomain = window.treeData.name;
-            let matchedSite = sites.find(site => 
-                site.siteUrl.includes(currentDomain) || 
-                currentDomain.includes(new URL(site.siteUrl).hostname)
-            );
-            
-            if (!matchedSite) {
-                matchedSite = await showSiteSelector(sites);
-                if (!matchedSite) {
-                    hideGSCLoadingIndicator();
-                    fetchInProgress = false;
-                    return;
-                }
-            }
-            
-            gscSiteUrl = matchedSite.siteUrl;
-            
-            // Collect all URLs from the tree
-            const allUrls = [];
-            function collectUrls(node) {
-                if (node.url) allUrls.push(node.url);
-                if (node.children) {
-                    node.children.forEach(child => collectUrls(child));
-                }
-            }
-            collectUrls(window.treeData);
-            
-            console.log(`Collected ${allUrls.length} URLs to fetch GSC data for`);
-            
-            // Fetch data in batches
-            await fetchGSCDataInBatches(allUrls);
-            
-            gscDataLoaded = true;
-            fetchInProgress = false;
-            hideGSCLoadingIndicator();
-            showGSCSuccessMessage();
-            gscEvents.emit('dataLoaded');
-            updateVisibleTooltips();
-            
-        } catch (error) {
-            console.error('Error fetching GSC data:', error);
-            hideGSCLoadingIndicator();
-            fetchInProgress = false;
-            
-            // Check if token expired
-            if (error.status === 401) {
-                updateConnectionStatus(false);
-                alert('Your session has expired. Please reconnect to Google Search Console.');
-            } else {
-                alert('Error loading Search Console data. Please try again.');
-            }
-        }
-    }
-
-    // Fetch GSC data in batches
-    async function fetchGSCDataInBatches(urls, batchSize = 25) { // Reduced batch size
-        const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-        
-        for (let i = 0; i < urls.length; i += batchSize) {
-            const batchUrls = urls.slice(i, i + batchSize);
-            
-            try {
-                const response = await gapi.client.webmasters.searchanalytics.query({
-                    'siteUrl': gscSiteUrl,
-                    'resource': {
-                        'startDate': thirtyDaysAgo.toISOString().split('T')[0],
-                        'endDate': today.toISOString().split('T')[0],
-                        'dimensions': ['page'],
-                        'dimensionFilterGroups': [{
-                            'filters': batchUrls.map(url => ({
-                                'dimension': 'page',
-                                'operator': 'equals',
-                                'expression': url
-                            }))
-                        }],
-                        'rowLimit': batchSize
-                    }
-                });
-                
-                const rows = response.result.rows || [];
-                rows.forEach(row => {
-                    const url = row.keys[0];
-                    gscDataMap.set(url, {
-                        clicks: row.clicks || 0,
-                        impressions: row.impressions || 0,
-                        ctr: row.ctr || 0,
-                        position: row.position || 0
-                    });
-                });
-                
-                updateGSCLoadingProgress((i + batchSize) / urls.length * 100);
-                
-            } catch (error) {
-                console.error('Error fetching batch:', error);
-            }
-            
-            // Add delay between batches to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 200));
-        }
-    }
-
-    // Hook into sitemap loading with better event handling
+    // Hook into sitemap loading
     function hookIntoSitemapLoader() {
         const checkAndHook = () => {
             if (window.parseSitemap) {
                 const originalParseSitemap = window.parseSitemap;
                 window.parseSitemap = function(xmlString, source) {
-                    console.log('Sitemap parsing started');
-                    
-                    // Reset GSC data when loading new sitemap
+                    debugLog('Sitemap parsing started');
                     resetGSCData();
-                    
-                    // Call original parser
                     originalParseSitemap(xmlString, source);
-                    
-                    console.log('Sitemap parsing completed');
-                    
-                    // Don't fetch immediately - wait for tree to be ready
+                    debugLog('Sitemap parsing completed');
                     gscEvents.emit('sitemapParsed');
                 };
+                debugLog('Hooked into sitemap parser');
             } else {
                 setTimeout(checkAndHook, 100);
             }
@@ -479,148 +563,114 @@
 
     // Listen for tree ready events
     function listenForTreeReady() {
-        // Hook into createVisualization to know when tree is ready
         const checkAndHook = () => {
             if (window.createVisualization) {
                 const originalCreateVisualization = window.createVisualization;
                 window.createVisualization = function() {
-                    console.log('Creating visualization');
+                    debugLog('Creating visualization');
                     originalCreateVisualization.apply(this, arguments);
-                    
-                    // Tree is now ready
-                    console.log('Tree visualization created');
+                    debugLog('Tree visualization created');
                     gscEvents.emit('treeReady');
-                    
-                    // Try to fetch GSC data if connected
                     tryFetchGSCData();
                 };
+                debugLog('Hooked into createVisualization');
             } else {
                 setTimeout(checkAndHook, 100);
             }
         };
         checkAndHook();
-        
-        // Also listen for the update function to know when tree updates
-        const hookUpdate = () => {
-            if (window.update) {
-                const originalUpdate = window.update;
-                window.update = function(source) {
-                    originalUpdate.apply(this, arguments);
-                    
-                    // Tree has been updated
-                    gscEvents.emit('treeUpdated');
-                };
-            } else {
-                setTimeout(hookUpdate, 100);
-            }
-        };
-        hookUpdate();
     }
 
     // Hook into tooltip display
     function hookIntoTooltips() {
-    const checkAndHook = () => {
-        if (window.showEnhancedTooltip) {
-            const originalShowEnhancedTooltip = window.showEnhancedTooltip;
-            window.showEnhancedTooltip = function(event, d) {
-                // Call original function first
-                originalShowEnhancedTooltip.apply(this, arguments);
-                
-                // Only enhance if GSC data is loaded
-                if (gscConnected && gscDataLoaded) {
-                    setTimeout(() => {
-                        try {
-                            // Find the tooltip element more reliably
-                            const tooltipElement = document.querySelector('.enhanced-tooltip.visible');
-                            if (tooltipElement && d && d.data) {
-                                // Check if we already added GSC data
-                                if (!tooltipElement.querySelector('.tooltip-gsc-section')) {
+        const checkAndHook = () => {
+            if (window.showEnhancedTooltip) {
+                const originalShowEnhancedTooltip = window.showEnhancedTooltip;
+                window.showEnhancedTooltip = function(event, d) {
+                    originalShowEnhancedTooltip.apply(this, arguments);
+                    
+                    if (gscConnected && gscDataLoaded) {
+                        setTimeout(() => {
+                            try {
+                                const tooltipElement = document.querySelector('.enhanced-tooltip.visible');
+                                if (tooltipElement && d && d.data && !tooltipElement.querySelector('.tooltip-gsc-section')) {
                                     const currentHtml = tooltipElement.innerHTML;
                                     const enhancedHtml = enhanceTooltipWithGSC(currentHtml, d.data);
                                     tooltipElement.innerHTML = enhancedHtml;
                                 }
+                            } catch (error) {
+                                console.error('[GSC Integration] Error enhancing tooltip:', error);
                             }
-                        } catch (error) {
-                            console.error('Error enhancing tooltip with GSC data:', error);
-                        }
-                    }, 50); // Small delay to ensure tooltip is rendered
-                }
-            };
-            console.log('Successfully hooked into tooltip display');
-        } else {
-            setTimeout(checkAndHook, 100);
-        }
-    };
-    checkAndHook();
-}
+                        }, 50);
+                    }
+                };
+                debugLog('Hooked into tooltip display');
+            } else {
+                setTimeout(checkAndHook, 100);
+            }
+        };
+        checkAndHook();
+    }
 
-    
-
+    // Enhance tooltip with GSC data
     function enhanceTooltipWithGSC(html, nodeData) {
-    if (!gscConnected || !gscDataLoaded || !nodeData || !nodeData.url) {
-        return html;
-    }
-    
-    const gscData = gscDataMap.get(nodeData.url);
-    
-    if (!gscData) {
-        // Only add "no data" message if we're showing GSC data
-        return html;
-    }
-    
-    const gscSection = `
-        <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-            <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                <span>🔍</span> Search Performance (30 days)
+        if (!gscConnected || !gscDataLoaded || !nodeData || !nodeData.url) {
+            return html;
+        }
+        
+        const gscData = gscDataMap.get(nodeData.url);
+        
+        if (!gscData) {
+            return html;
+        }
+        
+        const gscSection = `
+            <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                    <span>🔍</span> Search Performance (30 days)
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
+                        <div style="font-size: 0.8rem; color: #666;">Clicks</div>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
+                        <div style="font-size: 0.8rem; color: #666;">Impressions</div>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
+                        <div style="font-size: 0.8rem; color: #666;">CTR</div>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.position.toFixed(1)}</div>
+                        <div style="font-size: 0.8rem; color: #666;">Avg Position</div>
+                    </div>
+                </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
-                    <div style="font-size: 0.8rem; color: #666;">Clicks</div>
-                </div>
-                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
-                    <div style="font-size: 0.8rem; color: #666;">Impressions</div>
-                </div>
-                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                    <div style="font-size: 0.8rem; color: #666;">CTR</div>
-                </div>
-                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.position.toFixed(1)}</div>
-                    <div style="font-size: 0.8rem; color: #666;">Avg Position</div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Insert GSC section before the last closing div
-    const lastDivIndex = html.lastIndexOf('</div>');
-    if (lastDivIndex > -1) {
-        return html.substring(0, lastDivIndex) + gscSection + html.substring(lastDivIndex);
+        `;
+        
+        const lastDivIndex = html.lastIndexOf('</div>');
+        if (lastDivIndex > -1) {
+            return html.substring(0, lastDivIndex) + gscSection + html.substring(lastDivIndex);
+        }
+        
+        return html + gscSection;
     }
-    
-    return html + gscSection;
-}
 
-
-    
-
+    // Update visible tooltips
     function updateVisibleTooltips() {
-    // More reliable tooltip update
-    const visibleTooltip = document.querySelector('.enhanced-tooltip.visible');
-    if (visibleTooltip) {
-        // Find the node associated with this tooltip
-        const hoveredNode = d3.select('.node:hover').datum();
-        if (hoveredNode && window.showEnhancedTooltip) {
-            // Re-trigger the tooltip display
-            const event = new MouseEvent('mouseenter');
-            window.showEnhancedTooltip(event, hoveredNode);
+        const visibleTooltip = document.querySelector('.enhanced-tooltip.visible');
+        if (visibleTooltip) {
+            const hoveredNode = d3.select('.node:hover').datum();
+            if (hoveredNode && window.showEnhancedTooltip) {
+                const event = new MouseEvent('mouseenter');
+                window.showEnhancedTooltip(event, hoveredNode);
+            }
         }
     }
-}
 
-    // UI Helper Functions remain the same...
+    // UI Helper Functions
     function showGSCLoadingIndicator() {
         const indicator = document.createElement('div');
         indicator.id = 'gscLoadingIndicator';
@@ -693,6 +743,7 @@
         }, 3000);
     }
 
+    // Site selector modal
     async function showSiteSelector(sites) {
         return new Promise((resolve) => {
             const modal = document.createElement('div');
