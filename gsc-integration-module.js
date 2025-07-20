@@ -377,14 +377,33 @@
             
             debugLog(`Collected ${allUrls.length} URLs to fetch GSC data for`);
             
+            // For large sites, we might want to limit or prioritize
+            let urlsToFetch = allUrls;
+            if (allUrls.length > 500) {
+                // For very large sites, prioritize higher-level pages and a sample of others
+                const highLevelUrls = allUrls.filter(url => {
+                    const pathSegments = new URL(url).pathname.split('/').filter(s => s);
+                    return pathSegments.length <= 3; // Prioritize top-level pages
+                });
+                const otherUrls = allUrls.filter(url => !highLevelUrls.includes(url));
+                
+                // Take all high-level URLs and a sample of others
+                urlsToFetch = [
+                    ...highLevelUrls,
+                    ...otherUrls.slice(0, Math.max(100, 500 - highLevelUrls.length))
+                ];
+                
+                debugLog(`Large site detected. Limiting to ${urlsToFetch.length} URLs (${highLevelUrls.length} high-level pages)`);
+            }
+            
             // Log first 5 URLs for debugging
-            debugLog('Sample URLs:', allUrls.slice(0, 5));
+            debugLog('Sample URLs:', urlsToFetch.slice(0, 5));
             
             // First, try a general query to see what URLs GSC has
             await testGeneralQuery();
             
-            // Then fetch data in batches
-            await fetchGSCDataInBatches(allUrls);
+            // Then fetch data for our URLs
+            await fetchGSCDataInBatches(urlsToFetch);
             
             gscDataLoaded = true;
             fetchInProgress = false;
@@ -454,26 +473,16 @@
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
         
-        debugLog(`Fetching data in batches of ${batchSize}`);
+        debugLog(`Fetching data for ${urls.length} URLs (querying individually)`);
         
         let successCount = 0;
+        let processedCount = 0;
         
-        for (let i = 0; i < urls.length; i += batchSize) {
-            const batchUrls = urls.slice(i, i + batchSize);
+        // Query each URL individually for better accuracy
+        for (const url of urls) {
+            processedCount++;
             
             try {
-                // Create filters for batch
-                const filters = batchUrls.map(url => ({
-                    dimension: 'page',
-                    operator: 'equals',
-                    expression: url
-                }));
-                
-                // Also try with contains operator for first batch to debug
-                if (i === 0 && successCount === 0) {
-                    debugLog('Trying first batch with exact match:', batchUrls[0]);
-                }
-                
                 const response = await gapi.client.request({
                     path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
                     method: 'POST',
@@ -482,37 +491,71 @@
                         endDate: today.toISOString().split('T')[0],
                         dimensions: ['page'],
                         dimensionFilterGroups: [{
-                            groupType: 'and',
-                            filters: filters
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: url
+                            }]
                         }],
-                        rowLimit: 1000
+                        rowLimit: 10
                     }
                 });
                 
                 const rows = response.result.rows || [];
-                debugLog(`Batch ${Math.floor(i/batchSize) + 1}: Got ${rows.length} results`);
                 
-                rows.forEach(row => {
-                    const url = row.keys[0];
-                    gscDataMap.set(url, {
+                if (rows.length > 0) {
+                    const row = rows[0];
+                    const pageUrl = row.keys[0];
+                    gscDataMap.set(pageUrl, {
                         clicks: row.clicks || 0,
                         impressions: row.impressions || 0,
                         ctr: row.ctr || 0,
                         position: row.position || 0
                     });
+                    
+                    // Also store with the original URL if different
+                    if (pageUrl !== url) {
+                        gscDataMap.set(url, {
+                            clicks: row.clicks || 0,
+                            impressions: row.impressions || 0,
+                            ctr: row.ctr || 0,
+                            position: row.position || 0
+                        });
+                    }
+                    
                     successCount++;
-                });
+                    
+                    if (successCount <= 5) {
+                        debugLog(`Found data for: ${pageUrl}`);
+                    }
+                }
                 
-                updateGSCLoadingProgress((i + batchSize) / urls.length * 100);
+                // Update progress
+                updateGSCLoadingProgress((processedCount / urls.length) * 100);
+                
+                // Rate limiting - adjust delay based on number of URLs
+                const delay = urls.length > 100 ? 50 : 100;
+                if (processedCount % 10 === 0) {
+                    debugLog(`Progress: ${processedCount}/${urls.length} URLs processed, ${successCount} with data`);
+                    await new Promise(resolve => setTimeout(resolve, delay * 2)); // Longer pause every 10 URLs
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
                 
             } catch (error) {
-                console.error(`[GSC Integration] Error fetching batch ${Math.floor(i/batchSize) + 1}:`, error);
+                if (error.status === 429) {
+                    debugLog('Rate limit hit, waiting 5 seconds...');
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    // Retry this URL
+                    processedCount--;
+                    continue;
+                } else if (processedCount <= 5) {
+                    console.error(`[GSC Integration] Error fetching data for ${url}:`, error);
+                }
             }
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        debugLog(`Fetching complete. Total URLs with data: ${gscDataMap.size}`);
+        debugLog(`Fetching complete. Total URLs with data: ${gscDataMap.size} out of ${urls.length} checked`);
     }
 
     // Show no data message
