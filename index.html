@@ -14,20 +14,11 @@
     <!-- Remove the old one and add this specific version -->
 <script src="https://unpkg.com/3d-force-graph@1.71.4/dist/3d-force-graph.min.js"></script>
 
-<script>
-window.handleGoogleAPILoad = function() {
-    console.log('Google API loaded');
-    if (window.gapi) {
-        window.gapiReady = true;
-        if (window.GSCIntegration && window.GSCIntegration.handleGAPIReady) {
-            window.GSCIntegration.handleGAPIReady();
-        }
-    }
-};
-</script>
 
+<script async defer src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="gsc-integration-module.js"></script>
-<script async defer src="https://apis.google.com/js/api.js" onload="handleGoogleAPILoad()"></script>
+
    
     <style>
         * {
