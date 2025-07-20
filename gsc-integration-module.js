@@ -669,207 +669,152 @@ async function fetchGSCDataInBatches(urls, batchSize = 5) {
     let processedCount = 0;
     
     // Create URL variations for better matching
-    function createUrlVariations(originalUrl) {
-        const variations = new Set();
+    // Replace the createUrlVariations function in fetchGSCDataInBatches with this enhanced version
+
+function createUrlVariations(originalUrl) {
+    const variations = new Set();
+    
+    // Add original URL
+    variations.add(originalUrl);
+    
+    // Special handling for MABS.ie structure
+    // Sitemap has: http://mabs.ie/en/...
+    // GSC has: https://mabs.ie/...
+    
+    if (originalUrl.includes('/en/') || originalUrl.includes('/ga/')) {
+        // Remove language prefix variations
+        const withoutLangPrefix = originalUrl
+            .replace('/en/', '/')
+            .replace('/ga/', '/');
         
-        // Add original URL
-        variations.add(originalUrl);
+        variations.add(withoutLangPrefix);
         
-        // If we detected GSC format, try to match it
-        if (gscUrlFormat) {
-            try {
-                const gscUrlObj = new URL(gscUrlFormat);
-                const protocol = gscUrlObj.protocol;
-                const hasWww = gscUrlObj.hostname.startsWith('www.');
-                
-                // Handle relative URLs
-                if (originalUrl.startsWith('/')) {
-                    // Build absolute URL matching GSC format
-                    const baseHost = gscUrlObj.hostname;
-                    const absoluteUrl = `${protocol}//${baseHost}${originalUrl}`;
-                    variations.add(absoluteUrl);
-                    
-                    // Add with/without trailing slash
-                    if (!absoluteUrl.endsWith('/') && !absoluteUrl.includes('?') && !absoluteUrl.match(/\.[a-z]{2,4}$/i)) {
-                        variations.add(absoluteUrl + '/');
-                    } else if (absoluteUrl.endsWith('/')) {
-                        variations.add(absoluteUrl.slice(0, -1));
-                    }
-                } else if (originalUrl.includes('://')) {
-                    // Handle absolute URLs
-                    const urlObj = new URL(originalUrl);
-                    
-                    // Match protocol
-                    if (urlObj.protocol !== protocol) {
-                        variations.add(originalUrl.replace(urlObj.protocol, protocol));
-                    }
-                    
-                    // Match www
-                    if (hasWww && !urlObj.hostname.startsWith('www.')) {
-                        variations.add(originalUrl.replace(urlObj.hostname, 'www.' + urlObj.hostname));
-                    } else if (!hasWww && urlObj.hostname.startsWith('www.')) {
-                        variations.add(originalUrl.replace('www.', ''));
-                    }
-                }
-            } catch (e) {
-                debugLog('Error creating URL variation:', e);
-            }
-        }
+        // Also try with HTTPS
+        variations.add(withoutLangPrefix.replace('http://', 'https://'));
         
-        // Standard variations
-        if (originalUrl.includes('://')) {
-            // Try both http and https
-            variations.add(originalUrl.replace('http://', 'https://'));
-            variations.add(originalUrl.replace('https://', 'http://'));
-            
-            // Try with/without www
-            if (originalUrl.includes('://www.')) {
-                variations.add(originalUrl.replace('://www.', '://'));
-            } else {
-                variations.add(originalUrl.replace('://', '://www.'));
-            }
-            
-            // Try with/without trailing slash
-            if (!originalUrl.includes('?') && !originalUrl.match(/\.[a-z]{2,4}$/i)) {
-                if (originalUrl.endsWith('/')) {
-                    variations.add(originalUrl.slice(0, -1));
-                } else {
-                    variations.add(originalUrl + '/');
-                }
-            }
-        }
-        
-        return Array.from(variations);
+        // Original with HTTPS
+        variations.add(originalUrl.replace('http://', 'https://'));
     }
     
-    // Process each URL
-    for (const url of urls) {
-        processedCount++;
-        
-        const urlVariations = createUrlVariations(url);
-        let foundData = false;
-        
-        // Try each URL variation
-        for (const urlVariation of urlVariations) {
-            if (foundData) break;
-            
-            try {
-                const response = await gapi.client.request({
-                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                    method: 'POST',
-                    body: {
-                        startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                        endDate: today.toISOString().split('T')[0],
-                        dimensions: ['page'],
-                        dimensionFilterGroups: [{
-                            filters: [{
-                                dimension: 'page',
-                                operator: 'equals',
-                                expression: urlVariation
-                            }]
-                        }],
-                        rowLimit: 10
-                    }
-                });
-                
-                const rows = response.result.rows || [];
-                
-                if (rows.length > 0) {
-                    const row = rows[0];
-                    const pageUrl = row.keys[0];
-                    const data = {
-                        clicks: row.clicks || 0,
-                        impressions: row.impressions || 0,
-                        ctr: row.ctr || 0,
-                        position: row.position || 0
-                    };
-                    
-                    // Store with all URL variations for better matching
-                    gscDataMap.set(pageUrl, data);
-                    gscDataMap.set(url, data); // Original URL
-                    gscDataMap.set(urlVariation, data); // Variation that worked
-                    
-                    successCount++;
-                    foundData = true;
-                    
-                    if (successCount <= 5) {
-                        debugLog(`Found data for: ${pageUrl} (matched with: ${urlVariation})`);
-                    }
-                }
-            } catch (error) {
-                // Silently continue to next variation
-            }
-        }
-        
-        // Update progress
-        updateGSCLoadingProgress((processedCount / urls.length) * 100);
-        
-        // Rate limiting
-        if (processedCount % 10 === 0) {
-            debugLog(`Progress: ${processedCount}/${urls.length} URLs processed, ${successCount} with data`);
-            await new Promise(resolve => setTimeout(resolve, 200));
-        } else {
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-    }
-    
-    debugLog(`Fetching complete. Found data for ${successCount} URLs out of ${urls.length} checked`);
-    
-    // If we still have no data, try a different approach
-    if (successCount === 0 && gscUrlFormat) {
-        debugLog('No matches found with exact matching. Trying bulk query...');
-        
-        // Try getting all URLs from GSC and matching them
+    // If we detected GSC format, try to match it
+    if (gscUrlFormat) {
         try {
-            const bulkResponse = await gapi.client.request({
-                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                method: 'POST',
-                body: {
-                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                    endDate: today.toISOString().split('T')[0],
-                    dimensions: ['page'],
-                    rowLimit: 25000 // Get as many as possible
-                }
-            });
+            const gscUrlObj = new URL(gscUrlFormat);
+            const protocol = gscUrlObj.protocol;
+            const hasWww = gscUrlObj.hostname.startsWith('www.');
             
-            const allRows = bulkResponse.result.rows || [];
-            debugLog(`Bulk query returned ${allRows.length} URLs`);
-            
-            // Create a map of normalized URLs
-            const normalizedSitemapUrls = new Map();
-            urls.forEach(url => {
-                const normalized = url.toLowerCase().replace(/\/$/, '');
-                normalizedSitemapUrls.set(normalized, url);
-            });
-            
-            // Match GSC URLs with sitemap URLs
-            allRows.forEach(row => {
-                const gscUrl = row.keys[0];
-                const normalized = gscUrl.toLowerCase().replace(/\/$/, '');
+            // Handle relative URLs
+            if (originalUrl.startsWith('/')) {
+                // Build absolute URL matching GSC format
+                const baseHost = gscUrlObj.hostname;
+                let absoluteUrl = `${protocol}//${baseHost}${originalUrl}`;
+                variations.add(absoluteUrl);
                 
-                if (normalizedSitemapUrls.has(normalized)) {
-                    const originalUrl = normalizedSitemapUrls.get(normalized);
-                    const data = {
-                        clicks: row.clicks || 0,
-                        impressions: row.impressions || 0,
-                        ctr: row.ctr || 0,
-                        position: row.position || 0
-                    };
-                    
-                    gscDataMap.set(gscUrl, data);
-                    gscDataMap.set(originalUrl, data);
-                    successCount++;
+                // If the URL has language prefix, try without it
+                if (originalUrl.includes('/en/') || originalUrl.includes('/ga/')) {
+                    const withoutLang = originalUrl.replace('/en/', '/').replace('/ga/', '/');
+                    variations.add(`${protocol}//${baseHost}${withoutLang}`);
                 }
-            });
-            
-            debugLog(`Bulk matching found ${successCount} matches`);
-        } catch (error) {
-            debugLog('Bulk query failed:', error);
+                
+                // Add with/without trailing slash
+                if (!absoluteUrl.endsWith('/') && !absoluteUrl.includes('?') && !absoluteUrl.match(/\.[a-z]{2,4}$/i)) {
+                    variations.add(absoluteUrl + '/');
+                } else if (absoluteUrl.endsWith('/')) {
+                    variations.add(absoluteUrl.slice(0, -1));
+                }
+            } else if (originalUrl.includes('://')) {
+                // Handle absolute URLs
+                const urlObj = new URL(originalUrl);
+                
+                // Create base transformations
+                let baseUrl = originalUrl;
+                
+                // 1. Match protocol
+                if (urlObj.protocol !== protocol) {
+                    baseUrl = baseUrl.replace(urlObj.protocol, protocol);
+                    variations.add(baseUrl);
+                }
+                
+                // 2. Remove language prefixes if present
+                if (baseUrl.includes('/en/') || baseUrl.includes('/ga/')) {
+                    const withoutLang = baseUrl
+                        .replace('/en/', '/')
+                        .replace('/ga/', '/');
+                    variations.add(withoutLang);
+                    
+                    // Also add HTTPS version without language
+                    variations.add(withoutLang.replace('http://', 'https://'));
+                }
+                
+                // 3. Match www
+                if (hasWww && !urlObj.hostname.startsWith('www.')) {
+                    variations.add(baseUrl.replace(urlObj.hostname, 'www.' + urlObj.hostname));
+                } else if (!hasWww && urlObj.hostname.startsWith('www.')) {
+                    variations.add(baseUrl.replace('www.', ''));
+                }
+            }
+        } catch (e) {
+            debugLog('Error creating URL variation:', e);
         }
     }
     
-    return successCount;
+    // Standard variations
+    if (originalUrl.includes('://')) {
+        // Try both http and https
+        variations.add(originalUrl.replace('http://', 'https://'));
+        variations.add(originalUrl.replace('https://', 'http://'));
+        
+        // Try with/without www
+        if (originalUrl.includes('://www.')) {
+            variations.add(originalUrl.replace('://www.', '://'));
+        } else {
+            variations.add(originalUrl.replace('://', '://www.'));
+        }
+        
+        // Try with/without trailing slash (except for files)
+        if (!originalUrl.includes('?') && !originalUrl.match(/\.[a-z]{2,4}$/i)) {
+            if (originalUrl.endsWith('/')) {
+                variations.add(originalUrl.slice(0, -1));
+            } else {
+                variations.add(originalUrl + '/');
+            }
+        }
+    }
+    
+    // Log first few variations for debugging
+    if (processedCount <= 3) {
+        debugLog(`URL variations for ${originalUrl}:`, Array.from(variations));
+    }
+    
+    return Array.from(variations);
 }
+
+// Also add a quick test function to verify the transformation
+window.GSCIntegration.debug.testUrlTransformation = function(sitemapUrl) {
+    // Simulate the transformation
+    const variations = [];
+    
+    // Original
+    variations.push(sitemapUrl);
+    
+    // Remove language prefix and change to HTTPS
+    if (sitemapUrl.includes('/en/') || sitemapUrl.includes('/ga/')) {
+        const withoutLang = sitemapUrl
+            .replace('/en/', '/')
+            .replace('/ga/', '/')
+            .replace('http://', 'https://');
+        variations.push(withoutLang);
+    }
+    
+    // Just HTTPS
+    variations.push(sitemapUrl.replace('http://', 'https://'));
+    
+    console.log('URL transformation test:');
+    console.log('Original:', sitemapUrl);
+    console.log('Variations:', variations);
+    
+    return variations;
+};
 
     // Show no data message
     function showNoDataMessage() {
