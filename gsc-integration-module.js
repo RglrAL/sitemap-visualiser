@@ -1,4 +1,4 @@
-// gsc-integration.js - Google Search Console Integration Module
+// gsc-integration-gis.js - Updated with new Google Identity Services
 
 (function() {
     // Configuration
@@ -14,12 +14,12 @@
     let gscConnected = false;
     let gscSiteUrl = null;
     let gscDataLoaded = false;
-    let gapiInitialized = false; // Add this variable declaration
+    let tokenClient = null;
+    let accessToken = null;
 
-    // Export to global scope for access from main app
+    // Export to global scope
     window.GSCIntegration = {
         init: initGSCIntegration,
-        handleGAPIReady: handleGAPIReady, // Add this function
         isConnected: () => gscConnected,
         hasData: () => gscDataLoaded,
         getData: (url) => gscDataMap.get(url),
@@ -36,23 +36,121 @@
         // Add styles
         addGSCStyles();
         
+        // Initialize Google API client
+        initializeGoogleAPI();
+        
         // Hook into sitemap loading
         hookIntoSitemapLoader();
         
         // Hook into tooltip display
         hookIntoTooltips();
+    }
+
+    // Initialize Google API with new GIS
+    function initializeGoogleAPI() {
+        // Load the Google API client library
+        if (window.gapi) {
+            gapi.load('client', initializeGapiClient);
+        }
         
-        // Check if Google API is already ready
-        if (window.gapiReady && window.gapi) {
-            handleGAPIReady();
+        // Load the Google Identity Services library
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.onload = initializeGIS;
+        document.head.appendChild(script);
+    }
+
+    // Initialize GAPI client (for API calls only)
+    function initializeGapiClient() {
+        gapi.client.init({
+            apiKey: GSC_CONFIG.API_KEY,
+            discoveryDocs: GSC_CONFIG.DISCOVERY_DOCS,
+        }).then(() => {
+            console.log('Google API client initialized');
+        }).catch((error) => {
+            console.error('Error initializing GAPI client:', error);
+        });
+    }
+
+    // Initialize Google Identity Services
+    function initializeGIS() {
+        console.log('Initializing Google Identity Services...');
+        
+        // Create token client
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GSC_CONFIG.CLIENT_ID,
+            scope: GSC_CONFIG.SCOPES,
+            callback: handleAuthResponse,
+        });
+        
+        console.log('GIS initialized successfully');
+    }
+
+    // Handle authentication response
+    function handleAuthResponse(response) {
+        if (response.error) {
+            console.error('Authentication error:', response);
+            updateConnectionStatus(false);
+            return;
+        }
+        
+        // Store access token
+        accessToken = response.access_token;
+        
+        // Set the token for API calls
+        gapi.client.setToken({ access_token: accessToken });
+        
+        updateConnectionStatus(true);
+        
+        // Fetch GSC data if we have a sitemap loaded
+        if (window.treeData && !gscDataLoaded) {
+            fetchGSCDataForSitemap();
         }
     }
 
-    // Handle when Google API is ready
-    function handleGAPIReady() {
-        console.log('Handling Google API ready state...');
-        if (window.gapi && !gapiInitialized) {
-            gapi.load('client:auth2', initGoogleClient);
+    // Toggle connection
+    function toggleGSCConnection() {
+        if (gscConnected) {
+            // Revoke token and disconnect
+            if (accessToken) {
+                google.accounts.oauth2.revoke(accessToken, () => {
+                    console.log('Access token revoked');
+                });
+            }
+            updateConnectionStatus(false);
+            gscDataMap.clear();
+            gscDataLoaded = false;
+        } else {
+            // Request authorization
+            if (tokenClient) {
+                tokenClient.requestAccessToken();
+            } else {
+                alert('Google Identity Services is still loading. Please try again.');
+            }
+        }
+    }
+
+    // Update connection status
+    function updateConnectionStatus(connected) {
+        gscConnected = connected;
+        const gscBtn = document.getElementById('gscConnectBtn');
+        const gscIcon = document.getElementById('gscIcon');
+        const gscText = document.getElementById('gscText');
+        
+        if (gscBtn) {
+            if (connected) {
+                gscBtn.classList.add('connected');
+                gscBtn.style.background = '#4caf50';
+                gscBtn.style.color = 'white';
+                gscIcon.textContent = '✓';
+                gscText.textContent = 'GSC Connected';
+            } else {
+                gscBtn.classList.remove('connected');
+                gscBtn.style.background = '';
+                gscBtn.style.color = '';
+                gscIcon.textContent = '🔍';
+                gscText.textContent = 'Connect GSC';
+            }
         }
     }
 
@@ -64,17 +162,16 @@
         const gscButton = document.createElement('button');
         gscButton.className = 'nav-btn nav-gsc-btn';
         gscButton.id = 'gscConnectBtn';
-        gscButton.style.display = 'flex'; // Make it visible immediately
         gscButton.onclick = toggleGSCConnection;
         gscButton.innerHTML = `
             <span id="gscIcon">🔍</span>
             <span id="gscText">Connect GSC</span>
         `;
         
-        // Insert before theme button or at the end
-        const themeBtn = navBar.querySelector('.nav-theme-btn');
-        if (themeBtn) {
-            navBar.insertBefore(gscButton, themeBtn);
+        // Insert before Reports dropdown
+        const reportsDropdown = document.getElementById('reportsDropdown');
+        if (reportsDropdown) {
+            navBar.insertBefore(gscButton, reportsDropdown);
         } else {
             navBar.appendChild(gscButton);
         }
@@ -134,84 +231,14 @@
         document.head.appendChild(style);
     }
 
-    // Initialize Google Client
-    function initGoogleClient() {
-        console.log('Initializing Google client...');
-        
-        // Make sure gapi.client exists
-        if (!window.gapi || !window.gapi.client) {
-            console.error('Google API client not available, retrying...');
-            setTimeout(initGoogleClient, 1000);
-            return;
-        }
-        
-        gapi.client.init({
-            apiKey: GSC_CONFIG.API_KEY,
-            clientId: GSC_CONFIG.CLIENT_ID,
-            discoveryDocs: GSC_CONFIG.DISCOVERY_DOCS,
-            scope: GSC_CONFIG.SCOPES
-        }).then(function () {
-            console.log('Google client initialized successfully');
-            gapiInitialized = true;
-            
-            gapi.auth2.getAuthInstance().isSignedIn.listen(updateGSCSigninStatus);
-            updateGSCSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-            
-            const gscBtn = document.getElementById('gscConnectBtn');
-            if (gscBtn) {
-                gscBtn.style.display = 'flex';
-                console.log('GSC button made visible');
-            }
-        }).catch(function(error) {
-            console.error('Error initializing Google API:', error);
-        });
-    }
-
-    function updateGSCSigninStatus(isSignedIn) {
-        gscConnected = isSignedIn;
-        const gscBtn = document.getElementById('gscConnectBtn');
-        const gscIcon = document.getElementById('gscIcon');
-        const gscText = document.getElementById('gscText');
-        
-        if (gscBtn) {
-            if (isSignedIn) {
-                gscBtn.classList.add('connected');
-                gscBtn.style.background = '#4caf50';
-                gscBtn.style.color = 'white';
-                gscIcon.textContent = '✓';
-                gscText.textContent = 'GSC Connected';
-                
-                if (window.treeData && !gscDataLoaded) {
-                    fetchGSCDataForSitemap();
-                }
-            } else {
-                gscBtn.classList.remove('connected');
-                gscBtn.style.background = '';
-                gscBtn.style.color = '';
-                gscIcon.textContent = '🔍';
-                gscText.textContent = 'Connect GSC';
-                gscDataMap.clear();
-                gscDataLoaded = false;
-            }
-        }
-    }
-
-    function toggleGSCConnection() {
-        if (gscConnected) {
-            if (confirm('Disconnect from Google Search Console?')) {
-                gapi.auth2.getAuthInstance().signOut();
-            }
-        } else {
-            gapi.auth2.getAuthInstance().signIn();
-        }
-    }
-
+    // Fetch GSC data for sitemap
     async function fetchGSCDataForSitemap() {
-        if (!window.treeData) return;
+        if (!window.treeData || !accessToken) return;
         
         showGSCLoadingIndicator();
         
         try {
+            // Use the webmasters API directly
             const sitesResponse = await gapi.client.webmasters.sites.list({});
             const sites = sitesResponse.result.siteEntry || [];
             
@@ -221,6 +248,7 @@
                 return;
             }
             
+            // Try to match the current domain
             const currentDomain = window.treeData.name;
             let matchedSite = sites.find(site => 
                 site.siteUrl.includes(currentDomain) || 
@@ -237,6 +265,7 @@
             
             gscSiteUrl = matchedSite.siteUrl;
             
+            // Collect all URLs
             const allUrls = [];
             function collectUrls(node) {
                 if (node.url) allUrls.push(node.url);
@@ -246,6 +275,7 @@
             }
             collectUrls(window.treeData);
             
+            // Fetch data in batches
             await fetchGSCDataInBatches(allUrls);
             
             gscDataLoaded = true;
@@ -256,10 +286,18 @@
         } catch (error) {
             console.error('Error fetching GSC data:', error);
             hideGSCLoadingIndicator();
-            alert('Error loading Search Console data. Please try again.');
+            
+            // Check if token expired
+            if (error.status === 401) {
+                updateConnectionStatus(false);
+                alert('Your session has expired. Please reconnect to Google Search Console.');
+            } else {
+                alert('Error loading Search Console data. Please try again.');
+            }
         }
     }
 
+    // Fetch GSC data in batches
     async function fetchGSCDataInBatches(urls, batchSize = 100) {
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
@@ -463,7 +501,6 @@
 
     // Hook into sitemap loading
     function hookIntoSitemapLoader() {
-        // Wait for parseSitemap to be defined
         const checkAndHook = () => {
             if (window.parseSitemap) {
                 const originalParseSitemap = window.parseSitemap;
@@ -485,7 +522,6 @@
 
     // Hook into tooltip display
     function hookIntoTooltips() {
-        // Wait for showEnhancedTooltip to be defined
         const checkAndHook = () => {
             if (window.showEnhancedTooltip) {
                 const originalShowEnhancedTooltip = window.showEnhancedTooltip;
