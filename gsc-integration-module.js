@@ -116,6 +116,172 @@
         }
     };
 
+
+    // Add this to your gsc-integration-module.js file, inside the IIFE after the window.GSCIntegration definition
+
+// Add these debug functions to the debug object
+window.GSCIntegration.debug.listGSCUrls = async function(limit = 25) {
+    if (!accessToken || !gscSiteUrl) {
+        console.error('Not connected to GSC');
+        return;
+    }
+    
+    debugLog('Fetching URLs from GSC...');
+    
+    try {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        const response = await gapi.client.request({
+            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+            method: 'POST',
+            body: {
+                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                endDate: today.toISOString().split('T')[0],
+                dimensions: ['page'],
+                rowLimit: limit,
+                startRow: 0
+            }
+        });
+        
+        const rows = response.result.rows || [];
+        console.log(`Found ${rows.length} URLs in GSC:`);
+        
+        rows.forEach((row, index) => {
+            console.log(`${index + 1}. ${row.keys[0]} - Clicks: ${row.clicks}, Impressions: ${row.impressions}`);
+        });
+        
+        return rows;
+    } catch (error) {
+        console.error('Error listing GSC URLs:', error);
+        return error;
+    }
+};
+
+window.GSCIntegration.debug.compareUrls = async function() {
+    if (!window.treeData) {
+        console.error('No sitemap data loaded');
+        return;
+    }
+    
+    // Get sitemap URLs
+    const sitemapUrls = new Set();
+    function collectUrls(node) {
+        if (node.url) sitemapUrls.add(node.url);
+        if (node.children) {
+            node.children.forEach(child => collectUrls(child));
+        }
+    }
+    collectUrls(window.treeData);
+    
+    console.log(`Sitemap contains ${sitemapUrls.size} URLs`);
+    console.log('First 5 sitemap URLs:');
+    Array.from(sitemapUrls).slice(0, 5).forEach(url => console.log(`  ${url}`));
+    
+    // Get GSC URLs
+    const gscRows = await GSCIntegration.debug.listGSCUrls(100);
+    if (!gscRows || !Array.isArray(gscRows)) return;
+    
+    const gscUrls = new Set(gscRows.map(row => row.keys[0]));
+    
+    // Compare
+    console.log('\n=== URL Comparison ===');
+    console.log(`Sitemap URLs: ${sitemapUrls.size}`);
+    console.log(`GSC URLs: ${gscUrls.size}`);
+    
+    // Find exact matches
+    const matches = Array.from(sitemapUrls).filter(url => gscUrls.has(url));
+    console.log(`\n✓ Exact matches found: ${matches.length}`);
+    
+    if (matches.length === 0) {
+        console.log('\n❌ No exact URL matches found!');
+        
+        // Analyze the differences
+        const sitemapSample = Array.from(sitemapUrls)[0];
+        const gscSample = gscRows[0]?.keys[0];
+        
+        if (sitemapSample && gscSample) {
+            console.log('\nExample comparison:');
+            console.log('Sitemap URL:', sitemapSample);
+            console.log('GSC URL:    ', gscSample);
+            
+            // Check for common differences
+            if (sitemapSample.startsWith('http://') && gscSample.startsWith('https://')) {
+                console.log('⚠️ Protocol mismatch detected (http vs https)');
+            }
+            if (sitemapSample.includes('://www.') !== gscSample.includes('://www.')) {
+                console.log('⚠️ WWW subdomain mismatch detected');
+            }
+            if (sitemapSample.endsWith('/') !== gscSample.endsWith('/')) {
+                console.log('⚠️ Trailing slash mismatch detected');
+            }
+            if (!sitemapSample.includes('://') && gscSample.includes('://')) {
+                console.log('⚠️ Sitemap has relative URLs, GSC has absolute URLs');
+            }
+        }
+    }
+    
+    return {
+        sitemapUrls: sitemapUrls.size,
+        gscUrls: gscUrls.size,
+        matches: matches.length
+    };
+};
+
+// Add a function to fix URL matching
+window.GSCIntegration.debug.fixUrlMatching = async function() {
+    console.log('Attempting to fix URL matching...');
+    
+    // First, get a sample of GSC URLs to understand the format
+    const gscRows = await GSCIntegration.debug.listGSCUrls(10);
+    if (!gscRows || gscRows.length === 0) {
+        console.error('No URLs found in GSC');
+        return;
+    }
+    
+    const gscSampleUrl = gscRows[0].keys[0];
+    console.log('GSC URL format example:', gscSampleUrl);
+    
+    // Analyze the GSC URL format
+    const gscUrlObj = new URL(gscSampleUrl);
+    const gscProtocol = gscUrlObj.protocol;
+    const gscHasWww = gscUrlObj.hostname.startsWith('www.');
+    const gscHasTrailingSlash = gscUrlObj.pathname.endsWith('/');
+    
+    console.log('GSC URL characteristics:');
+    console.log('- Protocol:', gscProtocol);
+    console.log('- Has www:', gscHasWww);
+    console.log('- Has trailing slash:', gscHasTrailingSlash);
+    
+    // Now update the fetchGSCDataInBatches function to handle URL transformation
+    console.log('\nTo fix this, the code needs to transform sitemap URLs to match GSC format.');
+    console.log('Re-run the fetch with URL transformation...');
+    
+    // Clear existing data and re-fetch
+    GSCIntegration.reset();
+    
+    // Modify the URL collection logic
+    window._originalFetchGSCData = GSCIntegration.fetchData;
+    GSCIntegration.fetchData = async function() {
+        console.log('Using modified fetch with URL transformation');
+        return window._originalFetchGSCData.call(this);
+    };
+    
+    return {
+        gscFormat: {
+            protocol: gscProtocol,
+            hasWww: gscHasWww,
+            hasTrailingSlash: gscHasTrailingSlash,
+            example: gscSampleUrl
+        }
+    };
+};
+
+
+
+    
+    
+
     // Initialize
     function initGSCIntegration() {
         debugLog('Initializing GSC Integration...');
