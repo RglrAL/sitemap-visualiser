@@ -635,18 +635,123 @@ window.GSCIntegration.debug.fixUrlMatching = async function() {
     }
 
     // Fetch GSC data in batches
-    async function fetchGSCDataInBatches(urls, batchSize = 5) {
-        const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    // Replace the existing fetchGSCDataInBatches function with this improved version
+
+async function fetchGSCDataInBatches(urls, batchSize = 5) {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    debugLog(`Fetching data for ${urls.length} URLs`);
+    
+    // First, let's understand what URL format GSC is using
+    let gscUrlFormat = null;
+    try {
+        const testResponse = await gapi.client.request({
+            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+            method: 'POST',
+            body: {
+                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                endDate: today.toISOString().split('T')[0],
+                dimensions: ['page'],
+                rowLimit: 5
+            }
+        });
         
-        debugLog(`Fetching data for ${urls.length} URLs (querying individually)`);
+        if (testResponse.result.rows && testResponse.result.rows.length > 0) {
+            gscUrlFormat = testResponse.result.rows[0].keys[0];
+            debugLog('GSC URL format detected:', gscUrlFormat);
+        }
+    } catch (error) {
+        debugLog('Could not detect GSC URL format:', error);
+    }
+    
+    let successCount = 0;
+    let processedCount = 0;
+    
+    // Create URL variations for better matching
+    function createUrlVariations(originalUrl) {
+        const variations = new Set();
         
-        let successCount = 0;
-        let processedCount = 0;
+        // Add original URL
+        variations.add(originalUrl);
         
-        // Query each URL individually for better accuracy
-        for (const url of urls) {
-            processedCount++;
+        // If we detected GSC format, try to match it
+        if (gscUrlFormat) {
+            try {
+                const gscUrlObj = new URL(gscUrlFormat);
+                const protocol = gscUrlObj.protocol;
+                const hasWww = gscUrlObj.hostname.startsWith('www.');
+                
+                // Handle relative URLs
+                if (originalUrl.startsWith('/')) {
+                    // Build absolute URL matching GSC format
+                    const baseHost = gscUrlObj.hostname;
+                    const absoluteUrl = `${protocol}//${baseHost}${originalUrl}`;
+                    variations.add(absoluteUrl);
+                    
+                    // Add with/without trailing slash
+                    if (!absoluteUrl.endsWith('/') && !absoluteUrl.includes('?') && !absoluteUrl.match(/\.[a-z]{2,4}$/i)) {
+                        variations.add(absoluteUrl + '/');
+                    } else if (absoluteUrl.endsWith('/')) {
+                        variations.add(absoluteUrl.slice(0, -1));
+                    }
+                } else if (originalUrl.includes('://')) {
+                    // Handle absolute URLs
+                    const urlObj = new URL(originalUrl);
+                    
+                    // Match protocol
+                    if (urlObj.protocol !== protocol) {
+                        variations.add(originalUrl.replace(urlObj.protocol, protocol));
+                    }
+                    
+                    // Match www
+                    if (hasWww && !urlObj.hostname.startsWith('www.')) {
+                        variations.add(originalUrl.replace(urlObj.hostname, 'www.' + urlObj.hostname));
+                    } else if (!hasWww && urlObj.hostname.startsWith('www.')) {
+                        variations.add(originalUrl.replace('www.', ''));
+                    }
+                }
+            } catch (e) {
+                debugLog('Error creating URL variation:', e);
+            }
+        }
+        
+        // Standard variations
+        if (originalUrl.includes('://')) {
+            // Try both http and https
+            variations.add(originalUrl.replace('http://', 'https://'));
+            variations.add(originalUrl.replace('https://', 'http://'));
+            
+            // Try with/without www
+            if (originalUrl.includes('://www.')) {
+                variations.add(originalUrl.replace('://www.', '://'));
+            } else {
+                variations.add(originalUrl.replace('://', '://www.'));
+            }
+            
+            // Try with/without trailing slash
+            if (!originalUrl.includes('?') && !originalUrl.match(/\.[a-z]{2,4}$/i)) {
+                if (originalUrl.endsWith('/')) {
+                    variations.add(originalUrl.slice(0, -1));
+                } else {
+                    variations.add(originalUrl + '/');
+                }
+            }
+        }
+        
+        return Array.from(variations);
+    }
+    
+    // Process each URL
+    for (const url of urls) {
+        processedCount++;
+        
+        const urlVariations = createUrlVariations(url);
+        let foundData = false;
+        
+        // Try each URL variation
+        for (const urlVariation of urlVariations) {
+            if (foundData) break;
             
             try {
                 const response = await gapi.client.request({
@@ -660,7 +765,7 @@ window.GSCIntegration.debug.fixUrlMatching = async function() {
                             filters: [{
                                 dimension: 'page',
                                 operator: 'equals',
-                                expression: url
+                                expression: urlVariation
                             }]
                         }],
                         rowLimit: 10
@@ -672,57 +777,99 @@ window.GSCIntegration.debug.fixUrlMatching = async function() {
                 if (rows.length > 0) {
                     const row = rows[0];
                     const pageUrl = row.keys[0];
-                    gscDataMap.set(pageUrl, {
+                    const data = {
                         clicks: row.clicks || 0,
                         impressions: row.impressions || 0,
                         ctr: row.ctr || 0,
                         position: row.position || 0
-                    });
+                    };
                     
-                    // Also store with the original URL if different
-                    if (pageUrl !== url) {
-                        gscDataMap.set(url, {
-                            clicks: row.clicks || 0,
-                            impressions: row.impressions || 0,
-                            ctr: row.ctr || 0,
-                            position: row.position || 0
-                        });
-                    }
+                    // Store with all URL variations for better matching
+                    gscDataMap.set(pageUrl, data);
+                    gscDataMap.set(url, data); // Original URL
+                    gscDataMap.set(urlVariation, data); // Variation that worked
                     
                     successCount++;
+                    foundData = true;
                     
                     if (successCount <= 5) {
-                        debugLog(`Found data for: ${pageUrl}`);
+                        debugLog(`Found data for: ${pageUrl} (matched with: ${urlVariation})`);
                     }
                 }
-                
-                // Update progress
-                updateGSCLoadingProgress((processedCount / urls.length) * 100);
-                
-                // Rate limiting - adjust delay based on number of URLs
-                const delay = urls.length > 100 ? 50 : 100;
-                if (processedCount % 10 === 0) {
-                    debugLog(`Progress: ${processedCount}/${urls.length} URLs processed, ${successCount} with data`);
-                    await new Promise(resolve => setTimeout(resolve, delay * 2)); // Longer pause every 10 URLs
-                } else {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-                
             } catch (error) {
-                if (error.status === 429) {
-                    debugLog('Rate limit hit, waiting 5 seconds...');
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                    // Retry this URL
-                    processedCount--;
-                    continue;
-                } else if (processedCount <= 5) {
-                    console.error(`[GSC Integration] Error fetching data for ${url}:`, error);
-                }
+                // Silently continue to next variation
             }
         }
         
-        debugLog(`Fetching complete. Total URLs with data: ${gscDataMap.size} out of ${urls.length} checked`);
+        // Update progress
+        updateGSCLoadingProgress((processedCount / urls.length) * 100);
+        
+        // Rate limiting
+        if (processedCount % 10 === 0) {
+            debugLog(`Progress: ${processedCount}/${urls.length} URLs processed, ${successCount} with data`);
+            await new Promise(resolve => setTimeout(resolve, 200));
+        } else {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
     }
+    
+    debugLog(`Fetching complete. Found data for ${successCount} URLs out of ${urls.length} checked`);
+    
+    // If we still have no data, try a different approach
+    if (successCount === 0 && gscUrlFormat) {
+        debugLog('No matches found with exact matching. Trying bulk query...');
+        
+        // Try getting all URLs from GSC and matching them
+        try {
+            const bulkResponse = await gapi.client.request({
+                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                method: 'POST',
+                body: {
+                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0],
+                    dimensions: ['page'],
+                    rowLimit: 25000 // Get as many as possible
+                }
+            });
+            
+            const allRows = bulkResponse.result.rows || [];
+            debugLog(`Bulk query returned ${allRows.length} URLs`);
+            
+            // Create a map of normalized URLs
+            const normalizedSitemapUrls = new Map();
+            urls.forEach(url => {
+                const normalized = url.toLowerCase().replace(/\/$/, '');
+                normalizedSitemapUrls.set(normalized, url);
+            });
+            
+            // Match GSC URLs with sitemap URLs
+            allRows.forEach(row => {
+                const gscUrl = row.keys[0];
+                const normalized = gscUrl.toLowerCase().replace(/\/$/, '');
+                
+                if (normalizedSitemapUrls.has(normalized)) {
+                    const originalUrl = normalizedSitemapUrls.get(normalized);
+                    const data = {
+                        clicks: row.clicks || 0,
+                        impressions: row.impressions || 0,
+                        ctr: row.ctr || 0,
+                        position: row.position || 0
+                    };
+                    
+                    gscDataMap.set(gscUrl, data);
+                    gscDataMap.set(originalUrl, data);
+                    successCount++;
+                }
+            });
+            
+            debugLog(`Bulk matching found ${successCount} matches`);
+        } catch (error) {
+            debugLog('Bulk query failed:', error);
+        }
+    }
+    
+    return successCount;
+}
 
     // Show no data message
     function showNoDataMessage() {
