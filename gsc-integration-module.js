@@ -19,13 +19,13 @@
 
     // Export to global scope
     window.GSCIntegration = {
-        init: initGSCIntegration,
-        isConnected: () => gscConnected,
-        hasData: () => gscDataLoaded,
-        getData: (url) => gscDataMap.get(url),
-        toggleConnection: toggleGSCConnection
-    };
-
+    init: initGSCIntegration,
+    isConnected: () => gscConnected,
+    hasData: () => gscDataLoaded,
+    getData: (url) => gscDataMap.get(url),
+    toggleConnection: toggleGSCConnection,
+    fetchData: fetchGSCDataForSitemap  // ADD THIS
+};
     // Initialize the integration
     function initGSCIntegration() {
         console.log('GSC Integration initializing...');
@@ -101,6 +101,11 @@
         gapi.client.setToken({ access_token: accessToken });
         
         updateConnectionStatus(true);
+
+        // Add logging to debug
+    console.log('Auth successful. Checking for sitemap...');
+    console.log('Tree data exists:', !!window.treeData);
+    console.log('GSC data already loaded:', gscDataLoaded);
         
         // Fetch GSC data if we have a sitemap loaded
         if (window.treeData && !gscDataLoaded) {
@@ -501,24 +506,26 @@
 
     // Hook into sitemap loading
     function hookIntoSitemapLoader() {
-        const checkAndHook = () => {
-            if (window.parseSitemap) {
-                const originalParseSitemap = window.parseSitemap;
-                window.parseSitemap = function(xmlString, source) {
-                    originalParseSitemap(xmlString, source);
-                    
-                    if (gscConnected && !gscDataLoaded) {
-                        setTimeout(() => {
-                            fetchGSCDataForSitemap();
-                        }, 1000);
+    const checkAndHook = () => {
+        if (window.parseSitemap) {
+            const originalParseSitemap = window.parseSitemap;
+            window.parseSitemap = function(xmlString, source) {
+                originalParseSitemap(xmlString, source);
+                
+                // Add a delay and check
+                setTimeout(() => {
+                    if (gscConnected && !gscDataLoaded && window.treeData) {
+                        console.log('Sitemap loaded, fetching GSC data...');
+                        fetchGSCDataForSitemap();
                     }
-                };
-            } else {
-                setTimeout(checkAndHook, 100);
-            }
-        };
-        checkAndHook();
-    }
+                }, 2000); // Give time for tree to render
+            };
+        } else {
+            setTimeout(checkAndHook, 100);
+        }
+    };
+    checkAndHook();
+}
 
     // Hook into tooltip display
     function hookIntoTooltips() {
