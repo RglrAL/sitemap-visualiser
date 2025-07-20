@@ -1,4 +1,4 @@
-// gsc-integration-module.js - Enhanced Content Writer Version
+// gsc-integration-module.js - Enhanced Content Writer Version with Improved Display
 
 (function() {
     // Configuration
@@ -1012,7 +1012,7 @@
         checkAndAdd();
     }
 
-    // Add styles
+    // Add styles with all enhancements
     function addGSCStyles() {
         if (document.getElementById('gsc-styles')) return;
         
@@ -1073,6 +1073,623 @@
                     padding: 0.5rem !important;
                     min-width: auto !important;
                 }
+            }
+
+            /* Enhanced Tooltip Header */
+            .tooltip-header-enhanced {
+                background: linear-gradient(135deg, #1f4788 0%, #2563eb 100%);
+                color: white;
+                padding: 12px 15px;
+                margin: -10px -15px 15px -15px;
+                border-radius: 8px 8px 0 0;
+            }
+
+            .tooltip-title-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+            }
+
+            .tooltip-page-title {
+                font-weight: 600;
+                font-size: 1rem;
+                line-height: 1.2;
+            }
+
+            .tooltip-url {
+                font-size: 0.75rem;
+                opacity: 0.9;
+                word-break: break-all;
+                margin-top: 4px;
+                font-family: monospace;
+            }
+
+            .tooltip-freshness {
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.7rem;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .freshness-new { background: rgba(76, 175, 80, 0.2); color: #2e7d32; }
+            .freshness-fresh { background: rgba(139, 195, 74, 0.2); color: #558b2f; }
+            .freshness-recent { background: rgba(255, 193, 7, 0.2); color: #f57f17; }
+            .freshness-aging { background: rgba(255, 152, 0, 0.2); color: #ef6c00; }
+            .freshness-old { background: rgba(255, 87, 34, 0.2); color: #d84315; }
+            .freshness-stale { background: rgba(244, 67, 54, 0.2); color: #c62828; }
+
+            /* Enhanced GSC Section */
+            .gsc-section-enhanced {
+                background: #f8faff;
+                border: 1px solid #e3f2fd;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .gsc-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+
+            .gsc-header-left {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .gsc-icon {
+                font-size: 1.1rem;
+            }
+
+            .gsc-title {
+                font-weight: 600;
+                color: #1f4788;
+                font-size: 0.95rem;
+            }
+
+            .gsc-period {
+                font-size: 0.75rem;
+                color: #666;
+                font-style: italic;
+            }
+
+            /* Status Indicators */
+            .gsc-status {
+                padding: 3px 8px;
+                border-radius: 12px;
+                font-size: 0.7rem;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .status-excellent { background: #e8f5e8; color: #2e7d32; }
+            .status-good { background: #e3f2fd; color: #1565c0; }
+            .status-attention { background: #fff3e0; color: #ef6c00; }
+            .status-opportunity { background: #fff8e1; color: #f57f17; }
+            .status-low { background: #fce4ec; color: #c2185b; }
+            .status-average { background: #f5f5f5; color: #616161; }
+            .status-none { background: #f0f0f0; color: #757575; }
+
+            /* Loading States */
+            .gsc-loading {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.8rem;
+                color: #666;
+            }
+
+            .loading-spinner {
+                width: 12px;
+                height: 12px;
+                border: 2px solid #e0e0e0;
+                border-top: 2px solid #1f4788;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            .gsc-loading-placeholder {
+                padding: 20px;
+                text-align: center;
+                color: #666;
+                font-style: italic;
+            }
+
+            .gsc-no-data {
+                padding: 15px;
+                text-align: center;
+                color: #666;
+            }
+
+            .no-data-text {
+                font-size: 0.9rem;
+                margin-bottom: 4px;
+            }
+
+            .no-data-suggestion {
+                font-size: 0.8rem;
+                font-style: italic;
+                opacity: 0.8;
+            }
+
+            /* Metrics Grid */
+            .gsc-metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .metric-card {
+                background: white;
+                border: 1px solid #e8eaed;
+                border-radius: 6px;
+                padding: 10px;
+                text-align: center;
+                position: relative;
+            }
+
+            .metric-header {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                margin-bottom: 4px;
+            }
+
+            .metric-icon {
+                font-size: 0.9rem;
+            }
+
+            .metric-label {
+                font-size: 0.75rem;
+                color: #666;
+                font-weight: 500;
+            }
+
+            .metric-value {
+                font-size: 1.1rem;
+                font-weight: bold;
+                color: #1f4788;
+                line-height: 1.2;
+            }
+
+            .metric-trend {
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                font-size: 0.65rem;
+                padding: 1px 4px;
+                border-radius: 8px;
+                font-weight: 500;
+            }
+
+            .trend-up {
+                background: #e8f5e8;
+                color: #2e7d32;
+            }
+
+            .trend-down {
+                background: #ffebee;
+                color: #c62828;
+            }
+
+            /* Top Queries Section */
+            .gsc-queries-section {
+                margin-bottom: 12px;
+            }
+
+            .section-header {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+
+            .section-icon {
+                font-size: 0.9rem;
+            }
+
+            .section-title {
+                font-weight: 600;
+                color: #1f4788;
+                font-size: 0.85rem;
+            }
+
+            .query-count {
+                font-size: 0.7rem;
+                color: #666;
+                margin-left: auto;
+            }
+
+            .queries-list {
+                background: white;
+                border-radius: 6px;
+                overflow: hidden;
+                border: 1px solid #e8eaed;
+            }
+
+            .query-item {
+                padding: 8px 10px;
+                border-bottom: 1px solid #f0f0f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .query-item:last-child {
+                border-bottom: none;
+            }
+
+            .query-main {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .query-rank {
+                background: #f5f5f5;
+                color: #666;
+                font-size: 0.7rem;
+                padding: 2px 5px;
+                border-radius: 4px;
+                font-weight: 500;
+                min-width: 20px;
+                text-align: center;
+            }
+
+            .query-text {
+                font-size: 0.8rem;
+                font-weight: 500;
+                color: #333;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .query-opportunity {
+                font-size: 0.8rem;
+                margin-left: 4px;
+            }
+
+            .query-stats {
+                display: flex;
+                gap: 6px;
+                font-size: 0.7rem;
+                color: #666;
+            }
+
+            .stat-clicks, .stat-position, .stat-ctr {
+                padding: 2px 4px;
+                background: #f8f9fa;
+                border-radius: 3px;
+                font-weight: 500;
+            }
+
+            /* Query Priority Colors */
+            .query-top { background: #e8f5e8; }
+            .query-rank-opp { background: #fff8e1; }
+            .query-ctr-opp { background: #e3f2fd; }
+            .query-normal { background: white; }
+
+            /* Opportunities Alert */
+            .gsc-opportunities-alert {
+                background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+                border: 1px solid #ffcc02;
+                border-radius: 6px;
+                padding: 10px;
+                margin-bottom: 12px;
+            }
+
+            .opportunity-header {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 6px;
+            }
+
+            .opportunity-icon {
+                font-size: 1rem;
+            }
+
+            .opportunity-title {
+                font-weight: 600;
+                color: #e65100;
+                font-size: 0.85rem;
+            }
+
+            .opportunity-potential {
+                font-size: 0.7rem;
+                color: #ef6c00;
+                margin-left: auto;
+                font-weight: 500;
+            }
+
+            .opportunity-preview {
+                space-y: 4px;
+            }
+
+            .opportunity-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 0.75rem;
+                padding: 3px 0;
+            }
+
+            .opportunity-query {
+                font-weight: 500;
+                color: #333;
+            }
+
+            .opportunity-stats {
+                color: #666;
+                font-size: 0.7rem;
+            }
+
+            .opportunity-more {
+                text-align: center;
+                font-size: 0.7rem;
+                color: #ef6c00;
+                font-style: italic;
+                margin-top: 4px;
+            }
+
+            /* Insights Section */
+            .gsc-insights-section {
+                margin-bottom: 12px;
+            }
+
+            .insight-item {
+                border-radius: 6px;
+                padding: 10px;
+                border-left: 3px solid #ccc;
+            }
+
+            .insight-header {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 4px;
+            }
+
+            .insight-icon {
+                font-size: 0.9rem;
+            }
+
+            .insight-title {
+                font-weight: 600;
+                font-size: 0.85rem;
+                color: #333;
+            }
+
+            .insight-priority {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+                border-radius: 8px;
+                font-weight: 500;
+                margin-left: auto;
+            }
+
+            .insight-description {
+                font-size: 0.8rem;
+                color: #555;
+                line-height: 1.3;
+            }
+
+            .insights-more {
+                text-align: center;
+                font-size: 0.7rem;
+                color: #666;
+                font-style: italic;
+                margin-top: 6px;
+            }
+
+            /* Priority Classes */
+            .priority-high {
+                background: #ffebee;
+                border-left-color: #f44336;
+            }
+
+            .priority-medium {
+                background: #fff3e0;
+                border-left-color: #ff9800;
+            }
+
+            .priority-low {
+                background: #e8f5e8;
+                border-left-color: #4caf50;
+            }
+
+            .priority-critical {
+                background: #fce4ec;
+                border-left-color: #e91e63;
+            }
+
+            .priority-high .insight-priority {
+                background: #ffcdd2;
+                color: #c62828;
+            }
+
+            .priority-medium .insight-priority {
+                background: #ffe0b2;
+                color: #e65100;
+            }
+
+            .priority-low .insight-priority {
+                background: #c8e6c9;
+                color: #2e7d32;
+            }
+
+            .priority-critical .insight-priority {
+                background: #f8bbd9;
+                color: #ad1457;
+            }
+
+            /* Site Structure Section */
+            .structure-section {
+                background: #fafafa;
+                border-radius: 6px;
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+
+            .structure-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+
+            .structure-item {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.8rem;
+            }
+
+            .structure-icon {
+                font-size: 0.9rem;
+                width: 16px;
+                text-align: center;
+            }
+
+            .structure-label {
+                color: #666;
+                font-weight: 500;
+            }
+
+            .structure-value {
+                color: #333;
+                font-weight: 600;
+                margin-left: auto;
+            }
+
+            .structure-meta {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.75rem;
+                color: #666;
+                padding-top: 8px;
+                border-top: 1px solid #e0e0e0;
+            }
+
+            .meta-icon {
+                font-size: 0.8rem;
+            }
+
+            /* Actions Sections */
+            .gsc-actions {
+                display: flex;
+                gap: 6px;
+                justify-content: center;
+            }
+
+            .actions-section {
+                display: flex;
+                gap: 8px;
+                justify-content: center;
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #e0e0e0;
+            }
+
+            .gsc-action-btn, .action-btn {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                padding: 6px 12px;
+                border: none;
+                border-radius: 5px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-decoration: none;
+            }
+
+            .gsc-action-btn.primary, .action-btn.primary {
+                background: #4a90e2;
+                color: white;
+            }
+
+            .gsc-action-btn.primary:hover, .action-btn.primary:hover {
+                background: #357abd;
+                transform: translateY(-1px);
+            }
+
+            .gsc-action-btn.secondary, .action-btn.secondary {
+                background: #f0f0f0;
+                color: #666;
+                border: 1px solid #ddd;
+            }
+
+            .gsc-action-btn.secondary:hover, .action-btn.secondary:hover {
+                background: #e0e0e0;
+                color: #333;
+            }
+
+            .btn-icon {
+                font-size: 0.8rem;
+            }
+
+            /* Responsive Adjustments */
+            @media (max-width: 400px) {
+                .gsc-metrics-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .structure-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .actions-section, .gsc-actions {
+                    flex-direction: column;
+                }
+                
+                .tooltip-title-row {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 4px;
+                }
+            }
+
+            .gsc-section-enhanced {
+                animation: fadeInUp 0.3s ease;
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Improved tooltip container */
+            .enhanced-tooltip {
+                max-width: 380px;
+                min-width: 320px;
+                font-size: 14px;
+                line-height: 1.4;
+            }
+
+            .enhanced-tooltip.visible {
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             }
         `;
         document.head.appendChild(style);
@@ -1141,13 +1758,13 @@
         checkAndHook();
     }
 
-    // Hook into tooltips
+    // Hook into tooltips with enhanced display
     function hookIntoTooltips() {
         const checkAndHook = () => {
             if (window.showEnhancedTooltip) {
                 const originalShowEnhancedTooltip = window.showEnhancedTooltip;
                 window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
-                    showEnhancedTooltipWithGSC(event, d, isLoadingGSC);
+                    showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC);
                 };
                 debugLog('Hooked into tooltip display');
             } else {
@@ -1157,8 +1774,12 @@
         checkAndHook();
     }
 
-    // Enhanced tooltip with comprehensive GSC data
-    function showEnhancedTooltipWithGSC(event, d, isLoadingGSC = false) {
+    // ============================================================================
+    // ENHANCED TOOLTIP DISPLAY FUNCTIONS
+    // ============================================================================
+
+    // Enhanced tooltip with improved GSC data display
+    function showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC = false) {
         if (!window.enhancedTooltip || !d.data) return;
         
         const data = d.data;
@@ -1170,12 +1791,12 @@
             fetchNodeGSCData(data).then(() => {
                 const currentTooltip = document.querySelector('.enhanced-tooltip.visible');
                 if (currentTooltip) {
-                    showEnhancedTooltipWithGSC(event, d, false);
+                    showEnhancedTooltipWithImprovedGSC(event, d, false);
                 }
             });
         }
         
-        // Calculate freshness
+        // Calculate freshness and basic info
         let freshnessClass = '';
         let freshnessLabel = 'No date';
         if (data.lastModified) {
@@ -1203,10 +1824,9 @@
             }
         }
         
-        // Calculate descendant count and sibling count
+        // Calculate descendant/sibling counts
         let descendantCount = 0;
         let siblingCount = 0;
-
         function countDescendants(node) {
             if (node.children) {
                 descendantCount += node.children.length;
@@ -1223,211 +1843,42 @@
                            d.parent._children ? d.parent._children.length : 0) - 1;
         }
         
-        // Build popup content
         const isLeaf = !d.children && !d._children;
         const nodeType = d.depth === 0 ? 'Root' : 
                         d.depth === 1 ? 'Language/Category' :
                         isLeaf ? 'Page' : 'Section';
         
+        // Start building the enhanced tooltip
         let html = `
-            <div class="tooltip-header">
-                <span>${data.name}</span>
-                <span class="tooltip-freshness ${freshnessClass}">${freshnessLabel}</span>
-            </div>
-            <div class="tooltip-content">
-                <div class="tooltip-stats">
-                    <div class="tooltip-stat">
-                        <div class="tooltip-stat-value">${d.depth}</div>
-                        <div class="tooltip-stat-label">Depth Level</div>
-                    </div>
-                    <div class="tooltip-stat">
-                        <div class="tooltip-stat-value">${isLeaf ? siblingCount : descendantCount}</div>
-                        <div class="tooltip-stat-label">${isLeaf ? 'Sibling Pages' : 'Child Pages'}</div>
-                    </div>
-                    ${data.pageCount ? `
-                    <div class="tooltip-stat">
-                        <div class="tooltip-stat-value">${data.pageCount}</div>
-                        <div class="tooltip-stat-label">Total Pages</div>
-                    </div>
-                    ` : ''}
-                    <div class="tooltip-stat">
-                        <div class="tooltip-stat-value">${nodeType}</div>
-                        <div class="tooltip-stat-label">Type</div>
-                    </div>
+            <div class="tooltip-header-enhanced">
+                <div class="tooltip-title-row">
+                    <span class="tooltip-page-title">${data.name}</span>
+                    <span class="tooltip-freshness ${freshnessClass}">${freshnessLabel}</span>
                 </div>
-                
-                <div class="tooltip-meta">
-                    ${data.url ? `
-                    <div class="tooltip-meta-item">
-                        <span class="tooltip-meta-icon">🔗</span>
-                        <span style="word-break: break-all; color: #1f4788;">${data.url}</span>
-                    </div>
-                    ` : ''}
-                    
-                    ${data.lastModified ? `
-                    <div class="tooltip-meta-item">
-                        <span class="tooltip-meta-icon">📅</span>
-                        <span>Last updated: ${formatDate(new Date(data.lastModified))}</span>
-                    </div>
-                    ` : ''}
-                    
-                    ${data.fullPath ? `
-                    <div class="tooltip-meta-item">
-                        <span class="tooltip-meta-icon">📍</span>
-                        <span>Path: /${data.fullPath}</span>
-                    </div>
-                    ` : ''}
-                </div>`;
+                ${data.url ? `<div class="tooltip-url">${data.url}</div>` : ''}
+            </div>
+        `;
         
-        // Add enhanced GSC section with comprehensive content data
+        // GSC Performance Section
         if (gscConnected && data.url) {
             const gscData = gscDataMap.get(data.url);
             
             if (isLoadingGSC || (!gscData && !gscDataMap.has(data.url))) {
-                // Loading state
-                html += `
-                    <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                        <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                            <span>🔍</span> Search Performance
-                            <div class="gsc-loading-spinner" style="margin-left: auto; width: 16px; height: 16px; border: 2px solid #e0e0e0; border-top: 2px solid #1f4788; border-radius: 50%;"></div>
-                        </div>
-                        <div style="color: #666; font-style: italic; font-size: 0.9rem;">Loading data...</div>
-                    </div>
-                `;
+                html += createGSCLoadingSection();
             } else if (gscData && !gscData.noDataFound) {
-                // Rich content writer data
-                html += `
-                    <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                        <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                            <span>📊</span> Search Performance (30 days)
-                            ${gscData.trend ? `
-                                <div style="margin-left: auto; font-size: 0.7rem;">
-                                    <span style="color: ${gscData.trend.clicksChange >= 0 ? '#4caf50' : '#f44336'}">
-                                        ${gscData.trend.clicksChange > 0 ? '+' : ''}${gscData.trend.clicksChange}% clicks
-                                    </span>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <!-- Performance Metrics -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <div style="background: #f8f9ff; padding: 6px; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 1.1rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
-                                <div style="font-size: 0.7rem; color: #666;">Clicks</div>
-                            </div>
-                            <div style="background: #f8f9ff; padding: 6px; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 1.1rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
-                                <div style="font-size: 0.7rem; color: #666;">Impressions</div>
-                            </div>
-                            <div style="background: #f8f9ff; padding: 6px; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 1.1rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                                <div style="font-size: 0.7rem; color: #666;">CTR</div>
-                            </div>
-                            <div style="background: #f8f9ff; padding: 6px; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 1.1rem; font-weight: bold; color: #4a90e2;">#${gscData.position.toFixed(0)}</div>
-                                <div style="font-size: 0.7rem; color: #666;">Position</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Top Queries -->
-                        ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                        <div style="margin-bottom: 8px;">
-                            <div style="font-size: 0.8rem; font-weight: 600; color: #1f4788; margin-bottom: 4px;">🔍 Top Search Terms:</div>
-                            ${gscData.topQueries.slice(0, 3).map(query => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; 
-                                            background: #f0f8ff; padding: 3px 6px; margin: 2px 0; border-radius: 3px; font-size: 0.75rem;">
-                                    <span style="font-weight: 500;">"${query.query}"</span>
-                                    <div style="display: flex; gap: 8px; color: #666;">
-                                        <span>${query.clicks}c</span>
-                                        <span>#${query.position.toFixed(0)}</span>
-                                        ${query.opportunity ? `<span style="color: #ff9800;">⚡</span>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        ` : ''}
-                        
-                        <!-- Content Opportunities -->
-                        ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-                        <div style="margin-bottom: 8px;">
-                            <div style="font-size: 0.8rem; font-weight: 600; color: #ff9800; margin-bottom: 4px;">⚡ Optimization Opportunities:</div>
-                            ${gscData.opportunities.slice(0, 2).map(opp => `
-                                <div style="background: #fff8e1; padding: 3px 6px; margin: 2px 0; border-radius: 3px; font-size: 0.75rem;">
-                                    <div style="font-weight: 500;">"${opp.query}"</div>
-                                    <div style="color: #666; display: flex; justify-content: space-between;">
-                                        <span>${opp.impressions} impressions</span>
-                                        <span style="color: #ff9800;">+${opp.potentialClicks} potential clicks</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        ` : ''}
-                        
-                        <!-- Quick Insights -->
-                        ${gscData.insights && gscData.insights.length > 0 ? `
-                        <div style="background: #e8f5e8; padding: 6px; border-radius: 4px; font-size: 0.75rem;">
-                            <div style="font-weight: 600; color: #2e7d32; margin-bottom: 2px;">💡 Content Insight:</div>
-                            <div style="color: #1b5e20;">${gscData.insights[0].description}</div>
-                        </div>
-                        ` : ''}
-                        
-                        <!-- Action Button -->
-                        <div style="margin-top: 6px; text-align: center;">
-                            <button onclick="showDetailedGSCAnalysis('${data.url}')" 
-                                    style="background: #4a90e2; color: white; border: none; padding: 4px 8px; 
-                                           border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
-                                📈 Full Analysis
-                            </button>
-                        </div>
-                    </div>
-                `;
+                html += createEnhancedGSCSection(gscData);
             } else if (gscData && gscData.noDataFound) {
-                // No data found
-                html += `
-                    <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                        <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                            <span>🔍</span> Search Performance
-                        </div>
-                        <div style="color: #666; font-style: italic; font-size: 0.9rem;">No search data available</div>
-                    </div>
-                `;
+                html += createNoGSCDataSection();
             }
         }
         
-        // Actions
-        html += `
-                ${data.url ? `
-                <div class="tooltip-actions">
-                    <a href="${data.url}" target="_blank" class="tooltip-action-btn">
-                        <span>🔗</span>
-                        <span>Visit Page</span>
-                    </a>
-                    <button class="tooltip-action-btn" onclick="window.focusOnNode('${d.id || data.name}')">
-                        <span>🎯</span>
-                        <span>Focus</span>
-                    </button>
-                    <button class="tooltip-action-btn" onclick="window.expandBranch('${d.id || data.name}')">
-                        <span>🌳</span>
-                        <span>Expand</span>
-                    </button>
-                </div>
-                ` : `
-                <div class="tooltip-actions">
-                    <button class="tooltip-action-btn" onclick="window.focusOnNode('${d.id || data.name}')">
-                        <span>🎯</span>
-                        <span>Focus View</span>
-                    </button>
-                    ${!isLeaf ? `
-                    <button class="tooltip-action-btn" onclick="window.toggleNode('${d.id || data.name}')">
-                        <span>${d.children ? '➖' : '➕'}</span>
-                        <span>${d.children ? 'Collapse' : 'Expand'}</span>
-                    </button>
-                    ` : ''}
-                </div>
-                `}
-            </div>
-        `;
+        // Basic site structure info
+        html += createSiteStructureSection(d, nodeType, descendantCount, siblingCount, isLeaf, data);
         
+        // Actions section
+        html += createActionsSection(data, d, isLeaf);
+        
+        // Apply the HTML and show tooltip
         window.enhancedTooltip.html(html);
         
         // Position tooltip
@@ -1475,6 +1926,371 @@
                     });
             });
     }
+
+    // Create enhanced GSC section with better layout
+    function createEnhancedGSCSection(gscData) {
+        const performanceStatus = analyzePerformanceStatus(gscData);
+        
+        return `
+            <div class="gsc-section-enhanced">
+                <!-- Header with Status Indicator -->
+                <div class="gsc-header">
+                    <div class="gsc-header-left">
+                        <span class="gsc-icon">📊</span>
+                        <span class="gsc-title">Search Performance</span>
+                        <span class="gsc-period">(30 days)</span>
+                    </div>
+                    <div class="gsc-status ${performanceStatus.class}">
+                        ${performanceStatus.icon} ${performanceStatus.label}
+                    </div>
+                </div>
+                
+                <!-- Key Metrics Grid -->
+                <div class="gsc-metrics-grid">
+                    ${createMetricCard('Clicks', gscData.clicks, gscData.trend?.clicksChange, '👆')}
+                    ${createMetricCard('Impressions', gscData.impressions, gscData.trend?.impressionsChange, '👀', true)}
+                    ${createMetricCard('CTR', `${(gscData.ctr * 100).toFixed(1)}%`, null, '🎯')}
+                    ${createMetricCard('Position', `#${gscData.position.toFixed(0)}`, gscData.trend?.positionChange, '📍')}
+                </div>
+                
+                <!-- Top Queries Compact View -->
+                ${gscData.topQueries && gscData.topQueries.length > 0 ? 
+                    createTopQueriesSection(gscData.topQueries) : ''}
+                
+                <!-- Opportunities Alert -->
+                ${gscData.opportunities && gscData.opportunities.length > 0 ? 
+                    createOpportunitiesAlert(gscData.opportunities) : ''}
+                
+                <!-- Performance Insights -->
+                ${gscData.insights && gscData.insights.length > 0 ? 
+                    createInsightsSection(gscData.insights) : ''}
+                
+                <!-- Quick Actions -->
+                <div class="gsc-actions">
+                    <button class="gsc-action-btn primary" onclick="showDetailedGSCAnalysis('${gscData.url}')">
+                        📈 Full Analysis
+                    </button>
+                    <button class="gsc-action-btn secondary" onclick="exportQuickGSCData('${gscData.url}')">
+                        📋 Export
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Create individual metric cards with trend indicators
+    function createMetricCard(label, value, trendValue, icon, useK = false) {
+        let displayValue = value;
+        if (useK && value >= 1000) {
+            displayValue = (value / 1000).toFixed(1) + 'K';
+        } else if (typeof value === 'number') {
+            displayValue = value.toLocaleString();
+        }
+        
+        let trendHtml = '';
+        if (trendValue !== null && trendValue !== undefined) {
+            const trendNum = parseFloat(trendValue);
+            const trendClass = trendNum >= 0 ? 'trend-up' : 'trend-down';
+            const trendIcon = trendNum >= 0 ? '↗' : '↘';
+            trendHtml = `<div class="metric-trend ${trendClass}">${trendIcon} ${Math.abs(trendNum)}%</div>`;
+        }
+        
+        return `
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-icon">${icon}</span>
+                    <span class="metric-label">${label}</span>
+                </div>
+                <div class="metric-value">${displayValue}</div>
+                ${trendHtml}
+            </div>
+        `;
+    }
+
+    // Analyze performance status for quick visual indicator
+    function analyzePerformanceStatus(gscData) {
+        const ctr = gscData.ctr * 100;
+        const position = gscData.position;
+        const clicks = gscData.clicks;
+        
+        // Excellent performance
+        if (position <= 3 && ctr >= 8 && clicks >= 100) {
+            return { class: 'status-excellent', icon: '🚀', label: 'Excellent' };
+        }
+        
+        // Good performance  
+        if (position <= 5 && ctr >= 5) {
+            return { class: 'status-good', icon: '✅', label: 'Good' };
+        }
+        
+        // Needs attention
+        if (position <= 10 && (ctr < 3 || (gscData.impressions > 500 && clicks < 50))) {
+            return { class: 'status-attention', icon: '⚠️', label: 'Needs Attention' };
+        }
+        
+        // Opportunity (high impressions, poor position)
+        if (position > 10 && gscData.impressions > 100) {
+            return { class: 'status-opportunity', icon: '⚡', label: 'Opportunity' };
+        }
+        
+        // Low visibility
+        if (gscData.impressions < 50) {
+            return { class: 'status-low', icon: '📉', label: 'Low Visibility' };
+        }
+        
+        return { class: 'status-average', icon: '📊', label: 'Average' };
+    }
+
+    // Create compact top queries section
+    function createTopQueriesSection(topQueries) {
+        const topThree = topQueries.slice(0, 3);
+        
+        return `
+            <div class="gsc-queries-section">
+                <div class="section-header">
+                    <span class="section-icon">🔍</span>
+                    <span class="section-title">Top Search Terms</span>
+                    <span class="query-count">${topQueries.length} total</span>
+                </div>
+                <div class="queries-list">
+                    ${topThree.map((query, index) => `
+                        <div class="query-item ${getQueryPriorityClass(query)}">
+                            <div class="query-main">
+                                <span class="query-rank">#${index + 1}</span>
+                                <span class="query-text">"${truncateQuery(query.query)}"</span>
+                                ${query.opportunity ? `<span class="query-opportunity">⚡</span>` : ''}
+                            </div>
+                            <div class="query-stats">
+                                <span class="stat-clicks">${query.clicks}c</span>
+                                <span class="stat-position">#${query.position.toFixed(0)}</span>
+                                <span class="stat-ctr">${(query.ctr * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Create opportunities alert section
+    function createOpportunitiesAlert(opportunities) {
+        const totalPotential = opportunities.reduce((sum, opp) => sum + opp.potentialClicks, 0);
+        
+        return `
+            <div class="gsc-opportunities-alert">
+                <div class="opportunity-header">
+                    <span class="opportunity-icon">⚡</span>
+                    <span class="opportunity-title">Quick Win Opportunities</span>
+                    <span class="opportunity-potential">+${totalPotential} potential clicks</span>
+                </div>
+                <div class="opportunity-preview">
+                    ${opportunities.slice(0, 2).map(opp => `
+                        <div class="opportunity-item">
+                            <span class="opportunity-query">"${truncateQuery(opp.query)}"</span>
+                            <span class="opportunity-stats">${opp.impressions} imp • +${opp.potentialClicks}c</span>
+                        </div>
+                    `).join('')}
+                    ${opportunities.length > 2 ? `<div class="opportunity-more">+${opportunities.length - 2} more</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // Create insights section
+    function createInsightsSection(insights) {
+        const primaryInsight = insights[0];
+        
+        return `
+            <div class="gsc-insights-section">
+                <div class="insight-item ${getPriorityClass(primaryInsight.priority)}">
+                    <div class="insight-header">
+                        <span class="insight-icon">${getInsightIcon(primaryInsight.type)}</span>
+                        <span class="insight-title">${primaryInsight.title}</span>
+                        <span class="insight-priority">${primaryInsight.priority.toUpperCase()}</span>
+                    </div>
+                    <div class="insight-description">${primaryInsight.description}</div>
+                </div>
+                ${insights.length > 1 ? `<div class="insights-more">+${insights.length - 1} more insights</div>` : ''}
+            </div>
+        `;
+    }
+
+    // Create loading section
+    function createGSCLoadingSection() {
+        return `
+            <div class="gsc-section-enhanced">
+                <div class="gsc-header">
+                    <div class="gsc-header-left">
+                        <span class="gsc-icon">📊</span>
+                        <span class="gsc-title">Search Performance</span>
+                    </div>
+                    <div class="gsc-loading">
+                        <div class="loading-spinner"></div>
+                        <span>Loading...</span>
+                    </div>
+                </div>
+                <div class="gsc-loading-placeholder">
+                    <div class="loading-text">Fetching comprehensive search data...</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Create no data section
+    function createNoGSCDataSection() {
+        return `
+            <div class="gsc-section-enhanced">
+                <div class="gsc-header">
+                    <div class="gsc-header-left">
+                        <span class="gsc-icon">📊</span>
+                        <span class="gsc-title">Search Performance</span>
+                    </div>
+                    <div class="gsc-status status-none">
+                        📭 No Data
+                    </div>
+                </div>
+                <div class="gsc-no-data">
+                    <div class="no-data-text">No search console data found for this page</div>
+                    <div class="no-data-suggestion">Page may be new, blocked, or not indexed</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Create site structure section  
+    function createSiteStructureSection(d, nodeType, descendantCount, siblingCount, isLeaf, data) {
+        return `
+            <div class="structure-section">
+                <div class="structure-grid">
+                    <div class="structure-item">
+                        <span class="structure-icon">📊</span>
+                        <span class="structure-label">Type</span>
+                        <span class="structure-value">${nodeType}</span>
+                    </div>
+                    <div class="structure-item">
+                        <span class="structure-icon">📏</span>
+                        <span class="structure-label">Depth</span>
+                        <span class="structure-value">${d.depth}</span>
+                    </div>
+                    <div class="structure-item">
+                        <span class="structure-icon">${isLeaf ? '👫' : '👥'}</span>
+                        <span class="structure-label">${isLeaf ? 'Siblings' : 'Children'}</span>
+                        <span class="structure-value">${isLeaf ? siblingCount : descendantCount}</span>
+                    </div>
+                    ${data.pageCount ? `
+                    <div class="structure-item">
+                        <span class="structure-icon">📄</span>
+                        <span class="structure-label">Total Pages</span>
+                        <span class="structure-value">${data.pageCount}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                ${data.lastModified ? `
+                    <div class="structure-meta">
+                        <span class="meta-icon">📅</span>
+                        <span class="meta-text">Updated: ${formatDate(new Date(data.lastModified))}</span>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    // Create actions section
+    function createActionsSection(data, d, isLeaf) {
+        return `
+            <div class="actions-section">
+                ${data.url ? `
+                    <button class="action-btn primary" onclick="window.open('${data.url}', '_blank')">
+                        <span class="btn-icon">🔗</span>
+                        <span class="btn-text">Visit Page</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="window.focusOnNode('${d.id || data.name}')">
+                        <span class="btn-icon">🎯</span>
+                        <span class="btn-text">Focus</span>
+                    </button>
+                ` : `
+                    <button class="action-btn primary" onclick="window.focusOnNode('${d.id || data.name}')">
+                        <span class="btn-icon">🎯</span>
+                        <span class="btn-text">Focus View</span>
+                    </button>
+                    ${!isLeaf ? `
+                    <button class="action-btn secondary" onclick="window.toggleNode('${d.id || data.name}')">
+                        <span class="btn-icon">${d.children ? '➖' : '➕'}</span>
+                        <span class="btn-text">${d.children ? 'Collapse' : 'Expand'}</span>
+                    </button>
+                    ` : ''}
+                `}
+            </div>
+        `;
+    }
+
+    // Utility functions
+    function getQueryPriorityClass(query) {
+        if (query.opportunity === 'rank-opportunity') return 'query-rank-opp';
+        if (query.opportunity === 'ctr-opportunity') return 'query-ctr-opp';
+        if (query.position <= 3) return 'query-top';
+        return 'query-normal';
+    }
+
+    function truncateQuery(query, maxLength = 25) {
+        return query.length > maxLength ? query.substring(0, maxLength) + '...' : query;
+    }
+
+    function getPriorityClass(priority) {
+        return `priority-${priority}`;
+    }
+
+    function getInsightIcon(type) {
+        const icons = {
+            warning: '⚠️',
+            opportunity: '⚡',
+            info: 'ℹ️',
+            success: '✅'
+        };
+        return icons[type] || '💡';
+    }
+
+    function formatDate(date) {
+        if (!date || !(date instanceof Date) || isNaN(date.getTime())) return 'N/A';
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    }
+
+    // Quick export function
+    window.exportQuickGSCData = function(url) {
+        const gscData = gscDataMap.get(url);
+        if (!gscData) return;
+        
+        const quickData = {
+            url: url,
+            summary: {
+                clicks: gscData.clicks,
+                impressions: gscData.impressions,
+                ctr: (gscData.ctr * 100).toFixed(2) + '%',
+                position: gscData.position.toFixed(1)
+            },
+            topQueries: gscData.topQueries?.slice(0, 5),
+            opportunities: gscData.opportunities?.slice(0, 3),
+            exportedAt: new Date().toISOString()
+        };
+        
+        navigator.clipboard.writeText(JSON.stringify(quickData, null, 2));
+        
+        // Show feedback
+        const feedback = document.createElement('div');
+        feedback.style.cssText = `
+            position: fixed; top: 20px; right: 20px; background: #4caf50; color: white;
+            padding: 10px 15px; border-radius: 6px; z-index: 10001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        feedback.textContent = 'GSC data copied to clipboard!';
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => feedback.remove(), 2000);
+    };
 
     // Show detailed GSC analysis for content writers
     window.showDetailedGSCAnalysis = function(url) {
@@ -1859,15 +2675,5 @@
             }, 2000);
         }
     });
-
-    // Utility function to format dates
-    function formatDate(date) {
-        if (!date || !(date instanceof Date) || isNaN(date.getTime())) return 'N/A';
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
-        });
-    }
 
 })();
