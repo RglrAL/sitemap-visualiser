@@ -1,4 +1,4 @@
-// gsc-integration-module.js - Enhanced debugging version
+// gsc-integration-module.js - Enhanced Lazy Loading Version
 
 (function() {
     // Configuration
@@ -18,6 +18,12 @@
     let fetchInProgress = false;
     let gapiInited = false;
     let gisInited = false;
+
+    // New lazy loading variables
+    const pendingRequests = new Map();
+    const hoverQueue = new Set();
+    let batchTimeout = null;
+    let cacheCleanupInterval = null;
 
     // Debug logging helper
     function debugLog(message, data = null) {
@@ -49,8 +55,10 @@
         getData: (url) => gscDataMap.get(url),
         toggleConnection: toggleGSCConnection,
         fetchData: fetchGSCDataForSitemap,
+        fetchNodeData: fetchNodeGSCData, // New: expose lazy loading function
         events: gscEvents,
         reset: resetGSCData,
+        loadVisibleNodes: loadVisibleNodesGSCData, // New: load all visible nodes
         debug: {
             getStatus: () => ({
                 gscConnected,
@@ -59,6 +67,7 @@
                 gisInited,
                 fetchInProgress,
                 dataCount: gscDataMap.size,
+                pendingRequests: pendingRequests.size,
                 hasAccessToken: !!accessToken,
                 hasTreeData: !!(window.treeData || (typeof treeData !== 'undefined' && treeData)),
                 siteUrl: gscSiteUrl
@@ -74,7 +83,12 @@
             },
             triggerFetch: () => {
                 debugLog('Manual fetch triggered');
-                tryFetchGSCData();
+                fetchGSCDataForSitemap();
+            },
+            clearCache: () => {
+                gscDataMap.clear();
+                pendingRequests.clear();
+                debugLog('Cache cleared');
             },
             testSingleUrl: async (url) => {
                 if (!accessToken || !gscSiteUrl) {
@@ -116,190 +130,6 @@
         }
     };
 
-    // Add these debug functions to the debug object
-    window.GSCIntegration.debug.listGSCUrls = async function(limit = 25) {
-        if (!accessToken || !gscSiteUrl) {
-            console.error('Not connected to GSC');
-            return;
-        }
-        
-        debugLog('Fetching URLs from GSC...');
-        
-        try {
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-            
-            const response = await gapi.client.request({
-                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                method: 'POST',
-                body: {
-                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                    endDate: today.toISOString().split('T')[0],
-                    dimensions: ['page'],
-                    rowLimit: limit,
-                    startRow: 0
-                }
-            });
-            
-            const rows = response.result.rows || [];
-            console.log(`Found ${rows.length} URLs in GSC:`);
-            
-            rows.forEach((row, index) => {
-                console.log(`${index + 1}. ${row.keys[0]} - Clicks: ${row.clicks}, Impressions: ${row.impressions}`);
-            });
-            
-            return rows;
-        } catch (error) {
-            console.error('Error listing GSC URLs:', error);
-            return error;
-        }
-    };
-
-    window.GSCIntegration.debug.compareUrls = async function() {
-        if (!window.treeData) {
-            console.error('No sitemap data loaded');
-            return;
-        }
-        
-        // Get sitemap URLs
-        const sitemapUrls = new Set();
-        function collectUrls(node) {
-            if (node.url) sitemapUrls.add(node.url);
-            if (node.children) {
-                node.children.forEach(child => collectUrls(child));
-            }
-        }
-        collectUrls(window.treeData);
-        
-        console.log(`Sitemap contains ${sitemapUrls.size} URLs`);
-        console.log('First 5 sitemap URLs:');
-        Array.from(sitemapUrls).slice(0, 5).forEach(url => console.log(`  ${url}`));
-        
-        // Get GSC URLs
-        const gscRows = await GSCIntegration.debug.listGSCUrls(100);
-        if (!gscRows || !Array.isArray(gscRows)) return;
-        
-        const gscUrls = new Set(gscRows.map(row => row.keys[0]));
-        
-        // Compare
-        console.log('\n=== URL Comparison ===');
-        console.log(`Sitemap URLs: ${sitemapUrls.size}`);
-        console.log(`GSC URLs: ${gscUrls.size}`);
-        
-        // Find exact matches
-        const matches = Array.from(sitemapUrls).filter(url => gscUrls.has(url));
-        console.log(`\n✓ Exact matches found: ${matches.length}`);
-        
-        if (matches.length === 0) {
-            console.log('\n❌ No exact URL matches found!');
-            
-            // Analyze the differences
-            const sitemapSample = Array.from(sitemapUrls)[0];
-            const gscSample = gscRows[0]?.keys[0];
-            
-            if (sitemapSample && gscSample) {
-                console.log('\nExample comparison:');
-                console.log('Sitemap URL:', sitemapSample);
-                console.log('GSC URL:    ', gscSample);
-                
-                // Check for common differences
-                if (sitemapSample.startsWith('http://') && gscSample.startsWith('https://')) {
-                    console.log('⚠️ Protocol mismatch detected (http vs https)');
-                }
-                if (sitemapSample.includes('://www.') !== gscSample.includes('://www.')) {
-                    console.log('⚠️ WWW subdomain mismatch detected');
-                }
-                if (sitemapSample.endsWith('/') !== gscSample.endsWith('/')) {
-                    console.log('⚠️ Trailing slash mismatch detected');
-                }
-                if (!sitemapSample.includes('://') && gscSample.includes('://')) {
-                    console.log('⚠️ Sitemap has relative URLs, GSC has absolute URLs');
-                }
-            }
-        }
-        
-        return {
-            sitemapUrls: sitemapUrls.size,
-            gscUrls: gscUrls.size,
-            matches: matches.length
-        };
-    };
-
-    // Add a function to fix URL matching
-    window.GSCIntegration.debug.fixUrlMatching = async function() {
-        console.log('Attempting to fix URL matching...');
-        
-        // First, get a sample of GSC URLs to understand the format
-        const gscRows = await GSCIntegration.debug.listGSCUrls(10);
-        if (!gscRows || gscRows.length === 0) {
-            console.error('No URLs found in GSC');
-            return;
-        }
-        
-        const gscSampleUrl = gscRows[0].keys[0];
-        console.log('GSC URL format example:', gscSampleUrl);
-        
-        // Analyze the GSC URL format
-        const gscUrlObj = new URL(gscSampleUrl);
-        const gscProtocol = gscUrlObj.protocol;
-        const gscHasWww = gscUrlObj.hostname.startsWith('www.');
-        const gscHasTrailingSlash = gscUrlObj.pathname.endsWith('/');
-        
-        console.log('GSC URL characteristics:');
-        console.log('- Protocol:', gscProtocol);
-        console.log('- Has www:', gscHasWww);
-        console.log('- Has trailing slash:', gscHasTrailingSlash);
-        
-        // Now update the fetchGSCDataInBatches function to handle URL transformation
-        console.log('\nTo fix this, the code needs to transform sitemap URLs to match GSC format.');
-        console.log('Re-run the fetch with URL transformation...');
-        
-        // Clear existing data and re-fetch
-        GSCIntegration.reset();
-        
-        // Modify the URL collection logic
-        window._originalFetchGSCData = GSCIntegration.fetchData;
-        GSCIntegration.fetchData = async function() {
-            console.log('Using modified fetch with URL transformation');
-            return window._originalFetchGSCData.call(this);
-        };
-        
-        return {
-            gscFormat: {
-                protocol: gscProtocol,
-                hasWww: gscHasWww,
-                hasTrailingSlash: gscHasTrailingSlash,
-                example: gscSampleUrl
-            }
-        };
-    };
-
-    window.GSCIntegration.debug.testUrlTransformation = function(sitemapUrl) {
-        // Simulate the transformation
-        const variations = [];
-        
-        // Original
-        variations.push(sitemapUrl);
-        
-        // Remove language prefix and change to HTTPS
-        if (sitemapUrl.includes('/en/') || sitemapUrl.includes('/ga/')) {
-            const withoutLang = sitemapUrl
-                .replace('/en/', '/')
-                .replace('/ga/', '/')
-                .replace('http://', 'https://');
-            variations.push(withoutLang);
-        }
-        
-        // Just HTTPS
-        variations.push(sitemapUrl.replace('http://', 'https://'));
-        
-        console.log('URL transformation test:');
-        console.log('Original:', sitemapUrl);
-        console.log('Variations:', variations);
-        
-        return variations;
-    };
-
     // Initialize
     function initGSCIntegration() {
         debugLog('Initializing GSC Integration...');
@@ -309,6 +139,7 @@
         hookIntoSitemapLoader();
         hookIntoTooltips();
         listenForTreeReady();
+        setupCacheCleanup();
     }
 
     // Initialize Google API
@@ -419,7 +250,9 @@
         
         updateConnectionStatus(true);
         gscEvents.emit('authenticated');
-        tryFetchGSCData();
+        
+        // Start lazy loading initialization
+        initializeLazyLoading();
     }
 
     // Toggle connection
@@ -452,29 +285,27 @@
         }
     }
 
-    // Try to fetch GSC data
-    function tryFetchGSCData() {
+    // NEW: Initialize lazy loading
+    function initializeLazyLoading() {
         const hasTreeData = !!(window.treeData || (typeof treeData !== 'undefined' && treeData));
         
-        debugLog('Trying to fetch GSC data...', {
+        debugLog('Initializing lazy loading...', {
             connected: gscConnected,
-            treeData: hasTreeData,
-            dataLoaded: gscDataLoaded,
-            fetchInProgress: fetchInProgress
+            treeData: hasTreeData
         });
         
-        if (gscConnected && hasTreeData && !gscDataLoaded && !fetchInProgress) {
-            debugLog('All conditions met, fetching GSC data...');
+        if (gscConnected && hasTreeData && !fetchInProgress) {
+            debugLog('Starting GSC initialization for lazy loading...');
             fetchGSCDataForSitemap();
         }
     }
 
-    // Fetch GSC data for sitemap
+    // UPDATED: Main fetch function - now just sets up the connection
     async function fetchGSCDataForSitemap() {
         const treeDataRef = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
         
         if (!treeDataRef || !accessToken || fetchInProgress) {
-            debugLog('Cannot fetch GSC data - conditions not met');
+            debugLog('Cannot initialize GSC - conditions not met');
             return;
         }
         
@@ -510,14 +341,12 @@
             const currentDomain = treeDataRef.name;
             debugLog('Looking for site matching domain:', currentDomain);
             
-            // Try exact match first
             let matchedSite = sites.find(site => {
                 const siteHost = new URL(site.siteUrl).hostname.replace('www.', '');
                 const currentHost = currentDomain.replace('www.', '');
                 return siteHost === currentHost;
             });
             
-            // If no exact match, try partial match
             if (!matchedSite) {
                 matchedSite = sites.find(site => 
                     site.siteUrl.includes(currentDomain) || 
@@ -537,73 +366,21 @@
             gscSiteUrl = matchedSite.siteUrl;
             debugLog('Using site:', gscSiteUrl);
             
-            // Collect all URLs from the tree
-            const allUrls = [];
-            function collectUrls(node) {
-                if (node.url) {
-                    // Normalize URL to match what might be in GSC
-                    let normalizedUrl = node.url;
-                    
-                    // If the sitemap URL doesn't include the protocol/domain, construct it
-                    if (normalizedUrl.startsWith('/')) {
-                        // Remove trailing slash from gscSiteUrl if present
-                        const baseUrl = gscSiteUrl.replace(/\/$/, '');
-                        normalizedUrl = baseUrl + normalizedUrl;
-                    }
-                    
-                    allUrls.push(normalizedUrl);
-                }
-                if (node.children) {
-                    node.children.forEach(child => collectUrls(child));
-                }
-            }
-            collectUrls(treeDataRef);
-            
-            debugLog(`Collected ${allUrls.length} URLs to fetch GSC data for`);
-            
-            // For large sites, we might want to limit or prioritize
-            let urlsToFetch = allUrls;
-            if (allUrls.length > 500) {
-                // For very large sites, prioritize higher-level pages and a sample of others
-                const highLevelUrls = allUrls.filter(url => {
-                    const pathSegments = new URL(url).pathname.split('/').filter(s => s);
-                    return pathSegments.length <= 3; // Prioritize top-level pages
-                });
-                const otherUrls = allUrls.filter(url => !highLevelUrls.includes(url));
-                
-                // Take all high-level URLs and a sample of others
-                urlsToFetch = [
-                    ...highLevelUrls,
-                    ...otherUrls.slice(0, Math.max(100, 500 - highLevelUrls.length))
-                ];
-                
-                debugLog(`Large site detected. Limiting to ${urlsToFetch.length} URLs (${highLevelUrls.length} high-level pages)`);
-            }
-            
-            // Log first 5 URLs for debugging
-            debugLog('Sample URLs:', urlsToFetch.slice(0, 5));
-            
-            // First, try a general query to see what URLs GSC has
-            await testGeneralQuery();
-            
-            // Then fetch data for our URLs
-            await fetchGSCDataInBatches(urlsToFetch);
-            
+            // NEW: Don't fetch all data - just mark as ready
             gscDataLoaded = true;
             fetchInProgress = false;
             hideGSCLoadingIndicator();
             
-            if (gscDataMap.size === 0) {
-                showNoDataMessage();
-            } else {
-                showGSCSuccessMessage();
-            }
+            showGSCReadyMessage();
+            gscEvents.emit('dataReady');
             
-            gscEvents.emit('dataLoaded');
-            updateVisibleTooltips();
+            // Optional: Pre-load data for important nodes
+            setTimeout(() => {
+                preloadImportantNodes();
+            }, 1000);
             
         } catch (error) {
-            console.error('[GSC Integration] Error fetching GSC data:', error);
+            console.error('[GSC Integration] Error initializing GSC:', error);
             hideGSCLoadingIndicator();
             fetchInProgress = false;
             
@@ -613,320 +390,350 @@
             } else if (error.status === 403) {
                 alert('Permission denied. Please make sure you have access to this Search Console property.');
             } else {
-                alert('Error loading Search Console data: ' + (error.message || 'Unknown error'));
+                alert('Error connecting to Search Console: ' + (error.message || 'Unknown error'));
             }
         }
     }
 
-    // Test general query to see what URLs GSC has
-    async function testGeneralQuery() {
+    // NEW: Lazy loading core function
+    async function fetchNodeGSCData(node) {
+        if (!node || !node.url || !gscConnected || !gscSiteUrl) return null;
+        
+        // Check if data already exists
+        if (gscDataMap.has(node.url)) {
+            return gscDataMap.get(node.url);
+        }
+        
+        // Check if request is already pending
+        if (pendingRequests.has(node.url)) {
+            return pendingRequests.get(node.url);
+        }
+        
+        // Create and store the promise
+        const promise = fetchSingleNodeData(node);
+        pendingRequests.set(node.url, promise);
+        
         try {
-            debugLog('Running general query to see available URLs...');
+            const result = await promise;
+            return result;
+        } finally {
+            pendingRequests.delete(node.url);
+        }
+    }
+
+    // NEW: Core function to fetch data for a single node
+    async function fetchSingleNodeData(node) {
+        try {
+            debugLog('Fetching GSC data for:', node.url);
             
             const today = new Date();
             const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
             
-            const response = await gapi.client.request({
-                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                method: 'POST',
-                body: {
-                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                    endDate: today.toISOString().split('T')[0],
-                    dimensions: ['page'],
-                    rowLimit: 25,
-                    startRow: 0
+            const variations = createUrlVariations(node.url);
+            
+            // Try each variation until we find data
+            for (const variation of variations) {
+                try {
+                    const response = await gapi.client.request({
+                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                        method: 'POST',
+                        body: {
+                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                            endDate: today.toISOString().split('T')[0],
+                            dimensions: ['page'],
+                            dimensionFilterGroups: [{
+                                filters: [{
+                                    dimension: 'page',
+                                    operator: 'equals',
+                                    expression: variation
+                                }]
+                            }],
+                            rowLimit: 1
+                        }
+                    });
+                    
+                    if (response.result.rows && response.result.rows.length > 0) {
+                        const row = response.result.rows[0];
+                        const gscData = {
+                            clicks: row.clicks || 0,
+                            impressions: row.impressions || 0,
+                            ctr: row.ctr || 0,
+                            position: row.position || 0,
+                            url: variation,
+                            fetchedAt: Date.now()
+                        };
+                        
+                        // Store data using original URL as key
+                        gscDataMap.set(node.url, gscData);
+                        
+                        debugLog(`Found GSC data for ${node.url} (using ${variation}):`, gscData);
+                        
+                        // Trigger tooltip update if this node is currently being displayed
+                        updateTooltipIfVisible(node);
+                        
+                        return gscData;
+                    }
+                } catch (error) {
+                    debugLog(`Error trying variation ${variation}:`, error);
+                    // Continue to next variation
                 }
-            });
-            
-            const rows = response.result.rows || [];
-            debugLog(`General query found ${rows.length} URLs with data`);
-            
-            if (rows.length > 0) {
-                debugLog('Sample URLs from GSC:', rows.slice(0, 5).map(r => r.keys[0]));
             }
             
-            return rows;
+            // No data found - cache this fact to avoid repeated requests
+            const noData = { 
+                clicks: 0, 
+                impressions: 0, 
+                ctr: 0, 
+                position: 0, 
+                noDataFound: true, 
+                fetchedAt: Date.now() 
+            };
+            gscDataMap.set(node.url, noData);
+            debugLog(`No GSC data found for ${node.url}`);
+            
+            // Update tooltip if visible
+            updateTooltipIfVisible(node);
+            
+            return noData;
+            
         } catch (error) {
-            console.error('General query error:', error);
-            return [];
+            console.error('Error fetching GSC data for node:', node.url, error);
+            return null;
         }
     }
 
-    // Fetch GSC data in batches
-    async function fetchGSCDataInBatches(urls, batchSize = 5) {
-        const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    // NEW: Batch loading for hover queue
+    function queueNodeForGSC(node) {
+        if (!node || !node.url || gscDataMap.has(node.url)) return;
         
-        debugLog(`Fetching data for ${urls.length} URLs`);
+        hoverQueue.add(node);
         
-        // First, let's understand what URL format GSC is using
-        let gscUrlFormat = null;
-        try {
-            const testResponse = await gapi.client.request({
-                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                method: 'POST',
-                body: {
-                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                    endDate: today.toISOString().split('T')[0],
-                    dimensions: ['page'],
-                    rowLimit: 5
-                }
-            });
-            
-            if (testResponse.result.rows && testResponse.result.rows.length > 0) {
-                gscUrlFormat = testResponse.result.rows[0].keys[0];
-                debugLog('GSC URL format detected:', gscUrlFormat);
-            }
-        } catch (error) {
-            debugLog('Could not detect GSC URL format:', error);
-        }
-        
-        let successCount = 0;
-        let processedCount = 0;
-        
-        // Create URL variations for better matching
-        function createUrlVariations(originalUrl) {
-            const variations = new Set();
-            
-            // Add original URL
-            variations.add(originalUrl);
-            
-            // Special handling for MABS.ie structure
-            // Sitemap has: http://mabs.ie/en/...
-            // GSC has: https://mabs.ie/...
-            
-            if (originalUrl.includes('/en/') || originalUrl.includes('/ga/')) {
-                // Remove language prefix variations
-                const withoutLangPrefix = originalUrl
-                    .replace('/en/', '/')
-                    .replace('/ga/', '/');
-                
-                variations.add(withoutLangPrefix);
-                
-                // Also try with HTTPS
-                variations.add(withoutLangPrefix.replace('http://', 'https://'));
-                
-                // Original with HTTPS
-                variations.add(originalUrl.replace('http://', 'https://'));
-            }
-            
-            // If we detected GSC format, try to match it
-            if (gscUrlFormat) {
-                try {
-                    const gscUrlObj = new URL(gscUrlFormat);
-                    const protocol = gscUrlObj.protocol;
-                    const hasWww = gscUrlObj.hostname.startsWith('www.');
-                    
-                    // Handle relative URLs
-                    if (originalUrl.startsWith('/')) {
-                        // Build absolute URL matching GSC format
-                        const baseHost = gscUrlObj.hostname;
-                        let absoluteUrl = `${protocol}//${baseHost}${originalUrl}`;
-                        variations.add(absoluteUrl);
-                        
-                        // If the URL has language prefix, try without it
-                        if (originalUrl.includes('/en/') || originalUrl.includes('/ga/')) {
-                            const withoutLang = originalUrl.replace('/en/', '/').replace('/ga/', '/');
-                            variations.add(`${protocol}//${baseHost}${withoutLang}`);
-                        }
-                        
-                        // Add with/without trailing slash
-                        if (!absoluteUrl.endsWith('/') && !absoluteUrl.includes('?') && !absoluteUrl.match(/\.[a-z]{2,4}$/i)) {
-                            variations.add(absoluteUrl + '/');
-                        } else if (absoluteUrl.endsWith('/')) {
-                            variations.add(absoluteUrl.slice(0, -1));
-                        }
-                    } else if (originalUrl.includes('://')) {
-                        // Handle absolute URLs
-                        const urlObj = new URL(originalUrl);
-                        
-                        // Create base transformations
-                        let baseUrl = originalUrl;
-                        
-                        // 1. Match protocol
-                        if (urlObj.protocol !== protocol) {
-                            baseUrl = baseUrl.replace(urlObj.protocol, protocol);
-                            variations.add(baseUrl);
-                        }
-                        
-                        // 2. Remove language prefixes if present
-                        if (baseUrl.includes('/en/') || baseUrl.includes('/ga/')) {
-                            const withoutLang = baseUrl
-                                .replace('/en/', '/')
-                                .replace('/ga/', '/');
-                            variations.add(withoutLang);
-                            
-                            // Also add HTTPS version without language
-                            variations.add(withoutLang.replace('http://', 'https://'));
-                        }
-                        
-                        // 3. Match www
-                        if (hasWww && !urlObj.hostname.startsWith('www.')) {
-                            variations.add(baseUrl.replace(urlObj.hostname, 'www.' + urlObj.hostname));
-                        } else if (!hasWww && urlObj.hostname.startsWith('www.')) {
-                            variations.add(baseUrl.replace('www.', ''));
-                        }
-                    }
-                } catch (e) {
-                    debugLog('Error creating URL variation:', e);
-                }
-            }
-            
-            // Standard variations
-            if (originalUrl.includes('://')) {
-                // Try both http and https
-                variations.add(originalUrl.replace('http://', 'https://'));
-                variations.add(originalUrl.replace('https://', 'http://'));
-                
-                // Try with/without www
-                if (originalUrl.includes('://www.')) {
-                    variations.add(originalUrl.replace('://www.', '://'));
-                } else {
-                    variations.add(originalUrl.replace('://', '://www.'));
-                }
-                
-                // Try with/without trailing slash (except for files)
-                if (!originalUrl.includes('?') && !originalUrl.match(/\.[a-z]{2,4}$/i)) {
-                    if (originalUrl.endsWith('/')) {
-                        variations.add(originalUrl.slice(0, -1));
-                    } else {
-                        variations.add(originalUrl + '/');
-                    }
-                }
-            }
-            
-            // Log first few variations for debugging
-            if (processedCount <= 3) {
-                debugLog(`URL variations for ${originalUrl}:`, Array.from(variations));
-            }
-            
-            return Array.from(variations);
-        }
+        if (batchTimeout) clearTimeout(batchTimeout);
+        batchTimeout = setTimeout(processBatch, 300);
+    }
 
-        // Process URLs in batches
-        for (let i = 0; i < urls.length; i += batchSize) {
-            const batch = urls.slice(i, i + batchSize);
-            const batchPromises = batch.map(async (url) => {
-                const variations = createUrlVariations(url);
-                
-                // Try each variation until we find data
-                for (const variation of variations) {
-                    try {
-                        const response = await gapi.client.request({
-                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                            method: 'POST',
-                            body: {
-                                startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                                endDate: today.toISOString().split('T')[0],
-                                dimensions: ['page'],
-                                dimensionFilterGroups: [{
-                                    filters: [{
-                                        dimension: 'page',
-                                        operator: 'equals',
-                                        expression: variation
-                                    }]
-                                }],
-                                rowLimit: 1
-                            }
-                        });
-                        
-                        if (response.result.rows && response.result.rows.length > 0) {
-                            const row = response.result.rows[0];
-                            const gscData = {
-                                clicks: row.clicks || 0,
-                                impressions: row.impressions || 0,
-                                ctr: row.ctr || 0,
-                                position: row.position || 0
-                            };
-                            
-                            // Store data using the original URL as key
-                            gscDataMap.set(url, gscData);
-                            
-                            // Also store using the variation that worked
-                            if (variation !== url) {
-                                gscDataMap.set(variation, gscData);
-                            }
-                            
-                            successCount++;
-                            debugLog(`Found data for ${url} (using ${variation}):`, gscData);
-                            break; // Found data, no need to try other variations
-                        }
-                    } catch (error) {
-                        debugLog(`Error fetching data for ${variation}:`, error);
-                        // Continue to next variation
-                    }
-                }
-                
-                processedCount++;
-                updateGSCLoadingProgress((processedCount / urls.length) * 100);
-            });
+    async function processBatch() {
+        if (hoverQueue.size === 0) return;
+        
+        const nodes = Array.from(hoverQueue);
+        hoverQueue.clear();
+        
+        debugLog(`Processing batch of ${nodes.length} nodes`);
+        
+        // Process in smaller batches to avoid overwhelming API
+        const batchSize = 2;
+        for (let i = 0; i < nodes.length; i += batchSize) {
+            const batch = nodes.slice(i, i + batchSize);
+            const promises = batch.map(node => fetchNodeGSCData(node));
+            await Promise.all(promises);
             
-            await Promise.all(batchPromises);
+            // Small delay between batches
+            if (i + batchSize < nodes.length) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+    }
+
+    // NEW: Preload important nodes
+    async function preloadImportantNodes() {
+        const importantNodes = getImportantNodes();
+        debugLog(`Preloading GSC data for ${importantNodes.length} important nodes`);
+        
+        // Load in small batches to avoid overwhelming the API
+        const batchSize = 3;
+        for (let i = 0; i < importantNodes.length; i += batchSize) {
+            const batch = importantNodes.slice(i, i + batchSize);
+            const promises = batch.map(node => fetchNodeGSCData(node));
+            await Promise.all(promises);
             
-            // Add delay between batches to respect rate limits
-            if (i + batchSize < urls.length) {
+            // Small delay between batches
+            if (i + batchSize < importantNodes.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }
         
-        debugLog(`Batch processing complete. Found data for ${successCount} out of ${urls.length} URLs`);
-        return successCount;
+        debugLog('Preloading complete');
     }
 
-    // Show no data message
-    function showNoDataMessage() {
-        const message = document.createElement('div');
-        message.style.cssText = `
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: #ff9800;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            max-width: 400px;
-            animation: slideIn 0.3s ease;
-        `;
-        message.innerHTML = `
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <span style="font-size: 20px;">⚠️</span>
-                <div>
-                    <div style="font-weight: bold; margin-bottom: 8px;">No Search Console Data Found</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9; line-height: 1.4;">
-                        This could mean:
-                        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-                            <li>The URLs in your sitemap don't match those in Search Console</li>
-                            <li>Your site might be using www vs non-www differently</li>
-                            <li>The site hasn't accumulated data in the last 30 days</li>
-                        </ul>
-                        <div style="margin-top: 12px;">
-                            <button onclick="GSCIntegration.debug.testSingleUrl(prompt('Enter a URL to test:'))" 
-                                    style="background: white; color: #ff9800; border: none; padding: 6px 12px; 
-                                           border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
-                                Test Single URL
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(message);
+    function getImportantNodes() {
+        const important = [];
         
-        setTimeout(() => {
-            message.style.transition = 'opacity 0.3s';
-            message.style.opacity = '0';
-            setTimeout(() => message.remove(), 300);
-        }, 10000);
+        function traverse(node, depth = 0) {
+            if (node.url && depth <= 2) { // Root and top 2 levels only
+                important.push(node);
+            }
+            if (node.children && depth < 2) {
+                node.children.forEach(child => traverse(child, depth + 1));
+            }
+        }
+        
+        if (window.treeData) {
+            traverse(window.treeData);
+        }
+        
+        return important;
+    }
+
+    // NEW: Load GSC data for all visible nodes
+    async function loadVisibleNodesGSCData() {
+        if (!gscConnected || !gscDataLoaded) {
+            debugLog('GSC not connected or not ready');
+            return;
+        }
+        
+        const visibleNodes = getVisibleNodes();
+        debugLog(`Loading GSC data for ${visibleNodes.length} visible nodes`);
+        
+        const batchSize = 5;
+        for (let i = 0; i < visibleNodes.length; i += batchSize) {
+            const batch = visibleNodes.slice(i, i + batchSize);
+            const promises = batch.map(node => fetchNodeGSCData(node));
+            await Promise.all(promises);
+            
+            if (i + batchSize < visibleNodes.length) {
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+        }
+        
+        debugLog('Visible nodes loading complete');
+        updateAllVisibleTooltips();
+    }
+
+    function getVisibleNodes() {
+        const visible = [];
+        
+        // Get all currently expanded/visible nodes from the tree
+        if (window.allNodes) {
+            window.allNodes.forEach(d => {
+                if (d.data && d.data.url && isNodeVisible(d)) {
+                    visible.push(d.data);
+                }
+            });
+        }
+        
+        return visible;
+    }
+
+    function isNodeVisible(d) {
+        // Check if node is currently visible in the tree visualization
+        let current = d;
+        while (current.parent) {
+            if (current.parent._children) {
+                return false; // Parent is collapsed
+            }
+            current = current.parent;
+        }
+        return true;
+    }
+
+    // NEW: Update tooltip if currently visible
+    function updateTooltipIfVisible(node) {
+        const visibleTooltip = document.querySelector('.enhanced-tooltip.visible');
+        if (visibleTooltip) {
+            // Check if the tooltip is showing this node's data
+            const tooltipContent = visibleTooltip.innerHTML;
+            if (tooltipContent.includes(node.name) || (node.url && tooltipContent.includes(node.url))) {
+                // Refresh the tooltip content
+                const nodeData = findNodeByUrl(node.url);
+                if (nodeData && window.showEnhancedTooltip) {
+                    // Get the last mouse position (approximate)
+                    const rect = visibleTooltip.getBoundingClientRect();
+                    const event = { pageX: rect.left, pageY: rect.top };
+                    setTimeout(() => {
+                        window.showEnhancedTooltip(event, nodeData);
+                    }, 100);
+                }
+            }
+        }
+    }
+
+    function findNodeByUrl(url) {
+        if (!window.allNodes) return null;
+        
+        return window.allNodes.find(d => d.data && d.data.url === url);
+    }
+
+    function updateAllVisibleTooltips() {
+        // Trigger an update of any visible tooltips
+        gscEvents.emit('dataUpdated');
+    }
+
+    // UPDATED: URL variations function (more efficient)
+    function createUrlVariations(originalUrl) {
+        const variations = new Set();
+        
+        // Add original URL
+        variations.add(originalUrl);
+        
+        // Handle relative URLs
+        if (originalUrl.startsWith('/') && gscSiteUrl) {
+            const baseUrl = gscSiteUrl.replace(/\/$/, '');
+            variations.add(baseUrl + originalUrl);
+        }
+        
+        // Common transformations for MABS.ie structure
+        if (originalUrl.includes('/en/') || originalUrl.includes('/ga/')) {
+            // Remove language prefix
+            const withoutLangPrefix = originalUrl
+                .replace('/en/', '/')
+                .replace('/ga/', '/');
+            variations.add(withoutLangPrefix);
+            
+            // HTTPS version without language prefix
+            variations.add(withoutLangPrefix.replace('http://', 'https://'));
+        }
+        
+        // HTTPS transformation
+        if (originalUrl.includes('http://')) {
+            variations.add(originalUrl.replace('http://', 'https://'));
+        }
+        
+        // Limit to max 4 variations to keep requests manageable
+        return Array.from(variations).slice(0, 4);
+    }
+
+    // NEW: Cache cleanup
+    function setupCacheCleanup() {
+        // Clean up old cache entries every 10 minutes
+        cacheCleanupInterval = setInterval(cleanupGSCCache, 10 * 60 * 1000);
+    }
+
+    function cleanupGSCCache() {
+        const maxAge = 30 * 60 * 1000; // 30 minutes
+        const now = Date.now();
+        let cleaned = 0;
+        
+        for (const [url, data] of gscDataMap.entries()) {
+            if (data && data.fetchedAt && (now - data.fetchedAt) > maxAge) {
+                gscDataMap.delete(url);
+                cleaned++;
+            }
+        }
+        
+        if (cleaned > 0) {
+            debugLog(`Cleaned up ${cleaned} old cache entries`);
+        }
     }
 
     // Reset GSC data
     function resetGSCData() {
         gscDataMap.clear();
+        pendingRequests.clear();
+        hoverQueue.clear();
         gscDataLoaded = false;
         fetchInProgress = false;
         gscSiteUrl = null;
+        
+        if (batchTimeout) {
+            clearTimeout(batchTimeout);
+            batchTimeout = null;
+        }
+        
+        if (cacheCleanupInterval) {
+            clearInterval(cacheCleanupInterval);
+            cacheCleanupInterval = null;
+        }
+        
         debugLog('GSC data reset');
     }
 
@@ -954,6 +761,10 @@
         }
         
         debugLog('Connection status updated:', connected);
+        
+        if (!connected) {
+            resetGSCData();
+        }
     }
 
     // Add GSC button to navigation
@@ -1023,6 +834,15 @@
                 }
             }
             
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .gsc-loading-spinner {
+                animation: spin 1s linear infinite;
+            }
+            
             .tooltip-gsc-section {
                 animation: fadeIn 0.3s ease;
             }
@@ -1063,6 +883,13 @@
                     
                     debugLog('Sitemap parsing completed');
                     gscEvents.emit('sitemapParsed');
+                    
+                    // Initialize lazy loading if connected
+                    if (gscConnected) {
+                        setTimeout(() => {
+                            initializeLazyLoading();
+                        }, 500);
+                    }
                 };
                 debugLog('Hooked into sitemap parser');
             } else {
@@ -1089,9 +916,12 @@
                     debugLog('Tree visualization created');
                     gscEvents.emit('treeReady');
                     
-                    setTimeout(() => {
-                        tryFetchGSCData();
-                    }, 500);
+                    // Initialize lazy loading if connected
+                    if (gscConnected) {
+                        setTimeout(() => {
+                            initializeLazyLoading();
+                        }, 500);
+                    }
                 };
                 debugLog('Hooked into createVisualization');
             } else {
@@ -1106,23 +936,9 @@
         const checkAndHook = () => {
             if (window.showEnhancedTooltip) {
                 const originalShowEnhancedTooltip = window.showEnhancedTooltip;
-                window.showEnhancedTooltip = function(event, d) {
-                    originalShowEnhancedTooltip.apply(this, arguments);
-                    
-                    if (gscConnected && gscDataLoaded) {
-                        setTimeout(() => {
-                            try {
-                                const tooltipElement = document.querySelector('.enhanced-tooltip.visible');
-                                if (tooltipElement && d && d.data && !tooltipElement.querySelector('.tooltip-gsc-section')) {
-                                    const currentHtml = tooltipElement.innerHTML;
-                                    const enhancedHtml = enhanceTooltipWithGSC(currentHtml, d.data);
-                                    tooltipElement.innerHTML = enhancedHtml;
-                                }
-                            } catch (error) {
-                                console.error('[GSC Integration] Error enhancing tooltip:', error);
-                            }
-                        }, 50);
-                    }
+                window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
+                    // Call the enhanced version with GSC integration
+                    showEnhancedTooltipWithGSC(event, d, isLoadingGSC);
                 };
                 debugLog('Hooked into tooltip display');
             } else {
@@ -1132,69 +948,264 @@
         checkAndHook();
     }
 
-    // Enhance tooltip with GSC data
-    function enhanceTooltipWithGSC(html, nodeData) {
-        if (!gscConnected || !gscDataLoaded || !nodeData || !nodeData.url) {
-            return html;
+    // UPDATED: Enhanced tooltip with GSC lazy loading
+    function showEnhancedTooltipWithGSC(event, d, isLoadingGSC = false) {
+        if (!window.enhancedTooltip || !d.data) return;
+        
+        const data = d.data;
+        const now = new Date();
+        
+        // Trigger lazy loading if needed
+        if (gscConnected && gscDataLoaded && data.url && !gscDataMap.has(data.url) && !isLoadingGSC) {
+            isLoadingGSC = true;
+            fetchNodeGSCData(data).then(() => {
+                // Refresh tooltip with new data
+                const currentTooltip = document.querySelector('.enhanced-tooltip.visible');
+                if (currentTooltip) {
+                    showEnhancedTooltipWithGSC(event, d, false);
+                }
+            });
         }
         
-        // Try multiple URL formats
-        let gscData = gscDataMap.get(nodeData.url);
-        
-        // If not found, try with the gscSiteUrl prefix
-        if (!gscData && gscSiteUrl && nodeData.url.startsWith('/')) {
-            const fullUrl = gscSiteUrl.replace(/\/$/, '') + nodeData.url;
-            gscData = gscDataMap.get(fullUrl);
+        // Calculate freshness
+        let freshnessClass = '';
+        let freshnessLabel = 'No date';
+        if (data.lastModified) {
+            const lastMod = new Date(data.lastModified);
+            const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+            
+            if (daysSince < 30) {
+                freshnessClass = 'freshness-new';
+                freshnessLabel = 'New';
+            } else if (daysSince < 90) {
+                freshnessClass = 'freshness-fresh';
+                freshnessLabel = 'Fresh';
+            } else if (daysSince < 180) {
+                freshnessClass = 'freshness-recent';
+                freshnessLabel = 'Recent';
+            } else if (daysSince < 365) {
+                freshnessClass = 'freshness-aging';
+                freshnessLabel = 'Aging';
+            } else if (daysSince < 730) {
+                freshnessClass = 'freshness-old';
+                freshnessLabel = 'Old';
+            } else {
+                freshnessClass = 'freshness-stale';
+                freshnessLabel = 'Stale';
+            }
         }
         
-        if (!gscData) {
-            return html;
+        // Calculate descendant count and sibling count
+        let descendantCount = 0;
+        let siblingCount = 0;
+
+        function countDescendants(node) {
+            if (node.children) {
+                descendantCount += node.children.length;
+                node.children.forEach(child => countDescendants(child));
+            } else if (node._children) {
+                descendantCount += node._children.length;
+                node._children.forEach(child => countDescendants(child));
+            }
+        }
+        countDescendants(d);
+
+        if (d.parent) {
+            siblingCount = (d.parent.children ? d.parent.children.length : 
+                           d.parent._children ? d.parent._children.length : 0) - 1;
         }
         
-        const gscSection = `
-            <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                    <span>🔍</span> Search Performance (30 days)
+        // Build popup content
+        const isLeaf = !d.children && !d._children;
+        const nodeType = d.depth === 0 ? 'Root' : 
+                        d.depth === 1 ? 'Language/Category' :
+                        isLeaf ? 'Page' : 'Section';
+        
+        let html = `
+            <div class="tooltip-header">
+                <span>${data.name}</span>
+                <span class="tooltip-freshness ${freshnessClass}">${freshnessLabel}</span>
+            </div>
+            <div class="tooltip-content">
+                <div class="tooltip-stats">
+                    <div class="tooltip-stat">
+                        <div class="tooltip-stat-value">${d.depth}</div>
+                        <div class="tooltip-stat-label">Depth Level</div>
+                    </div>
+                    <div class="tooltip-stat">
+                        <div class="tooltip-stat-value">${isLeaf ? siblingCount : descendantCount}</div>
+                        <div class="tooltip-stat-label">${isLeaf ? 'Sibling Pages' : 'Child Pages'}</div>
+                    </div>
+                    ${data.pageCount ? `
+                    <div class="tooltip-stat">
+                        <div class="tooltip-stat-value">${data.pageCount}</div>
+                        <div class="tooltip-stat-label">Total Pages</div>
+                    </div>
+                    ` : ''}
+                    <div class="tooltip-stat">
+                        <div class="tooltip-stat-value">${nodeType}</div>
+                        <div class="tooltip-stat-label">Type</div>
+                    </div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
-                        <div style="font-size: 0.8rem; color: #666;">Clicks</div>
+                
+                <div class="tooltip-meta">
+                    ${data.url ? `
+                    <div class="tooltip-meta-item">
+                        <span class="tooltip-meta-icon">🔗</span>
+                        <span style="word-break: break-all; color: #1f4788;">${data.url}</span>
                     </div>
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
-                        <div style="font-size: 0.8rem; color: #666;">Impressions</div>
+                    ` : ''}
+                    
+                    ${data.lastModified ? `
+                    <div class="tooltip-meta-item">
+                        <span class="tooltip-meta-icon">📅</span>
+                        <span>Last updated: ${formatDate(new Date(data.lastModified))}</span>
                     </div>
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">CTR</div>
+                    ` : ''}
+                    
+                    ${data.fullPath ? `
+                    <div class="tooltip-meta-item">
+                        <span class="tooltip-meta-icon">📍</span>
+                        <span>Path: /${data.fullPath}</span>
                     </div>
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.position.toFixed(1)}</div>
-                        <div style="font-size: 0.8rem; color: #666;">Avg Position</div>
+                    ` : ''}
+                </div>`;
+        
+        // Add GSC section with loading/data states
+        if (gscConnected && data.url) {
+            const gscData = gscDataMap.get(data.url);
+            
+            if (isLoadingGSC || (!gscData && !gscDataMap.has(data.url))) {
+                // Loading state
+                html += `
+                    <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                        <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                            <span>🔍</span> Search Performance
+                            <div class="gsc-loading-spinner" style="margin-left: auto; width: 16px; height: 16px; border: 2px solid #e0e0e0; border-top: 2px solid #1f4788; border-radius: 50%;"></div>
+                        </div>
+                        <div style="color: #666; font-style: italic; font-size: 0.9rem;">Loading data...</div>
                     </div>
+                `;
+            } else if (gscData && !gscData.noDataFound) {
+                // Data available
+                html += `
+                    <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                        <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                            <span>🔍</span> Search Performance (30 days)
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
+                                <div style="font-size: 0.8rem; color: #666;">Clicks</div>
+                            </div>
+                            <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
+                                <div style="font-size: 0.8rem; color: #666;">Impressions</div>
+                            </div>
+                            <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
+                                <div style="font-size: 0.8rem; color: #666;">CTR</div>
+                            </div>
+                            <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.position.toFixed(1)}</div>
+                                <div style="font-size: 0.8rem; color: #666;">Avg Position</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (gscData && gscData.noDataFound) {
+                // No data found
+                html += `
+                    <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                        <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                            <span>🔍</span> Search Performance
+                        </div>
+                        <div style="color: #666; font-style: italic; font-size: 0.9rem;">No search data available</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Actions
+        html += `
+                ${data.url ? `
+                <div class="tooltip-actions">
+                    <a href="${data.url}" target="_blank" class="tooltip-action-btn">
+                        <span>🔗</span>
+                        <span>Visit Page</span>
+                    </a>
+                    <button class="tooltip-action-btn" onclick="window.focusOnNode('${d.id || data.name}')">
+                        <span>🎯</span>
+                        <span>Focus</span>
+                    </button>
+                    <button class="tooltip-action-btn" onclick="window.expandBranch('${d.id || data.name}')">
+                        <span>🌳</span>
+                        <span>Expand</span>
+                    </button>
                 </div>
+                ` : `
+                <div class="tooltip-actions">
+                    <button class="tooltip-action-btn" onclick="window.focusOnNode('${d.id || data.name}')">
+                        <span>🎯</span>
+                        <span>Focus View</span>
+                    </button>
+                    ${!isLeaf ? `
+                    <button class="tooltip-action-btn" onclick="window.toggleNode('${d.id || data.name}')">
+                        <span>${d.children ? '➖' : '➕'}</span>
+                        <span>${d.children ? 'Collapse' : 'Expand'}</span>
+                    </button>
+                    ` : ''}
+                </div>
+                `}
             </div>
         `;
         
-        const lastDivIndex = html.lastIndexOf('</div>');
-        if (lastDivIndex > -1) {
-            return html.substring(0, lastDivIndex) + gscSection + html.substring(lastDivIndex);
+        window.enhancedTooltip.html(html);
+        
+        // Position tooltip
+        const tooltipNode = window.enhancedTooltip.node();
+        const tooltipRect = tooltipNode.getBoundingClientRect();
+        const pageWidth = window.innerWidth;
+        const pageHeight = window.innerHeight;
+        
+        let left = event.pageX + 15;
+        let top = event.pageY - tooltipRect.height / 2;
+        
+        if (left + tooltipRect.width > pageWidth - 20) {
+            left = event.pageX - tooltipRect.width - 15;
         }
         
-        return html + gscSection;
-    }
-
-    // Update visible tooltips
-    function updateVisibleTooltips() {
-        const visibleTooltip = document.querySelector('.enhanced-tooltip.visible');
-        if (visibleTooltip) {
-            const hoveredNode = d3.select('.node:hover').datum();
-            if (hoveredNode && window.showEnhancedTooltip) {
-                const event = new MouseEvent('mouseenter');
-                window.showEnhancedTooltip(event, hoveredNode);
-            }
+        if (top < 20) {
+            top = 20;
+        } else if (top + tooltipRect.height > pageHeight - 20) {
+            top = pageHeight - tooltipRect.height - 20;
         }
+        
+        window.enhancedTooltip
+            .style("left", left + "px")
+            .style("top", top + "px")
+            .style("opacity", 0)
+            .classed("visible", true)
+            .transition()
+            .duration(200)
+            .style("opacity", 1);
+            
+        // Add mouse events to the tooltip itself
+        window.enhancedTooltip
+            .on("mouseenter", function() {
+                window.tooltipMouseOver = true;
+                if (window.hideTooltipTimeout) clearTimeout(window.hideTooltipTimeout);
+            })
+            .on("mouseleave", function() {
+                window.tooltipMouseOver = false;
+                window.enhancedTooltip
+                    .transition()
+                    .duration(200)
+                    .style("opacity", 0)
+                    .on("end", function() {
+                        d3.select(this).classed("visible", false);
+                    });
+            });
     }
 
     // UI Helper Functions
@@ -1215,8 +1226,8 @@
         `;
         indicator.innerHTML = `
             <div style="font-size: 24px; margin-bottom: 15px;">🔍</div>
-            <div style="font-weight: bold; margin-bottom: 10px;">Loading Search Console Data...</div>
-            <div style="color: #666; margin-bottom: 15px;">This may take a moment for large sites</div>
+            <div style="font-weight: bold; margin-bottom: 10px;">Connecting to Search Console...</div>
+            <div style="color: #666; margin-bottom: 15px;">Setting up lazy loading for performance data</div>
             <div style="background: #f0f0f0; height: 20px; border-radius: 10px; overflow: hidden;">
                 <div id="gscLoadingProgress" style="background: #4caf50; height: 100%; width: 0%; transition: width 0.3s;"></div>
             </div>
@@ -1236,7 +1247,7 @@
         if (indicator) indicator.remove();
     }
 
-    function showGSCSuccessMessage() {
+    function showGSCReadyMessage() {
         const message = document.createElement('div');
         message.style.cssText = `
             position: fixed;
@@ -1252,11 +1263,11 @@
         `;
         message.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 20px;">✓</span>
+                <span style="font-size: 20px;">⚡</span>
                 <div>
-                    <div style="font-weight: bold;">Search Console Connected!</div>
+                    <div style="font-weight: bold;">Search Console Ready!</div>
                     <div style="font-size: 0.9rem; opacity: 0.9;">
-                        Loaded data for ${gscDataMap.size} pages
+                        Performance data loads on hover • <span style="font-weight: 600;">Ctrl+L</span> to load all visible
                     </div>
                 </div>
             </div>
@@ -1267,7 +1278,7 @@
             message.style.transition = 'opacity 0.3s';
             message.style.opacity = '0';
             setTimeout(() => message.remove(), 300);
-        }, 3000);
+        }, 5000);
     }
 
     // Site selector
@@ -1350,6 +1361,48 @@
             
             modal.appendChild(content);
             document.body.appendChild(modal);
+        });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+L to load GSC data for all visible nodes
+        if (e.key === 'l' && e.ctrlKey && gscConnected && gscDataLoaded) {
+            e.preventDefault();
+            loadVisibleNodesGSCData();
+            
+            // Show feedback
+            const feedback = document.createElement('div');
+            feedback.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(74, 144, 226, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 14px;
+                z-index: 10001;
+                pointer-events: none;
+            `;
+            feedback.textContent = 'Loading GSC data for visible nodes...';
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                setTimeout(() => feedback.remove(), 300);
+            }, 2000);
+        }
+    });
+
+    // Utility function to format dates
+    function formatDate(date) {
+        if (!date || !(date instanceof Date) || isNaN(date.getTime())) return 'N/A';
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
         });
     }
 
