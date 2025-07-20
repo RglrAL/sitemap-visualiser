@@ -5400,11 +5400,15 @@ function createEnhancedTooltip() {
         .attr("class", "enhanced-tooltip")
         .style("opacity", 0);
     
+    // EXPOSE TO WINDOW FOR GSC INTEGRATION
+    window.enhancedTooltip = tooltip;
+    
     return tooltip;
 }
 
 // Initialize enhanced tooltip variable
 let enhancedTooltip = null;
+window.enhancedTooltip = null; 
 let tooltipTimeout = null;
 
         // Colour scheme
@@ -12408,6 +12412,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize enhanced tooltip
     enhancedTooltip = createEnhancedTooltip();
+    // EXPOSE TO WINDOW FOR GSC INTEGRATION
+    window.enhancedTooltip = enhancedTooltip;
     
     // Initialize nav bar visibility
     const navBar = document.getElementById('navBar');
