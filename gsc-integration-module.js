@@ -422,85 +422,92 @@
     }
 
     // NEW: Core function to fetch data for a single node
-    async function fetchSingleNodeData(node) {
-        try {
-            debugLog('Fetching GSC data for:', node.url);
-            
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-            
-            const variations = createUrlVariations(node.url);
-            
-            // Try each variation until we find data
-            for (const variation of variations) {
-                try {
-                    const response = await gapi.client.request({
-                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                        method: 'POST',
-                        body: {
-                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                            endDate: today.toISOString().split('T')[0],
-                            dimensions: ['page'],
-                            dimensionFilterGroups: [{
-                                filters: [{
-                                    dimension: 'page',
-                                    operator: 'equals',
-                                    expression: variation
-                                }]
-                            }],
-                            rowLimit: 1
-                        }
-                    });
-                    
-                    if (response.result.rows && response.result.rows.length > 0) {
-                        const row = response.result.rows[0];
-                        const gscData = {
-                            clicks: row.clicks || 0,
-                            impressions: row.impressions || 0,
-                            ctr: row.ctr || 0,
-                            position: row.position || 0,
-                            url: variation,
-                            fetchedAt: Date.now()
-                        };
-                        
-                        // Store data using original URL as key
-                        gscDataMap.set(node.url, gscData);
-                        
-                        debugLog(`Found GSC data for ${node.url} (using ${variation}):`, gscData);
-                        
-                        // Trigger tooltip update if this node is currently being displayed
-                        updateTooltipIfVisible(node);
-                        
-                        return gscData;
+    // NEW: Core function to fetch data for a single node
+async function fetchSingleNodeData(node) {
+    try {
+        debugLog('Fetching GSC data for:', node.url);
+        debugLog('GSC Site URL is:', gscSiteUrl);
+        
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        const variations = createUrlVariations(node.url);
+        debugLog('Trying URL variations:', variations);
+        
+        // Try each variation until we find data
+        for (const variation of variations) {
+            try {
+                debugLog('Trying variation:', variation);
+                
+                const response = await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                        endDate: today.toISOString().split('T')[0],
+                        dimensions: ['page'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 1
                     }
-                } catch (error) {
-                    debugLog(`Error trying variation ${variation}:`, error);
-                    // Continue to next variation
+                });
+                
+                debugLog('API Response for', variation, ':', response);
+                
+                if (response.result.rows && response.result.rows.length > 0) {
+                    const row = response.result.rows[0];
+                    const gscData = {
+                        clicks: row.clicks || 0,
+                        impressions: row.impressions || 0,
+                        ctr: row.ctr || 0,
+                        position: row.position || 0,
+                        url: variation,
+                        fetchedAt: Date.now()
+                    };
+                    
+                    // Store data using original URL as key
+                    gscDataMap.set(node.url, gscData);
+                    
+                    debugLog(`Found GSC data for ${node.url} (using ${variation}):`, gscData);
+                    
+                    // Trigger tooltip update if this node is currently being displayed
+                    updateTooltipIfVisible(node);
+                    
+                    return gscData;
                 }
+            } catch (error) {
+                debugLog(`Error trying variation ${variation}:`, error);
+                // Continue to next variation
             }
-            
-            // No data found - cache this fact to avoid repeated requests
-            const noData = { 
-                clicks: 0, 
-                impressions: 0, 
-                ctr: 0, 
-                position: 0, 
-                noDataFound: true, 
-                fetchedAt: Date.now() 
-            };
-            gscDataMap.set(node.url, noData);
-            debugLog(`No GSC data found for ${node.url}`);
-            
-            // Update tooltip if visible
-            updateTooltipIfVisible(node);
-            
-            return noData;
-            
-        } catch (error) {
-            console.error('Error fetching GSC data for node:', node.url, error);
-            return null;
         }
+        
+        // No data found - cache this fact to avoid repeated requests
+        const noData = { 
+            clicks: 0, 
+            impressions: 0, 
+            ctr: 0, 
+            position: 0, 
+            noDataFound: true, 
+            fetchedAt: Date.now() 
+        };
+        gscDataMap.set(node.url, noData);
+        debugLog(`No GSC data found for ${node.url}`);
+        
+        // Update tooltip if visible
+        updateTooltipIfVisible(node);
+        
+        return noData;
+        
+    } catch (error) {
+        console.error('Error fetching GSC data for node:', node.url, error);
+        return null;
     }
+}
 
     // NEW: Batch loading for hover queue
     function queueNodeForGSC(node) {
@@ -658,39 +665,84 @@
         gscEvents.emit('dataUpdated');
     }
 
-    // UPDATED: URL variations function (more efficient)
-    function createUrlVariations(originalUrl) {
-        const variations = new Set();
+    // UPDATED: URL variations function (more comprehensive)
+function createUrlVariations(originalUrl) {
+    const variations = new Set();
+    
+    // Add original URL
+    variations.add(originalUrl);
+    
+    try {
+        const urlObj = new URL(originalUrl);
+        const protocol = urlObj.protocol;
+        const hostname = urlObj.hostname;
+        const pathname = urlObj.pathname;
+        const search = urlObj.search;
         
-        // Add original URL
-        variations.add(originalUrl);
+        // Protocol variations (http/https)
+        const otherProtocol = protocol === 'http:' ? 'https:' : 'http:';
+        variations.add(`${otherProtocol}//${hostname}${pathname}${search}`);
         
-        // Handle relative URLs
-        if (originalUrl.startsWith('/') && gscSiteUrl) {
-            const baseUrl = gscSiteUrl.replace(/\/$/, '');
-            variations.add(baseUrl + originalUrl);
+        // www variations
+        if (hostname.startsWith('www.')) {
+            const withoutWww = hostname.substring(4);
+            variations.add(`${protocol}//${withoutWww}${pathname}${search}`);
+            variations.add(`${otherProtocol}//${withoutWww}${pathname}${search}`);
+        } else {
+            variations.add(`${protocol}//www.${hostname}${pathname}${search}`);
+            variations.add(`${otherProtocol}//www.${hostname}${pathname}${search}`);
         }
         
-        // Common transformations for MABS.ie structure
-        if (originalUrl.includes('/en/') || originalUrl.includes('/ga/')) {
-            // Remove language prefix
-            const withoutLangPrefix = originalUrl
-                .replace('/en/', '/')
-                .replace('/ga/', '/');
-            variations.add(withoutLangPrefix);
+        // Trailing slash variations
+        if (pathname.endsWith('/') && pathname.length > 1) {
+            const withoutSlash = pathname.slice(0, -1);
+            variations.add(`${protocol}//${hostname}${withoutSlash}${search}`);
+            variations.add(`${otherProtocol}//${hostname}${withoutSlash}${search}`);
             
-            // HTTPS version without language prefix
-            variations.add(withoutLangPrefix.replace('http://', 'https://'));
+            if (hostname.startsWith('www.')) {
+                const withoutWww = hostname.substring(4);
+                variations.add(`${protocol}//${withoutWww}${withoutSlash}${search}`);
+                variations.add(`${otherProtocol}//${withoutWww}${withoutSlash}${search}`);
+            } else {
+                variations.add(`${protocol}//www.${hostname}${withoutSlash}${search}`);
+                variations.add(`${otherProtocol}//www.${hostname}${withoutSlash}${search}`);
+            }
+        } else if (!pathname.endsWith('/')) {
+            variations.add(`${protocol}//${hostname}${pathname}/${search}`);
+            variations.add(`${otherProtocol}//${hostname}${pathname}/${search}`);
         }
         
-        // HTTPS transformation
-        if (originalUrl.includes('http://')) {
-            variations.add(originalUrl.replace('http://', 'https://'));
+        // Language prefix variations for MABS.ie
+        if (pathname.includes('/en/') || pathname.includes('/ga/')) {
+            const withoutLangPrefix = pathname.replace('/en/', '/').replace('/ga/', '/');
+            variations.add(`${protocol}//${hostname}${withoutLangPrefix}${search}`);
+            variations.add(`${otherProtocol}//${hostname}${withoutLangPrefix}${search}`);
+            
+            if (hostname.startsWith('www.')) {
+                const withoutWww = hostname.substring(4);
+                variations.add(`${protocol}//${withoutWww}${withoutLangPrefix}${search}`);
+                variations.add(`${otherProtocol}//${withoutWww}${withoutLangPrefix}${search}`);
+            } else {
+                variations.add(`${protocol}//www.${hostname}${withoutLangPrefix}${search}`);
+                variations.add(`${otherProtocol}//www.${hostname}${withoutLangPrefix}${search}`);
+            }
         }
         
-        // Limit to max 4 variations to keep requests manageable
-        return Array.from(variations).slice(0, 4);
+    } catch (e) {
+        debugLog('Error parsing URL for variations:', originalUrl, e);
     }
+    
+    // Handle relative URLs
+    if (originalUrl.startsWith('/') && gscSiteUrl) {
+        const baseUrl = gscSiteUrl.replace(/\/$/, '');
+        variations.add(baseUrl + originalUrl);
+    }
+    
+    // Convert to array and limit to prevent too many requests
+    const result = Array.from(variations).slice(0, 8);
+    debugLog('Generated variations for', originalUrl, ':', result);
+    return result;
+}
 
     // NEW: Cache cleanup
     function setupCacheCleanup() {
