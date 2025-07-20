@@ -669,9 +669,7 @@ async function fetchGSCDataInBatches(urls, batchSize = 5) {
     let processedCount = 0;
     
     // Create URL variations for better matching
-    // Replace the createUrlVariations function in fetchGSCDataInBatches with this enhanced version
-
-function createUrlVariations(originalUrl) {
+    function createUrlVariations(originalUrl) {
     const variations = new Set();
     
     // Add original URL
@@ -789,8 +787,7 @@ function createUrlVariations(originalUrl) {
     return Array.from(variations);
 }
 
-// Also add a quick test function to verify the transformation
-window.GSCIntegration.debug.testUrlTransformation = function(sitemapUrl) {
+    window.GSCIntegration.debug.testUrlTransformation = function(sitemapUrl) {
     // Simulate the transformation
     const variations = [];
     
@@ -814,7 +811,9 @@ window.GSCIntegration.debug.testUrlTransformation = function(sitemapUrl) {
     console.log('Variations:', variations);
     
     return variations;
-};
+}
+
+    
 
     // Show no data message
     function showNoDataMessage() {
