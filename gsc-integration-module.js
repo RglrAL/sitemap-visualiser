@@ -365,6 +365,7 @@
             
             gscSiteUrl = matchedSite.siteUrl;
             debugLog('Using site:', gscSiteUrl);
+            debugLog('Available sites were:', sites);
             
             // NEW: Don't fetch all data - just mark as ready
             gscDataLoaded = true;
@@ -458,6 +459,9 @@ async function fetchSingleNodeData(node) {
                 });
                 
                 debugLog('API Response for', variation, ':', response);
+debugLog('Response result:', response.result);
+debugLog('Response rows:', response.result?.rows);
+debugLog('Response row count:', response.result?.rows?.length || 0);
                 
                 if (response.result.rows && response.result.rows.length > 0) {
                     const row = response.result.rows[0];
