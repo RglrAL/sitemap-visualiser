@@ -519,82 +519,106 @@
 
     // Hook into tooltip display
     function hookIntoTooltips() {
-        const checkAndHook = () => {
-            if (window.showEnhancedTooltip) {
-                const originalShowEnhancedTooltip = window.showEnhancedTooltip;
-                window.showEnhancedTooltip = function(event, d) {
-                    originalShowEnhancedTooltip.apply(this, arguments);
-                    
-                    // Only enhance if GSC data is loaded
-                    if (gscConnected && gscDataLoaded && window.enhancedTooltip) {
-                        setTimeout(() => {
-                            const currentHtml = window.enhancedTooltip.html();
-                            if (currentHtml && !currentHtml.includes('tooltip-gsc-section')) {
-                                const enhancedHtml = enhanceTooltipWithGSC(currentHtml, d.data);
-                                window.enhancedTooltip.html(enhancedHtml);
+    const checkAndHook = () => {
+        if (window.showEnhancedTooltip) {
+            const originalShowEnhancedTooltip = window.showEnhancedTooltip;
+            window.showEnhancedTooltip = function(event, d) {
+                // Call original function first
+                originalShowEnhancedTooltip.apply(this, arguments);
+                
+                // Only enhance if GSC data is loaded
+                if (gscConnected && gscDataLoaded) {
+                    setTimeout(() => {
+                        try {
+                            // Find the tooltip element more reliably
+                            const tooltipElement = document.querySelector('.enhanced-tooltip.visible');
+                            if (tooltipElement && d && d.data) {
+                                // Check if we already added GSC data
+                                if (!tooltipElement.querySelector('.tooltip-gsc-section')) {
+                                    const currentHtml = tooltipElement.innerHTML;
+                                    const enhancedHtml = enhanceTooltipWithGSC(currentHtml, d.data);
+                                    tooltipElement.innerHTML = enhancedHtml;
+                                }
                             }
-                        }, 10);
-                    }
-                };
-            } else {
-                setTimeout(checkAndHook, 100);
-            }
-        };
-        checkAndHook();
-    }
+                        } catch (error) {
+                            console.error('Error enhancing tooltip with GSC data:', error);
+                        }
+                    }, 50); // Small delay to ensure tooltip is rendered
+                }
+            };
+            console.log('Successfully hooked into tooltip display');
+        } else {
+            setTimeout(checkAndHook, 100);
+        }
+    };
+    checkAndHook();
+}
+
+    
 
     function enhanceTooltipWithGSC(html, nodeData) {
-        if (!gscConnected || !gscDataLoaded || !nodeData || !nodeData.url) {
-            return html;
-        }
-        
-        const gscData = gscDataMap.get(nodeData.url);
-        
-        if (!gscData) {
-            return html.replace('</div>', `
-                <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                    <div style="font-size: 0.9rem; color: #666; text-align: center;">
-                        No Search Console data available for this page
-                    </div>
+    if (!gscConnected || !gscDataLoaded || !nodeData || !nodeData.url) {
+        return html;
+    }
+    
+    const gscData = gscDataMap.get(nodeData.url);
+    
+    if (!gscData) {
+        // Only add "no data" message if we're showing GSC data
+        return html;
+    }
+    
+    const gscSection = `
+        <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+            <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                <span>🔍</span> Search Performance (30 days)
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
+                    <div style="font-size: 0.8rem; color: #666;">Clicks</div>
                 </div>
-            </div>`);
-        }
-        
-        const gscSection = `
-            <div class="tooltip-gsc-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                <div style="font-weight: 600; color: #1f4788; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                    <span>🔍</span> Search Performance (30 days)
+                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
+                    <div style="font-size: 0.8rem; color: #666;">Impressions</div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
-                        <div style="font-size: 0.8rem; color: #666;">Clicks</div>
-                    </div>
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
-                        <div style="font-size: 0.8rem; color: #666;">Impressions</div>
-                    </div>
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">CTR</div>
-                    </div>
-                    <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.position.toFixed(1)}</div>
-                        <div style="font-size: 0.8rem; color: #666;">Avg Position</div>
-                    </div>
+                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
+                    <div style="font-size: 0.8rem; color: #666;">CTR</div>
+                </div>
+                <div style="background: #f8f9ff; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #4a90e2;">${gscData.position.toFixed(1)}</div>
+                    <div style="font-size: 0.8rem; color: #666;">Avg Position</div>
                 </div>
             </div>
-        `;
-        
-        return html.replace('</div>', gscSection + '</div>');
+        </div>
+    `;
+    
+    // Insert GSC section before the last closing div
+    const lastDivIndex = html.lastIndexOf('</div>');
+    if (lastDivIndex > -1) {
+        return html.substring(0, lastDivIndex) + gscSection + html.substring(lastDivIndex);
     }
+    
+    return html + gscSection;
+}
+
+
+    
 
     function updateVisibleTooltips() {
-        const visibleTooltip = document.querySelector('.enhanced-tooltip.visible');
-        if (visibleTooltip && window.selectedNode3D) {
-            window.showEnhancedTooltip(null, window.selectedNode3D);
+    // More reliable tooltip update
+    const visibleTooltip = document.querySelector('.enhanced-tooltip.visible');
+    if (visibleTooltip) {
+        // Find the node associated with this tooltip
+        const hoveredNode = d3.select('.node:hover').datum();
+        if (hoveredNode && window.showEnhancedTooltip) {
+            // Re-trigger the tooltip display
+            const event = new MouseEvent('mouseenter');
+            window.showEnhancedTooltip(event, hoveredNode);
         }
     }
+}
 
     // UI Helper Functions remain the same...
     function showGSCLoadingIndicator() {
