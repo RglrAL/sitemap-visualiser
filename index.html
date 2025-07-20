@@ -5836,7 +5836,7 @@ if (threeDViewBtn) {
 }
 
         // URL loading
-        window.loadFromURL = async function() {
+      window.loadFromURL = async function() {
     const urlInput = document.getElementById('urlInput');
     if (!urlInput) return;
     
@@ -5852,11 +5852,19 @@ if (threeDViewBtn) {
     // Try each proxy until one works
     for (let i = 0; i < CORS_PROXIES.length; i++) {
         try {
-            console.log(`Trying proxy ${i + 1}...`);
+            console.log(`Trying proxy ${i + 1}: ${CORS_PROXIES[i].name || 'Proxy'}...`);
             const proxyUrl = CORS_PROXIES[i](url);
+            console.log(`Proxy URL: ${proxyUrl}`);
             
-            const response = await fetch(proxyUrl);
+            const response = await fetch(proxyUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/xml, text/xml, */*'
+                }
+            });
+            
             if (!response.ok) {
+                console.error(`Proxy ${i + 1} failed with status: ${response.status}`);
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
@@ -5866,7 +5874,7 @@ if (threeDViewBtn) {
             if (proxyUrl.includes('allorigins')) {
                 const data = await response.json();
                 xmlContent = data.contents;
-            } else if (proxyUrl.includes('codetabs')) {
+            } else if (proxyUrl.includes('cors.bridged.cc')) {
                 xmlContent = await response.text();
             } else {
                 xmlContent = await response.text();
@@ -5884,8 +5892,18 @@ if (threeDViewBtn) {
             
             // If all proxies fail
             if (i === CORS_PROXIES.length - 1) {
-                alert(`Unable to load sitemap. All proxy services failed. You can:\n\n1. Download the sitemap manually\n2. Use the file upload option instead`);
                 hideLoading();
+                
+                // Provide more helpful error message
+                alert(`Unable to load sitemap due to CORS restrictions. 
+
+You have a few options:
+1. Download the sitemap manually from ${url} and use the file upload option
+2. If you own the website, add CORS headers to allow cross-origin requests
+3. Try using a browser extension like "CORS Unblock" for testing
+4. Host this visualizer on the same domain as the sitemap
+
+Technical details: All CORS proxy services failed to fetch the sitemap.`);
             }
         }
     }
