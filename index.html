@@ -5894,10 +5894,12 @@ if (threeDViewBtn) {
 
 // Add list of CORS proxies to try
 const CORS_PROXIES = [
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    // Remove allorigins as first option since it's failing
     url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
     url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    url => `https://cors-anywhere.herokuapp.com/${url}` // Often requires activation
+    url => `https://cors.bridged.cc/${url}`,
+    url => `https://cors-anywhere.herokuapp.com/${url}`, // Often requires activation
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}` // Move to last as fallback
 ];
 
 
