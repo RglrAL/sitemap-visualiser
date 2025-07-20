@@ -6209,6 +6209,7 @@ window.loadQuickSite = async function(url) {
         updateParentLastModDates(tree);
         
         treeData = convertToHierarchy(tree);
+	window.treeData = treeData;
         maxSiteDepth = maxDepth;
         
         const mainCategories = Object.keys(tree.children).length;
