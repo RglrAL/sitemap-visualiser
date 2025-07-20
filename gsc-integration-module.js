@@ -9,24 +9,17 @@
         SCOPES: 'https://www.googleapis.com/auth/webmasters.readonly'
     };
 
-    // Add this new function to handle GAPI ready
-    function handleGAPIReady() {
-        console.log('Handling Google API ready state...');
-        if (window.gapi && !gapiInitialized) {
-            gapi.load('client:auth2', initGoogleClient);
-        }
-    }
-
     // GSC data storage
     let gscDataMap = new Map();
     let gscConnected = false;
     let gscSiteUrl = null;
     let gscDataLoaded = false;
+    let gapiInitialized = false; // Add this variable declaration
 
     // Export to global scope for access from main app
     window.GSCIntegration = {
         init: initGSCIntegration,
-        handleGAPIReady: handleGAPIReady,  // Add this
+        handleGAPIReady: handleGAPIReady, // Add this function
         isConnected: () => gscConnected,
         hasData: () => gscDataLoaded,
         getData: (url) => gscDataMap.get(url),
@@ -35,27 +28,32 @@
 
     // Initialize the integration
     function initGSCIntegration() {
+        console.log('GSC Integration initializing...');
+        
         // Add GSC button to nav
         addGSCButton();
         
         // Add styles
         addGSCStyles();
         
-        // Initialize Google API when ready
-        if (window.gapi) {
-            initGoogleClient();
-        } else {
-            // Wait for gapi to load
-            window.handleGoogleAPILoad = function() {
-                gapi.load('client:auth2', initGoogleClient);
-            };
-        }
-        
         // Hook into sitemap loading
         hookIntoSitemapLoader();
         
         // Hook into tooltip display
         hookIntoTooltips();
+        
+        // Check if Google API is already ready
+        if (window.gapiReady && window.gapi) {
+            handleGAPIReady();
+        }
+    }
+
+    // Handle when Google API is ready
+    function handleGAPIReady() {
+        console.log('Handling Google API ready state...');
+        if (window.gapi && !gapiInitialized) {
+            gapi.load('client:auth2', initGoogleClient);
+        }
     }
 
     // Add GSC button to navigation
@@ -66,7 +64,7 @@
         const gscButton = document.createElement('button');
         gscButton.className = 'nav-btn nav-gsc-btn';
         gscButton.id = 'gscConnectBtn';
-        gscButton.style.display = 'none';
+        gscButton.style.display = 'flex'; // Make it visible immediately
         gscButton.onclick = toggleGSCConnection;
         gscButton.innerHTML = `
             <span id="gscIcon">🔍</span>
@@ -140,22 +138,30 @@
     function initGoogleClient() {
         console.log('Initializing Google client...');
         
+        // Make sure gapi.client exists
         if (!window.gapi || !window.gapi.client) {
-            console.error('Google API client not available');
-            setTimeout(initGoogleClient, 1000); // Retry
+            console.error('Google API client not available, retrying...');
+            setTimeout(initGoogleClient, 1000);
             return;
         }
+        
         gapi.client.init({
             apiKey: GSC_CONFIG.API_KEY,
             clientId: GSC_CONFIG.CLIENT_ID,
             discoveryDocs: GSC_CONFIG.DISCOVERY_DOCS,
             scope: GSC_CONFIG.SCOPES
         }).then(function () {
+            console.log('Google client initialized successfully');
+            gapiInitialized = true;
+            
             gapi.auth2.getAuthInstance().isSignedIn.listen(updateGSCSigninStatus);
             updateGSCSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
             
             const gscBtn = document.getElementById('gscConnectBtn');
-            if (gscBtn) gscBtn.style.display = 'flex';
+            if (gscBtn) {
+                gscBtn.style.display = 'flex';
+                console.log('GSC button made visible');
+            }
         }).catch(function(error) {
             console.error('Error initializing Google API:', error);
         });
