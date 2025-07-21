@@ -1249,47 +1249,91 @@
     
 
 
+    function getFreshnessInfo(lastModified) {
+    if (!lastModified) return null;
+    
+    const now = new Date();
+    const lastMod = new Date(lastModified);
+    const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+    
+    let freshnessClass, freshnessLabel, freshnessColor;
+    
+    // Match desktop thresholds exactly
+    if (daysSince < 30) {
+        freshnessClass = 'new';        // Green - New
+        freshnessLabel = 'New';
+        freshnessColor = '#4caf50';
+    } else if (daysSince < 90) {
+        freshnessClass = 'fresh';      // Green - Fresh (1-3 months)
+        freshnessLabel = 'Fresh';
+        freshnessColor = '#4caf50';
+    } else if (daysSince < 180) {
+        freshnessClass = 'recent';     // Yellow - Recent (3-6 months)
+        freshnessLabel = 'Recent';
+        freshnessColor = '#ffc107';
+    } else if (daysSince < 365) {
+        freshnessClass = 'aging';      // Orange - Aging (6-12 months)
+        freshnessLabel = 'Aging';
+        freshnessColor = '#ff9800';
+    } else if (daysSince < 730) {
+        freshnessClass = 'old';        // Red - Old (1-2 years)
+        freshnessLabel = 'Old';
+        freshnessColor = '#f44336';
+    } else {
+        freshnessClass = 'stale';     // Dark Red - Stale (2+ years)
+        freshnessLabel = 'Stale';
+        freshnessColor = '#d32f2f';
+    }
+    
+    // Format the actual date nicely
+    const formattedDate = lastMod.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    
+    // Create relative time string
+    const relativeTime = daysSince === 0 ? 'today' :
+                       daysSince === 1 ? 'yesterday' :
+                       daysSince < 7 ? `${daysSince} days ago` :
+                       daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                       daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                       `${Math.floor(daysSince / 365)} years ago`;
+    
+    return {
+        daysSince,
+        freshnessClass,
+        freshnessLabel,
+        freshnessColor,
+        formattedDate,
+        relativeTime
+    };
+}
+
+
+
+    
+
 
     
     
+    
     function createBasicContent(data) {
-    const now = new Date();
     let freshnessInfo = '';
     let lastModifiedDisplay = '';
     
-    if (data.lastModified) {
-        const lastMod = new Date(data.lastModified);
-        const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+    const freshnessData = getFreshnessInfo(data.lastModified);
+    
+    if (freshnessData) {
+        // Create freshness badge with exact color matching
+        freshnessInfo = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
         
-        // Freshness badge logic
-        const freshnessLabel = daysSince < 30 ? 'Recent' : 
-                             daysSince < 90 ? 'Fresh' : 
-                             daysSince < 180 ? 'Aging' : 'Old';
-        const freshnessColor = daysSince < 30 ? '#4caf50' : 
-                              daysSince < 90 ? '#8bc34a' : 
-                              daysSince < 180 ? '#ff9800' : '#f44336';
-        
-        freshnessInfo = `<span style="background: ${freshnessColor}20; color: ${freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessLabel}</span>`;
-        
-        // Format the actual date nicely
-        const formattedDate = lastMod.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-        
-        const relativeTime = daysSince === 0 ? 'today' :
-                           daysSince === 1 ? 'yesterday' :
-                           daysSince < 7 ? `${daysSince} days ago` :
-                           daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
-                           daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
-                           `${Math.floor(daysSince / 365)} years ago`;
-        
+        // Last modified display
         lastModifiedDisplay = `
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 0; border-top: 1px solid #f0f0f0;">
                 <span style="font-size: 0.7rem; color: #666;">📅 Updated:</span>
-                <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${formattedDate}</span>
-                <span style="font-size: 0.7rem; color: #999;">(${relativeTime})</span>
+                <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
+                <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
             </div>
         `;
     }
@@ -1476,6 +1520,9 @@ function replaceLoadingWithGSCData(tooltip, gscData, originalData) {
         return;
     }
     
+    // Get freshness data with exact matching
+    const freshnessData = getFreshnessInfo(originalData.lastModified);
+    
     // Get page info
     const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
     const pageInfo = getPageInfo(originalData, treeContext);
@@ -1485,8 +1532,40 @@ function replaceLoadingWithGSCData(tooltip, gscData, originalData) {
     const gscHtml = `
         <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
             
-            <!-- Header with date info if available -->
+            <!-- Header with matched freshness info -->
+            ${freshnessData ? `
+                <div style="background: #f0f4ff; padding: 8px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #4a90e2;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 0.8rem; color: #666;">📅 Last Updated:</span>
+                            <span style="font-size: 0.85rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
+                            <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
+                        </div>
+                        <span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>
+                    </div>
+                </div>
+            ` : ''}
             
+            <!-- Page Info Section -->
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #6c757d;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">🏷️</span>
+                        <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">📏 Level ${pageInfo.depth}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👶</span>
+                        <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children} children</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👫</span>
+                        <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings} siblings</span>
+                    </div>
+                </div>
+            </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
