@@ -1,4 +1,4 @@
-// gsc-integration-module.js - Complete Enhanced Content Writer Version with Simplified Tooltips
+// gsc-integration-module.js - Complete Enhanced Content Writer Version with Robust Connection
 
 (function() {
     // Configuration
@@ -15,6 +15,7 @@
     let gscDataLoaded = false;
     let tokenClient = null;
     let accessToken = null;
+    let tokenSetTime = null;
     let fetchInProgress = false;
     let gapiInited = false;
     let gisInited = false;
@@ -24,6 +25,7 @@
     const hoverQueue = new Set();
     let batchTimeout = null;
     let cacheCleanupInterval = null;
+    let healthCheckInterval = null;
 
     // Simplified tooltip variables
     let currentTooltip = null;
@@ -52,6 +54,337 @@
         }
     };
 
+    // ===========================================
+    // ENHANCED URL VARIATIONS & ROBUST API CALLS
+    // ===========================================
+
+    // Enhanced URL variations function - more comprehensive matching
+    function createEnhancedUrlVariations(originalUrl) {
+        const variations = new Set();
+        
+        if (!originalUrl) return [];
+        
+        // Add original URL
+        variations.add(originalUrl);
+        
+        try {
+            // Handle relative URLs first
+            if (originalUrl.startsWith('/') && gscSiteUrl) {
+                const baseUrl = gscSiteUrl.replace(/\/$/, '');
+                const fullUrl = baseUrl + originalUrl;
+                variations.add(fullUrl);
+                
+                // Parse the full URL for further variations
+                originalUrl = fullUrl;
+            }
+            
+            const urlObj = new URL(originalUrl);
+            const protocol = urlObj.protocol;
+            const hostname = urlObj.hostname;
+            const pathname = urlObj.pathname;
+            const search = urlObj.search;
+            const hash = urlObj.hash;
+            
+            // Core variations without hash/search
+            const baseVariations = [];
+            
+            // Protocol variations
+            ['http:', 'https:'].forEach(proto => {
+                // www variations
+                [hostname, `www.${hostname}`, hostname.replace(/^www\./, '')].forEach(host => {
+                    if (host && host !== hostname.replace(/^www\./, '').replace(/^www\./, '')) {
+                        // Trailing slash variations
+                        [pathname, pathname.replace(/\/$/, ''), pathname + (pathname.endsWith('/') ? '' : '/')].forEach(path => {
+                            if (path) {
+                                baseVariations.push(`${proto}//${host}${path}`);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Add all base variations
+            baseVariations.forEach(url => variations.add(url));
+            
+            // Add variations with search params and hash
+            baseVariations.forEach(baseUrl => {
+                if (search) variations.add(baseUrl + search);
+                if (hash) variations.add(baseUrl + hash);
+                if (search && hash) variations.add(baseUrl + search + hash);
+            });
+            
+            // Language-specific variations (for your MABS.ie case)
+            const langPatterns = ['/en/', '/ga/', '/ie/', '/uk/'];
+            langPatterns.forEach(lang => {
+                if (pathname.includes(lang)) {
+                    const withoutLang = pathname.replace(lang, '/');
+                    baseVariations.forEach(baseUrl => {
+                        const modifiedUrl = baseUrl.replace(pathname, withoutLang);
+                        variations.add(modifiedUrl);
+                    });
+                } else {
+                    // Add language prefixes
+                    langPatterns.forEach(langPrefix => {
+                        const withLang = pathname.replace('/', langPrefix);
+                        baseVariations.forEach(baseUrl => {
+                            const modifiedUrl = baseUrl.replace(pathname, withLang);
+                            variations.add(modifiedUrl);
+                        });
+                    });
+                }
+            });
+            
+            // Common URL transformations
+            const transformations = [
+                // Remove query parameters
+                url => url.split('?')[0],
+                // Remove fragments
+                url => url.split('#')[0],
+                // Remove both
+                url => url.split('?')[0].split('#')[0],
+                // Add index.html
+                url => url.endsWith('/') ? url + 'index.html' : url + '/index.html',
+                // Remove index.html
+                url => url.replace(/\/index\.html$/, '/'),
+                url => url.replace(/\/index\.html$/, ''),
+                // Common file extensions
+                url => url.replace(/\/$/, '.html'),
+                url => url.replace(/\/$/, '.php')
+            ];
+            
+            // Apply transformations to base variations
+            const currentVariations = Array.from(variations);
+            currentVariations.forEach(url => {
+                transformations.forEach(transform => {
+                    try {
+                        const transformed = transform(url);
+                        if (transformed && transformed !== url) {
+                            variations.add(transformed);
+                        }
+                    } catch (e) {
+                        // Skip invalid transformations
+                    }
+                });
+            });
+            
+        } catch (e) {
+            debugLog('Error creating URL variations:', e);
+        }
+        
+        // Convert to array and limit to prevent too many requests
+        const result = Array.from(variations).slice(0, 15); // Increased limit
+        debugLog(`Generated ${result.length} variations for:`, originalUrl);
+        return result;
+    }
+
+    // Token management functions
+    function isTokenExpired() {
+        if (!accessToken) return true;
+        
+        // Check if token was set more than 55 minutes ago (tokens expire in 1 hour)
+        const tokenAge = Date.now() - (tokenSetTime || 0);
+        return tokenAge > 55 * 60 * 1000; // 55 minutes
+    }
+
+    async function refreshToken() {
+        return new Promise((resolve, reject) => {
+            if (!tokenClient) {
+                reject(new Error('Token client not available'));
+                return;
+            }
+            
+            debugLog('Refreshing GSC token...');
+            
+            tokenClient.requestAccessToken({
+                prompt: '',
+                callback: (response) => {
+                    if (response.error) {
+                        debugLog('Token refresh failed:', response.error);
+                        reject(new Error(`Token refresh failed: ${response.error}`));
+                        return;
+                    }
+                    
+                    accessToken = response.access_token;
+                    tokenSetTime = Date.now();
+                    
+                    if (gapi && gapi.client) {
+                        gapi.client.setToken({ access_token: accessToken });
+                    }
+                    
+                    debugLog('Token refreshed successfully');
+                    resolve();
+                },
+                error_callback: (error) => {
+                    debugLog('Token refresh error:', error);
+                    reject(new Error(`Token refresh error: ${error.message || 'Unknown error'}`));
+                }
+            });
+        });
+    }
+
+    // Robust API calling with retry logic
+    async function robustGSCApiCall(apiCall, maxRetries = 3, delay = 1000) {
+        let lastError = null;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                debugLog(`GSC API attempt ${attempt}/${maxRetries}`);
+                
+                // Check token validity before call
+                if (!accessToken || isTokenExpired()) {
+                    debugLog('Token expired, refreshing...');
+                    await refreshToken();
+                }
+                
+                const result = await apiCall();
+                debugLog(`GSC API success on attempt ${attempt}`);
+                return result;
+                
+            } catch (error) {
+                lastError = error;
+                debugLog(`GSC API attempt ${attempt} failed:`, error);
+                
+                // Handle specific error types
+                if (error.status === 401) {
+                    // Unauthorized - refresh token and retry
+                    debugLog('Refreshing token due to 401');
+                    await refreshToken();
+                    if (attempt < maxRetries) continue;
+                }
+                
+                if (error.status === 403) {
+                    // Forbidden - don't retry
+                    throw new Error('Permission denied. Check GSC property access.');
+                }
+                
+                if (error.status === 429) {
+                    // Rate limited - wait longer
+                    debugLog('Rate limited, waiting longer...');
+                    await new Promise(resolve => setTimeout(resolve, delay * 2));
+                    if (attempt < maxRetries) continue;
+                }
+                
+                if (error.status >= 500) {
+                    // Server error - retry with backoff
+                    await new Promise(resolve => setTimeout(resolve, delay * attempt));
+                    if (attempt < maxRetries) continue;
+                }
+                
+                // For other errors, don't retry
+                if (attempt === maxRetries) {
+                    throw lastError || error;
+                }
+            }
+            
+            // Progressive delay between retries
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, delay * attempt));
+            }
+        }
+        
+        throw lastError || new Error('Max retries exceeded');
+    }
+
+    // Enhanced site matching
+    async function findBestMatchingSite(sites, targetDomain) {
+        debugLog('Finding best site match for:', targetDomain);
+        
+        // Normalize target domain
+        const normalizeUrl = (url) => {
+            try {
+                const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+                return urlObj.hostname.replace(/^www\./, '').toLowerCase();
+            } catch {
+                return url.replace(/^www\./, '').toLowerCase();
+            }
+        };
+        
+        const normalizedTarget = normalizeUrl(targetDomain);
+        
+        // Scoring system for site matching
+        const scoreSite = (site) => {
+            let score = 0;
+            const siteHost = normalizeUrl(site.siteUrl);
+            
+            // Exact match
+            if (siteHost === normalizedTarget) score += 100;
+            
+            // Subdomain match
+            if (siteHost.includes(normalizedTarget) || normalizedTarget.includes(siteHost)) score += 50;
+            
+            // Domain contains check
+            const targetParts = normalizedTarget.split('.');
+            const siteParts = siteHost.split('.');
+            const commonParts = targetParts.filter(part => siteParts.includes(part)).length;
+            score += commonParts * 10;
+            
+            // Prefer domain property over sc-domain
+            if (site.siteUrl.startsWith('https://') || site.siteUrl.startsWith('http://')) score += 20;
+            
+            // Prefer sites with full permission
+            if (site.permissionLevel === 'siteOwner') score += 15;
+            else if (site.permissionLevel === 'siteFullUser') score += 10;
+            else if (site.permissionLevel === 'siteRestrictedUser') score += 5;
+            
+            return score;
+        };
+        
+        // Score all sites and sort
+        const scoredSites = sites.map(site => ({
+            ...site,
+            score: scoreSite(site)
+        })).sort((a, b) => b.score - a.score);
+        
+        debugLog('Site matching scores:', scoredSites.map(s => ({ url: s.siteUrl, score: s.score })));
+        
+        // Return best match if score is good enough
+        const bestMatch = scoredSites[0];
+        if (bestMatch && bestMatch.score >= 50) {
+            debugLog('Auto-selected site:', bestMatch.siteUrl);
+            return bestMatch;
+        }
+        
+        // If no good match, let user choose
+        debugLog('No clear match found, showing selector');
+        return await showSiteSelector(scoredSites);
+    }
+
+    // Connection health monitoring
+    async function checkGSCConnectionHealth() {
+        if (!gscConnected || !gscSiteUrl || !accessToken) {
+            return { healthy: false, reason: 'Not connected' };
+        }
+        
+        try {
+            // Simple test query
+            await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: '2024-01-01',
+                        endDate: '2024-01-02',
+                        dimensions: ['page'],
+                        rowLimit: 1
+                    }
+                });
+            });
+            
+            return { healthy: true };
+            
+        } catch (error) {
+            return { 
+                healthy: false, 
+                reason: error.message,
+                shouldReconnect: error.status === 401
+            };
+        }
+    }
+
+    // ===========================================
+    // MAIN GSC INTEGRATION FUNCTIONS
+    // ===========================================
+
     // Export to global scope
     window.GSCIntegration = {
         init: initGSCIntegration,
@@ -74,6 +407,7 @@
                 dataCount: gscDataMap.size,
                 pendingRequests: pendingRequests.size,
                 hasAccessToken: !!accessToken,
+                tokenAge: tokenSetTime ? (Date.now() - tokenSetTime) / 1000 / 60 : null,
                 hasTreeData: !!(window.treeData || (typeof treeData !== 'undefined' && treeData)),
                 siteUrl: gscSiteUrl
             }),
@@ -107,22 +441,24 @@
                     const today = new Date();
                     const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
                     
-                    const response = await gapi.client.request({
-                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                        method: 'POST',
-                        body: {
-                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                            endDate: today.toISOString().split('T')[0],
-                            dimensions: ['page'],
-                            dimensionFilterGroups: [{
-                                filters: [{
-                                    dimension: 'page',
-                                    operator: 'equals',
-                                    expression: url
-                                }]
-                            }],
-                            rowLimit: 10
-                        }
+                    const response = await robustGSCApiCall(async () => {
+                        return await gapi.client.request({
+                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                            method: 'POST',
+                            body: {
+                                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                                endDate: today.toISOString().split('T')[0],
+                                dimensions: ['page'],
+                                dimensionFilterGroups: [{
+                                    filters: [{
+                                        dimension: 'page',
+                                        operator: 'equals',
+                                        expression: url
+                                    }]
+                                }],
+                                rowLimit: 10
+                            }
+                        });
                     });
                     
                     debugLog('Single URL test response:', response);
@@ -144,15 +480,17 @@
                     const today = new Date();
                     const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
                     
-                    const response = await gapi.client.request({
-                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                        method: 'POST',
-                        body: {
-                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                            endDate: today.toISOString().split('T')[0],
-                            dimensions: ['page'],
-                            rowLimit: 10
-                        }
+                    const response = await robustGSCApiCall(async () => {
+                        return await gapi.client.request({
+                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                            method: 'POST',
+                            body: {
+                                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                                endDate: today.toISOString().split('T')[0],
+                                dimensions: ['page'],
+                                rowLimit: 10
+                            }
+                        });
                     });
                     
                     debugLog('Broad query response:', response);
@@ -171,17 +509,19 @@
 
     // Initialize
     function initGSCIntegration() {
-    debugLog('Initializing GSC Integration...');
-    addGSCButton();
-    addGSCStyles();
-    addSimplifiedTooltipStyles();
-    addLoadingAnimationStyles(); // Add this line
-    initializeGoogleAPI();
-    hookIntoSitemapLoader();
-    hookIntoTooltips();
-    listenForTreeReady();
-    setupCacheCleanup();
-}
+        debugLog('Initializing GSC Integration...');
+        addGSCButton();
+        addGSCStyles();
+        addSimplifiedTooltipStyles();
+        addLoadingAnimationStyles();
+        initializeGoogleAPI();
+        hookIntoSitemapLoader();
+        hookIntoTooltips();
+        listenForTreeReady();
+        setupCacheCleanup();
+        setupHealthMonitoring();
+        initializeDebugging();
+    }
 
     // Initialize Google API
     function initializeGoogleAPI() {
@@ -273,62 +613,63 @@
 
     // Handle auth response
     function handleAuthResponse(response) {
-    debugLog('Handling auth response...', response);
-    hideGSCLoadingState();
-    
-    if (response.error) {
-        console.error('[GSC Integration] Authentication error:', response);
-        updateConnectionStatus(false);
-        return;
-    }
-    
-    accessToken = response.access_token;
-    debugLog('Access token received');
-    
-    if (gapi && gapi.client) {
-        gapi.client.setToken({ access_token: accessToken });
-        debugLog('Token set in GAPI client');
-    }
-    
-    updateConnectionStatus(true);
-    gscEvents.emit('authenticated');
-    
-    // Start lazy loading initialization
-    initializeLazyLoading();
-}
-
-    // Toggle connection
-    function toggleGSCConnection() {
-    debugLog('Toggle connection called. Current state:', gscConnected);
-    
-    if (gscConnected) {
-        if (accessToken) {
-            google.accounts.oauth2.revoke(accessToken, () => {
-                debugLog('Access token revoked');
-            });
-        }
-        updateConnectionStatus(false);
-        resetGSCData();
-    } else {
-        if (!gisInited || !gapiInited) {
-            alert('Google services are still loading. Please wait a moment and try again.');
+        debugLog('Handling auth response...', response);
+        hideGSCLoadingState();
+        
+        if (response.error) {
+            console.error('[GSC Integration] Authentication error:', response);
+            updateConnectionStatus(false);
             return;
         }
         
-        if (tokenClient) {
-            debugLog('Requesting access token...');
-            showGSCLoadingState();
+        accessToken = response.access_token;
+        tokenSetTime = Date.now();
+        debugLog('Access token received');
+        
+        if (gapi && gapi.client) {
+            gapi.client.setToken({ access_token: accessToken });
+            debugLog('Token set in GAPI client');
+        }
+        
+        updateConnectionStatus(true);
+        gscEvents.emit('authenticated');
+        
+        // Start lazy loading initialization
+        initializeLazyLoading();
+    }
+
+    // Toggle connection
+    function toggleGSCConnection() {
+        debugLog('Toggle connection called. Current state:', gscConnected);
+        
+        if (gscConnected) {
+            if (accessToken) {
+                google.accounts.oauth2.revoke(accessToken, () => {
+                    debugLog('Access token revoked');
+                });
+            }
+            updateConnectionStatus(false);
+            resetGSCData();
+        } else {
+            if (!gisInited || !gapiInited) {
+                alert('Google services are still loading. Please wait a moment and try again.');
+                return;
+            }
             
-            try {
-                tokenClient.requestAccessToken({ prompt: '' });
-            } catch (error) {
-                console.error('[GSC Integration] Error requesting access token:', error);
-                hideGSCLoadingState();
-                alert('Failed to open authentication window. Please check your popup blocker.');
+            if (tokenClient) {
+                debugLog('Requesting access token...');
+                showGSCLoadingState();
+                
+                try {
+                    tokenClient.requestAccessToken({ prompt: '' });
+                } catch (error) {
+                    console.error('[GSC Integration] Error requesting access token:', error);
+                    hideGSCLoadingState();
+                    alert('Failed to open authentication window. Please check your popup blocker.');
+                }
             }
         }
     }
-}
 
     // Initialize lazy loading
     function initializeLazyLoading() {
@@ -367,9 +708,11 @@
             
             debugLog('Fetching site list...');
             
-            const sitesResponse = await gapi.client.request({
-                path: 'https://www.googleapis.com/webmasters/v3/sites',
-                method: 'GET'
+            const sitesResponse = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: 'https://www.googleapis.com/webmasters/v3/sites',
+                    method: 'GET'
+                });
             });
             
             const sites = sitesResponse.result.siteEntry || [];
@@ -386,26 +729,12 @@
             const currentDomain = treeDataRef.name;
             debugLog('Looking for site matching domain:', currentDomain);
             
-            let matchedSite = sites.find(site => {
-                const siteHost = new URL(site.siteUrl).hostname.replace('www.', '');
-                const currentHost = currentDomain.replace('www.', '');
-                return siteHost === currentHost;
-            });
+            let matchedSite = await findBestMatchingSite(sites, currentDomain);
             
             if (!matchedSite) {
-                matchedSite = sites.find(site => 
-                    site.siteUrl.includes(currentDomain) || 
-                    currentDomain.includes(new URL(site.siteUrl).hostname)
-                );
-            }
-            
-            if (!matchedSite) {
-                matchedSite = await showSiteSelector(sites);
-                if (!matchedSite) {
-                    hideGSCLoadingIndicator();
-                    fetchInProgress = false;
-                    return;
-                }
+                hideGSCLoadingIndicator();
+                fetchInProgress = false;
+                return;
             }
             
             gscSiteUrl = matchedSite.siteUrl;
@@ -430,11 +759,11 @@
             hideGSCLoadingIndicator();
             fetchInProgress = false;
             
-            if (error.status === 401) {
+            if (error.message.includes('Permission denied')) {
+                alert('Permission denied. Please make sure you have access to this Search Console property.');
+            } else if (error.message.includes('Token refresh failed')) {
                 updateConnectionStatus(false);
                 alert('Your session has expired. Please reconnect to Google Search Console.');
-            } else if (error.status === 403) {
-                alert('Permission denied. Please make sure you have access to this Search Console property.');
             } else {
                 alert('Error connecting to Search Console: ' + (error.message || 'Unknown error'));
             }
@@ -456,7 +785,7 @@
         }
         
         // Create and store the promise
-        const promise = fetchSingleNodeData(node);
+        const promise = fetchSingleNodeDataRobust(node);
         pendingRequests.set(node.url, promise);
         
         try {
@@ -468,24 +797,28 @@
     }
 
     // Enhanced function to fetch comprehensive data for a single node
-    async function fetchSingleNodeData(node) {
-        try {
-            debugLog('Fetching comprehensive GSC data for:', node.url);
-            debugLog('GSC Site URL is:', gscSiteUrl);
+    async function fetchSingleNodeDataRobust(node) {
+        if (!node || !node.url) return null;
+        
+        debugLog('Fetching robust GSC data for:', node.url);
+        
+        const urlVariations = createEnhancedUrlVariations(node.url);
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        const ninetyDaysAgo = new Date(today.getTime() - (90 * 24 * 60 * 60 * 1000));
+        
+        let foundData = null;
+        let attempts = 0;
+        
+        // Try variations in order of likelihood
+        for (const variation of urlVariations) {
+            attempts++;
             
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-            const ninetyDaysAgo = new Date(today.getTime() - (90 * 24 * 60 * 60 * 1000));
-            
-            const variations = createUrlVariations(node.url);
-            debugLog('Trying URL variations:', variations);
-            
-            for (const variation of variations) {
-                try {
-                    debugLog('Trying variation:', variation);
-                    
-                    // 1. Get page performance summary
-                    const pageResponse = await gapi.client.request({
+            try {
+                debugLog(`Trying variation ${attempts}/${urlVariations.length}:`, variation);
+                
+                const result = await robustGSCApiCall(async () => {
+                    return await gapi.client.request({
                         path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
                         method: 'POST',
                         body: {
@@ -502,143 +835,197 @@
                             rowLimit: 1
                         }
                     });
-
-                    debugLog('API Response for', variation, ':', pageResponse);
-                    debugLog('Response result:', pageResponse.result);
-                    debugLog('Response rows:', pageResponse.result?.rows);
-                    debugLog('Response row count:', pageResponse.result?.rows?.length || 0);
-
-                    if (pageResponse.result.rows && pageResponse.result.rows.length > 0) {
-                        // 2. Get top queries for this page
-                        const queriesResponse = await gapi.client.request({
-                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                            method: 'POST',
-                            body: {
-                                startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                                endDate: today.toISOString().split('T')[0],
-                                dimensions: ['query'],
-                                dimensionFilterGroups: [{
-                                    filters: [{
-                                        dimension: 'page',
-                                        operator: 'equals',
-                                        expression: variation
-                                    }]
-                                }],
-                                rowLimit: 10
-                            }
-                        });
-
-                        // 3. Get opportunity queries (high impressions, low CTR)
-                        const opportunityResponse = await gapi.client.request({
-                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                            method: 'POST',
-                            body: {
-                                startDate: ninetyDaysAgo.toISOString().split('T')[0],
-                                endDate: today.toISOString().split('T')[0],
-                                dimensions: ['query'],
-                                dimensionFilterGroups: [{
-                                    filters: [{
-                                        dimension: 'page',
-                                        operator: 'equals',
-                                        expression: variation
-                                    }]
-                                }],
-                                rowLimit: 25
-                            }
-                        });
-
-                        // 4. Get trend data (compare periods)
-                        const previousPeriodResponse = await gapi.client.request({
-                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                            method: 'POST',
-                            body: {
-                                startDate: new Date(today.getTime() - (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-                                endDate: thirtyDaysAgo.toISOString().split('T')[0],
-                                dimensions: ['page'],
-                                dimensionFilterGroups: [{
-                                    filters: [{
-                                        dimension: 'page',
-                                        operator: 'equals',
-                                        expression: variation
-                                    }]
-                                }],
-                                rowLimit: 1
-                            }
-                        });
-
-                        const row = pageResponse.result.rows[0];
-                        const queries = queriesResponse.result.rows || [];
-                        const opportunityQueries = opportunityResponse.result.rows || [];
-                        const previousPeriod = previousPeriodResponse.result.rows?.[0];
-
-                        // Analyze opportunities
-                        const opportunities = opportunityQueries
-                            .filter(q => q.impressions > 10 && q.ctr < 0.05)
-                            .sort((a, b) => (b.impressions * (1 - b.ctr)) - (a.impressions * (1 - a.ctr)))
-                            .slice(0, 5);
-
-                        // Calculate trends
-                        const trend = previousPeriod ? {
-                            clicksChange: ((row.clicks - previousPeriod.clicks) / previousPeriod.clicks * 100).toFixed(1),
-                            impressionsChange: ((row.impressions - previousPeriod.impressions) / previousPeriod.impressions * 100).toFixed(1),
-                            positionChange: (previousPeriod.position - row.position).toFixed(1)
-                        } : null;
-
-                        const gscData = {
-                            // Basic metrics
-                            clicks: row.clicks || 0,
-                            impressions: row.impressions || 0,
-                            ctr: row.ctr || 0,
-                            position: row.position || 0,
-                            url: variation,
-                            fetchedAt: Date.now(),
-                            
-                            // Enhanced data for content writers
-                            topQueries: queries.slice(0, 5).map(q => ({
-                                query: q.keys[0],
-                                clicks: q.clicks,
-                                impressions: q.impressions,
-                                ctr: q.ctr,
-                                position: q.position,
-                                opportunity: q.impressions > 50 && q.position > 10 ? 'rank-opportunity' :
-                                           q.impressions > 20 && q.ctr < 0.03 ? 'ctr-opportunity' : null
-                            })),
-                            
-                            opportunities: opportunities.map(q => ({
-                                query: q.keys[0],
-                                impressions: q.impressions,
-                                clicks: q.clicks,
-                                ctr: q.ctr,
-                                position: q.position,
-                                potentialClicks: Math.round(q.impressions * 0.05)
-                            })),
-                            
-                            trend: trend,
-                            
-                            // Content insights
-                            insights: generateContentInsights(queries, opportunities, row)
-                        };
-                        
-                        gscDataMap.set(node.url, gscData);
-                        debugLog(`Found comprehensive GSC data for ${node.url}:`, gscData);
-                        return gscData;
-                    }
-                } catch (error) {
-                    debugLog(`Error trying variation ${variation}:`, error);
+                });
+                
+                if (result.result && result.result.rows && result.result.rows.length > 0) {
+                    debugLog(`✅ Found data for variation:`, variation);
+                    
+                    // Get additional data for this successful variation
+                    const enhancedData = await getEnhancedDataForUrl(variation, thirtyDaysAgo, ninetyDaysAgo, today);
+                    foundData = enhancedData;
+                    break;
+                }
+                
+                // Add small delay between variations to avoid rate limiting
+                if (attempts < urlVariations.length) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+            } catch (error) {
+                debugLog(`❌ Error with variation ${variation}:`, error.message);
+                
+                // If we hit rate limits, wait longer
+                if (error.status === 429) {
+                    debugLog('Rate limited, waiting 2 seconds...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
-            
-            // No data found
-            const noData = { 
-                clicks: 0, impressions: 0, ctr: 0, position: 0, 
-                noDataFound: true, fetchedAt: Date.now() 
+        }
+        
+        if (foundData) {
+            gscDataMap.set(node.url, foundData);
+            return foundData;
+        }
+        
+        // No data found for any variation
+        const noData = { 
+            clicks: 0, 
+            impressions: 0, 
+            ctr: 0, 
+            position: 0, 
+            noDataFound: true, 
+            fetchedAt: Date.now(),
+            triedVariations: urlVariations.length
+        };
+        
+        gscDataMap.set(node.url, noData);
+        debugLog(`No GSC data found after trying ${urlVariations.length} variations`);
+        return noData;
+    }
+
+    // Get enhanced data for a successful URL
+    async function getEnhancedDataForUrl(variation, thirtyDaysAgo, ninetyDaysAgo, today) {
+        try {
+            // 1. Get page performance summary
+            const pageResponse = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                        endDate: today.toISOString().split('T')[0],
+                        dimensions: ['page'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 1
+                    }
+                });
+            });
+
+            // 2. Get top queries for this page
+            const queriesResponse = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                        endDate: today.toISOString().split('T')[0],
+                        dimensions: ['query'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 10
+                    }
+                });
+            });
+
+            // 3. Get opportunity queries (high impressions, low CTR)
+            const opportunityResponse = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: ninetyDaysAgo.toISOString().split('T')[0],
+                        endDate: today.toISOString().split('T')[0],
+                        dimensions: ['query'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 25
+                    }
+                });
+            });
+
+            // 4. Get trend data (compare periods)
+            const previousPeriodResponse = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: new Date(today.getTime() - (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+                        endDate: thirtyDaysAgo.toISOString().split('T')[0],
+                        dimensions: ['page'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 1
+                    }
+                });
+            });
+
+            const row = pageResponse.result.rows[0];
+            const queries = queriesResponse.result.rows || [];
+            const opportunityQueries = opportunityResponse.result.rows || [];
+            const previousPeriod = previousPeriodResponse.result.rows?.[0];
+
+            // Analyze opportunities
+            const opportunities = opportunityQueries
+                .filter(q => q.impressions > 10 && q.ctr < 0.05)
+                .sort((a, b) => (b.impressions * (1 - b.ctr)) - (a.impressions * (1 - a.ctr)))
+                .slice(0, 5);
+
+            // Calculate trends
+            const trend = previousPeriod ? {
+                clicksChange: ((row.clicks - previousPeriod.clicks) / previousPeriod.clicks * 100).toFixed(1),
+                impressionsChange: ((row.impressions - previousPeriod.impressions) / previousPeriod.impressions * 100).toFixed(1),
+                positionChange: (previousPeriod.position - row.position).toFixed(1)
+            } : null;
+
+            const gscData = {
+                // Basic metrics
+                clicks: row.clicks || 0,
+                impressions: row.impressions || 0,
+                ctr: row.ctr || 0,
+                position: row.position || 0,
+                url: variation,
+                fetchedAt: Date.now(),
+                
+                // Enhanced data for content writers
+                topQueries: queries.slice(0, 5).map(q => ({
+                    query: q.keys[0],
+                    clicks: q.clicks,
+                    impressions: q.impressions,
+                    ctr: q.ctr,
+                    position: q.position,
+                    opportunity: q.impressions > 50 && q.position > 10 ? 'rank-opportunity' :
+                               q.impressions > 20 && q.ctr < 0.03 ? 'ctr-opportunity' : null
+                })),
+                
+                opportunities: opportunities.map(q => ({
+                    query: q.keys[0],
+                    impressions: q.impressions,
+                    clicks: q.clicks,
+                    ctr: q.ctr,
+                    position: q.position,
+                    potentialClicks: Math.round(q.impressions * 0.05)
+                })),
+                
+                trend: trend,
+                
+                // Content insights
+                insights: generateContentInsights(queries, opportunities, row)
             };
-            gscDataMap.set(node.url, noData);
-            debugLog(`No GSC data found for ${node.url}`);
-            return noData;
             
+            return gscData;
         } catch (error) {
-            console.error('Error fetching comprehensive GSC data:', error);
+            console.error('Error fetching enhanced GSC data:', error);
             return null;
         }
     }
@@ -688,85 +1075,6 @@
         }
         
         return insights;
-    }
-
-    // Enhanced URL variations function
-    function createUrlVariations(originalUrl) {
-        const variations = new Set();
-        
-        // Add original URL
-        variations.add(originalUrl);
-        
-        try {
-            const urlObj = new URL(originalUrl);
-            const protocol = urlObj.protocol;
-            const hostname = urlObj.hostname;
-            const pathname = urlObj.pathname;
-            const search = urlObj.search;
-            
-            // Protocol variations (http/https)
-            const otherProtocol = protocol === 'http:' ? 'https:' : 'http:';
-            variations.add(`${otherProtocol}//${hostname}${pathname}${search}`);
-            
-            // www variations
-            if (hostname.startsWith('www.')) {
-                const withoutWww = hostname.substring(4);
-                variations.add(`${protocol}//${withoutWww}${pathname}${search}`);
-                variations.add(`${otherProtocol}//${withoutWww}${pathname}${search}`);
-            } else {
-                variations.add(`${protocol}//www.${hostname}${pathname}${search}`);
-                variations.add(`${otherProtocol}//www.${hostname}${pathname}${search}`);
-            }
-            
-            // Trailing slash variations
-            if (pathname.endsWith('/') && pathname.length > 1) {
-                const withoutSlash = pathname.slice(0, -1);
-                variations.add(`${protocol}//${hostname}${withoutSlash}${search}`);
-                variations.add(`${otherProtocol}//${hostname}${withoutSlash}${search}`);
-                
-                if (hostname.startsWith('www.')) {
-                    const withoutWww = hostname.substring(4);
-                    variations.add(`${protocol}//${withoutWww}${withoutSlash}${search}`);
-                    variations.add(`${otherProtocol}//${withoutWww}${withoutSlash}${search}`);
-                } else {
-                    variations.add(`${protocol}//www.${hostname}${withoutSlash}/${search}`);
-                    variations.add(`${otherProtocol}//www.${hostname}${withoutSlash}/${search}`);
-                }
-            } else if (!pathname.endsWith('/')) {
-                variations.add(`${protocol}//${hostname}${pathname}/${search}`);
-                variations.add(`${otherProtocol}//${hostname}${pathname}/${search}`);
-            }
-            
-            // Language prefix variations for MABS.ie
-            if (pathname.includes('/en/') || pathname.includes('/ga/')) {
-                const withoutLangPrefix = pathname.replace('/en/', '/').replace('/ga/', '/');
-                variations.add(`${protocol}//${hostname}${withoutLangPrefix}${search}`);
-                variations.add(`${otherProtocol}//${hostname}${withoutLangPrefix}${search}`);
-                
-                if (hostname.startsWith('www.')) {
-                    const withoutWww = hostname.substring(4);
-                    variations.add(`${protocol}//${withoutWww}${withoutLangPrefix}${search}`);
-                    variations.add(`${otherProtocol}//${withoutWww}${withoutLangPrefix}${search}`);
-                } else {
-                    variations.add(`${protocol}//www.${hostname}${withoutLangPrefix}${search}`);
-                    variations.add(`${otherProtocol}//www.${hostname}${withoutLangPrefix}${search}`);
-                }
-            }
-            
-        } catch (e) {
-            debugLog('Error parsing URL for variations:', originalUrl, e);
-        }
-        
-        // Handle relative URLs
-        if (originalUrl.startsWith('/') && gscSiteUrl) {
-            const baseUrl = gscSiteUrl.replace(/\/$/, '');
-            variations.add(baseUrl + originalUrl);
-        }
-        
-        // Convert to array and limit to prevent too many requests
-        const result = Array.from(variations).slice(0, 8);
-        debugLog('Generated variations for', originalUrl, ':', result);
-        return result;
     }
 
     // Batch loading for hover queue
@@ -908,6 +1216,29 @@
         }
     }
 
+    // Setup health monitoring
+    function setupHealthMonitoring() {
+        healthCheckInterval = setInterval(async () => {
+            if (!gscConnected) return;
+            
+            const health = await checkGSCConnectionHealth();
+            if (!health.healthy) {
+                debugLog('GSC connection unhealthy:', health.reason);
+                
+                if (health.shouldReconnect) {
+                    debugLog('Attempting auto-recovery...');
+                    try {
+                        await refreshToken();
+                        debugLog('Auto-recovery successful');
+                    } catch (error) {
+                        debugLog('Auto-recovery failed:', error.message);
+                        // Could trigger user notification here
+                    }
+                }
+            }
+        }, 5 * 60 * 1000); // Check every 5 minutes
+    }
+
     // Reset GSC data
     function resetGSCData() {
         gscDataMap.clear();
@@ -927,163 +1258,156 @@
             cacheCleanupInterval = null;
         }
         
+        if (healthCheckInterval) {
+            clearInterval(healthCheckInterval);
+            healthCheckInterval = null;
+        }
+        
         debugLog('GSC data reset');
     }
 
     // Update connection status
     function updateConnectionStatus(connected) {
-    gscConnected = connected;
-    const gscBtn = document.getElementById('gscConnectBtn');
-    const gscIcon = document.getElementById('gscIcon');
-    const gscText = document.getElementById('gscText');
-    
-    if (gscBtn) {
-        if (connected) {
-            // Add connecting animation first
-            gscBtn.classList.add('connecting');
-            setTimeout(() => gscBtn.classList.remove('connecting'), 600);
-            
-            // Then add connected state
-            setTimeout(() => {
-                gscBtn.classList.add('connected');
-                gscBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important';
-                gscBtn.style.color = 'white !important';
-                gscBtn.style.borderColor = '#4caf50 !important';
+        gscConnected = connected;
+        const gscBtn = document.getElementById('gscConnectBtn');
+        const gscIcon = document.getElementById('gscIcon');
+        const gscText = document.getElementById('gscText');
+        
+        if (gscBtn) {
+            if (connected) {
+                // Add connecting animation first
+                gscBtn.classList.add('connecting');
+                setTimeout(() => gscBtn.classList.remove('connecting'), 600);
                 
-                if (gscText) gscText.textContent = 'GSC Connected';
-            }, 300);
-            
-        } else {
-            gscBtn.classList.remove('connected', 'connecting');
-            gscBtn.style.background = '#ffffff !important';
-            gscBtn.style.color = '#3c4043 !important';
-            gscBtn.style.borderColor = '#dadce0 !important';
-            gscBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-            
-            if (gscText) gscText.textContent = 'Connect GSC';
+                // Then add connected state
+                setTimeout(() => {
+                    gscBtn.classList.add('connected');
+                    gscBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important';
+                    gscBtn.style.color = 'white !important';
+                    gscBtn.style.borderColor = '#4caf50 !important';
+                    
+                    if (gscText) gscText.textContent = 'GSC Connected';
+                }, 300);
+                
+            } else {
+                gscBtn.classList.remove('connected', 'connecting');
+                gscBtn.style.background = '#ffffff !important';
+                gscBtn.style.color = '#3c4043 !important';
+                gscBtn.style.borderColor = '#dadce0 !important';
+                gscBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                
+                if (gscText) gscText.textContent = 'Connect GSC';
+            }
+        }
+        
+        debugLog('Connection status updated with animations:', connected);
+        
+        if (!connected) {
+            resetGSCData();
         }
     }
-    
-    debugLog('Connection status updated with animations:', connected);
-    
-    if (!connected) {
-        resetGSCData();
-    }
-}
-
-
 
     // Remove loading state
-function hideGSCLoadingState() {
-    const gscBtn = document.getElementById('gscConnectBtn');
-    const gscText = document.getElementById('gscText');
-    
-    if (gscBtn && gscText) {
-        gscBtn.style.pointerEvents = 'auto';
-        // Text will be updated by updateConnectionStatus
+    function hideGSCLoadingState() {
+        const gscBtn = document.getElementById('gscConnectBtn');
+        const gscText = document.getElementById('gscText');
+        
+        if (gscBtn && gscText) {
+            gscBtn.style.pointerEvents = 'auto';
+            // Text will be updated by updateConnectionStatus
+        }
     }
-}
-
-
-
-    
-
 
     function showGSCLoadingState() {
-    const gscBtn = document.getElementById('gscConnectBtn');
-    const gscText = document.getElementById('gscText');
-    
-    if (gscBtn && gscText) {
-        gscText.innerHTML = 'Connecting<span class="gsc-loading-dots"><span></span><span></span><span></span></span>';
-        gscBtn.style.pointerEvents = 'none';
+        const gscBtn = document.getElementById('gscConnectBtn');
+        const gscText = document.getElementById('gscText');
+        
+        if (gscBtn && gscText) {
+            gscText.innerHTML = 'Connecting<span class="gsc-loading-dots"><span></span><span></span><span></span></span>';
+            gscBtn.style.pointerEvents = 'none';
+        }
     }
-}
-
-
-
-
-    
 
     // Add GSC button to navigation
     function addGSCButton() {
-    const checkAndAdd = () => {
-        debugLog('Checking for navigation bar...');
+        const checkAndAdd = () => {
+            debugLog('Checking for navigation bar...');
+            
+            const navBar = document.querySelector('.nav-group') || 
+                          document.querySelector('.nav-bar') || 
+                          document.querySelector('nav') ||
+                          document.querySelector('[class*="nav"]') ||
+                          document.querySelector('[class*="toolbar"]') ||
+                          document.querySelector('[class*="header"]');
+            
+            if (!navBar) {
+                debugLog('Navigation bar not found, retrying...');
+                setTimeout(checkAndAdd, 100);
+                return;
+            }
+            
+            debugLog('Navigation bar found:', navBar);
+            
+            if (document.getElementById('gscConnectBtn')) {
+                debugLog('GSC button already exists');
+                return;
+            }
+            
+            const gscButton = document.createElement('button');
+            gscButton.className = 'nav-btn nav-gsc-btn';
+            gscButton.id = 'gscConnectBtn';
+            gscButton.onclick = toggleGSCConnection;
+            
+            // RECOMMENDED: Official Google "G" Logo with transparent SVG
+            gscButton.innerHTML = `
+                <svg id="gscIcon" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span id="gscText">Connect to Search Console</span>
+            `;
+            
+            gscButton.style.cssText = `
+                display: flex !important;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px !important;
+                margin: 0 8px !important;
+                background: #ffffff !important;
+                border: 1px solid #dadce0 !important;
+                border-radius: 8px !important;
+                cursor: pointer;
+                font-size: 14px !important;
+                color: #3c4043 !important;
+                transition: all 0.2s ease;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: relative !important;
+                z-index: 9999 !important;
+                font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-weight: 500;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            `;
+            
+            const reportsDropdown = document.getElementById('reportsDropdown');
+            const firstButton = navBar.querySelector('button');
+            
+            if (reportsDropdown) {
+                navBar.insertBefore(gscButton, reportsDropdown);
+                debugLog('GSC button inserted before reports dropdown');
+            } else if (firstButton) {
+                navBar.insertBefore(gscButton, firstButton.nextSibling);
+                debugLog('GSC button inserted after first button');
+            } else {
+                navBar.appendChild(gscButton);
+                debugLog('GSC button appended to navigation bar');
+            }
+        };
         
-        const navBar = document.querySelector('.nav-group') || 
-                      document.querySelector('.nav-bar') || 
-                      document.querySelector('nav') ||
-                      document.querySelector('[class*="nav"]') ||
-                      document.querySelector('[class*="toolbar"]') ||
-                      document.querySelector('[class*="header"]');
-        
-        if (!navBar) {
-            debugLog('Navigation bar not found, retrying...');
-            setTimeout(checkAndAdd, 100);
-            return;
-        }
-        
-        debugLog('Navigation bar found:', navBar);
-        
-        if (document.getElementById('gscConnectBtn')) {
-            debugLog('GSC button already exists');
-            return;
-        }
-        
-        const gscButton = document.createElement('button');
-        gscButton.className = 'nav-btn nav-gsc-btn';
-        gscButton.id = 'gscConnectBtn';
-        gscButton.onclick = toggleGSCConnection;
-        
-        // RECOMMENDED: Official Google "G" Logo with transparent SVG
-        gscButton.innerHTML = `
-            <svg id="gscIcon" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            <span id="gscText">Connect to Search Console</span>
-        `;
-        
-        gscButton.style.cssText = `
-            display: flex !important;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px !important;
-            margin: 0 8px !important;
-            background: #ffffff !important;
-            border: 1px solid #dadce0 !important;
-            border-radius: 8px !important;
-            cursor: pointer;
-            font-size: 14px !important;
-            color: #3c4043 !important;
-            transition: all 0.2s ease;
-            visibility: visible !important;
-            opacity: 1 !important;
-            position: relative !important;
-            z-index: 9999 !important;
-            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-weight: 500;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        `;
-        
-        const reportsDropdown = document.getElementById('reportsDropdown');
-        const firstButton = navBar.querySelector('button');
-        
-        if (reportsDropdown) {
-            navBar.insertBefore(gscButton, reportsDropdown);
-            debugLog('GSC button inserted before reports dropdown');
-        } else if (firstButton) {
-            navBar.insertBefore(gscButton, firstButton.nextSibling);
-            debugLog('GSC button inserted after first button');
-        } else {
-            navBar.appendChild(gscButton);
-            debugLog('GSC button appended to navigation bar');
-        }
-    };
-    
-    checkAndAdd();
-}
+        checkAndAdd();
+    }
 
     // ===========================================
     // SIMPLIFIED TOOLTIP SYSTEM
@@ -1124,38 +1448,38 @@ function hideGSCLoadingState() {
     }
     
     function showSimplifiedTooltip(event, d) {
-    if (!d.data) return;
-    
-    // Hide any existing tooltip first
-    hideCurrentTooltip();
-    
-    // Create basic tooltip structure
-    const tooltip = createBasicTooltip(d.data);
-    
-    // Store the node data on the tooltip for GSC enhancement access
-    tooltip._nodeData = d.data;
-    
-    // Position tooltip
-    positionTooltip(tooltip, event);
-    
-    // Show tooltip
-    document.body.appendChild(tooltip);
-    currentTooltip = tooltip;
-    
-    // Add hover protection (simplified)
-    tooltip.addEventListener('mouseenter', () => {
-        clearTimeout(hideTimer);
-    });
-    
-    tooltip.addEventListener('mouseleave', () => {
-        window.hideEnhancedTooltip();
-    });
-    
-    // Trigger GSC data loading (non-blocking)
-    if (gscConnected && d.data.url && !gscDataMap.has(d.data.url)) {
-        loadGSCDataAsync(d.data, tooltip);
+        if (!d.data) return;
+        
+        // Hide any existing tooltip first
+        hideCurrentTooltip();
+        
+        // Create basic tooltip structure
+        const tooltip = createBasicTooltip(d.data);
+        
+        // Store the node data on the tooltip for GSC enhancement access
+        tooltip._nodeData = d.data;
+        
+        // Position tooltip
+        positionTooltip(tooltip, event);
+        
+        // Show tooltip
+        document.body.appendChild(tooltip);
+        currentTooltip = tooltip;
+        
+        // Add hover protection (simplified)
+        tooltip.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimer);
+        });
+        
+        tooltip.addEventListener('mouseleave', () => {
+            window.hideEnhancedTooltip();
+        });
+        
+        // Trigger GSC data loading (non-blocking)
+        if (gscConnected && d.data.url && !gscDataMap.has(d.data.url)) {
+            loadGSCDataAsync(d.data, tooltip);
+        }
     }
-}
     
     function hideCurrentTooltip() {
         if (currentTooltip) {
@@ -1170,257 +1494,233 @@ function hideGSCLoadingState() {
     }
     
     function createBasicTooltip(data) {
-    const tooltip = document.createElement('div');
-    tooltip.className = 'enhanced-tooltip simplified-tooltip';
-    tooltip.style.cssText = `
-        position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        max-width: 400px;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-        pointer-events: auto;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 14px;
-        line-height: 1.4;
-    `;
-    
-    // Build basic content
-    let html = createBasicContent(data);
-    
-    // Add sleek loading progress if connected
-    if (gscConnected && data.url) {
-        html += createSleekLoadingProgress();
+        const tooltip = document.createElement('div');
+        tooltip.className = 'enhanced-tooltip simplified-tooltip';
+        tooltip.style.cssText = `
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            max-width: 400px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+        `;
+        
+        // Build basic content
+        let html = createBasicContent(data);
+        
+        // Add sleek loading progress if connected
+        if (gscConnected && data.url) {
+            html += createSleekLoadingProgress();
+        }
+        
+        tooltip.innerHTML = html;
+        
+        // Trigger fade in
+        setTimeout(() => {
+            tooltip.style.opacity = '1';
+        }, 10);
+        
+        return tooltip;
     }
-    
-    tooltip.innerHTML = html;
-    
-    // Trigger fade in
-    setTimeout(() => {
-        tooltip.style.opacity = '1';
-    }, 10);
-    
-    return tooltip;
-}
-
-
-
-
 
     function createSleekLoadingProgress() {
-    return `
-        <div id="gsc-loading-container" style="margin-top: 12px;">
-            <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
-                
-                <!-- Loading header -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="gsc-loading-spinner" style="
-                            width: 16px; 
-                            height: 16px; 
-                            border: 2px solid #e3f2fd; 
-                            border-top: 2px solid #4a90e2; 
-                            border-radius: 50%; 
-                            animation: gsc-spin 1s linear infinite;
-                        "></div>
-                        <span style="font-weight: 600; color: #1f4788; font-size: 0.9rem;">Loading Performance Data</span>
-                    </div>
-                    <span id="gsc-progress-percentage" style="font-size: 0.8rem; color: #666; font-weight: 500;">0%</span>
-                </div>
-                
-                <!-- Progress bar container -->
-                <div style="background: #f0f4ff; border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 12px; position: relative;">
-                    <div id="gsc-progress-bar" style="
-                        height: 100%;
-                        width: 0%;
-                        background: linear-gradient(90deg, #4a90e2 0%, #1f4788 50%, #4a90e2 100%);
-                        background-size: 200% 100%;
-                        border-radius: 10px;
-                        transition: width 0.3s ease;
-                        animation: gsc-shimmer 2s ease-in-out infinite;
-                        position: relative;
-                    "></div>
+        return `
+            <div id="gsc-loading-container" style="margin-top: 12px;">
+                <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
                     
-                    <!-- Shimmer overlay -->
-                    <div style="
-                        position: absolute;
-                        top: 0;
-                        left: -100%;
-                        width: 100%;
-                        height: 100%;
-                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-                        animation: gsc-shimmer-slide 1.5s ease-in-out infinite;
-                    "></div>
+                    <!-- Loading header -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="gsc-loading-spinner" style="
+                                width: 16px; 
+                                height: 16px; 
+                                border: 2px solid #e3f2fd; 
+                                border-top: 2px solid #4a90e2; 
+                                border-radius: 50%; 
+                                animation: gsc-spin 1s linear infinite;
+                            "></div>
+                            <span style="font-weight: 600; color: #1f4788; font-size: 0.9rem;">Loading Performance Data</span>
+                        </div>
+                        <span id="gsc-progress-percentage" style="font-size: 0.8rem; color: #666; font-weight: 500;">0%</span>
+                    </div>
+                    
+                    <!-- Progress bar container -->
+                    <div style="background: #f0f4ff; border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 12px; position: relative;">
+                        <div id="gsc-progress-bar" style="
+                            height: 100%;
+                            width: 0%;
+                            background: linear-gradient(90deg, #4a90e2 0%, #1f4788 50%, #4a90e2 100%);
+                            background-size: 200% 100%;
+                            border-radius: 10px;
+                            transition: width 0.3s ease;
+                            animation: gsc-shimmer 2s ease-in-out infinite;
+                            position: relative;
+                        "></div>
+                        
+                        <!-- Shimmer overlay -->
+                        <div style="
+                            position: absolute;
+                            top: 0;
+                            left: -100%;
+                            width: 100%;
+                            height: 100%;
+                            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+                            animation: gsc-shimmer-slide 1.5s ease-in-out infinite;
+                        "></div>
+                    </div>
+                    
+                    <!-- Loading steps -->
+                    <div id="gsc-loading-steps" style="font-size: 0.75rem; color: #666;">
+                        <div id="gsc-step-1" class="gsc-step active" style="margin-bottom: 4px; opacity: 0.7;">
+                            🔍 Connecting to Search Console...
+                        </div>
+                        <div id="gsc-step-2" class="gsc-step" style="margin-bottom: 4px; opacity: 0.4;">
+                            📊 Analyzing page performance...
+                        </div>
+                        <div id="gsc-step-3" class="gsc-step" style="margin-bottom: 4px; opacity: 0.4;">
+                            🎯 Finding top keywords...
+                        </div>
+                        <div id="gsc-step-4" class="gsc-step" style="opacity: 0.4;">
+                            ⚡ Identifying opportunities...
+                        </div>
+                    </div>
+                    
                 </div>
-                
-                <!-- Loading steps -->
-                <div id="gsc-loading-steps" style="font-size: 0.75rem; color: #666;">
-                    <div id="gsc-step-1" class="gsc-step active" style="margin-bottom: 4px; opacity: 0.7;">
-                        🔍 Connecting to Search Console...
-                    </div>
-                    <div id="gsc-step-2" class="gsc-step" style="margin-bottom: 4px; opacity: 0.4;">
-                        📊 Analyzing page performance...
-                    </div>
-                    <div id="gsc-step-3" class="gsc-step" style="margin-bottom: 4px; opacity: 0.4;">
-                        🎯 Finding top keywords...
-                    </div>
-                    <div id="gsc-step-4" class="gsc-step" style="opacity: 0.4;">
-                        ⚡ Identifying opportunities...
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-    `;
-}
-
-
-
-    
-
-
-    function getFreshnessInfo(lastModified) {
-    if (!lastModified) return null;
-    
-    const now = new Date();
-    const lastMod = new Date(lastModified);
-    const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
-    
-    let freshnessClass, freshnessLabel, freshnessColor;
-    
-    // Match desktop thresholds exactly
-    if (daysSince < 30) {
-        freshnessClass = 'new';        // Green - New
-        freshnessLabel = 'New';
-        freshnessColor = '#4caf50';
-    } else if (daysSince < 90) {
-        freshnessClass = 'fresh';      // Green - Fresh (1-3 months)
-        freshnessLabel = 'Fresh';
-        freshnessColor = '#4caf50';
-    } else if (daysSince < 180) {
-        freshnessClass = 'recent';     // Yellow - Recent (3-6 months)
-        freshnessLabel = 'Recent';
-        freshnessColor = '#ffc107';
-    } else if (daysSince < 365) {
-        freshnessClass = 'aging';      // Orange - Aging (6-12 months)
-        freshnessLabel = 'Aging';
-        freshnessColor = '#ff9800';
-    } else if (daysSince < 730) {
-        freshnessClass = 'old';        // Red - Old (1-2 years)
-        freshnessLabel = 'Old';
-        freshnessColor = '#f44336';
-    } else {
-        freshnessClass = 'stale';     // Dark Red - Stale (2+ years)
-        freshnessLabel = 'Stale';
-        freshnessColor = '#d32f2f';
-    }
-    
-    // Format the actual date nicely
-    const formattedDate = lastMod.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-    
-    // Create relative time string
-    const relativeTime = daysSince === 0 ? 'today' :
-                       daysSince === 1 ? 'yesterday' :
-                       daysSince < 7 ? `${daysSince} days ago` :
-                       daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
-                       daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
-                       `${Math.floor(daysSince / 365)} years ago`;
-    
-    return {
-        daysSince,
-        freshnessClass,
-        freshnessLabel,
-        freshnessColor,
-        formattedDate,
-        relativeTime
-    };
-}
-
-
-
-    
-
-
-    
-    
-    
-    function createBasicContent(data) {
-    let freshnessInfo = '';
-    let lastModifiedDisplay = '';
-    
-    const freshnessData = getFreshnessInfo(data.lastModified);
-    
-    if (freshnessData) {
-        // Create freshness badge with exact color matching
-        freshnessInfo = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
-        
-        // Last modified display
-        lastModifiedDisplay = `
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 0; border-top: 1px solid #f0f0f0;">
-                <span style="font-size: 0.7rem; color: #666;">📅 Updated:</span>
-                <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
-                <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
             </div>
         `;
     }
+
+    function getFreshnessInfo(lastModified) {
+        if (!lastModified) return null;
+        
+        const now = new Date();
+        const lastMod = new Date(lastModified);
+        const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+        
+        let freshnessClass, freshnessLabel, freshnessColor;
+        
+        // Match desktop thresholds exactly
+        if (daysSince < 30) {
+            freshnessClass = 'new';        // Green - New
+            freshnessLabel = 'New';
+            freshnessColor = '#4caf50';
+        } else if (daysSince < 90) {
+            freshnessClass = 'fresh';      // Green - Fresh (1-3 months)
+            freshnessLabel = 'Fresh';
+            freshnessColor = '#4caf50';
+        } else if (daysSince < 180) {
+            freshnessClass = 'recent';     // Yellow - Recent (3-6 months)
+            freshnessLabel = 'Recent';
+            freshnessColor = '#ffc107';
+        } else if (daysSince < 365) {
+            freshnessClass = 'aging';      // Orange - Aging (6-12 months)
+            freshnessLabel = 'Aging';
+            freshnessColor = '#ff9800';
+        } else if (daysSince < 730) {
+            freshnessClass = 'old';        // Red - Old (1-2 years)
+            freshnessLabel = 'Old';
+            freshnessColor = '#f44336';
+        } else {
+            freshnessClass = 'stale';     // Dark Red - Stale (2+ years)
+            freshnessLabel = 'Stale';
+            freshnessColor = '#d32f2f';
+        }
+        
+        // Format the actual date nicely
+        const formattedDate = lastMod.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        // Create relative time string
+        const relativeTime = daysSince === 0 ? 'today' :
+                           daysSince === 1 ? 'yesterday' :
+                           daysSince < 7 ? `${daysSince} days ago` :
+                           daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                           daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                           `${Math.floor(daysSince / 365)} years ago`;
+        
+        return {
+            daysSince,
+            freshnessClass,
+            freshnessLabel,
+            freshnessColor,
+            formattedDate,
+            relativeTime
+        };
+    }
     
-    // Get page info
-    const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
-    const pageInfo = getPageInfo(data, treeContext);
-    
-    // Create page info display
-    const pageInfoDisplay = `
-        <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.7rem;">
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: #666;">🏷️ Type:</span>
-                    <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+    function createBasicContent(data) {
+        let freshnessInfo = '';
+        let lastModifiedDisplay = '';
+        
+        const freshnessData = getFreshnessInfo(data.lastModified);
+        
+        if (freshnessData) {
+            // Create freshness badge with exact color matching
+            freshnessInfo = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
+            
+            // Last modified display
+            lastModifiedDisplay = `
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 0; border-top: 1px solid #f0f0f0;">
+                    <span style="font-size: 0.7rem; color: #666;">📅 Updated:</span>
+                    <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
+                    <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: #666;">📏 Depth:</span>
-                    <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: #666;">👶 Children:</span>
-                    <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: #666;">👫 Siblings:</span>
-                    <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
+            `;
+        }
+        
+        // Get page info
+        const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+        const pageInfo = getPageInfo(data, treeContext);
+        
+        // Create page info display
+        const pageInfoDisplay = `
+            <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.7rem;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">🏷️ Type:</span>
+                        <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">📏 Depth:</span>
+                        <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👶 Children:</span>
+                        <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👫 Siblings:</span>
+                        <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
-    
-    return `
-        <div style="margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
-                <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
-                ${freshnessInfo}
+        `;
+        
+        return `
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
+                    <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
+                    ${freshnessInfo}
+                </div>
+                ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
+                    onmouseover="this.style.textDecoration='underline'" 
+                    onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}
+                ${lastModifiedDisplay}
+                ${pageInfoDisplay}
             </div>
-            ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
-                onmouseover="this.style.textDecoration='underline'" 
-                onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}
-            ${lastModifiedDisplay}
-            ${pageInfoDisplay}
-        </div>
-    `;
-}
-
-
-    
-
-
-
-    
+        `;
+    }
     
     function positionTooltip(tooltip, event) {
         // Simple positioning - no complex edge detection
@@ -1448,481 +1748,388 @@ function hideGSCLoadingState() {
     
     // Async GSC data loading (non-blocking)
     async function loadGSCDataAsync(data, tooltip) {
-    if (!tooltip || !data.url) return;
-    
-    const progressContainer = tooltip.querySelector('#gsc-loading-container');
-    if (!progressContainer) return;
-    
-    const progressBar = tooltip.querySelector('#gsc-progress-bar');
-    const progressText = tooltip.querySelector('#gsc-progress-percentage');
-    const steps = tooltip.querySelectorAll('.gsc-step');
-    
-    try {
-        // Simulate realistic loading progress
-        const progressStages = [
-            { progress: 15, step: 0, delay: 200 },
-            { progress: 35, step: 1, delay: 300 },
-            { progress: 65, step: 2, delay: 400 },
-            { progress: 85, step: 3, delay: 300 }
-        ];
+        if (!tooltip || !data.url) return;
         
-        // Animate through progress stages
-        for (let i = 0; i < progressStages.length; i++) {
-            const stage = progressStages[i];
+        const progressContainer = tooltip.querySelector('#gsc-loading-container');
+        if (!progressContainer) return;
+        
+        const progressBar = tooltip.querySelector('#gsc-progress-bar');
+        const progressText = tooltip.querySelector('#gsc-progress-percentage');
+        const steps = tooltip.querySelectorAll('.gsc-step');
+        
+        try {
+            // Simulate realistic loading progress
+            const progressStages = [
+                { progress: 15, step: 0, delay: 200 },
+                { progress: 35, step: 1, delay: 300 },
+                { progress: 65, step: 2, delay: 400 },
+                { progress: 85, step: 3, delay: 300 }
+            ];
             
-            // Check if tooltip still exists
-            if (tooltip !== currentTooltip || !tooltip.parentNode) return;
-            
-            // Update progress bar
-            if (progressBar) {
-                progressBar.style.width = stage.progress + '%';
+            // Animate through progress stages
+            for (let i = 0; i < progressStages.length; i++) {
+                const stage = progressStages[i];
+                
+                // Check if tooltip still exists
+                if (tooltip !== currentTooltip || !tooltip.parentNode) return;
+                
+                // Update progress bar
+                if (progressBar) {
+                    progressBar.style.width = stage.progress + '%';
+                }
+                
+                // Update percentage
+                if (progressText) {
+                    progressText.textContent = stage.progress + '%';
+                }
+                
+                // Update active step
+                steps.forEach((step, index) => {
+                    if (index === stage.step) {
+                        step.style.opacity = '1';
+                        step.style.fontWeight = '600';
+                        step.style.color = '#1f4788';
+                    } else if (index < stage.step) {
+                        step.style.opacity = '0.8';
+                        step.style.color = '#28a745';
+                        // Add checkmark to completed steps
+                        if (!step.textContent.includes('✅')) {
+                            step.textContent = step.textContent.replace(/🔍|📊|🎯|⚡/, '✅');
+                        }
+                    } else {
+                        step.style.opacity = '0.4';
+                        step.style.color = '#666';
+                    }
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, stage.delay));
             }
             
-            // Update percentage
-            if (progressText) {
-                progressText.textContent = stage.progress + '%';
-            }
+            // Fetch the actual GSC data
+            const gscData = await fetchNodeGSCData(data);
             
-            // Update active step
-            steps.forEach((step, index) => {
-                if (index === stage.step) {
-                    step.style.opacity = '1';
-                    step.style.fontWeight = '600';
-                    step.style.color = '#1f4788';
-                } else if (index < stage.step) {
-                    step.style.opacity = '0.8';
-                    step.style.color = '#28a745';
-                    // Add checkmark to completed steps
-                    if (!step.textContent.includes('✅')) {
-                        step.textContent = step.textContent.replace(/🔍|📊|🎯|⚡/, '✅');
-                    }
-                } else {
-                    step.style.opacity = '0.4';
-                    step.style.color = '#666';
-                }
-            });
-            
-            await new Promise(resolve => setTimeout(resolve, stage.delay));
-        }
-        
-        // Fetch the actual GSC data
-        const gscData = await fetchNodeGSCData(data);
-        
-        // Check if tooltip still exists and is the current one
-        if (tooltip === currentTooltip && tooltip.parentNode) {
-            // Complete the final step
-            if (progressBar) progressBar.style.width = '100%';
-            if (progressText) progressText.textContent = '100%';
-            
-            // Mark final step as complete
-            steps.forEach((step, index) => {
-                if (index === 3) { // Final step
-                    step.style.opacity = '0.8';
-                    step.style.color = '#28a745';
-                    if (!step.textContent.includes('✅')) {
-                        step.textContent = step.textContent.replace('⚡', '✅');
-                    }
-                }
-            });
-            
-            // Brief pause to show completion
-            await new Promise(resolve => setTimeout(resolve, 400));
-            
-            // Replace loading with actual data
+            // Check if tooltip still exists and is the current one
             if (tooltip === currentTooltip && tooltip.parentNode) {
-                replaceLoadingWithGSCData(tooltip, gscData, data);
+                // Complete the final step
+                if (progressBar) progressBar.style.width = '100%';
+                if (progressText) progressText.textContent = '100%';
+                
+                // Mark final step as complete
+                steps.forEach((step, index) => {
+                    if (index === 3) { // Final step
+                        step.style.opacity = '0.8';
+                        step.style.color = '#28a745';
+                        if (!step.textContent.includes('✅')) {
+                            step.textContent = step.textContent.replace('⚡', '✅');
+                        }
+                    }
+                });
+                
+                // Brief pause to show completion
+                await new Promise(resolve => setTimeout(resolve, 400));
+                
+                // Replace loading with actual data
+                if (tooltip === currentTooltip && tooltip.parentNode) {
+                    replaceLoadingWithGSCData(tooltip, gscData, data);
+                }
+            }
+            
+        } catch (error) {
+            console.warn('GSC data loading failed:', error);
+            if (tooltip === currentTooltip && tooltip.parentNode) {
+                showLoadingError(tooltip, 'Unable to load performance data');
             }
         }
+    }
+
+    function replaceLoadingWithGSCData(tooltip, gscData, originalData) {
+        const loadingContainer = tooltip.querySelector('#gsc-loading-container');
+        if (!loadingContainer) return;
         
-    } catch (error) {
-        console.warn('GSC data loading failed:', error);
-        if (tooltip === currentTooltip && tooltip.parentNode) {
-            showLoadingError(tooltip, 'Unable to load performance data');
+        if (!gscData || gscData.noDataFound) {
+            loadingContainer.innerHTML = gscData?.noDataFound ? 
+                '<div style="color: #999; font-size: 0.8rem; text-align: center; padding: 20px;">📭 No search data found</div>' : 
+                '<div style="color: #999; font-size: 0.8rem; text-align: center; padding: 20px;">❌ Performance data unavailable</div>';
+            return;
         }
-    }
-}
-
-
-function replaceLoadingWithGSCData(tooltip, gscData, originalData) {
-    const loadingContainer = tooltip.querySelector('#gsc-loading-container');
-    if (!loadingContainer) return;
-    
-    if (!gscData || gscData.noDataFound) {
-        loadingContainer.innerHTML = gscData?.noDataFound ? 
-            '<div style="color: #999; font-size: 0.8rem; text-align: center; padding: 20px;">📭 No search data found</div>' : 
-            '<div style="color: #999; font-size: 0.8rem; text-align: center; padding: 20px;">❌ Performance data unavailable</div>';
-        return;
-    }
-    
-    // Get freshness data with exact matching
-    const freshnessData = getFreshnessInfo(originalData.lastModified);
-    
-    // Get page info
-    const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
-    const pageInfo = getPageInfo(originalData, treeContext);
-    
-    // Create enhanced GSC content
-    const performanceScore = calculateSimplePerformanceScore(gscData);
-    const gscHtml = `
-        <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
-            
-            <!-- Header with matched freshness info -->
-            
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
-                <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
-                    ${performanceScore}/100
+        
+        // Get freshness data with exact matching
+        const freshnessData = getFreshnessInfo(originalData.lastModified);
+        
+        // Get page info
+        const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+        const pageInfo = getPageInfo(originalData, treeContext);
+        
+        // Create enhanced GSC content
+        const performanceScore = calculateSimplePerformanceScore(gscData);
+        const gscHtml = `
+            <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
+                    <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                        ${performanceScore}/100
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Enhanced metrics grid with trends -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
-                    <div style="font-size: 0.75rem; color: #666;">Clicks</div>
-                    ${gscData.trend && gscData.trend.clicksChange ? `
-                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px; 
-                                    background: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf5020' : '#f4433620'}; 
-                                    color: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf50' : '#f44336'};">
-                            ${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%
-                        </div>
-                    ` : ''}
-                </div>
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
-                    <div style="font-size: 0.75rem; color: #666;">Impressions</div>
-                    ${gscData.trend && gscData.trend.impressionsChange ? `
-                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
-                                    background: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf5020' : '#f4433620'};
-                                    color: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf50' : '#f44336'};">
-                            ${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
-                        </div>
-                    ` : ''}
-                </div>
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                    <div style="font-size: 0.75rem; color: #666;">CTR</div>
-                </div>
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
-                    <div style="font-size: 0.75rem; color: #666;">Position</div>
-                    ${gscData.trend && gscData.trend.positionChange ? `
-                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
-                                    background: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf5020' : '#f4433620'};
-                                    color: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf50' : '#f44336'};">
-                            ${parseFloat(gscData.trend.positionChange) > 0 ? '+' : ''}${gscData.trend.positionChange}
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-            
-            <!-- Top 3 Search Queries Section -->
-            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                <div style="background: white; padding: 12px; border-radius: 6px; border-top: 2px solid #1f4788; margin-bottom: 8px;">
-                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
-                    ${gscData.topQueries.slice(0, 3).map((query, index) => `
-                        <div style="margin-bottom: ${index < 2 ? '8px' : '0'}; padding: ${index < 2 ? '0 0 8px 0' : '0'}; 
-                                    border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
-                                <span style="background: #1f4788; color: white; width: 16px; height: 16px; border-radius: 50%; 
-                                            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
-                                    ${index + 1}
-                                </span>
-                                <div style="font-size: 0.85rem; font-weight: 600; color: #333; flex: 1;">"${escapeHtml(query.query)}"</div>
+                
+                <!-- Enhanced metrics grid with trends -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
+                        <div style="font-size: 0.75rem; color: #666;">Clicks</div>
+                        ${gscData.trend && gscData.trend.clicksChange ? `
+                            <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px; 
+                                        background: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf5020' : '#f4433620'}; 
+                                        color: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf50' : '#f44336'};">
+                                ${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: #666; margin-left: 24px;">
-                                <span>${query.clicks} clicks</span>
-                                <span>#${query.position.toFixed(0)} avg</span>
-                                <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
+                        ` : ''}
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
+                        <div style="font-size: 0.75rem; color: #666;">Impressions</div>
+                        ${gscData.trend && gscData.trend.impressionsChange ? `
+                            <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
+                                        background: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf5020' : '#f4433620'};
+                                        color: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf50' : '#f44336'};">
+                                ${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
                             </div>
-                        </div>
-                    `).join('')}
+                        ` : ''}
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
+                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
+                        <div style="font-size: 0.75rem; color: #666;">CTR</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
+                        <div style="font-size: 0.75rem; color: #666;">Position</div>
+                        ${gscData.trend && gscData.trend.positionChange ? `
+                            <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
+                                        background: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf5020' : '#f4433620'};
+                                        color: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf50' : '#f44336'};">
+                                ${parseFloat(gscData.trend.positionChange) > 0 ? '+' : ''}${gscData.trend.positionChange}
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-            ` : ''}
-            
-            <!-- Opportunities section (if any) -->
-            ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-                <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-bottom: 8px;">
-                    <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
+                
+                <!-- Top 3 Search Queries Section -->
+                ${gscData.topQueries && gscData.topQueries.length > 0 ? `
+                    <div style="background: white; padding: 12px; border-radius: 6px; border-top: 2px solid #1f4788; margin-bottom: 8px;">
+                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
+                        ${gscData.topQueries.slice(0, 3).map((query, index) => `
+                            <div style="margin-bottom: ${index < 2 ? '8px' : '0'}; padding: ${index < 2 ? '0 0 8px 0' : '0'}; 
+                                        border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+                                    <span style="background: #1f4788; color: white; width: 16px; height: 16px; border-radius: 50%; 
+                                                display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
+                                        ${index + 1}
+                                    </span>
+                                    <div style="font-size: 0.85rem; font-weight: 600; color: #333; flex: 1;">"${escapeHtml(query.query)}"</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: #666; margin-left: 24px;">
+                                    <span>${query.clicks} clicks</span>
+                                    <span>#${query.position.toFixed(0)} avg</span>
+                                    <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                <!-- Opportunities section (if any) -->
+                ${gscData.opportunities && gscData.opportunities.length > 0 ? `
+                    <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-bottom: 8px;">
+                        <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
+                    </div>
+                ` : ''}
+                
+                <!-- Action buttons -->
+                <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px;">
+                    <button onclick="window.open('${escapeHtml(gscData.url)}', '_blank')" 
+                            style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                                   font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
+                            onmouseover="this.style.background='#45a049'" 
+                            onmouseout="this.style.background='#4caf50'">
+                        🔗 Visit Page
+                    </button>
+                    <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
+                            style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                                   font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
+                            onmouseover="this.style.background='#1557b0'" 
+                            onmouseout="this.style.background='#1f4788'">
+                        📈 Full Analysis
+                    </button>
                 </div>
-            ` : ''}
-            
-            <!-- Action buttons -->
-            <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px;">
-                <button onclick="window.open('${escapeHtml(gscData.url)}', '_blank')" 
-                        style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
-                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
-                        onmouseover="this.style.background='#45a049'" 
-                        onmouseout="this.style.background='#4caf50'">
-                    🔗 Visit Page
-                </button>
-                <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
-                        style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
-                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
-                        onmouseover="this.style.background='#1557b0'" 
-                        onmouseout="this.style.background='#1f4788'">
-                    📈 Full Analysis
-                </button>
             </div>
-        </div>
-    `;
-    
-    // Add smooth transition effect
-    loadingContainer.style.transition = 'opacity 0.3s ease';
-    loadingContainer.style.opacity = '0';
-    
-    setTimeout(() => {
-        loadingContainer.outerHTML = gscHtml;
-    }, 300);
-}
-
-
-
-
+        `;
+        
+        // Add smooth transition effect
+        loadingContainer.style.transition = 'opacity 0.3s ease';
+        loadingContainer.style.opacity = '0';
+        
+        setTimeout(() => {
+            loadingContainer.outerHTML = gscHtml;
+        }, 300);
+    }
 
     // Show loading error state
-function showLoadingError(tooltip, message) {
-    const progressContainer = tooltip.querySelector('#gsc-loading-container');
-    if (!progressContainer) return;
-    
-    progressContainer.innerHTML = `
-        <div style="background: #fff5f5; padding: 12px; border-radius: 6px; border-left: 3px solid #f56565; text-align: center;">
-            <div style="color: #e53e3e; font-size: 0.85rem; margin-bottom: 4px;">❌ Loading Failed</div>
-            <div style="color: #666; font-size: 0.75rem;">${message}</div>
-        </div>
-    `;
-}
-
-// Add CSS animations for the loading effects
-function addLoadingAnimationStyles() {
-    if (document.getElementById('gsc-loading-animations')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'gsc-loading-animations';
-    style.textContent = `
-        @keyframes gsc-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+    function showLoadingError(tooltip, message) {
+        const progressContainer = tooltip.querySelector('#gsc-loading-container');
+        if (!progressContainer) return;
         
-        @keyframes gsc-shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        
-        @keyframes gsc-shimmer-slide {
-            0% { left: -100%; }
-            50% { left: 100%; }
-            100% { left: 100%; }
-        }
-        
-        .gsc-step {
-            transition: all 0.3s ease;
-        }
-        
-        .gsc-step.active {
-            transform: translateX(2px);
-        }
-        
-        #gsc-progress-bar {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        #gsc-progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
-            animation: gsc-progress-shine 2s ease-in-out infinite;
-        }
-        
-        @keyframes gsc-progress-shine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(200%); }
-        }
-        
-        /* Pulse effect for loading container */
-        #gsc-loading-container {
-            animation: gsc-pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes gsc-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.01); }
-        }
-        
-        /* Smooth transitions */
-        #gsc-progress-percentage {
-            transition: all 0.3s ease;
-        }
-        
-        /* Mobile responsive adjustments */
-        @media (max-width: 480px) {
-            #gsc-loading-steps {
-                font-size: 0.7rem;
-            }
-            
-            #gsc-progress-bar {
-                height: 6px;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-
-    
-
-
-
-
-    
-    function updateTooltipWithGSCData(tooltip, gscData) {
-    const placeholder = tooltip.querySelector('#gsc-placeholder');
-    if (!placeholder) return;
-    
-    if (!gscData || gscData.noDataFound) {
-        placeholder.innerHTML = gscData?.noDataFound ? 
-            '<div style="color: #999; font-size: 0.8rem;">📭 No search data found</div>' : 
-            '<div style="color: #999; font-size: 0.8rem;">❌ Performance data unavailable</div>';
-        return;
+        progressContainer.innerHTML = `
+            <div style="background: #fff5f5; padding: 12px; border-radius: 6px; border-left: 3px solid #f56565; text-align: center;">
+                <div style="color: #e53e3e; font-size: 0.85rem; margin-bottom: 4px;">❌ Loading Failed</div>
+                <div style="color: #666; font-size: 0.75rem;">${message}</div>
+            </div>
+        `;
     }
-    
-    // Get the original node data to access lastModified and page info
-    const tooltipContainer = tooltip.closest('.enhanced-tooltip');
-    const originalData = tooltipContainer?._nodeData || {};
-    
-    // Get page info
-    const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
-    const pageInfo = getPageInfo(originalData, treeContext);
-    
-    // Create enhanced GSC content with page info
-    const performanceScore = calculateSimplePerformanceScore(gscData);
-    const gscHtml = `
-        <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
-            
-            <!-- Header with date info if available -->
-            
-            
-            
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
-                <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
-                    ${performanceScore}/100
-                </div>
-            </div>
-            
-            <!-- Enhanced metrics grid with trends -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
-                    <div style="font-size: 0.75rem; color: #666;">Clicks</div>
-                    ${gscData.trend && gscData.trend.clicksChange ? `
-                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px; 
-                                    background: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf5020' : '#f4433620'}; 
-                                    color: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf50' : '#f44336'};">
-                            ${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%
-                        </div>
-                    ` : ''}
-                </div>
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
-                    <div style="font-size: 0.75rem; color: #666;">Impressions</div>
-                    ${gscData.trend && gscData.trend.impressionsChange ? `
-                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
-                                    background: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf5020' : '#f4433620'};
-                                    color: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf50' : '#f44336'};">
-                            ${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
-                        </div>
-                    ` : ''}
-                </div>
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                    <div style="font-size: 0.75rem; color: #666;">CTR</div>
-                </div>
-                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
-                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
-                    <div style="font-size: 0.75rem; color: #666;">Position</div>
-                    ${gscData.trend && gscData.trend.positionChange ? `
-                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
-                                    background: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf5020' : '#f4433620'};
-                                    color: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf50' : '#f44336'};">
-                            ${parseFloat(gscData.trend.positionChange) > 0 ? '+' : ''}${gscData.trend.positionChange}
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-            
-            <!-- Top 3 Search Queries Section -->
-            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                <div style="background: white; padding: 12px; border-radius: 6px; border-top: 2px solid #1f4788; margin-bottom: 8px;">
-                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
-                    ${gscData.topQueries.slice(0, 3).map((query, index) => `
-                        <div style="margin-bottom: ${index < 2 ? '8px' : '0'}; padding: ${index < 2 ? '0 0 8px 0' : '0'}; 
-                                    border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
-                                <span style="background: #1f4788; color: white; width: 16px; height: 16px; border-radius: 50%; 
-                                            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
-                                    ${index + 1}
-                                </span>
-                                <div style="font-size: 0.85rem; font-weight: 600; color: #333; flex: 1;">"${escapeHtml(query.query)}"</div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: #666; margin-left: 24px;">
-                                <span>${query.clicks} clicks</span>
-                                <span>#${query.position.toFixed(0)} avg</span>
-                                <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-            
-            <!-- Opportunities section (if any) -->
-            ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-                <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-bottom: 8px;">
-                    <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
-                </div>
-            ` : ''}
-            
-            <!-- Action buttons -->
-            <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px;">
-                <button onclick="window.open('${escapeHtml(gscData.url)}', '_blank')" 
-                        style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
-                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
-                        onmouseover="this.style.background='#45a049'" 
-                        onmouseout="this.style.background='#4caf50'">
-                    🔗 Visit Page
-                </button>
-                <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
-                        style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
-                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
-                        onmouseover="this.style.background='#1557b0'" 
-                        onmouseout="this.style.background='#1f4788'">
-                    📈 Full Analysis
-                </button>
-            </div>
-        </div>
-    `;
-    
-    placeholder.outerHTML = gscHtml;
-}
 
-
-
-
-    
-    
-    function updateGSCPlaceholder(tooltip, message) {
-        const placeholder = tooltip.querySelector('#gsc-placeholder');
-        if (placeholder) {
-            placeholder.innerHTML = `<div style="color: #999; font-size: 0.8rem;">${message}</div>`;
+    // Helper functions to extract page information from tree structure
+    function getPageInfo(nodeData, treeContext = null) {
+        const info = {
+            type: 'Unknown',
+            depth: 0,
+            children: 0,
+            siblings: 0
+        };
+        
+        if (!nodeData) return info;
+        
+        // Calculate children count
+        info.children = nodeData.children ? nodeData.children.length : 0;
+        
+        // Get tree context info
+        let treeInfo = null;
+        if (treeContext) {
+            treeInfo = findNodeInTree(treeContext, nodeData.url);
+            if (treeInfo.node) {
+                info.depth = treeInfo.depth;
+                info.siblings = treeInfo.siblings;
+            }
         }
+        
+        // Fallback depth calculation if tree context failed
+        if (info.depth === 0 && !treeInfo) {
+            info.depth = calculatePageDepth(nodeData.url);
+        }
+        
+        // Simple tree-position-based type detection
+        info.type = determinePageType(nodeData.url, nodeData.name, nodeData, treeContext);
+        
+        return info;
+    }
+
+    function determinePageType(url, name, nodeData = null, treeContext = null) {
+        if (!url) return 'Unknown';
+        
+        const urlLower = url.toLowerCase();
+        
+        // Check if it's the root homepage
+        if (urlLower === '/' || urlLower.match(/^https?:\/\/[^\/]+\/?$/)) {
+            return 'Homepage';
+        }
+        
+        // Check if it's a language root (ends in /en/ or /ga/)
+        if (urlLower.match(/\/(en|ga)\/?$/)) {
+            return 'Language Root';
+        }
+        
+        // Get tree depth and children info
+        let depth = 0;
+        let hasChildren = false;
+        
+        if (nodeData && nodeData.children) {
+            hasChildren = nodeData.children.length > 0;
+        }
+        
+        // Try to get accurate depth from tree context
+        if (treeContext) {
+            const nodeInfo = findNodeInTree(treeContext, url);
+            if (nodeInfo && nodeInfo.depth !== undefined) {
+                depth = nodeInfo.depth;
+            }
+        }
+        
+        // Fallback: calculate depth from URL
+        if (depth === 0 && url !== '/') {
+            depth = calculatePageDepth(url);
+        }
+        
+        // Check if this page is under a language root
+        const isUnderLanguageRoot = urlLower.match(/\/(en|ga)\//);
+        
+        // Adjust effective depth for pages under language roots
+        let effectiveDepth = depth;
+        if (isUnderLanguageRoot && depth > 1) {
+            effectiveDepth = depth - 1; // Subtract 1 because language adds an extra level
+        }
+        
+        // Determine type based on effective tree position
+        if (effectiveDepth === 0) {
+            return 'Homepage';
+        } else if (effectiveDepth === 1) {
+            return hasChildren ? 'Category' : 'Root Content';
+        } else if (effectiveDepth === 2) {
+            return hasChildren ? 'Sub-Category' : 'Content Page';
+        } else if (effectiveDepth === 3) {
+            return hasChildren ? 'Sub-Sub-Category' : 'Content Page';
+        } else if (effectiveDepth >= 4) {
+            return hasChildren ? 'Deep Category' : 'Content Page';
+        }
+        
+        // Default fallback
+        return hasChildren ? 'Category' : 'Content Page';
+    }
+
+    function calculatePageDepth(url) {
+        if (!url) return 0;
+        
+        try {
+            const urlObj = new URL(url);
+            const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+            return pathSegments.length;
+        } catch (e) {
+            // Fallback for relative URLs
+            const segments = url.split('/').filter(segment => segment.length > 0);
+            return segments.length;
+        }
+    }
+
+    function findNodeInTree(treeData, targetUrl) {
+        const result = {
+            node: null,
+            depth: 0,
+            siblings: 0,
+            hasChildren: false
+        };
+        
+        function traverse(node, depth = 0, parent = null) {
+            if (node.url === targetUrl) {
+                result.node = node;
+                result.depth = depth;
+                result.siblings = parent && parent.children ? parent.children.length - 1 : 0;
+                result.hasChildren = node.children && node.children.length > 0;
+                return true;
+            }
+            
+            if (node.children) {
+                for (const child of node.children) {
+                    if (traverse(child, depth + 1, node)) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        if (treeData) {
+            traverse(treeData);
+        }
+        
+        return result;
     }
 
     // Helper functions for simplified tooltips
@@ -1968,6 +2175,87 @@ function addLoadingAnimationStyles() {
         return div.innerHTML;
     }
 
+    // Add loading animation styles
+    function addLoadingAnimationStyles() {
+        if (document.getElementById('gsc-loading-animations')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'gsc-loading-animations';
+        style.textContent = `
+            @keyframes gsc-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            @keyframes gsc-shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+            
+            @keyframes gsc-shimmer-slide {
+                0% { left: -100%; }
+                50% { left: 100%; }
+                100% { left: 100%; }
+            }
+            
+            .gsc-step {
+                transition: all 0.3s ease;
+            }
+            
+            .gsc-step.active {
+                transform: translateX(2px);
+            }
+            
+            #gsc-progress-bar {
+                position: relative;
+                overflow: hidden;
+            }
+            
+            #gsc-progress-bar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+                animation: gsc-progress-shine 2s ease-in-out infinite;
+            }
+            
+            @keyframes gsc-progress-shine {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(200%); }
+            }
+            
+            /* Pulse effect for loading container */
+            #gsc-loading-container {
+                animation: gsc-pulse 2s ease-in-out infinite;
+            }
+            
+            @keyframes gsc-pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.01); }
+            }
+            
+            /* Smooth transitions */
+            #gsc-progress-percentage {
+                transition: all 0.3s ease;
+            }
+            
+            /* Mobile responsive adjustments */
+            @media (max-width: 480px) {
+                #gsc-loading-steps {
+                    font-size: 0.7rem;
+                }
+                
+                #gsc-progress-bar {
+                    height: 6px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     // Add simplified tooltip styles
     function addSimplifiedTooltipStyles() {
         if (document.getElementById('simplified-tooltip-styles')) return;
@@ -2007,205 +2295,205 @@ function addLoadingAnimationStyles() {
     // ===========================================
 
     function addGSCStyles() {
-    if (document.getElementById('gsc-styles')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'gsc-styles';
-    style.textContent = `
-        /* Import Google Sans font */
-        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&display=swap');
+        if (document.getElementById('gsc-styles')) return;
         
-        /* GSC Integration Styles with Animations */
-        .nav-gsc-btn {
-            display: flex !important;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px !important;
-            margin: 0 8px !important;
-            background: #ffffff !important;
-            border: 1px solid #dadce0 !important;
-            border-radius: 8px !important;
-            cursor: pointer;
-            font-size: 14px !important;
-            color: #3c4043 !important;
-            transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
-            visibility: visible !important;
-            opacity: 1 !important;
-            position: relative !important;
-            z-index: 9999 !important;
-            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-weight: 500;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            min-height: 36px;
-            overflow: hidden;
-        }
-        
-        .nav-gsc-btn:hover {
-            background: #f8f9fa !important;
-            border-color: #4285f4 !important;
-            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15) !important;
-            transform: translateY(-1px);
-        }
-        
-        /* CONNECTED STATE WITH ANIMATIONS */
-        .nav-gsc-btn.connected {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important;
-            color: white !important;
-            border-color: #4caf50 !important;
-            box-shadow: 0 2px 8px rgba(76,175,80,0.3);
-            animation: gsc-connected-pulse 3s ease-in-out infinite;
-        }
-        
-        .nav-gsc-btn.connected:hover {
-            background: linear-gradient(135deg, #45a049 0%, #388e3c 100%) !important;
-            box-shadow: 0 3px 12px rgba(76,175,80,0.4) !important;
-            transform: translateY(-2px);
-            animation: gsc-connected-pulse 2s ease-in-out infinite;
-        }
-
-        /* Connected pulse animation */
-        @keyframes gsc-connected-pulse {
-            0%, 100% { 
-                box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 0 rgba(76,175,80,0.4);
+        const style = document.createElement('style');
+        style.id = 'gsc-styles';
+        style.textContent = `
+            /* Import Google Sans font */
+            @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&display=swap');
+            
+            /* GSC Integration Styles with Animations */
+            .nav-gsc-btn {
+                display: flex !important;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px !important;
+                margin: 0 8px !important;
+                background: #ffffff !important;
+                border: 1px solid #dadce0 !important;
+                border-radius: 8px !important;
+                cursor: pointer;
+                font-size: 14px !important;
+                color: #3c4043 !important;
+                transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: relative !important;
+                z-index: 9999 !important;
+                font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-weight: 500;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                min-height: 36px;
+                overflow: hidden;
             }
-            50% { 
-                box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 4px rgba(76,175,80,0.1);
+            
+            .nav-gsc-btn:hover {
+                background: #f8f9fa !important;
+                border-color: #4285f4 !important;
+                box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15) !important;
+                transform: translateY(-1px);
             }
-        }
+            
+            /* CONNECTED STATE WITH ANIMATIONS */
+            .nav-gsc-btn.connected {
+                background: linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important;
+                color: white !important;
+                border-color: #4caf50 !important;
+                box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+                animation: gsc-connected-pulse 3s ease-in-out infinite;
+            }
+            
+            .nav-gsc-btn.connected:hover {
+                background: linear-gradient(135deg, #45a049 0%, #388e3c 100%) !important;
+                box-shadow: 0 3px 12px rgba(76,175,80,0.4) !important;
+                transform: translateY(-2px);
+                animation: gsc-connected-pulse 2s ease-in-out infinite;
+            }
 
-        /* Data flow animation for connected state */
-        .nav-gsc-btn.connected::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: gsc-data-flow 2.5s ease-in-out infinite;
-        }
+            /* Connected pulse animation */
+            @keyframes gsc-connected-pulse {
+                0%, 100% { 
+                    box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 0 rgba(76,175,80,0.4);
+                }
+                50% { 
+                    box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 4px rgba(76,175,80,0.1);
+                }
+            }
 
-        @keyframes gsc-data-flow {
-            0% { left: -100%; }
-            50% { left: 100%; }
-            100% { left: 100%; }
-        }
+            /* Data flow animation for connected state */
+            .nav-gsc-btn.connected::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                animation: gsc-data-flow 2.5s ease-in-out infinite;
+            }
 
-        /* Icon animations */
-        #gscIcon {
-            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            flex-shrink: 0;
-        }
+            @keyframes gsc-data-flow {
+                0% { left: -100%; }
+                50% { left: 100%; }
+                100% { left: 100%; }
+            }
 
-        .nav-gsc-btn.connected #gscIcon {
-            filter: drop-shadow(0 0 3px rgba(255,255,255,0.6));
-            animation: gsc-icon-glow 2s ease-in-out infinite alternate;
-        }
+            /* Icon animations */
+            #gscIcon {
+                transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+                flex-shrink: 0;
+            }
 
-        @keyframes gsc-icon-glow {
-            0% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
-            100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.8)); }
-        }
+            .nav-gsc-btn.connected #gscIcon {
+                filter: drop-shadow(0 0 3px rgba(255,255,255,0.6));
+                animation: gsc-icon-glow 2s ease-in-out infinite alternate;
+            }
 
-        /* Text animation */
-        #gscText {
-            font-weight: 500;
-            white-space: nowrap;
-            letter-spacing: 0.25px;
-            transition: all 0.3s ease;
-        }
+            @keyframes gsc-icon-glow {
+                0% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+                100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.8)); }
+            }
 
-        .nav-gsc-btn.connected #gscText {
-            text-shadow: 0 0 8px rgba(255,255,255,0.3);
-        }
+            /* Text animation */
+            #gscText {
+                font-weight: 500;
+                white-space: nowrap;
+                letter-spacing: 0.25px;
+                transition: all 0.3s ease;
+            }
 
-        /* Success animation when first connected */
-        .nav-gsc-btn.connecting {
-            animation: gsc-connecting 0.6s ease-out;
-        }
+            .nav-gsc-btn.connected #gscText {
+                text-shadow: 0 0 8px rgba(255,255,255,0.3);
+            }
 
-        @keyframes gsc-connecting {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
+            /* Success animation when first connected */
+            .nav-gsc-btn.connecting {
+                animation: gsc-connecting 0.6s ease-out;
+            }
 
-        /* Loading dots animation */
-        .gsc-loading-dots {
-            display: inline-flex;
-            gap: 2px;
-            margin-left: 4px;
-        }
+            @keyframes gsc-connecting {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
 
-        .gsc-loading-dots span {
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: currentColor;
-            opacity: 0.4;
-            animation: gsc-loading-dot 1.4s ease-in-out infinite;
-        }
+            /* Loading dots animation */
+            .gsc-loading-dots {
+                display: inline-flex;
+                gap: 2px;
+                margin-left: 4px;
+            }
 
-        .gsc-loading-dots span:nth-child(1) { animation-delay: 0s; }
-        .gsc-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .gsc-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+            .gsc-loading-dots span {
+                width: 3px;
+                height: 3px;
+                border-radius: 50%;
+                background: currentColor;
+                opacity: 0.4;
+                animation: gsc-loading-dot 1.4s ease-in-out infinite;
+            }
 
-        @keyframes gsc-loading-dot {
-            0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
-            40% { opacity: 1; transform: scale(1.2); }
-        }
+            .gsc-loading-dots span:nth-child(1) { animation-delay: 0s; }
+            .gsc-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+            .gsc-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-        /* Ripple effect on click */
-        .nav-gsc-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
-        }
+            @keyframes gsc-loading-dot {
+                0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
+                40% { opacity: 1; transform: scale(1.2); }
+            }
 
-        .nav-gsc-btn.connected:active {
-            animation: gsc-click-ripple 0.3s ease-out;
-        }
+            /* Ripple effect on click */
+            .nav-gsc-btn:active {
+                transform: translateY(0);
+                box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+            }
 
-        @keyframes gsc-click-ripple {
-            0% { box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 0 rgba(76,175,80,0.6); }
-            100% { box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 8px rgba(76,175,80,0); }
-        }
+            .nav-gsc-btn.connected:active {
+                animation: gsc-click-ripple 0.3s ease-out;
+            }
 
-        /* Focus accessibility */
-        .nav-gsc-btn:focus {
-            outline: 2px solid #4285f4;
-            outline-offset: 2px;
-        }
+            @keyframes gsc-click-ripple {
+                0% { box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 0 rgba(76,175,80,0.6); }
+                100% { box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 8px rgba(76,175,80,0); }
+            }
 
-        /* Subtle background animation for connected state */
-        .nav-gsc-btn.connected {
-            background-size: 200% 200%;
-            animation: gsc-connected-pulse 3s ease-in-out infinite, 
-                      gsc-gradient-shift 4s ease-in-out infinite;
-        }
+            /* Focus accessibility */
+            .nav-gsc-btn:focus {
+                outline: 2px solid #4285f4;
+                outline-offset: 2px;
+            }
 
-        @keyframes gsc-gradient-shift {
-            0%, 100% { background-position: 0% 0%; }
-            50% { background-position: 100% 100%; }
-        }
+            /* Subtle background animation for connected state */
+            .nav-gsc-btn.connected {
+                background-size: 200% 200%;
+                animation: gsc-connected-pulse 3s ease-in-out infinite, 
+                          gsc-gradient-shift 4s ease-in-out infinite;
+            }
 
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    debugLog('Enhanced animated GSC styles added to page');
-}
+            @keyframes gsc-gradient-shift {
+                0%, 100% { background-position: 0% 0%; }
+                50% { background-position: 100% 100%; }
+            }
+
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        debugLog('Enhanced animated GSC styles added to page');
+    }
 
     // Hook into sitemap loading
     function hookIntoSitemapLoader() {
@@ -2238,164 +2526,6 @@ function addLoadingAnimationStyles() {
         };
         checkAndHook();
     }
-
-
-
-// Helper functions to extract page information from tree structure
-function getPageInfo(nodeData, treeContext = null) {
-    const info = {
-        type: 'Unknown',
-        depth: 0,
-        children: 0,
-        siblings: 0
-    };
-    
-    if (!nodeData) return info;
-    
-    // Calculate children count
-    info.children = nodeData.children ? nodeData.children.length : 0;
-    
-    // Get tree context info
-    let treeInfo = null;
-    if (treeContext) {
-        treeInfo = findNodeInTree(treeContext, nodeData.url);
-        if (treeInfo.node) {
-            info.depth = treeInfo.depth;
-            info.siblings = treeInfo.siblings;
-        }
-    }
-    
-    // Fallback depth calculation if tree context failed
-    if (info.depth === 0 && !treeInfo) {
-        info.depth = calculatePageDepth(nodeData.url);
-    }
-    
-    // Simple tree-position-based type detection
-    info.type = determinePageType(nodeData.url, nodeData.name, nodeData, treeContext);
-    
-    return info;
-}
-
-
-    
-
-function determinePageType(url, name, nodeData = null, treeContext = null) {
-    if (!url) return 'Unknown';
-    
-    const urlLower = url.toLowerCase();
-    
-    // Check if it's the root homepage
-    if (urlLower === '/' || urlLower.match(/^https?:\/\/[^\/]+\/?$/)) {
-        return 'Homepage';
-    }
-    
-    // Check if it's a language root (ends in /en/ or /ga/)
-    if (urlLower.match(/\/(en|ga)\/?$/)) {
-        return 'Language Root';
-    }
-    
-    // Get tree depth and children info
-    let depth = 0;
-    let hasChildren = false;
-    
-    if (nodeData && nodeData.children) {
-        hasChildren = nodeData.children.length > 0;
-    }
-    
-    // Try to get accurate depth from tree context
-    if (treeContext) {
-        const nodeInfo = findNodeInTree(treeContext, url);
-        if (nodeInfo && nodeInfo.depth !== undefined) {
-            depth = nodeInfo.depth;
-        }
-    }
-    
-    // Fallback: calculate depth from URL
-    if (depth === 0 && url !== '/') {
-        depth = calculatePageDepth(url);
-    }
-    
-    // Check if this page is under a language root
-    const isUnderLanguageRoot = urlLower.match(/\/(en|ga)\//);
-    
-    // Adjust effective depth for pages under language roots
-    let effectiveDepth = depth;
-    if (isUnderLanguageRoot && depth > 1) {
-        effectiveDepth = depth - 1; // Subtract 1 because language adds an extra level
-    }
-    
-    // Determine type based on effective tree position
-    if (effectiveDepth === 0) {
-        return 'Homepage';
-    } else if (effectiveDepth === 1) {
-        return hasChildren ? 'Category' : 'Root Content';
-    } else if (effectiveDepth === 2) {
-        return hasChildren ? 'Sub-Category' : 'Content Page';
-    } else if (effectiveDepth === 3) {
-        return hasChildren ? 'Sub-Sub-Category' : 'Content Page';
-    } else if (effectiveDepth >= 4) {
-        return hasChildren ? 'Deep Category' : 'Content Page';
-    }
-    
-    // Default fallback
-    return hasChildren ? 'Category' : 'Content Page';
-}
-
-function calculatePageDepth(url) {
-    if (!url) return 0;
-    
-    try {
-        const urlObj = new URL(url);
-        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
-        return pathSegments.length;
-    } catch (e) {
-        // Fallback for relative URLs
-        const segments = url.split('/').filter(segment => segment.length > 0);
-        return segments.length;
-    }
-}
-
-function findNodeInTree(treeData, targetUrl) {
-    const result = {
-        node: null,
-        depth: 0,
-        siblings: 0,
-        hasChildren: false
-    };
-    
-    function traverse(node, depth = 0, parent = null) {
-        if (node.url === targetUrl) {
-            result.node = node;
-            result.depth = depth;
-            result.siblings = parent && parent.children ? parent.children.length - 1 : 0;
-            result.hasChildren = node.children && node.children.length > 0;
-            return true;
-        }
-        
-        if (node.children) {
-            for (const child of node.children) {
-                if (traverse(child, depth + 1, node)) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    if (treeData) {
-        traverse(treeData);
-    }
-    
-    return result;
-}
-
-
-
-    
-
-
-    
 
     // Listen for tree ready
     function listenForTreeReady() {
@@ -2781,6 +2911,303 @@ function findNodeInTree(treeData, targetUrl) {
         URL.revokeObjectURL(csvUrl);
     };
 
+    // ===========================================
+    // DEBUGGING TOOLS AND DIAGNOSTICS
+    // ===========================================
+
+    function initializeDebugging() {
+        // GSC Debugging and Diagnostic Tools
+        window.GSCDebugger = {
+            
+            // Test connection and site matching
+            async testConnection() {
+                console.group('🔍 GSC Connection Test');
+                
+                const status = window.GSCIntegration.debug.getStatus();
+                console.table(status);
+                
+                if (!status.gscConnected) {
+                    console.error('❌ Not connected to GSC');
+                    console.groupEnd();
+                    return;
+                }
+                
+                // Test basic API access
+                try {
+                    const sites = await robustGSCApiCall(async () => {
+                        return await gapi.client.request({
+                            path: 'https://www.googleapis.com/webmasters/v3/sites',
+                            method: 'GET'
+                        });
+                    });
+                    console.log('✅ API Access OK');
+                    console.log('Available sites:', sites.result.siteEntry);
+                } catch (error) {
+                    console.error('❌ API Access Failed:', error);
+                }
+                
+                console.groupEnd();
+            },
+
+            // Test URL matching for a specific URL
+            async testUrlMatching(testUrl) {
+                console.group(`🎯 URL Matching Test: ${testUrl}`);
+                
+                if (!window.GSCIntegration.isConnected()) {
+                    console.error('❌ GSC not connected');
+                    console.groupEnd();
+                    return;
+                }
+                
+                const variations = createEnhancedUrlVariations(testUrl);
+                console.log(`Generated ${variations.length} variations:`);
+                variations.forEach((v, i) => console.log(`${i + 1}. ${v}`));
+                
+                // Test each variation
+                const results = [];
+                for (const [index, variation] of variations.entries()) {
+                    console.log(`\n🧪 Testing variation ${index + 1}: ${variation}`);
+                    
+                    try {
+                        const today = new Date();
+                        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                        
+                        const result = await robustGSCApiCall(async () => {
+                            return await gapi.client.request({
+                                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                                method: 'POST',
+                                body: {
+                                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                                    endDate: today.toISOString().split('T')[0],
+                                    dimensions: ['page'],
+                                    dimensionFilterGroups: [{
+                                        filters: [{
+                                            dimension: 'page',
+                                            operator: 'equals',
+                                            expression: variation
+                                        }]
+                                    }],
+                                    rowLimit: 1
+                                }
+                            });
+                        });
+                        
+                        const hasData = result.result.rows && result.result.rows.length > 0;
+                        results.push({
+                            variation,
+                            success: true,
+                            hasData,
+                            data: hasData ? result.result.rows[0] : null
+                        });
+                        
+                        console.log(hasData ? '✅ HAS DATA' : '⚪ NO DATA', hasData ? result.result.rows[0] : '');
+                        
+                        if (hasData) {
+                            break; // Found data, no need to test more
+                        }
+                        
+                    } catch (error) {
+                        results.push({
+                            variation,
+                            success: false,
+                            error: error.message
+                        });
+                        console.log('❌ ERROR:', error.message);
+                    }
+                    
+                    // Small delay between tests
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                
+                console.log('\n📊 Summary:');
+                console.table(results);
+                
+                const successful = results.filter(r => r.success && r.hasData);
+                if (successful.length > 0) {
+                    console.log(`✅ Found ${successful.length} working variation(s)`);
+                } else {
+                    console.log('❌ No variations returned data');
+                    console.log('💡 Suggestions:');
+                    console.log('   - Check if URL exists in GSC (try searching manually)');
+                    console.log('   - Verify the site property is correct');
+                    console.log('   - Check if URL has received clicks in the last 30 days');
+                }
+                
+                console.groupEnd();
+                return results;
+            },
+
+            // Analyze sitemap vs GSC coverage
+            async analyzeCoverage() {
+                console.group('📈 Sitemap vs GSC Coverage Analysis');
+                
+                if (!window.treeData) {
+                    console.error('❌ No sitemap data loaded');
+                    console.groupEnd();
+                    return;
+                }
+                
+                // Get all URLs from sitemap
+                const allUrls = [];
+                function collectUrls(node) {
+                    if (node.url) allUrls.push(node.url);
+                    if (node.children) {
+                        node.children.forEach(collectUrls);
+                    }
+                }
+                collectUrls(window.treeData);
+                
+                console.log(`📋 Found ${allUrls.length} URLs in sitemap`);
+                
+                // Sample a few URLs for testing (to avoid rate limits)
+                const sampleUrls = allUrls.slice(0, Math.min(10, allUrls.length));
+                console.log(`🧪 Testing sample of ${sampleUrls.length} URLs`);
+                
+                const coverage = {
+                    total: allUrls.length,
+                    tested: 0,
+                    found: 0,
+                    notFound: 0,
+                    errors: 0
+                };
+                
+                for (const url of sampleUrls) {
+                    coverage.tested++;
+                    console.log(`\n🔍 Testing: ${url}`);
+                    
+                    try {
+                        const variations = createEnhancedUrlVariations(url);
+                        let found = false;
+                        
+                        for (const variation of variations.slice(0, 5)) { // Limit variations for speed
+                            try {
+                                const today = new Date();
+                                const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                                
+                                const result = await robustGSCApiCall(async () => {
+                                    return await gapi.client.request({
+                                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                                        method: 'POST',
+                                        body: {
+                                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                                            endDate: today.toISOString().split('T')[0],
+                                            dimensions: ['page'],
+                                            dimensionFilterGroups: [{
+                                                filters: [{
+                                                    dimension: 'page',
+                                                    operator: 'equals',
+                                                    expression: variation
+                                                }]
+                                            }],
+                                            rowLimit: 1
+                                        }
+                                    });
+                                });
+                                
+                                if (result.result.rows && result.result.rows.length > 0) {
+                                    console.log(`✅ Found data for: ${variation}`);
+                                    found = true;
+                                    coverage.found++;
+                                    break;
+                                }
+                                
+                            } catch (error) {
+                                // Continue with next variation
+                            }
+                            
+                            // Rate limiting
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        
+                        if (!found) {
+                            console.log('⚪ No data found');
+                            coverage.notFound++;
+                        }
+                        
+                    } catch (error) {
+                        console.log('❌ Error:', error.message);
+                        coverage.errors++;
+                    }
+                }
+                
+                console.log('\n📊 Coverage Summary:');
+                console.table(coverage);
+                
+                const coveragePercent = (coverage.found / coverage.tested * 100).toFixed(1);
+                console.log(`🎯 Coverage: ${coveragePercent}% of tested URLs found in GSC`);
+                
+                if (coverage.found < coverage.tested * 0.5) {
+                    console.log('\n💡 Low coverage suggestions:');
+                    console.log('   - Check if the correct GSC property is selected');
+                    console.log('   - Verify URLs in sitemap match those in GSC');
+                    console.log('   - Consider if pages have received organic clicks recently');
+                }
+                
+                console.groupEnd();
+                return coverage;
+            },
+
+            // Show current cache status
+            showCacheStatus() {
+                console.group('💾 GSC Cache Status');
+                
+                const cacheSize = gscDataMap.size;
+                console.log(`Total cached entries: ${cacheSize}`);
+                
+                if (cacheSize === 0) {
+                    console.log('ℹ️ Cache is empty');
+                } else {
+                    const entries = Array.from(gscDataMap.entries());
+                    const withData = entries.filter(([url, data]) => !data.noDataFound);
+                    const noData = entries.filter(([url, data]) => data.noDataFound);
+                    
+                    console.log(`✅ With data: ${withData.length}`);
+                    console.log(`⚪ No data found: ${noData.length}`);
+                    
+                    // Show some examples
+                    if (withData.length > 0) {
+                        console.log('\n📊 Sample entries with data:');
+                        withData.slice(0, 3).forEach(([url, data]) => {
+                            console.log(`${url}: ${data.clicks} clicks, ${data.impressions} impressions`);
+                        });
+                    }
+                    
+                    if (noData.length > 0) {
+                        console.log('\n⚪ Sample entries without data:');
+                        noData.slice(0, 3).forEach(([url, data]) => {
+                            console.log(`${url}: No data (tried ${data.triedVariations || 'unknown'} variations)`);
+                        });
+                    }
+                }
+                
+                console.groupEnd();
+            },
+
+            // Clear cache and restart
+            async restart() {
+                console.log('🔄 Restarting GSC Integration...');
+                window.GSCIntegration.reset();
+                console.log('✅ Cache cleared, ready for fresh start');
+            }
+        };
+
+        // Add keyboard shortcut for debugging
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+G for GSC debugging
+            if (e.key === 'G' && e.ctrlKey && e.shiftKey) {
+                e.preventDefault();
+                console.log('🔧 GSC Debugger activated! Try:');
+                console.log('   GSCDebugger.testConnection()');
+                console.log('   GSCDebugger.testUrlMatching("your-url-here")');
+                console.log('   GSCDebugger.analyzeCoverage()');
+                console.log('   GSCDebugger.showCacheStatus()');
+                window.GSCDebugger.testConnection();
+            }
+        });
+
+        debugLog('Debugging tools initialized');
+    }
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         // Ctrl+L to load GSC data for all visible nodes
@@ -2810,6 +3237,76 @@ function findNodeInTree(treeData, targetUrl) {
                 setTimeout(() => feedback.remove(), 300);
             }, 2000);
         }
+
+        // Ctrl+Shift+R to refresh GSC connection
+        if (e.key === 'R' && e.ctrlKey && e.shiftKey && gscConnected) {
+            e.preventDefault();
+            debugLog('Manual refresh triggered via keyboard shortcut');
+            
+            const refreshFeedback = document.createElement('div');
+            refreshFeedback.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 152, 0, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 14px;
+                z-index: 10001;
+                pointer-events: none;
+            `;
+            refreshFeedback.textContent = 'Refreshing GSC connection...';
+            document.body.appendChild(refreshFeedback);
+            
+            // Refresh token
+            refreshToken().then(() => {
+                refreshFeedback.textContent = 'GSC connection refreshed!';
+                refreshFeedback.style.background = 'rgba(76, 175, 80, 0.9)';
+                
+                setTimeout(() => {
+                    refreshFeedback.style.opacity = '0';
+                    setTimeout(() => refreshFeedback.remove(), 300);
+                }, 2000);
+            }).catch((error) => {
+                refreshFeedback.textContent = 'Refresh failed: ' + error.message;
+                refreshFeedback.style.background = 'rgba(244, 67, 54, 0.9)';
+                
+                setTimeout(() => {
+                    refreshFeedback.style.opacity = '0';
+                    setTimeout(() => refreshFeedback.remove(), 300);
+                }, 3000);
+            });
+        }
     });
+
+    // Console welcome message
+    setTimeout(() => {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(`
+🚀 GSC Integration Module Loaded!
+
+Enhanced features:
+• Robust URL matching with 15+ variations
+• Automatic token refresh and error recovery  
+• Connection health monitoring
+• Comprehensive debugging tools
+
+Keyboard shortcuts:
+• Ctrl+L: Load GSC data for all visible nodes
+• Ctrl+Shift+G: Open GSC debugger  
+• Ctrl+Shift+R: Refresh GSC connection
+
+Debugging commands:
+• GSCDebugger.testConnection()
+• GSCDebugger.testUrlMatching("your-url")
+• GSCDebugger.analyzeCoverage()
+• GSCDebugger.showCacheStatus()
+
+API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
+            `);
+        }
+    }, 1000);
 
 })();
