@@ -1187,11 +1187,34 @@ function getCleanedStyles() {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             pointer-events: auto !important;  /* Ensure tooltip is interactive */
 z-index: 10000;  /* High z-index to stay on top */
+margin: 0 !important;
         }
 
         .enhanced-tooltip.visible {
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
         }
+
+        .enhanced-tooltip::before {
+    content: '';
+    position: absolute;
+    /* Extend the hoverable area */
+    top: -20px;
+    bottom: -20px;
+    left: -20px;
+    right: -20px;
+    z-index: -1;
+}
+
+/* Optional: Make the extended area visible for debugging */
+.enhanced-tooltip.debug-hover::before {
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px dashed red;
+}
+
+/* Ensure high z-index */
+.enhanced-tooltip.visible {
+    z-index: 10001 !important;
+}
 
         /* Tooltip Header */
         .tooltip-header-enhanced {
@@ -3045,28 +3068,51 @@ z-index: 10000;  /* High z-index to stay on top */
     // Hook into tooltips with enhanced display
     // Hook into tooltips with enhanced display
 function hookIntoTooltips() {
+    let tooltipHideTimeout = null;
+    let isOverTooltip = false;
+    
     const checkAndHook = () => {
         if (window.showEnhancedTooltip) {
             const originalShowEnhancedTooltip = window.showEnhancedTooltip;
+            
             window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
+                // Clear any pending hide
+                if (tooltipHideTimeout) {
+                    clearTimeout(tooltipHideTimeout);
+                    tooltipHideTimeout = null;
+                }
+                
                 showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC);
             };
             
-            // Also hook into hideEnhancedTooltip to add delay
+            // Override hideEnhancedTooltip with delay
             if (window.hideEnhancedTooltip) {
                 const originalHide = window.hideEnhancedTooltip;
                 window.hideEnhancedTooltip = function() {
-                    // Clear any pending hide first
+                    // Don't hide if mouse is over tooltip
+                    if (isOverTooltip) return;
+                    
+                    // Add delay before hiding
                     if (tooltipHideTimeout) {
                         clearTimeout(tooltipHideTimeout);
                     }
                     
-                    // Only hide after delay to allow mouse to reach tooltip
                     tooltipHideTimeout = setTimeout(() => {
-                        originalHide.apply(this, arguments);
-                    }, 300); // 300ms delay before hiding
+                        if (!isOverTooltip) {
+                            originalHide.apply(this, arguments);
+                        }
+                    }, 150); // 150ms delay to allow mouse to reach tooltip
                 };
             }
+            
+            // Set up global tooltip hover tracking
+            window.GSCIntegration.setTooltipHoverState = function(state) {
+                isOverTooltip = state;
+                if (state && tooltipHideTimeout) {
+                    clearTimeout(tooltipHideTimeout);
+                    tooltipHideTimeout = null;
+                }
+            };
             
             debugLog('Hooked into tooltip display');
         } else {
@@ -3190,54 +3236,56 @@ if (tooltipHideTimeout) {
         
         // Position tooltip
         const tooltipNode = window.enhancedTooltip.node();
-        const tooltipRect = tooltipNode.getBoundingClientRect();
-        const pageWidth = window.innerWidth;
-        const pageHeight = window.innerHeight;
+const tooltipRect = tooltipNode.getBoundingClientRect();
+const pageWidth = window.innerWidth;
+const pageHeight = window.innerHeight;
         
         // Reduced gap to prevent mouse "falling through"
-let left = event.pageX + 10;  // Reduced from 15 to 10
+// Use negative gap for overlap
+let left = event.pageX + 5; // Reduced from 10, creates slight overlap
 let top = event.pageY - tooltipRect.height / 2;
 
+// Adjust positioning if near edges
 if (left + tooltipRect.width > pageWidth - 20) {
-    left = event.pageX - tooltipRect.width - 10;  // Reduced from 15 to 10
+    left = event.pageX - tooltipRect.width - 5; // Position on left with overlap
+}
+
+if (top < 20) {
+    top = 20;
+} else if (top + tooltipRect.height > pageHeight - 20) {
+    top = pageHeight - tooltipRect.height - 20;
 }
         
-        if (top < 20) {
-            top = 20;
-        } else if (top + tooltipRect.height > pageHeight - 20) {
-            top = pageHeight - tooltipRect.height - 20;
-        }
-        
         window.enhancedTooltip
-            .style("left", left + "px")
-            .style("top", top + "px")
-            .style("opacity", 0)
-            .classed("visible", true)
-            .transition()
-            .duration(200)
-            .style("opacity", 1)
-        .style("pointer-events", "auto"); // Ensure tooltip is interactive
+    .style("left", left + "px")
+    .style("top", top + "px")
+    .style("opacity", 0)
+    .style("pointer-events", "auto")
+    .classed("visible", true)
+    .transition()
+    .duration(200)
+    .style("opacity", 1); // Ensure tooltip is interactive
             
         // Add mouse events to the tooltip itself
         window.enhancedTooltip
     .on("mouseenter", function() {
-        // Clear any pending hide
-        if (tooltipHideTimeout) {
-            clearTimeout(tooltipHideTimeout);
-            tooltipHideTimeout = null;
+        // Notify the system that mouse is over tooltip
+        if (window.GSCIntegration && window.GSCIntegration.setTooltipHoverState) {
+            window.GSCIntegration.setTooltipHoverState(true);
         }
     })
     .on("mouseleave", function() {
-        // Don't hide immediately - wait a bit
-        tooltipHideTimeout = setTimeout(() => {
-            window.enhancedTooltip
-                .transition()
-                .duration(200)
-                .style("opacity", 0)
-                .on("end", function() {
-                    d3.select(this).classed("visible", false);
-                });
-        }, 500); // Wait 500ms before hiding
+        // Notify the system that mouse left tooltip
+        if (window.GSCIntegration && window.GSCIntegration.setTooltipHoverState) {
+            window.GSCIntegration.setTooltipHoverState(false);
+        }
+        
+        // Hide tooltip after delay
+        setTimeout(() => {
+            if (window.hideEnhancedTooltip) {
+                window.hideEnhancedTooltip();
+            }
+        }, 100);
     });
 }
     // Enhanced visual display functions to integrate into your existing GSC module
