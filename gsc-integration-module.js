@@ -3215,8 +3215,8 @@ if (left + tooltipRect.width > pageWidth - 20) {
             .classed("visible", true)
             .transition()
             .duration(200)
-            .style("opacity", 1);
-        .style("pointer-events", "auto")  // Ensure tooltip is interactive
+            .style("opacity", 1)
+        .style("pointer-events", "auto"); // Ensure tooltip is interactive
             
         // Add mouse events to the tooltip itself
         window.enhancedTooltip
