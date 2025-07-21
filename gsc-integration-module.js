@@ -10,6 +10,7 @@
 
     // GSC data storage
     let gscDataMap = new Map();
+    let tooltipHideTimeout = null;
     let gscConnected = false;
     let gscSiteUrl = null;
     let gscDataLoaded = false;
@@ -3192,21 +3193,25 @@ function getCleanedStyles() {
             
         // Add mouse events to the tooltip itself
         window.enhancedTooltip
-            .on("mouseenter", function() {
-                window.tooltipMouseOver = true;
-                if (window.hideTooltipTimeout) clearTimeout(window.hideTooltipTimeout);
-            })
-            .on("mouseleave", function() {
-                window.tooltipMouseOver = false;
-                window.enhancedTooltip
-                    .transition()
-                    .duration(200)
-                    .style("opacity", 0)
-                    .on("end", function() {
-                        d3.select(this).classed("visible", false);
-                    });
-            });
-    }
+    .on("mouseenter", function() {
+        // Clear any pending hide
+        if (tooltipHideTimeout) {
+            clearTimeout(tooltipHideTimeout);
+            tooltipHideTimeout = null;
+        }
+    })
+    .on("mouseleave", function() {
+        // Don't hide immediately - wait a bit
+        tooltipHideTimeout = setTimeout(() => {
+            window.enhancedTooltip
+                .transition()
+                .duration(200)
+                .style("opacity", 0)
+                .on("end", function() {
+                    d3.select(this).classed("visible", false);
+                });
+        }, 500); // Wait 500ms before hiding
+    });
 
     // Enhanced visual display functions to integrate into your existing GSC module
 // Add these to your existing code, replacing the current createEnhancedGSCSection function
