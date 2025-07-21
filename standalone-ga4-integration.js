@@ -1,9 +1,9 @@
-// standalone-ga4-integration.js - Basic GA4 Connection (Separate from GSC)
+// standalone-ga4-integration.js - Corrected Clean Version
 
 (function() {
     // GA4 Configuration
     const GA4_CONFIG = {
-        CLIENT_ID: '550630256834-9quh64fnqhfse6s488c8gutstuqcch04.apps.googleusercontent.com', // Same as your GSC
+        CLIENT_ID: '550630256834-9quh64fnqhfse6s488c8gutstuqcch04.apps.googleusercontent.com',
         SCOPES: 'https://www.googleapis.com/auth/analytics.readonly'
     };
 
@@ -23,7 +23,6 @@
     // BASIC GA4 CONNECTION FUNCTIONS
     // ===========================================
 
-    // Initialize GA4 integration
     function initGA4Integration() {
         ga4Log('Initializing standalone GA4 integration...');
         addGA4Button();
@@ -31,11 +30,9 @@
         initializeGA4Auth();
     }
 
-    // Initialize Google Identity Services for GA4
     function initializeGA4Auth() {
         ga4Log('Setting up GA4 authentication...');
         
-        // Wait for Google Identity Services to load
         const checkGIS = () => {
             if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
                 createGA4TokenClient();
@@ -46,7 +43,6 @@
         checkGIS();
     }
 
-    // Create GA4 token client
     function createGA4TokenClient() {
         try {
             ga4TokenClient = google.accounts.oauth2.initTokenClient({
@@ -65,7 +61,6 @@
         }
     }
 
-    // Handle GA4 authentication response
     function handleGA4AuthResponse(response) {
         ga4Log('GA4 auth response received', response);
         hideGA4LoadingState();
@@ -79,59 +74,257 @@
         ga4AccessToken = response.access_token;
         ga4Log('GA4 access token received');
         
-        // Set token in gapi client if available
         if (typeof gapi !== 'undefined' && gapi.client) {
             gapi.client.setToken({ access_token: ga4AccessToken });
         }
         
-        // Start GA4 setup process
         setupGA4Connection();
     }
 
-    // Setup GA4 connection and property selection
-    // QUICK FIX: Add this to your standalone-ga4-integration.js
-// Replace your existing setupGA4Connection function with this:
-
-async function setupGA4Connection() {
-    try {
-        // Skip the auto-fetch and go straight to manual entry for now
-        hideGA4LoadingMessage();
-        
-        const manualPropertyId = await showManualPropertyIdDialog();
-        
-        if (manualPropertyId) {
-            showGA4LoadingMessage('Testing property connection...');
-            
-            // Test the manually entered property ID
-            const isValid = await testGA4Property(manualPropertyId);
-            
+    async function setupGA4Connection() {
+        try {
             hideGA4LoadingMessage();
             
-            if (isValid) {
-                ga4PropertyId = manualPropertyId;
-                ga4Connected = true;
-                updateGA4ConnectionStatus(true);
-                showGA4SuccessMessage(`Property ${manualPropertyId}`);
-                ga4Log('GA4 connected with manual property ID:', manualPropertyId);
+            const manualPropertyId = await showManualPropertyIdDialog();
+            
+            if (manualPropertyId) {
+                showGA4LoadingMessage('Testing property connection...');
+                
+                const isValid = await testGA4Property(manualPropertyId);
+                
+                hideGA4LoadingMessage();
+                
+                if (isValid) {
+                    ga4PropertyId = manualPropertyId;
+                    ga4Connected = true;
+                    updateGA4ConnectionStatus(true);
+                    showGA4SuccessMessage(`Property ${manualPropertyId}`);
+                    ga4Log('GA4 connected with manual property ID:', manualPropertyId);
+                } else {
+                    alert('Could not access this property. Please check:\n• Property ID is correct\n• You have access to this GA4 property');
+                    updateGA4ConnectionStatus(false);
+                }
             } else {
-                alert('Could not access this property. Please check:\n• Property ID is correct\n• You have access to this GA4 property');
                 updateGA4ConnectionStatus(false);
             }
-        } else {
+            
+        } catch (error) {
+            hideGA4LoadingMessage();
+            console.error('[GA4] Setup failed:', error);
+            alert('Failed to setup GA4 connection: ' + error.message);
             updateGA4ConnectionStatus(false);
         }
-        
-    } catch (error) {
-        hideGA4LoadingMessage();
-        console.error('[GA4] Setup failed:', error);
-        alert('Failed to setup GA4 connection: ' + error.message);
-        updateGA4ConnectionStatus(false);
     }
-}
 
-// Add this new function for manual property ID entry
-async function showManualPropertyIdDialog() {
-    return new Promise((resolve) => {
+    async function showManualPropertyIdDialog() {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8); z-index: 10000; display: flex;
+                align-items: center; justify-content: center; padding: 20px;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 30px; border-radius: 15px;
+                max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            `;
+            
+            content.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #ff6b35;">Enter Your GA4 Property ID</h3>
+                
+                <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #17a2b8;">
+                    <strong>ℹ️ Manual Setup Required</strong><br>
+                    We'll connect directly using your GA4 Property ID. This is actually more reliable than auto-detection!
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                        GA4 Property ID:
+                    </label>
+                    <input type="text" id="propertyIdInput" placeholder="e.g., 123456789" 
+                           style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"/>
+                    <div style="margin-top: 8px; font-size: 0.9rem; color: #666;">
+                        This is usually a 9-10 digit number
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>📍 How to find your Property ID:</strong>
+                    <ol style="margin: 8px 0 0 20px; color: #666; font-size: 0.9rem; line-height: 1.4;">
+                        <li>Go to <a href="https://analytics.google.com" target="_blank" style="color: #ff6b35;">analytics.google.com</a></li>
+                        <li>Click the gear icon ⚙️ (Admin) in the bottom left</li>
+                        <li>In the "Property" column, click "Property Settings"</li>
+                        <li>Copy the Property ID from the top of the page</li>
+                    </ol>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button id="cancelBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button id="connectBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Connect Property
+                    </button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            const input = content.querySelector('#propertyIdInput');
+            const cancelBtn = content.querySelector('#cancelBtn');
+            const connectBtn = content.querySelector('#connectBtn');
+            
+            setTimeout(() => input.focus(), 100);
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    connectBtn.click();
+                }
+            });
+            
+            cancelBtn.onclick = () => {
+                modal.remove();
+                resolve(null);
+            };
+            
+            connectBtn.onclick = () => {
+                const propertyId = input.value.trim();
+                if (!propertyId) {
+                    alert('Please enter a Property ID');
+                    input.focus();
+                    return;
+                }
+                
+                if (!/^\d{8,12}$/.test(propertyId)) {
+                    alert('Property ID should be 8-12 digits (numbers only)');
+                    input.focus();
+                    input.select();
+                    return;
+                }
+                
+                modal.remove();
+                resolve(propertyId);
+            };
+            
+            modal.onclick = () => {
+                modal.remove();
+                resolve(null);
+            };
+            
+            content.onclick = e => e.stopPropagation();
+        });
+    }
+
+    async function testGA4Property(propertyId) {
+        try {
+            ga4Log('Testing GA4 property ID:', propertyId);
+            
+            const today = new Date();
+            const sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+            
+            const requestBody = {
+                dateRanges: [{
+                    startDate: sevenDaysAgo.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0]
+                }],
+                metrics: [{ name: 'screenPageViews' }],
+                limit: 1
+            };
+            
+            ga4Log('Making test request to property:', propertyId);
+            ga4Log('Request body:', requestBody);
+            
+            const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${ga4AccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            ga4Log('Response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                ga4Log('✅ Property ID test successful, data:', data);
+                return true;
+            } else {
+                const errorText = await response.text();
+                ga4Log('❌ Property ID test failed:', response.status, errorText);
+                
+                let errorDetails = '';
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorDetails = errorJson.error?.message || errorText;
+                } catch (e) {
+                    errorDetails = errorText;
+                }
+                
+                showDetailedErrorMessage(response.status, errorDetails, propertyId);
+                return false;
+            }
+            
+        } catch (error) {
+            ga4Log('❌ Property ID test error:', error);
+            alert('Network error testing property: ' + error.message);
+            return false;
+        }
+    }
+
+    function showDetailedErrorMessage(status, errorDetails, propertyId) {
+        let message = '';
+        let suggestions = '';
+        
+        switch (status) {
+            case 403:
+                message = `Access denied to GA4 property ${propertyId}`;
+                suggestions = `Possible causes:
+• You don't have access to this GA4 property
+• The property ID is incorrect
+• The property exists but you're not added as a user
+
+Try:
+• Double-check the Property ID in GA4 settings
+• Ask the GA4 admin to add your email as a user
+• Make sure you're signed in with the correct Google account`;
+                break;
+                
+            case 404:
+                message = `GA4 property ${propertyId} not found`;
+                suggestions = `Possible causes:
+• Property ID is incorrect (check for typos)
+• Property might have been deleted
+• You might be looking at a different GA4 account
+
+Try:
+• Double-check the Property ID in GA4 Admin → Property Settings
+• Make sure you're in the correct GA4 account`;
+                break;
+                
+            case 400:
+                message = `Invalid request to GA4 property ${propertyId}`;
+                suggestions = `Possible causes:
+• Property ID format is wrong
+• This might be a Universal Analytics ID instead of GA4
+
+Try:
+• GA4 Property IDs are usually 9-10 digits
+• Don't use UA-XXXXXXX-X format (that's Universal Analytics)`;
+                break;
+                
+            default:
+                message = `Error ${status} accessing GA4 property ${propertyId}`;
+                suggestions = `Error details: ${errorDetails}`;
+        }
+        
+        showErrorModal(message, suggestions, errorDetails);
+    }
+
+    function showErrorModal(message, suggestions, details) {
         const modal = document.createElement('div');
         modal.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -142,44 +335,35 @@ async function showManualPropertyIdDialog() {
         const content = document.createElement('div');
         content.style.cssText = `
             background: white; padding: 30px; border-radius: 15px;
-            max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            max-width: 600px; max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         `;
         
         content.innerHTML = `
-            <h3 style="margin-bottom: 20px; color: #ff6b35;">Enter Your GA4 Property ID</h3>
+            <h3 style="margin-bottom: 20px; color: #dc3545;">❌ GA4 Connection Failed</h3>
             
-            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #17a2b8;">
-                <strong>ℹ️ Manual Setup Required</strong><br>
-                We'll connect directly using your GA4 Property ID. This is actually more reliable than auto-detection!
+            <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc3545;">
+                <strong>${message}</strong>
             </div>
             
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
-                    GA4 Property ID:
-                </label>
-                <input type="text" id="propertyIdInput" placeholder="e.g., 123456789" 
-                       style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"/>
-                <div style="margin-top: 8px; font-size: 0.9rem; color: #666;">
-                    This is usually a 9-10 digit number
-                </div>
+            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                <strong>💡 Troubleshooting Steps:</strong><br>
+                <pre style="white-space: pre-wrap; font-family: inherit; margin: 8px 0 0 0;">${suggestions}</pre>
             </div>
             
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <strong>📍 How to find your Property ID:</strong>
-                <ol style="margin: 8px 0 0 20px; color: #666; font-size: 0.9rem; line-height: 1.4;">
-                    <li>Go to <a href="https://analytics.google.com" target="_blank" style="color: #ff6b35;">analytics.google.com</a></li>
-                    <li>Click the gear icon ⚙️ (Admin) in the bottom left</li>
-                    <li>In the "Property" column, click "Property Settings"</li>
-                    <li>Copy the Property ID from the top of the page</li>
-                </ol>
-            </div>
+            ${details ? `
+            <details style="margin-bottom: 20px;">
+                <summary style="cursor: pointer; color: #666; font-size: 0.9rem;">Technical Details</summary>
+                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 0.8rem; margin-top: 8px; overflow-x: auto;">${details}</pre>
+            </details>
+            ` : ''}
             
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="cancelBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                    Cancel
+                <button id="tryAgainBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Try Different Property ID
                 </button>
-                <button id="connectBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                    Connect Property
+                <button id="closeBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Close
                 </button>
             </div>
         `;
@@ -187,404 +371,40 @@ async function showManualPropertyIdDialog() {
         modal.appendChild(content);
         document.body.appendChild(modal);
         
-        const input = content.querySelector('#propertyIdInput');
-        const cancelBtn = content.querySelector('#cancelBtn');
-        const connectBtn = content.querySelector('#connectBtn');
-        
-        // Focus the input
-        setTimeout(() => input.focus(), 100);
-        
-        // Handle enter key
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                connectBtn.click();
-            }
-        });
-        
-        cancelBtn.onclick = () => {
+        content.querySelector('#closeBtn').onclick = () => modal.remove();
+        content.querySelector('#tryAgainBtn').onclick = () => {
             modal.remove();
-            resolve(null);
+            setTimeout(() => toggleGA4Connection(), 100);
         };
         
-        connectBtn.onclick = () => {
-            const propertyId = input.value.trim();
-            if (!propertyId) {
-                alert('Please enter a Property ID');
-                input.focus();
-                return;
-            }
-            
-            // Basic validation
-            if (!/^\d{8,12}$/.test(propertyId)) {
-                alert('Property ID should be 8-12 digits (numbers only)');
-                input.focus();
-                input.select();
-                return;
-            }
-            
-            modal.remove();
-            resolve(propertyId);
-        };
-        
-        modal.onclick = () => {
-            modal.remove();
-            resolve(null);
-        };
-        
+        modal.onclick = () => modal.remove();
         content.onclick = e => e.stopPropagation();
-    });
-}
-
-// Add this function to test a property ID
-// Enhanced GA4 debugging and error handling
-// Replace your testGA4Property function with this improved version:
-
-async function testGA4Property(propertyId) {
-    try {
-        ga4Log('Testing GA4 property ID:', propertyId);
-        
-        // Use a simple query to test access
-        const today = new Date();
-        const sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
-        
-        const requestBody = {
-            dateRanges: [{
-                startDate: sevenDaysAgo.toISOString().split('T')[0],
-                endDate: today.toISOString().split('T')[0]
-            }],
-            metrics: [{ name: 'screenPageViews' }],
-            limit: 1
-        };
-        
-        ga4Log('Making test request to property:', propertyId);
-        ga4Log('Request body:', requestBody);
-        
-        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${ga4AccessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        ga4Log('Response status:', response.status);
-        ga4Log('Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        if (response.ok) {
-            const data = await response.json();
-            ga4Log('✅ Property ID test successful, data:', data);
-            return true;
-        } else {
-            const errorText = await response.text();
-            ga4Log('❌ Property ID test failed:', response.status, errorText);
-            
-            // Parse error details
-            let errorDetails = '';
-            try {
-                const errorJson = JSON.parse(errorText);
-                errorDetails = errorJson.error?.message || errorText;
-            } catch (e) {
-                errorDetails = errorText;
-            }
-            
-            // Show specific error message
-            showDetailedErrorMessage(response.status, errorDetails, propertyId);
-            return false;
-        }
-        
-    } catch (error) {
-        ga4Log('❌ Property ID test error:', error);
-        alert('Network error testing property: ' + error.message);
-        return false;
-    }
-}
-
-// Add detailed error messaging
-function showDetailedErrorMessage(status, errorDetails, propertyId) {
-    let message = '';
-    let suggestions = '';
-    
-    switch (status) {
-        case 403:
-            message = `Access denied to GA4 property ${propertyId}`;
-            suggestions = `Possible causes:
-• You don't have access to this GA4 property
-• The property ID is incorrect
-• The property exists but you're not added as a user
-
-Try:
-• Double-check the Property ID in GA4 settings
-• Ask the GA4 admin to add your email as a user
-• Make sure you're signed in with the correct Google account`;
-            break;
-            
-        case 404:
-            message = `GA4 property ${propertyId} not found`;
-            suggestions = `Possible causes:
-• Property ID is incorrect (check for typos)
-• Property might have been deleted
-• You might be looking at a different GA4 account
-
-Try:
-• Double-check the Property ID in GA4 Admin → Property Settings
-• Make sure you're in the correct GA4 account`;
-            break;
-            
-        case 400:
-            message = `Invalid request to GA4 property ${propertyId}`;
-            suggestions = `Possible causes:
-• Property ID format is wrong
-• This might be a Universal Analytics ID instead of GA4
-
-Try:
-• GA4 Property IDs are usually 9-10 digits
-• Don't use UA-XXXXXXX-X format (that's Universal Analytics)`;
-            break;
-            
-        default:
-            message = `Error ${status} accessing GA4 property ${propertyId}`;
-            suggestions = `Error details: ${errorDetails}`;
-    }
-    
-    // Create detailed error modal
-    showErrorModal(message, suggestions, errorDetails);
-}
-
-function showErrorModal(message, suggestions, details) {
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8); z-index: 10000; display: flex;
-        align-items: center; justify-content: center; padding: 20px;
-    `;
-    
-    const content = document.createElement('div');
-    content.style.cssText = `
-        background: white; padding: 30px; border-radius: 15px;
-        max-width: 600px; max-height: 80vh; overflow-y: auto;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    `;
-    
-    content.innerHTML = `
-        <h3 style="margin-bottom: 20px; color: #dc3545;">❌ GA4 Connection Failed</h3>
-        
-        <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc3545;">
-            <strong>${message}</strong>
-        </div>
-        
-        <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
-            <strong>💡 Troubleshooting Steps:</strong><br>
-            <pre style="white-space: pre-wrap; font-family: inherit; margin: 8px 0 0 0;">${suggestions}</pre>
-        </div>
-        
-        ${details ? `
-        <details style="margin-bottom: 20px;">
-            <summary style="cursor: pointer; color: #666; font-size: 0.9rem;">Technical Details</summary>
-            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 0.8rem; margin-top: 8px; overflow-x: auto;">${details}</pre>
-        </details>
-        ` : ''}
-        
-        <div style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button id="tryAgainBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                Try Different Property ID
-            </button>
-            <button id="closeBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                Close
-            </button>
-        </div>
-    `;
-    
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-    
-    content.querySelector('#closeBtn').onclick = () => modal.remove();
-    content.querySelector('#tryAgainBtn').onclick = () => {
-        modal.remove();
-        // Restart the connection process
-        setTimeout(() => toggleGA4Connection(), 100);
-    };
-    
-    modal.onclick = () => modal.remove();
-    content.onclick = e => e.stopPropagation();
-}
-
-// Add a function to check what GA4 properties the user can access
-window.GA4Integration.debug.checkAccess = async function() {
-    if (!ga4AccessToken) {
-        console.error('Not authenticated. Connect to GA4 first.');
-        return;
-    }
-    
-    console.log('🔍 Checking GA4 access...');
-    console.log('Access token (first 20 chars):', ga4AccessToken.substring(0, 20) + '...');
-    
-    // Try to access the Analytics Admin API to list properties
-    try {
-        const response = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
-            headers: {
-                'Authorization': `Bearer ${ga4AccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        console.log('Admin API response status:', response.status);
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Admin API works! Available accounts:', data);
-            
-            if (data.accountSummaries) {
-                console.log('📊 Your GA4 properties:');
-                data.accountSummaries.forEach(account => {
-                    if (account.propertySummaries) {
-                        account.propertySummaries.forEach(property => {
-                            if (property.propertyType === 'PROPERTY_TYPE_GA4') {
-                                const propId = property.property.replace('properties/', '');
-                                console.log(`   • ${property.displayName} (ID: ${propId})`);
-                            }
-                        });
-                    }
-                });
-            }
-        } else {
-            const errorText = await response.text();
-            console.log('❌ Admin API failed:', response.status, errorText);
-            console.log('💡 This is why we use manual property ID entry');
-        }
-    } catch (error) {
-        console.log('❌ Admin API error:', error);
-    }
-    
-    // Test Analytics Data API with a known invalid property
-    console.log('\n🧪 Testing Analytics Data API access...');
-    try {
-        const testResponse = await fetch('https://analyticsdata.googleapis.com/v1beta/properties/999999999:runReport', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${ga4AccessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                dateRanges: [{ startDate: '2024-01-01', endDate: '2024-01-01' }],
-                metrics: [{ name: 'screenPageViews' }]
-            })
-        });
-        
-        console.log('Analytics Data API response status:', testResponse.status);
-        
-        if (testResponse.status === 404) {
-            console.log('✅ Analytics Data API works (404 expected for invalid property)');
-        } else if (testResponse.status === 403) {
-            console.log('❓ Analytics Data API returns 403 - might be permissions issue');
-        } else {
-            console.log('ℹ️ Unexpected response:', testResponse.status);
-        }
-    } catch (error) {
-        console.log('❌ Analytics Data API error:', error);
-    }
-    
-    console.log('\n💡 If you know your property ID, try: GA4Integration.debug.testSpecificProperty("YOUR_ID")');
-};
-
-// Add function to test a specific property with detailed logging
-window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
-    if (!ga4AccessToken) {
-        console.error('Not authenticated. Connect to GA4 first.');
-        return;
-    }
-    
-    console.log(`🧪 Testing specific property: ${propertyId}`);
-    
-    const result = await testGA4Property(propertyId);
-    
-    if (result) {
-        console.log('✅ Property test successful! You can use this property.');
-        // Optionally auto-connect
-        ga4PropertyId = propertyId;
-        ga4Connected = true;
-        updateGA4ConnectionStatus(true);
-        console.log('🔗 Auto-connected to this property');
-    } else {
-        console.log('❌ Property test failed. Check the error details above.');
-    }
-    
-    return result;
-};
-
-    // Fetch GA4 properties using Admin API
-    async function fetchGA4Properties() {
-        try {
-            const response = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${ga4AccessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            const properties = [];
-            
-            if (data.accountSummaries) {
-                data.accountSummaries.forEach(account => {
-                    if (account.propertySummaries) {
-                        account.propertySummaries.forEach(property => {
-                            if (property.propertyType === 'PROPERTY_TYPE_GA4') {
-                                properties.push({
-                                    propertyId: property.property.replace('properties/', ''),
-                                    displayName: property.displayName,
-                                    accountName: account.displayName
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-            
-            ga4Log(`Found ${properties.length} GA4 properties`);
-            return properties;
-            
-        } catch (error) {
-            ga4Log('Failed to fetch GA4 properties:', error);
-            throw error;
-        }
     }
 
     // ===========================================
-    // BASIC GA4 DATA FETCHING
+    // GA4 DATA FETCHING
     // ===========================================
 
-    // Convert URL to GA4 page path
     function urlToGA4Path(url) {
         if (!url) return '/';
         
         try {
-            // If it's a full URL, extract the path
             if (url.startsWith('http')) {
                 const urlObj = new URL(url);
                 return urlObj.pathname + urlObj.search + urlObj.hash;
             }
             
-            // If it's already a path, return as-is
             if (url.startsWith('/')) {
                 return url;
             }
             
-            // Otherwise, add leading slash
             return '/' + url;
             
         } catch (e) {
-            // Fallback
             return url.startsWith('/') ? url : '/' + url;
         }
     }
 
-    // Fetch basic GA4 data for a page
     async function fetchGA4DataForPage(pageUrl) {
         if (!ga4Connected || !ga4PropertyId || !ga4AccessToken) {
             ga4Log('GA4 not connected, cannot fetch data');
@@ -594,14 +414,12 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
         const pagePath = urlToGA4Path(pageUrl);
         ga4Log('Fetching GA4 data for path:', pagePath);
         
-        // Check cache first
         if (ga4DataCache.has(pagePath)) {
             ga4Log('Returning cached GA4 data for:', pagePath);
             return ga4DataCache.get(pagePath);
         }
         
         try {
-            // Calculate date range (last 30 days)
             const today = new Date();
             const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
             
@@ -610,9 +428,7 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
                     startDate: thirtyDaysAgo.toISOString().split('T')[0],
                     endDate: today.toISOString().split('T')[0]
                 }],
-                dimensions: [
-                    { name: 'pagePath' }
-                ],
+                dimensions: [{ name: 'pagePath' }],
                 metrics: [
                     { name: 'screenPageViews' },
                     { name: 'sessions' },
@@ -684,14 +500,12 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
                 ga4Log('No GA4 data found for:', pagePath);
             }
             
-            // Cache the result
             ga4DataCache.set(pagePath, ga4Data);
             return ga4Data;
             
         } catch (error) {
             ga4Log('Error fetching GA4 data:', error);
             
-            // Cache the error to avoid repeated failed requests
             const errorData = {
                 pagePath: pagePath,
                 error: error.message,
@@ -708,10 +522,8 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
     // UI FUNCTIONS
     // ===========================================
 
-    // Add GA4 button to navigation
     function addGA4Button() {
         const checkAndAdd = () => {
-            // Look for navigation area
             const navBar = document.querySelector('.nav-group') || 
                           document.querySelector('.nav-bar') || 
                           document.querySelector('nav') ||
@@ -757,7 +569,6 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             `;
             
-            // Insert next to GSC button if it exists, otherwise at the end
             const gscButton = document.getElementById('gscConnectBtn');
             if (gscButton) {
                 navBar.insertBefore(ga4Button, gscButton.nextSibling);
@@ -771,12 +582,10 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
         checkAndAdd();
     }
 
-    // Toggle GA4 connection
     function toggleGA4Connection() {
         ga4Log('Toggle GA4 connection called. Current state:', ga4Connected);
         
         if (ga4Connected) {
-            // Disconnect
             if (ga4AccessToken) {
                 google.accounts.oauth2.revoke(ga4AccessToken, () => {
                     ga4Log('GA4 access token revoked');
@@ -784,7 +593,6 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
             }
             disconnectGA4();
         } else {
-            // Connect
             if (!ga4TokenClient) {
                 alert('GA4 services are still loading. Please wait a moment and try again.');
                 return;
@@ -803,7 +611,6 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
         }
     }
 
-    // Disconnect GA4
     function disconnectGA4() {
         ga4Connected = false;
         ga4PropertyId = null;
@@ -813,7 +620,6 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
         ga4Log('GA4 disconnected');
     }
 
-    // Update GA4 connection status
     function updateGA4ConnectionStatus(connected) {
         ga4Connected = connected;
         const ga4Btn = document.getElementById('ga4ConnectBtn');
@@ -839,7 +645,6 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
         ga4Log('GA4 connection status updated:', connected);
     }
 
-    // Loading state functions
     function showGA4LoadingState() {
         const ga4Text = document.getElementById('ga4Text');
         if (ga4Text) {
@@ -910,103 +715,6 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
         }, 4000);
     }
 
-    // Property selector
-    async function showGA4PropertySelector(properties) {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.8);
-                z-index: 10000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            `;
-            
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: white;
-                padding: 30px;
-                border-radius: 15px;
-                max-width: 600px;
-                max-height: 80vh;
-                overflow-y: auto;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            `;
-            
-            content.innerHTML = `
-                <h3 style="margin-bottom: 20px; color: #ff6b35;">Select GA4 Property</h3>
-                <div style="color: #666; margin-bottom: 20px;">
-                    Choose which GA4 property you want to connect:
-                </div>
-            `;
-            
-            properties.forEach(property => {
-                const btn = document.createElement('button');
-                btn.style.cssText = `
-                    display: block;
-                    width: 100%;
-                    padding: 15px;
-                    margin-bottom: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 8px;
-                    background: white;
-                    cursor: pointer;
-                    text-align: left;
-                    transition: all 0.2s;
-                `;
-                btn.innerHTML = `
-                    <div style="font-weight: bold; color: #ff6b35;">${property.displayName}</div>
-                    <div style="font-size: 0.9rem; color: #666; margin-top: 4px;">
-                        Account: ${property.accountName}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">
-                        Property ID: ${property.propertyId}
-                    </div>
-                `;
-                btn.onmouseover = () => btn.style.background = '#fff8f5';
-                btn.onmouseout = () => btn.style.background = 'white';
-                btn.onclick = () => {
-                    modal.remove();
-                    resolve(property);
-                };
-                content.appendChild(btn);
-            });
-            
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.style.cssText = `
-                padding: 10px 20px;
-                background: #666;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                margin-top: 15px;
-            `;
-            cancelBtn.onclick = () => {
-                modal.remove();
-                resolve(null);
-            };
-            content.appendChild(cancelBtn);
-            
-            modal.appendChild(content);
-            modal.onclick = () => {
-                modal.remove();
-                resolve(null);
-            };
-            content.onclick = e => e.stopPropagation();
-            
-            document.body.appendChild(modal);
-        });
-    }
-
-    // Add GA4 styles
     function addGA4Styles() {
         if (document.getElementById('ga4-styles')) return;
         
@@ -1063,17 +771,15 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
     }
 
     // ===========================================
-    // DEBUGGING AND TESTING
+    // UTILITY FUNCTIONS
     // ===========================================
 
-    // Format numbers for display
     function formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toLocaleString();
     }
 
-    // Format duration (seconds to readable format)
     function formatDuration(seconds) {
         if (seconds < 60) return `${Math.round(seconds)}s`;
         const minutes = Math.floor(seconds / 60);
@@ -1082,210 +788,202 @@ window.GA4Integration.debug.testSpecificProperty = async function(propertyId) {
     }
 
     // ===========================================
+    // DEBUGGING FUNCTIONS (DEFINED AFTER MAIN FUNCTIONS)
+    // ===========================================
+
+    async function checkGA4Access() {
+        if (!ga4AccessToken) {
+            console.error('❌ Not authenticated. Click "Connect GA4" button first.');
+            return;
+        }
+        
+        console.log('🔍 Checking GA4 access...');
+        console.log('✅ Access token exists (first 20 chars):', ga4AccessToken.substring(0, 20) + '...');
+        
+        try {
+            console.log('📡 Testing Admin API access...');
+            const response = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
+                headers: {
+                    'Authorization': `Bearer ${ga4AccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('📊 Admin API response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Admin API works! Response:', data);
+                
+                if (data.accountSummaries && data.accountSummaries.length > 0) {
+                    console.log('📋 Your GA4 properties:');
+                    let propertyCount = 0;
+                    
+                    data.accountSummaries.forEach(account => {
+                        console.log(`📁 Account: ${account.displayName}`);
+                        if (account.propertySummaries) {
+                            account.propertySummaries.forEach(property => {
+                                if (property.propertyType === 'PROPERTY_TYPE_GA4') {
+                                    const propId = property.property.replace('properties/', '');
+                                    console.log(`   📊 ${property.displayName} (ID: ${propId})`);
+                                    propertyCount++;
+                                }
+                            });
+                        }
+                    });
+                    
+                    if (propertyCount === 0) {
+                        console.log('⚠️ No GA4 properties found in your accounts');
+                    }
+                } else {
+                    console.log('⚠️ No account summaries found');
+                }
+            } else {
+                const errorText = await response.text();
+                console.log('❌ Admin API failed:', response.status);
+                console.log('📄 Error details:', errorText);
+                console.log('💡 This is normal - we\'ll use manual property entry instead');
+            }
+        } catch (error) {
+            console.log('❌ Admin API error:', error);
+            console.log('💡 This is why we use manual property ID entry');
+        }
+        
+        console.log('\n🧪 Testing Analytics Data API...');
+        try {
+            const testResponse = await fetch('https://analyticsdata.googleapis.com/v1beta/properties/999999999:runReport', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${ga4AccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    dateRanges: [{ startDate: '2024-01-01', endDate: '2024-01-01' }],
+                    metrics: [{ name: 'screenPageViews' }]
+                })
+            });
+            
+            console.log('📊 Analytics Data API status:', testResponse.status);
+            
+            if (testResponse.status === 404) {
+                console.log('✅ Analytics Data API works (404 expected for invalid property)');
+            } else if (testResponse.status === 403) {
+                console.log('⚠️ Analytics Data API returns 403 - might be scope or permissions issue');
+                const errorText = await testResponse.text();
+                console.log('📄 Error details:', errorText);
+            } else {
+                console.log('ℹ️ Unexpected response:', testResponse.status);
+            }
+        } catch (error) {
+            console.log('❌ Analytics Data API error:', error);
+        }
+        
+        console.log('\n💡 Next steps:');
+        console.log('   • If you see your property above, try: GA4Integration.debug.testSpecificProperty("YOUR_ID")');
+        console.log('   • If no properties listed, check you\'re signed in with the correct Google account');
+        console.log('   • Ask your GA4 admin to verify you have access to the property');
+    }
+
+    async function testSpecificProperty(propertyId) {
+        if (!ga4AccessToken) {
+            console.error('❌ Not authenticated. Click "Connect GA4" button first.');
+            return false;
+        }
+        
+        console.log(`🧪 Testing specific property: ${propertyId}`);
+        
+        try {
+            const result = await testGA4Property(propertyId);
+            
+            if (result) {
+                console.log('✅ Property test successful! You can use this property.');
+                console.log('🔗 Auto-connecting to this property...');
+                
+                ga4PropertyId = propertyId;
+                ga4Connected = true;
+                updateGA4ConnectionStatus(true);
+                showGA4SuccessMessage(`Property ${propertyId}`);
+                
+                console.log('🎉 Connected! You can now test URLs with:');
+                console.log(`   GA4Integration.debug.testUrl('/your-page-path')`);
+            } else {
+                console.log('❌ Property test failed. Check the error details above.');
+                console.log('💡 Make sure:');
+                console.log('   • Property ID is correct (9-10 digits)');
+                console.log('   • You have access to this GA4 property');
+                console.log('   • You\'re signed in with the correct Google account');
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('❌ Error testing property:', error);
+            return false;
+        }
+    }
+
+    async function testUrlData(url) {
+        if (!ga4Connected) {
+            console.error('GA4 not connected');
+            return null;
+        }
+        
+        ga4Log('Testing URL:', url);
+        const data = await fetchGA4DataForPage(url);
+        console.table(data);
+        return data;
+    }
+
+    // ===========================================
     // EXPORT TO GLOBAL SCOPE
     // ===========================================
 
-    // FIX for the debug error
-// Add this at the end of your standalone-ga4-integration.js file
-// (Replace the existing window.GA4Integration section)
-
-// ===========================================
-// EXPORT TO GLOBAL SCOPE (FIXED VERSION)
-// ===========================================
-
-window.GA4Integration = {
-    // Main functions
-    init: initGA4Integration,
-    isConnected: () => ga4Connected,
-    getPropertyId: () => ga4PropertyId,
-    fetchData: fetchGA4DataForPage,
-    disconnect: disconnectGA4,
-    
-    // Utility functions
-    formatNumber: formatNumber,
-    formatDuration: formatDuration,
-    urlToPath: urlToGA4Path,
-    
-    // Debug functions - properly initialized
-    debug: {
-        getStatus: () => ({
-            connected: ga4Connected,
-            propertyId: ga4PropertyId,
-            hasToken: !!ga4AccessToken,
-            cacheSize: ga4DataCache.size,
-            cachedPaths: Array.from(ga4DataCache.keys())
-        }),
+    window.GA4Integration = {
+        // Main functions
+        init: initGA4Integration,
+        isConnected: () => ga4Connected,
+        getPropertyId: () => ga4PropertyId,
+        fetchData: fetchGA4DataForPage,
+        disconnect: disconnectGA4,
         
-        testUrl: async (url) => {
-            if (!ga4Connected) {
-                console.error('GA4 not connected');
-                return null;
-            }
+        // Utility functions
+        formatNumber: formatNumber,
+        formatDuration: formatDuration,
+        urlToPath: urlToGA4Path,
+        
+        // Debug functions
+        debug: {
+            getStatus: () => ({
+                connected: ga4Connected,
+                propertyId: ga4PropertyId,
+                hasToken: !!ga4AccessToken,
+                cacheSize: ga4DataCache.size,
+                cachedPaths: Array.from(ga4DataCache.keys())
+            }),
             
-            ga4Log('Testing URL:', url);
-            const data = await fetchGA4DataForPage(url);
-            console.table(data);
-            return data;
-        },
-        
-        clearCache: () => {
-            ga4DataCache.clear();
-            ga4Log('Cache cleared');
-        },
-        
-        showCache: () => {
-            console.log('GA4 Cache contents:');
-            ga4DataCache.forEach((data, path) => {
-                console.log(`${path}:`, data);
-            });
-        },
-        
-        // Enhanced debugging functions
-        checkAccess: async () => {
-            if (!ga4AccessToken) {
-                console.error('❌ Not authenticated. Click "Connect GA4" button first.');
-                return;
-            }
-            
-            console.log('🔍 Checking GA4 access...');
-            console.log('✅ Access token exists (first 20 chars):', ga4AccessToken.substring(0, 20) + '...');
-            
-            // Try to access the Analytics Admin API to list properties
-            try {
-                console.log('📡 Testing Admin API access...');
-                const response = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
-                    headers: {
-                        'Authorization': `Bearer ${ga4AccessToken}`,
-                        'Content-Type': 'application/json'
-                    }
+            testUrl: testUrlData,
+            clearCache: () => {
+                ga4DataCache.clear();
+                ga4Log('Cache cleared');
+            },
+            showCache: () => {
+                console.log('GA4 Cache contents:');
+                ga4DataCache.forEach((data, path) => {
+                    console.log(`${path}:`, data);
                 });
-                
-                console.log('📊 Admin API response status:', response.status);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Admin API works! Response:', data);
-                    
-                    if (data.accountSummaries && data.accountSummaries.length > 0) {
-                        console.log('📋 Your GA4 properties:');
-                        let propertyCount = 0;
-                        
-                        data.accountSummaries.forEach(account => {
-                            console.log(`📁 Account: ${account.displayName}`);
-                            if (account.propertySummaries) {
-                                account.propertySummaries.forEach(property => {
-                                    if (property.propertyType === 'PROPERTY_TYPE_GA4') {
-                                        const propId = property.property.replace('properties/', '');
-                                        console.log(`   📊 ${property.displayName} (ID: ${propId})`);
-                                        propertyCount++;
-                                    }
-                                });
-                            }
-                        });
-                        
-                        if (propertyCount === 0) {
-                            console.log('⚠️ No GA4 properties found in your accounts');
-                        }
-                    } else {
-                        console.log('⚠️ No account summaries found');
-                    }
-                } else {
-                    const errorText = await response.text();
-                    console.log('❌ Admin API failed:', response.status);
-                    console.log('📄 Error details:', errorText);
-                    console.log('💡 This is normal - we\'ll use manual property entry instead');
-                }
-            } catch (error) {
-                console.log('❌ Admin API error:', error);
-                console.log('💡 This is why we use manual property ID entry');
+            },
+            checkAccess: checkGA4Access,
+            testSpecificProperty: testSpecificProperty,
+            quickConnect: (propertyId) => {
+                console.log('🚀 Quick connect to property:', propertyId);
+                return testSpecificProperty(propertyId);
             }
-            
-            // Test Analytics Data API
-            console.log('\n🧪 Testing Analytics Data API...');
-            try {
-                const testResponse = await fetch('https://analyticsdata.googleapis.com/v1beta/properties/999999999:runReport', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${ga4AccessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        dateRanges: [{ startDate: '2024-01-01', endDate: '2024-01-01' }],
-                        metrics: [{ name: 'screenPageViews' }]
-                    })
-                });
-                
-                console.log('📊 Analytics Data API status:', testResponse.status);
-                
-                if (testResponse.status === 404) {
-                    console.log('✅ Analytics Data API works (404 expected for invalid property)');
-                } else if (testResponse.status === 403) {
-                    console.log('⚠️ Analytics Data API returns 403 - might be scope or permissions issue');
-                    const errorText = await testResponse.text();
-                    console.log('📄 Error details:', errorText);
-                } else {
-                    console.log('ℹ️ Unexpected response:', testResponse.status);
-                }
-            } catch (error) {
-                console.log('❌ Analytics Data API error:', error);
-            }
-            
-            console.log('\n💡 Next steps:');
-            console.log('   • If you see your property above, try: GA4Integration.debug.testSpecificProperty("YOUR_ID")');
-            console.log('   • If no properties listed, check you\'re signed in with the correct Google account');
-            console.log('   • Ask your GA4 admin to verify you have access to the property');
-        },
-        
-        testSpecificProperty: async (propertyId) => {
-            if (!ga4AccessToken) {
-                console.error('❌ Not authenticated. Click "Connect GA4" button first.');
-                return false;
-            }
-            
-            console.log(`🧪 Testing specific property: ${propertyId}`);
-            
-            try {
-                const result = await testGA4Property(propertyId);
-                
-                if (result) {
-                    console.log('✅ Property test successful! You can use this property.');
-                    console.log('🔗 Auto-connecting to this property...');
-                    
-                    // Auto-connect if test passes
-                    ga4PropertyId = propertyId;
-                    ga4Connected = true;
-                    updateGA4ConnectionStatus(true);
-                    showGA4SuccessMessage(`Property ${propertyId}`);
-                    
-                    console.log('🎉 Connected! You can now test URLs with:');
-                    console.log(`   GA4Integration.debug.testUrl('/your-page-path')`);
-                } else {
-                    console.log('❌ Property test failed. Check the error details above.');
-                    console.log('💡 Make sure:');
-                    console.log('   • Property ID is correct (9-10 digits)');
-                    console.log('   • You have access to this GA4 property');
-                    console.log('   • You\'re signed in with the correct Google account');
-                }
-                
-                return result;
-            } catch (error) {
-                console.error('❌ Error testing property:', error);
-                return false;
-            }
-        },
-        
-        // Quick connection shortcut
-        quickConnect: (propertyId) => {
-            console.log('🚀 Quick connect to property:', propertyId);
-            return window.GA4Integration.debug.testSpecificProperty(propertyId);
         }
-    }
-};
+    };
 
-// Console welcome message (updated)
-setTimeout(() => {
-    if (typeof console !== 'undefined' && console.log) {
-        console.log(`
+    // Console welcome message
+    setTimeout(() => {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(`
 📊 GA4 Integration Module Ready!
 
 Quick start commands:
@@ -1298,6 +996,17 @@ After connecting:
 • GA4Integration.debug.showCache()             - View cached data
 
 Status: ${ga4Connected ? '✅ Connected to property ' + ga4PropertyId : '⏳ Ready to connect'}
-        `);
-    }
-}, 500);
+            `);
+        }
+    }, 500);
+
+})();
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.GA4Integration.init();
+    });
+} else {
+    window.GA4Integration.init();
+}
