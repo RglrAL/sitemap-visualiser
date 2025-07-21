@@ -1074,35 +1074,38 @@
     }
     
     function showSimplifiedTooltip(event, d) {
-        if (!d.data) return;
-        
-        // Hide any existing tooltip first
-        hideCurrentTooltip();
-        
-        // Create basic tooltip structure
-        const tooltip = createBasicTooltip(d.data);
-        
-        // Position tooltip
-        positionTooltip(tooltip, event);
-        
-        // Show tooltip
-        document.body.appendChild(tooltip);
-        currentTooltip = tooltip;
-        
-        // Add hover protection (simplified)
-        tooltip.addEventListener('mouseenter', () => {
-            clearTimeout(hideTimer);
-        });
-        
-        tooltip.addEventListener('mouseleave', () => {
-            window.hideEnhancedTooltip();
-        });
-        
-        // Trigger GSC data loading (non-blocking)
-        if (gscConnected && d.data.url && !gscDataMap.has(d.data.url)) {
-            loadGSCDataAsync(d.data, tooltip);
-        }
+    if (!d.data) return;
+    
+    // Hide any existing tooltip first
+    hideCurrentTooltip();
+    
+    // Create basic tooltip structure
+    const tooltip = createBasicTooltip(d.data);
+    
+    // Store the node data on the tooltip for GSC enhancement access
+    tooltip._nodeData = d.data;
+    
+    // Position tooltip
+    positionTooltip(tooltip, event);
+    
+    // Show tooltip
+    document.body.appendChild(tooltip);
+    currentTooltip = tooltip;
+    
+    // Add hover protection (simplified)
+    tooltip.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimer);
+    });
+    
+    tooltip.addEventListener('mouseleave', () => {
+        window.hideEnhancedTooltip();
+    });
+    
+    // Trigger GSC data loading (non-blocking)
+    if (gscConnected && d.data.url && !gscDataMap.has(d.data.url)) {
+        loadGSCDataAsync(d.data, tooltip);
     }
+}
     
     function hideCurrentTooltip() {
         if (currentTooltip) {
@@ -1155,32 +1158,64 @@
     }
     
     function createBasicContent(data) {
-        const now = new Date();
-        let freshnessInfo = '';
+    const now = new Date();
+    let freshnessInfo = '';
+    let lastModifiedDisplay = '';
+    
+    if (data.lastModified) {
+        const lastMod = new Date(data.lastModified);
+        const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
         
-        if (data.lastModified) {
-            const lastMod = new Date(data.lastModified);
-            const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
-            const freshnessLabel = daysSince < 30 ? 'Recent' : 
-                                 daysSince < 90 ? 'Fresh' : 
-                                 daysSince < 180 ? 'Aging' : 'Old';
-            const freshnessColor = daysSince < 30 ? '#4caf50' : 
-                                  daysSince < 90 ? '#8bc34a' : 
-                                  daysSince < 180 ? '#ff9800' : '#f44336';
-            freshnessInfo = `<span style="background: ${freshnessColor}20; color: ${freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessLabel}</span>`;
-        }
+        // Freshness badge logic
+        const freshnessLabel = daysSince < 30 ? 'Recent' : 
+                             daysSince < 90 ? 'Fresh' : 
+                             daysSince < 180 ? 'Aging' : 'Old';
+        const freshnessColor = daysSince < 30 ? '#4caf50' : 
+                              daysSince < 90 ? '#8bc34a' : 
+                              daysSince < 180 ? '#ff9800' : '#f44336';
         
-        return `
-            <div style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
-                    <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
-                    ${freshnessInfo}
-                </div>
-             ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
-onmouseover="this.style.textDecoration='underline'" 
-onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}</div>
+        freshnessInfo = `<span style="background: ${freshnessColor}20; color: ${freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessLabel}</span>`;
+        
+        // Format the actual date nicely
+        const formattedDate = lastMod.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        const relativeTime = daysSince === 0 ? 'today' :
+                           daysSince === 1 ? 'yesterday' :
+                           daysSince < 7 ? `${daysSince} days ago` :
+                           daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                           daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                           `${Math.floor(daysSince / 365)} years ago`;
+        
+        lastModifiedDisplay = `
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 0; border-top: 1px solid #f0f0f0;">
+                <span style="font-size: 0.7rem; color: #666;">📅 Updated:</span>
+                <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${formattedDate}</span>
+                <span style="font-size: 0.7rem; color: #999;">(${relativeTime})</span>
+            </div>
         `;
     }
+    
+    return `
+        <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
+                <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
+                ${freshnessInfo}
+            </div>
+            ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
+                onmouseover="this.style.textDecoration='underline'" 
+                onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}
+            ${lastModifiedDisplay}
+        </div>
+    `;
+}
+
+
+
+    
     
     function positionTooltip(tooltip, event) {
         // Simple positioning - no complex edge detection
@@ -1224,6 +1259,10 @@ onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}</div>
             }
         }
     }
+
+
+
+
     
     function updateTooltipWithGSCData(tooltip, gscData) {
     const placeholder = tooltip.querySelector('#gsc-placeholder');
@@ -1236,10 +1275,42 @@ onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}</div>
         return;
     }
     
-    // Create enhanced GSC content with all improvements
+    // Get the original node data to access lastModified (passed from the tooltip creation)
+    const tooltipContainer = tooltip.closest('.enhanced-tooltip');
+    const originalData = tooltipContainer?._nodeData || {};
+    
+    // Create enhanced GSC content with last modified date
     const performanceScore = calculateSimplePerformanceScore(gscData);
     const gscHtml = `
         <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
+            
+            <!-- Header with date info if available -->
+            ${originalData.lastModified ? `
+                <div style="background: #f0f4ff; padding: 8px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #4a90e2;">
+                    <div style="display: flex; justify-content: between; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.8rem; color: #666;">📅 Last Updated:</span>
+                        <span style="font-size: 0.85rem; color: #333; font-weight: 500;">
+                            ${new Date(originalData.lastModified).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short', 
+                                day: 'numeric'
+                            })}
+                        </span>
+                        <span style="font-size: 0.7rem; color: #999;">
+                            (${(() => {
+                                const daysSince = Math.floor((new Date() - new Date(originalData.lastModified)) / (1000 * 60 * 60 * 24));
+                                return daysSince === 0 ? 'today' :
+                                       daysSince === 1 ? 'yesterday' :
+                                       daysSince < 7 ? `${daysSince} days ago` :
+                                       daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                                       daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                                       `${Math.floor(daysSince / 365)} years ago`;
+                            })()})
+                        </span>
+                    </div>
+                </div>
+            ` : ''}
+            
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
                 <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
@@ -1341,6 +1412,11 @@ onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}</div>
     
     placeholder.outerHTML = gscHtml;
 }
+
+
+
+
+    
     
     function updateGSCPlaceholder(tooltip, message) {
         const placeholder = tooltip.querySelector('#gsc-placeholder');
