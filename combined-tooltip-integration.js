@@ -1,29 +1,53 @@
-// combined-tooltip-integration.js - PERMANENT VERSION
-// Replace your entire combined-tooltip-integration (1).js file with this
+// combined-tooltip-integration.js - FIXED VERSION
+// This version bypasses ForceOverride and ensures GA4 data displays properly
 
 (function() {
-    console.log('🚀 Loading permanent combined tooltip integration...');
+    console.log('🚀 Loading FIXED combined tooltip integration...');
+
+    // Force override removal - this bypasses the disabled functions
+    function removeForceOverride() {
+        console.log('🔧 Removing ForceOverride...');
+        
+        // Clear any existing disabled functions
+        delete window.showEnhancedTooltip;
+        delete window.hideEnhancedTooltip;
+        
+        // Remove any override flags
+        if (window.ForceOverride) {
+            window.ForceOverride = null;
+        }
+        
+        console.log('✅ ForceOverride removed');
+    }
 
     // Wait for both integrations to be ready
     function waitForIntegrations(callback) {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
         const checkReady = () => {
+            attempts++;
+            console.log(`🔍 Checking integrations (attempt ${attempts}/${maxAttempts})`);
+            console.log('GSC Integration:', !!window.GSCIntegration);
+            console.log('GA4 Integration:', !!window.GA4Integration);
+            
             if (window.GSCIntegration && window.GA4Integration) {
                 console.log('✅ Both integrations ready');
                 callback();
+            } else if (attempts >= maxAttempts) {
+                console.warn('⚠️ Max attempts reached, proceeding anyway');
+                callback();
             } else {
-                setTimeout(checkReady, 100);
+                setTimeout(checkReady, 200);
             }
         };
         checkReady();
     }
 
-    // Clear existing tooltips
-    function clearExistingTooltips() {
-        document.querySelectorAll('.enhanced-tooltip, .combined-analytics-tooltip, [class*="tooltip"]').forEach(el => el.remove());
-    }
-
-    // Enhanced tooltip with both GSC and GA4 data + connection status
+    // Create enhanced tooltip with both GSC and GA4 data
     function createCombinedTooltip(nodeData) {
+        console.log('🎯 Creating combined tooltip for:', nodeData.name);
+        
         const tooltip = document.createElement('div');
         tooltip.className = 'enhanced-tooltip combined-analytics-tooltip';
         tooltip.style.cssText = `
@@ -32,298 +56,325 @@
             border: 1px solid #ddd;
             border-radius: 12px;
             padding: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
             z-index: 10000;
-            max-width: 500px;
+            max-width: 550px;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.3s ease;
             pointer-events: auto;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 14px;
             line-height: 1.4;
         `;
 
-        // Create basic content with your original styling
+        // Create basic content
         tooltip.innerHTML = createBasicTooltipContent(nodeData);
         
         return tooltip;
     }
 
-    // Create the basic page info content (enhanced with your original features)
+    // Create the basic page info content
     function createBasicTooltipContent(data) {
-        // Get freshness info (using your original function if available)
-        let freshnessInfo = '';
-        let lastModifiedDisplay = '';
-        
-        if (typeof getFreshnessInfo === 'function' && data.lastModified) {
-            const freshnessData = getFreshnessInfo(data.lastModified);
-            if (freshnessData) {
-                freshnessInfo = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
-                lastModifiedDisplay = `
-                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 0; border-top: 1px solid #f0f0f0;">
-                        <span style="font-size: 0.7rem; color: #666;">📅 Updated:</span>
-                        <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
-                        <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
-                    </div>
-                `;
-            }
-        }
-
-        // Get page info (using your original function if available)
-        let pageInfoDisplay = '';
-        if (typeof getPageInfo === 'function') {
-            const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
-            const pageInfo = getPageInfo(data, treeContext);
-            
-            pageInfoDisplay = `
-                <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.7rem;">
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">🏷️ Type:</span>
-                            <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">📏 Depth:</span>
-                            <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">👶 Children:</span>
-                            <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">👫 Siblings:</span>
-                            <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
         return `
-            <div style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
-                    <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
-                    ${freshnessInfo}
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px;">
+                    <h4 style="margin: 0; color: #1f4788; font-size: 1.1rem; font-weight: 600; flex: 1;">${data.name}</h4>
                 </div>
-                ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
-                    onmouseover="this.style.textDecoration='underline'" 
-                    onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}
-                ${lastModifiedDisplay}
-                ${pageInfoDisplay}
+                ${data.url ? `
+                    <a href="${data.url}" target="_blank" 
+                       style="font-size: 0.8rem; color: #4a90e2; text-decoration: none; word-break: break-all; 
+                              margin-bottom: 12px; display: block; border-bottom: 1px dotted #4a90e2;" 
+                       onmouseover="this.style.textDecoration='underline'" 
+                       onmouseout="this.style.textDecoration='none'">
+                        ${data.url}
+                    </a>
+                ` : ''}
             </div>
         `;
     }
 
-    // Create analytics loading section with connection status
-    function createAnalyticsLoadingSection() {
+    // Create analytics section with real-time status
+    function createAnalyticsSection() {
         return `
-            <div id="combined-analytics-loading" style="margin-top: 16px;">
+            <div id="combined-analytics-container" style="margin-top: 12px;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden;">
                     
                     <!-- Header -->
-                    <div style="background: rgba(255,255,255,0.15); padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <div style="color: white; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
-                            <span>📊 Analytics Data (30 days)</span>
-                            <div style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">
-                                Live Data
+                    <div style="background: rgba(255,255,255,0.15); padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: white; font-weight: 600; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📊 Analytics Overview</span>
+                            <div style="background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 12px; font-size: 0.75rem;">
+                                Last 30 Days
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Analytics Sections -->
+                    <!-- Analytics Grid -->
                     <div style="background: rgba(255,255,255,0.1); padding: 16px;">
                         
-                        <!-- GSC Section -->
-                        <div id="gsc-section" style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 6px; font-weight: 500; display: flex; justify-content: space-between; align-items: center;">
-                                <span>🔍 Search Console</span>
-                                <span id="gsc-connection-status" style="font-size: 0.7rem; opacity: 0.8;">Checking...</span>
+                        <!-- Search Console Section -->
+                        <div id="gsc-analytics-card" style="background: rgba(255,255,255,0.15); padding: 14px; border-radius: 10px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-size: 0.9rem; font-weight: 500; color: white; display: flex; align-items: center; gap: 6px;">
+                                    🔍 Search Console
+                                </div>
+                                <span id="gsc-status-indicator" style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">
+                                    Loading...
+                                </span>
                             </div>
-                            <div id="gsc-content" style="font-size: 0.9rem;">
-                                <div class="loading-dots">Loading data...</div>
-                            </div>
-                        </div>
-                        
-                        <!-- GA4 Section -->
-                        <div id="ga4-section" style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px;">
-                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 6px; font-weight: 500; display: flex; justify-content: space-between; align-items: center;">
-                                <span>📊 Google Analytics 4</span>
-                                <span id="ga4-connection-status" style="font-size: 0.7rem; opacity: 0.8;">Checking...</span>
-                            </div>
-                            <div id="ga4-content" style="font-size: 0.9rem;">
-                                <div class="loading-dots">Loading data...</div>
+                            <div id="gsc-data-content">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                    <div class="loading-animation">⏳ Fetching search data...</div>
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Reconnect Section (hidden by default) -->
-                        <div id="reconnect-section" style="margin-top: 10px; text-align: center; display: none;">
-                            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; margin-bottom: 8px;">
-                                <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 4px;">⚠️ Connection Issues Detected</div>
+                        <!-- Google Analytics 4 Section -->
+                        <div id="ga4-analytics-card" style="background: rgba(255,255,255,0.15); padding: 14px; border-radius: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-size: 0.9rem; font-weight: 500; color: white; display: flex; align-items: center; gap: 6px;">
+                                    📈 Google Analytics 4
+                                </div>
+                                <span id="ga4-status-indicator" style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">
+                                    Loading...
+                                </span>
                             </div>
-                            <button onclick="window.reconnectAnalytics && window.reconnectAnalytics()" 
-                                    style="background: rgba(255,255,255,0.3); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
-                                🔄 Reconnect Analytics
-                            </button>
+                            <div id="ga4-data-content">
+                                <div style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                    <div class="loading-animation">⏳ Fetching analytics data...</div>
+                                </div>
+                            </div>
                         </div>
                         
                     </div>
                     
-                    <!-- Action Buttons -->
-                    <div style="background: rgba(255,255,255,0.05); padding: 12px 16px; display: flex; gap: 8px;">
+                    <!-- Footer Actions -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px 16px; display: flex; gap: 8px; justify-content: space-between;">
                         <button onclick="window.open('${nodeData.url}', '_blank')" 
-                                style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; flex: 1;">
+                                style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; 
+                                       border-radius: 6px; font-size: 0.85rem; cursor: pointer; flex: 1; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
                             🔗 Visit Page
+                        </button>
+                        <button onclick="window.refreshAnalyticsData && window.refreshAnalyticsData()" 
+                                style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; 
+                                       border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            🔄 Refresh
                         </button>
                     </div>
                 </div>
             </div>
             
             <style>
-                .loading-dots {
-                    opacity: 0.8;
+                .loading-animation {
+                    position: relative;
                 }
                 
-                .loading-dots::after {
-                    content: '...';
-                    animation: loading-dots 1.5s infinite;
+                .loading-animation::after {
+                    content: '';
+                    position: absolute;
+                    right: -20px;
+                    top: 0;
+                    width: 16px;
+                    height: 16px;
+                    border: 2px solid rgba(255,255,255,0.3);
+                    border-top: 2px solid white;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
                 }
                 
-                @keyframes loading-dots {
-                    0%, 20% { content: '.'; }
-                    40% { content: '..'; }
-                    60%, 100% { content: '...'; }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
                 }
             </style>
         `;
     }
 
-    // Load analytics data with robust error handling
-    async function loadAnalyticsDataRobust(tooltip, nodeData) {
+    // Load analytics data with proper error handling
+    async function loadAnalyticsData(tooltip, nodeData) {
         console.log('📊 Loading analytics data for:', nodeData.name);
         
-        const gscContent = tooltip.querySelector('#gsc-content');
-        const ga4Content = tooltip.querySelector('#ga4-content');
-        const gscStatus = tooltip.querySelector('#gsc-connection-status');
-        const ga4Status = tooltip.querySelector('#ga4-connection-status');
-        const reconnectSection = tooltip.querySelector('#reconnect-section');
+        const gscContent = tooltip.querySelector('#gsc-data-content');
+        const ga4Content = tooltip.querySelector('#ga4-data-content');
+        const gscStatus = tooltip.querySelector('#gsc-status-indicator');
+        const ga4Status = tooltip.querySelector('#ga4-status-indicator');
         
-        let needsReconnection = false;
-        
-        // Load GSC data
-        if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
-            gscStatus.textContent = '🟢 Connected';
-            try {
+        // Load GSC Data
+        try {
+            console.log('🔍 Checking GSC connection...');
+            if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
+                console.log('✅ GSC is connected, fetching data...');
+                gscStatus.textContent = '🟢 Connected';
+                
                 const gscData = await window.GSCIntegration.fetchNodeData(nodeData);
-                console.log('🔍 GSC data loaded:', gscData);
+                console.log('🔍 GSC Data received:', gscData);
                 
                 if (gscData && !gscData.noDataFound && !gscData.error) {
                     gscContent.innerHTML = `
-                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px;">
-                            ${formatNumber(gscData.clicks)} clicks
-                        </div>
-                        <div style="font-size: 0.85rem; opacity: 0.9; line-height: 1.3;">
-                            ${formatNumber(gscData.impressions)} impressions<br>
-                            ${(gscData.ctr * 100).toFixed(1)}% CTR • #${gscData.position.toFixed(0)} avg position
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; color: white;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${formatNumber(gscData.clicks)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Clicks</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${formatNumber(gscData.impressions)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Impressions</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${(gscData.ctr * 100).toFixed(1)}%
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">CTR</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    #${gscData.position.toFixed(0)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Position</div>
+                            </div>
                         </div>
                     `;
                 } else {
-                    gscContent.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">No data available</div>';
+                    gscContent.innerHTML = '<div style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center;">📭 No search data found</div>';
                 }
-            } catch (error) {
-                console.error('❌ GSC error:', error);
-                gscContent.innerHTML = '<div style="opacity: 0.7; color: #ffcdd2; font-size: 0.9rem;">Error loading data</div>';
-                gscStatus.textContent = '🔴 Error';
-                needsReconnection = true;
+            } else {
+                console.log('❌ GSC not connected');
+                gscStatus.textContent = '🔴 Not Connected';
+                gscContent.innerHTML = '<div style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center;">🔌 GSC not connected</div>';
             }
-        } else {
-            gscContent.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">Not connected</div>';
-            gscStatus.textContent = '🔴 Disconnected';
-            needsReconnection = true;
+        } catch (error) {
+            console.error('❌ GSC Error:', error);
+            gscStatus.textContent = '🔴 Error';
+            gscContent.innerHTML = '<div style="color: #ffcdd2; font-size: 0.9rem; text-align: center;">❌ Error loading GSC data</div>';
         }
         
-        // Load GA4 data
-        if (window.GA4Integration && window.GA4Integration.isConnected()) {
-            ga4Status.textContent = '🟢 Connected';
-            try {
-                console.log('📊 Fetching GA4 data...');
+        // Load GA4 Data
+        try {
+            console.log('📈 Checking GA4 connection...');
+            if (window.GA4Integration && window.GA4Integration.isConnected()) {
+                console.log('✅ GA4 is connected, fetching data...');
+                ga4Status.textContent = '🟢 Connected';
+                
+                // Try to get GA4 data
                 const ga4Data = await window.GA4Integration.fetchData(nodeData.url);
-                console.log('📊 GA4 data loaded:', ga4Data);
+                console.log('📈 GA4 Data received:', ga4Data);
                 
                 if (ga4Data && !ga4Data.noDataFound && !ga4Data.error) {
                     ga4Content.innerHTML = `
-                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px;">
-                            ${formatNumber(ga4Data.users || 0)} users
-                        </div>
-                        <div style="font-size: 0.85rem; opacity: 0.9; line-height: 1.3;">
-                            ${formatNumber(ga4Data.pageViews || 0)} page views<br>
-                            ${formatNumber(ga4Data.sessions || 0)} sessions • ${((ga4Data.engagementRate || 0) * 100).toFixed(0)}% engaged
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; color: white;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${formatNumber(ga4Data.users || 0)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Users</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${formatNumber(ga4Data.pageViews || 0)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Page Views</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${formatNumber(ga4Data.sessions || 0)}
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Sessions</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 2px;">
+                                    ${((ga4Data.engagementRate || 0) * 100).toFixed(0)}%
+                                </div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">Engagement</div>
+                            </div>
                         </div>
                     `;
                     console.log('✅ GA4 content updated successfully');
                 } else {
-                    console.warn('⚠️ GA4 data issue:', ga4Data);
-                    if (ga4Data?.error && ga4Data.error.includes('401')) {
-                        ga4Content.innerHTML = '<div style="opacity: 0.7; color: #ffcdd2; font-size: 0.9rem;">Authentication expired</div>';
-                        ga4Status.textContent = '🔴 Auth expired';
-                        needsReconnection = true;
-                    } else {
-                        ga4Content.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">No data available</div>';
-                    }
+                    console.warn('⚠️ GA4 no data found:', ga4Data);
+                    ga4Content.innerHTML = '<div style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center;">📭 No analytics data found</div>';
                 }
-            } catch (error) {
-                console.error('❌ GA4 error:', error);
-                ga4Content.innerHTML = '<div style="opacity: 0.7; color: #ffcdd2; font-size: 0.9rem;">Error loading data</div>';
-                ga4Status.textContent = '🔴 Error';
-                needsReconnection = true;
+            } else {
+                console.log('❌ GA4 not connected');
+                ga4Status.textContent = '🔴 Not Connected';
+                ga4Content.innerHTML = '<div style="color: rgba(255,255,255,0.7); font-size: 0.9rem; text-align: center;">🔌 GA4 not connected</div>';
             }
-        } else {
-            ga4Content.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">Not connected</div>';
-            ga4Status.textContent = '🔴 Disconnected';
-            needsReconnection = true;
-        }
-        
-        // Show reconnect section if needed
-        if (needsReconnection) {
-            reconnectSection.style.display = 'block';
+        } catch (error) {
+            console.error('❌ GA4 Error:', error);
+            ga4Status.textContent = '🔴 Error';
+            ga4Content.innerHTML = '<div style="color: #ffcdd2; font-size: 0.9rem; text-align: center;">❌ Error loading GA4 data</div>';
         }
     }
 
-    // Enhanced tooltip show function
-    async function showCombinedTooltip(event, nodeData) {
-        console.log('🎯 Enhanced tooltip triggered for:', nodeData.name);
+    // Show enhanced tooltip
+    async function showEnhancedTooltip(event, d) {
+        console.log('🎯 FIXED Enhanced tooltip triggered for:', d.data?.name);
         
-        // Hide existing tooltip
-        if (window.hideEnhancedTooltip) {
-            window.hideEnhancedTooltip();
+        if (!d.data) {
+            console.warn('⚠️ No data provided to tooltip');
+            return;
         }
 
-        // Create combined tooltip
-        const tooltip = createCombinedTooltip(nodeData);
+        // Hide any existing tooltip
+        hideEnhancedTooltip();
+
+        // Create new tooltip
+        const tooltip = createCombinedTooltip(d.data);
         
-        // Add analytics loading section
-        tooltip.innerHTML += createAnalyticsLoadingSection();
+        // Add analytics section
+        tooltip.innerHTML += createAnalyticsSection();
         
         // Position tooltip
         positionTooltip(tooltip, event);
         
-        // Add to DOM and show
+        // Add to DOM
         document.body.appendChild(tooltip);
+        
+        // Show tooltip
         setTimeout(() => tooltip.style.opacity = '1', 10);
         
-        // Store reference for cleanup
-        window.currentTooltip = tooltip;
+        // Store reference
+        window.currentEnhancedTooltip = tooltip;
         
         // Add hover protection
         tooltip.addEventListener('mouseenter', () => {
-            if (window.hideTimer) clearTimeout(window.hideTimer);
+            if (window.tooltipHideTimer) {
+                clearTimeout(window.tooltipHideTimer);
+            }
         });
         
         tooltip.addEventListener('mouseleave', () => {
-            if (window.hideEnhancedTooltip) window.hideEnhancedTooltip();
+            hideEnhancedTooltip();
         });
 
         // Load analytics data
-        await loadAnalyticsDataRobust(tooltip, nodeData);
+        try {
+            await loadAnalyticsData(tooltip, d.data);
+        } catch (error) {
+            console.error('❌ Error loading analytics data:', error);
+        }
+    }
+
+    // Hide enhanced tooltip
+    function hideEnhancedTooltip() {
+        window.tooltipHideTimer = setTimeout(() => {
+            if (window.currentEnhancedTooltip) {
+                window.currentEnhancedTooltip.style.opacity = '0';
+                setTimeout(() => {
+                    if (window.currentEnhancedTooltip) {
+                        window.currentEnhancedTooltip.remove();
+                        window.currentEnhancedTooltip = null;
+                    }
+                }, 300);
+            }
+        }, 100);
     }
 
     // Utility functions
@@ -334,14 +385,7 @@
         return num.toLocaleString();
     }
 
-    function formatDuration(seconds) {
-        if (seconds < 60) return `${Math.round(seconds)}s`;
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = Math.round(seconds % 60);
-        return `${minutes}m ${remainingSeconds}s`;
-    }
-
-    // Position tooltip (basic version - use your existing function if available)
+    // Position tooltip
     function positionTooltip(tooltip, event) {
         let left = event.pageX + 15;
         let top = event.pageY - 10;
@@ -349,7 +393,7 @@
         tooltip.style.left = left + 'px';
         tooltip.style.top = top + 'px';
         
-        // Simple boundary check
+        // Boundary check
         setTimeout(() => {
             const rect = tooltip.getBoundingClientRect();
             const windowWidth = window.innerWidth;
@@ -365,81 +409,53 @@
         }, 50);
     }
 
-    // Reconnect function
-    function reconnectAnalytics() {
-        console.log('🔄 Reconnecting analytics integrations...');
-        
-        // Find and click the connect buttons
-        const gscButton = document.getElementById('gscConnectBtn');
-        const ga4Button = document.getElementById('ga4ConnectBtn');
-        
-        if (gscButton) {
-            const gscConnected = gscButton.classList.contains('connected');
-            if (gscConnected) {
-                gscButton.click(); // Disconnect
-                setTimeout(() => gscButton.click(), 500); // Reconnect
-            } else {
-                gscButton.click(); // Connect
+    // Refresh analytics data function
+    function refreshAnalyticsData() {
+        if (window.currentEnhancedTooltip) {
+            const nodeData = window.currentEnhancedTooltip._nodeData;
+            if (nodeData) {
+                loadAnalyticsData(window.currentEnhancedTooltip, nodeData);
             }
         }
-        
-        if (ga4Button) {
-            const ga4Connected = ga4Button.classList.contains('connected');
-            if (ga4Connected) {
-                ga4Button.click(); // Disconnect  
-                setTimeout(() => ga4Button.click(), 1000); // Reconnect
-            } else {
-                ga4Button.click(); // Connect
-            }
-        }
-        
-        // Hide current tooltip
-        if (window.hideEnhancedTooltip) {
-            window.hideEnhancedTooltip();
-        }
-        
-        console.log('✅ Reconnection initiated - follow the auth flows');
     }
 
-    // Hook into existing tooltip system
-    function enhanceExistingTooltips() {
-        console.log('🔧 Enhancing existing tooltips with combined analytics...');
+    // Force install the fixed tooltip system
+    function installFixedTooltipSystem() {
+        console.log('🔧 Installing FIXED tooltip system...');
         
-        // Store original functions
-        const originalShow = window.showEnhancedTooltip;
-        const originalHide = window.hideEnhancedTooltip;
+        // Remove any existing overrides
+        removeForceOverride();
         
-        // Override with combined version
-        window.showEnhancedTooltip = function(event, d) {
-            if (!d.data) return;
-            showCombinedTooltip(event, d.data);
-        };
+        // Force install our functions
+        window.showEnhancedTooltip = showEnhancedTooltip;
+        window.hideEnhancedTooltip = hideEnhancedTooltip;
+        window.refreshAnalyticsData = refreshAnalyticsData;
         
-        // Keep existing hide functionality or create if missing
-        if (!originalHide) {
-            window.hideEnhancedTooltip = function() {
-                if (window.currentTooltip) {
-                    window.currentTooltip.style.opacity = '0';
-                    setTimeout(() => {
-                        if (window.currentTooltip) {
-                            window.currentTooltip.remove();
-                            window.currentTooltip = null;
-                        }
-                    }, 200);
-                }
-            };
-        }
+        // Prevent future overrides
+        Object.defineProperty(window, 'showEnhancedTooltip', {
+            value: showEnhancedTooltip,
+            writable: false,
+            configurable: false
+        });
         
-        // Make reconnect function globally available
-        window.reconnectAnalytics = reconnectAnalytics;
+        Object.defineProperty(window, 'hideEnhancedTooltip', {
+            value: hideEnhancedTooltip,
+            writable: false,
+            configurable: false
+        });
         
-        console.log('✅ Enhanced tooltips with combined GSC + GA4 data and connection status');
+        console.log('✅ FIXED tooltip system installed and protected');
     }
 
-    // Initialize when both integrations are ready
+    // Initialize when ready
     waitForIntegrations(() => {
-        enhanceExistingTooltips();
-        console.log('🚀 Permanent combined analytics tooltips ready with connection status!');
+        installFixedTooltipSystem();
+        console.log('🚀 FIXED combined analytics tooltips are now active!');
+        
+        // Test the tooltip system
+        console.log('🧪 Testing tooltip functions:');
+        console.log('showEnhancedTooltip type:', typeof window.showEnhancedTooltip);
+        console.log('hideEnhancedTooltip type:', typeof window.hideEnhancedTooltip);
     });
 
 })();
