@@ -3110,56 +3110,821 @@
             });
     }
 
-    // Create enhanced GSC section with better layout
-    function createEnhancedGSCSection(gscData) {
-        const performanceStatus = analyzePerformanceStatus(gscData);
-        
-        return `
-            <div class="gsc-section-enhanced">
-                <!-- Header with Status Indicator -->
-                <div class="gsc-header">
-                    <div class="gsc-header-left">
-                        <span class="gsc-icon">📊</span>
-                        <span class="gsc-title">Search Performance</span>
-                        <span class="gsc-period">(30 days)</span>
-                    </div>
-                    <div class="gsc-status ${performanceStatus.class}">
-                        ${performanceStatus.icon} ${performanceStatus.label}
-                    </div>
+    // Enhanced visual display functions to integrate into your existing GSC module
+// Add these to your existing code, replacing the current createEnhancedGSCSection function
+
+// Enhanced GSC section with visual improvements
+function createEnhancedGSCSection(gscData) {
+    const performanceScore = calculatePerformanceScore(gscData);
+    const performanceStatus = analyzePerformanceStatus(gscData);
+    const trendData = gscData.trend || {};
+    
+    // Generate or fetch historical data for sparklines
+    const sparklineData = generateSparklineData(gscData);
+    
+    return `
+        <div class="gsc-section-enhanced gsc-visual-container">
+            <!-- Date Range Selector -->
+            <div class="gsc-date-selector">
+                <div class="date-range-pills">
+                    <button class="date-pill" data-days="7" onclick="updateGSCDateRange(this, '${gscData.url}')">7d</button>
+                    <button class="date-pill active" data-days="30" onclick="updateGSCDateRange(this, '${gscData.url}')">30d</button>
+                    <button class="date-pill" data-days="90" onclick="updateGSCDateRange(this, '${gscData.url}')">90d</button>
+                    <button class="date-pill" data-days="180" onclick="updateGSCDateRange(this, '${gscData.url}')">6m</button>
+                    <button class="date-pill" data-days="365" onclick="updateGSCDateRange(this, '${gscData.url}')">1y</button>
                 </div>
-                
-                <!-- Key Metrics Grid -->
-                <div class="gsc-metrics-grid">
-                    ${createMetricCard('Clicks', gscData.clicks, gscData.trend?.clicksChange, '👆')}
-                    ${createMetricCard('Impressions', gscData.impressions, gscData.trend?.impressionsChange, '👀', true)}
-                    ${createMetricCard('CTR', `${(gscData.ctr * 100).toFixed(1)}%`, null, '🎯')}
-                    ${createMetricCard('Position', `#${gscData.position.toFixed(0)}`, gscData.trend?.positionChange, '📍')}
-                </div>
-                
-                <!-- Top Queries Compact View -->
-                ${gscData.topQueries && gscData.topQueries.length > 0 ? 
-                    createTopQueriesSection(gscData.topQueries) : ''}
-                
-                <!-- Opportunities Alert -->
-                ${gscData.opportunities && gscData.opportunities.length > 0 ? 
-                    createOpportunitiesAlert(gscData.opportunities) : ''}
-                
-                <!-- Performance Insights -->
-                ${gscData.insights && gscData.insights.length > 0 ? 
-                    createInsightsSection(gscData.insights) : ''}
-                
-                <!-- Quick Actions -->
-                <div class="gsc-actions">
-                    <button class="gsc-action-btn primary" onclick="showDetailedGSCAnalysis('${gscData.url}')">
-                        📈 Full Analysis
-                    </button>
-                    <button class="gsc-action-btn secondary" onclick="exportQuickGSCData('${gscData.url}')">
-                        📋 Export
-                    </button>
+                <div class="date-info">
+                    <span>📅</span>
+                    <span id="date-range-text">Last 30 days</span>
                 </div>
             </div>
-        `;
+            
+            <!-- Visual Metrics Grid -->
+            <div class="gsc-metrics-visual">
+                ${createVisualMetricCard('Clicks', formatMetricValue(gscData.clicks), trendData.clicksChange, '👆', sparklineData.clicks)}
+                ${createVisualMetricCard('Impressions', formatMetricValue(gscData.impressions), trendData.impressionsChange, '👀', sparklineData.impressions)}
+                ${createVisualMetricCard('CTR', `${(gscData.ctr * 100).toFixed(2)}%`, calculateCTRTrend(gscData, trendData), '🎯', sparklineData.ctr)}
+                ${createPositionCard(gscData.position, trendData.positionChange, performanceScore)}
+            </div>
+            
+            <!-- Performance Insights Bar -->
+            ${createPerformanceInsightsBar(gscData, performanceStatus)}
+            
+            <!-- Enhanced Queries Section with Visualizations -->
+            ${createVisualQueriesSection(gscData.topQueries, gscData.url)}
+            
+            <!-- Opportunities with Visual Impact -->
+            ${gscData.opportunities && gscData.opportunities.length > 0 ? 
+                createVisualOpportunitiesSection(gscData.opportunities) : ''}
+            
+            <!-- Content Insights Visual -->
+            ${gscData.insights && gscData.insights.length > 0 ? 
+                createVisualInsightsSection(gscData.insights) : ''}
+            
+            <!-- Action Buttons -->
+            <div class="gsc-actions-visual">
+                <button class="action-btn-visual action-primary" onclick="showDetailedGSCAnalysis('${gscData.url}')">
+                    <span>📊</span>
+                    <span>Full Analysis</span>
+                </button>
+                <button class="action-btn-visual action-secondary" onclick="showQueryBreakdown('${gscData.url}')">
+                    <span>🔍</span>
+                    <span>Query Analysis</span>
+                </button>
+                <button class="action-btn-visual action-secondary" onclick="exportVisualReport('${gscData.url}')">
+                    <span>📥</span>
+                    <span>Export</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Create visual metric card with enhanced sparkline
+function createVisualMetricCard(label, value, trend, icon, sparklineData) {
+    const trendClass = trend > 0 ? 'trend-positive' : trend < 0 ? 'trend-negative' : 'trend-neutral';
+    const trendIcon = trend > 0 ? '↗' : trend < 0 ? '↘' : '→';
+    const trendDisplay = trend !== null && trend !== undefined ? Math.abs(trend).toFixed(1) : null;
+    
+    return `
+        <div class="metric-card-visual" data-metric="${label.toLowerCase()}">
+            <div class="metric-header-visual">
+                <div class="metric-info">
+                    <div class="metric-label-visual">
+                        <span class="metric-icon-visual">${icon}</span>
+                        <span>${label}</span>
+                    </div>
+                    <div class="metric-value-visual">${value}</div>
+                    ${trendDisplay !== null ? `
+                        <div class="metric-trend-visual ${trendClass}">
+                            <span class="trend-arrow">${trendIcon}</span>
+                            <span class="trend-value">${trend > 0 ? '+' : ''}${trendDisplay}%</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            ${createSparklineSVG(sparklineData, label)}
+        </div>
+    `;
+}
+
+// Create position card with performance ring
+function createPositionCard(position, trend, score) {
+    const trendClass = trend > 0 ? 'trend-positive' : trend < 0 ? 'trend-negative' : 'trend-neutral';
+    const trendIcon = trend > 0 ? '↗' : trend < 0 ? '↘' : '→';
+    const scoreColor = score >= 75 ? '#4caf50' : score >= 50 ? '#1a73e8' : score >= 25 ? '#ff9800' : '#f44336';
+    
+    return `
+        <div class="metric-card-visual position-card" data-metric="position">
+            <div class="metric-header-visual">
+                <div class="metric-info">
+                    <div class="metric-label-visual">
+                        <span class="metric-icon-visual">📍</span>
+                        <span>Avg Position</span>
+                    </div>
+                    <div class="metric-value-visual">#${position.toFixed(1)}</div>
+                    ${trend !== null && trend !== undefined ? `
+                        <div class="metric-trend-visual ${trendClass}">
+                            <span class="trend-arrow">${trendIcon}</span>
+                            <span class="trend-value">${Math.abs(trend).toFixed(1)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="performance-score-visual">
+                <svg class="score-ring" viewBox="0 0 36 36">
+                    <defs>
+                        <linearGradient id="scoreGradient${Date.now()}" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:${scoreColor};stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:${scoreColor};stop-opacity:0.6" />
+                        </linearGradient>
+                    </defs>
+                    <path class="score-ring-bg"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        stroke-dasharray="100, 100"/>
+                    <path class="score-ring-fill"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        stroke-dasharray="${score}, 100"
+                        stroke="url(#scoreGradient${Date.now()})"/>
+                </svg>
+                <div class="score-text-visual">${score}</div>
+                <div class="score-label-visual">Performance</div>
+            </div>
+        </div>
+    `;
+}
+
+// Create performance insights bar
+function createPerformanceInsightsBar(gscData, performanceStatus) {
+    const insights = [];
+    
+    // Quick performance insights
+    if (gscData.position <= 3 && gscData.ctr < 0.1) {
+        insights.push({ icon: '⚠️', text: 'Low CTR for top position', type: 'warning' });
     }
+    if (gscData.impressions > 1000 && gscData.clicks < 50) {
+        insights.push({ icon: '⚡', text: 'High visibility, low engagement', type: 'opportunity' });
+    }
+    if (gscData.trend && gscData.trend.clicksChange > 20) {
+        insights.push({ icon: '🚀', text: 'Strong growth trend', type: 'success' });
+    }
+    
+    if (insights.length === 0) return '';
+    
+    return `
+        <div class="performance-insights-bar">
+            ${insights.map(insight => `
+                <div class="insight-pill ${insight.type}">
+                    <span class="insight-icon">${insight.icon}</span>
+                    <span class="insight-text">${insight.text}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Create visual queries section with enhanced display
+function createVisualQueriesSection(queries, url) {
+    if (!queries || queries.length === 0) return '';
+    
+    // Sort queries by opportunity score
+    const sortedQueries = [...queries].sort((a, b) => {
+        const scoreA = calculateQueryOpportunityScore(a);
+        const scoreB = calculateQueryOpportunityScore(b);
+        return scoreB - scoreA;
+    });
+    
+    return `
+        <div class="gsc-queries-visual">
+            <div class="queries-header-visual">
+                <h3 class="section-title-visual">
+                    <span>🔍</span>
+                    <span>Search Query Performance</span>
+                    <span class="query-count">${queries.length} queries</span>
+                </h3>
+                <div class="view-toggle">
+                    <button class="toggle-btn active" onclick="toggleQueryView('list', '${url}')">List</button>
+                    <button class="toggle-btn" onclick="toggleQueryView('chart', '${url}')">Chart</button>
+                    <button class="toggle-btn" onclick="toggleQueryView('table', '${url}')">Table</button>
+                </div>
+            </div>
+            
+            <div id="query-view-container" class="query-list-visual">
+                ${sortedQueries.slice(0, 5).map((query, index) => createVisualQueryItem(query, index)).join('')}
+            </div>
+            
+            ${queries.length > 5 ? `
+                <button class="show-more-queries" onclick="showAllQueries('${url}')">
+                    Show all ${queries.length} queries →
+                </button>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Create individual query item with visual enhancements
+function createVisualQueryItem(query, index) {
+    const performanceClass = getQueryPerformanceClass(query);
+    const opportunityScore = calculateQueryOpportunityScore(query);
+    const ctrPercent = (query.ctr * 100);
+    const impressionScale = Math.min(query.impressions / 1000, 100);
+    
+    return `
+        <div class="query-item-visual ${performanceClass}" data-opportunity-score="${opportunityScore}">
+            <div class="query-performance-bar ${performanceClass}"></div>
+            <div class="query-rank-badge">#${index + 1}</div>
+            
+            <div class="query-content-visual">
+                <div class="query-text-section">
+                    <div class="query-text-visual">${escapeHtml(query.query)}</div>
+                    ${query.opportunity ? `
+                        <span class="opportunity-badge ${query.opportunity}">
+                            ${query.opportunity === 'rank-opportunity' ? '📈 Rank' : '🎯 CTR'} Opportunity
+                        </span>
+                    ` : ''}
+                </div>
+                
+                <div class="query-metrics-visual">
+                    <div class="query-metric clicks-metric">
+                        <div class="query-metric-value">${formatMetricValue(query.clicks)}</div>
+                        <div class="query-metric-label">clicks</div>
+                    </div>
+                    
+                    <div class="query-metric position-metric">
+                        <div class="query-metric-value">#${query.position.toFixed(1)}</div>
+                        <div class="query-metric-label">position</div>
+                        <div class="position-indicator">
+                            ${createPositionIndicator(query.position)}
+                        </div>
+                    </div>
+                    
+                    <div class="query-metric ctr-metric">
+                        <div class="query-metric-value">${ctrPercent.toFixed(1)}%</div>
+                        <div class="query-metric-label">CTR</div>
+                        <div class="ctr-visual">
+                            <div class="ctr-bar">
+                                <div class="ctr-fill" style="width: ${Math.min(ctrPercent * 10, 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="query-metric impressions-metric">
+                        <div class="query-metric-value">${formatMetricValue(query.impressions)}</div>
+                        <div class="query-metric-label">impr.</div>
+                        <div class="impressions-scale" style="width: ${impressionScale}%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            ${opportunityScore > 50 ? `
+                <div class="query-opportunity-hint">
+                    <span class="hint-icon">💡</span>
+                    <span class="hint-text">${getOpportunityHint(query)}</span>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Create visual opportunities section with impact visualization
+function createVisualOpportunitiesSection(opportunities) {
+    const totalPotential = opportunities.reduce((sum, opp) => sum + opp.potentialClicks, 0);
+    const topOpportunities = opportunities.slice(0, 3);
+    
+    return `
+        <div class="opportunities-section-visual">
+            <div class="opportunities-header-visual">
+                <div class="opp-title-section">
+                    <span class="opp-icon">⚡</span>
+                    <h3 class="opp-title">Quick Win Opportunities</h3>
+                </div>
+                <div class="opp-summary">
+                    <span class="potential-value">+${formatMetricValue(totalPotential)}</span>
+                    <span class="potential-label">potential clicks/month</span>
+                </div>
+            </div>
+            
+            <div class="opportunities-grid">
+                ${topOpportunities.map(opp => createOpportunityCard(opp)).join('')}
+            </div>
+            
+            ${opportunities.length > 3 ? `
+                <button class="see-all-opportunities" onclick="showAllOpportunities('${opportunities[0].url || ''}')">
+                    View all ${opportunities.length} opportunities →
+                </button>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Create opportunity card
+function createOpportunityCard(opportunity) {
+    const impactLevel = opportunity.potentialClicks > 100 ? 'high' : 
+                       opportunity.potentialClicks > 50 ? 'medium' : 'low';
+    
+    return `
+        <div class="opportunity-card-visual ${impactLevel}-impact">
+            <div class="opp-query">"${escapeHtml(opportunity.query)}"</div>
+            <div class="opp-metrics">
+                <div class="opp-metric">
+                    <span class="opp-metric-value">${formatMetricValue(opportunity.impressions)}</span>
+                    <span class="opp-metric-label">impressions</span>
+                </div>
+                <div class="opp-metric">
+                    <span class="opp-metric-value">#${opportunity.position.toFixed(0)}</span>
+                    <span class="opp-metric-label">position</span>
+                </div>
+                <div class="opp-metric highlight">
+                    <span class="opp-metric-value">+${opportunity.potentialClicks}</span>
+                    <span class="opp-metric-label">potential clicks</span>
+                </div>
+            </div>
+            <div class="opp-action-hint">
+                ${getActionHint(opportunity)}
+            </div>
+        </div>
+    `;
+}
+
+// Create visual insights section
+function createVisualInsightsSection(insights) {
+    const prioritizedInsights = insights.sort((a, b) => {
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+    
+    return `
+        <div class="insights-section-visual">
+            <h3 class="insights-title">
+                <span>💡</span>
+                Content Optimization Insights
+            </h3>
+            <div class="insights-grid">
+                ${prioritizedInsights.slice(0, 3).map(insight => createInsightCard(insight)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Create insight card
+function createInsightCard(insight) {
+    const iconMap = {
+        warning: '⚠️',
+        opportunity: '⚡',
+        info: 'ℹ️',
+        success: '✅'
+    };
+    
+    return `
+        <div class="insight-card-visual priority-${insight.priority}">
+            <div class="insight-header">
+                <span class="insight-type-icon">${iconMap[insight.type] || '💡'}</span>
+                <span class="insight-priority-badge">${insight.priority}</span>
+            </div>
+            <div class="insight-content">
+                <h4 class="insight-title">${insight.title}</h4>
+                <p class="insight-description">${insight.description}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Helper Functions
+
+// Calculate performance score (0-100)
+function calculatePerformanceScore(gscData) {
+    let score = 0;
+    
+    // CTR component (0-40 points)
+    const ctrScore = Math.min((gscData.ctr * 100) / 5 * 40, 40);
+    score += ctrScore;
+    
+    // Position component (0-30 points)
+    const positionScore = Math.max(30 - (gscData.position / 20 * 30), 0);
+    score += positionScore;
+    
+    // Click volume component (0-20 points)
+    const clickScore = Math.min(gscData.clicks / 100 * 20, 20);
+    score += clickScore;
+    
+    // Growth component (0-10 points)
+    if (gscData.trend && gscData.trend.clicksChange > 0) {
+        score += Math.min(gscData.trend.clicksChange / 10, 10);
+    }
+    
+    return Math.round(score);
+}
+
+// Calculate query opportunity score
+function calculateQueryOpportunityScore(query) {
+    let score = 0;
+    
+    // High impressions with low CTR
+    if (query.impressions > 100 && query.ctr < 0.02) {
+        score += 40;
+    }
+    
+    // Position 4-20 (can improve to first page)
+    if (query.position > 3 && query.position <= 20) {
+        score += 30;
+    }
+    
+    // High impressions in general
+    score += Math.min(query.impressions / 1000 * 20, 20);
+    
+    // Low hanging fruit (position 11-15)
+    if (query.position > 10 && query.position <= 15) {
+        score += 10;
+    }
+    
+    return Math.round(score);
+}
+
+// Get query performance class
+function getQueryPerformanceClass(query) {
+    if (query.position <= 3 && query.ctr >= 0.08) return 'performance-excellent';
+    if (query.position <= 10 && query.ctr >= 0.04) return 'performance-good';
+    if (query.impressions > 100 && query.ctr < 0.02) return 'performance-opportunity';
+    if (query.position > 20) return 'performance-poor';
+    return 'performance-average';
+}
+
+// Format metric values for display
+function formatMetricValue(value) {
+    if (typeof value !== 'number') return value;
+    
+    if (value >= 1000000) {
+        return (value / 1000000).toFixed(1) + 'M';
+    } else if (value >= 10000) {
+        return (value / 1000).toFixed(1) + 'K';
+    } else if (value >= 1000) {
+        return (value / 1000).toFixed(1) + 'K';
+    }
+    return value.toLocaleString();
+}
+
+// Create sparkline SVG
+function createSparklineSVG(data, label) {
+    if (!data || data.length < 2) return '';
+    
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+    
+    const points = data.map((value, index) => {
+        const x = (index / (data.length - 1)) * 100;
+        const y = 30 - ((value - min) / range * 25);
+        return { x, y };
+    });
+    
+    const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+    const areaData = pathData + ` L100,30 L0,30 Z`;
+    
+    const color = label === 'Clicks' ? '#1a73e8' : 
+                  label === 'Impressions' ? '#34a853' : 
+                  label === 'CTR' ? '#fbbc04' : '#ea4335';
+    
+    return `
+        <svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="gradient-${label}-${Date.now()}" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:${color};stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:${color};stop-opacity:0.05" />
+                </linearGradient>
+            </defs>
+            <path class="sparkline-area" d="${areaData}" fill="url(#gradient-${label}-${Date.now()})"/>
+            <path class="sparkline-path" d="${pathData}" stroke="${color}" stroke-width="2" fill="none"/>
+        </svg>
+    `;
+}
+
+// Generate sparkline data from GSC data
+function generateSparklineData(gscData) {
+    // In real implementation, this would use historical data
+    // For now, generate sample trending data
+    return {
+        clicks: Array.from({length: 10}, () => Math.random() * gscData.clicks * 1.5),
+        impressions: Array.from({length: 10}, () => Math.random() * gscData.impressions * 1.5),
+        ctr: Array.from({length: 10}, () => Math.random() * gscData.ctr * 100 * 1.5)
+    };
+}
+
+// Create position indicator
+function createPositionIndicator(position) {
+    const page = Math.ceil(position / 10);
+    const pageLabel = page === 1 ? '1st page' : `${page}${getOrdinalSuffix(page)} page`;
+    
+    return `<span class="position-page page-${page}">${pageLabel}</span>`;
+}
+
+// Get ordinal suffix
+function getOrdinalSuffix(num) {
+    const j = num % 10;
+    const k = num % 100;
+    if (j === 1 && k !== 11) return 'st';
+    if (j === 2 && k !== 12) return 'nd';
+    if (j === 3 && k !== 13) return 'rd';
+    return 'th';
+}
+
+// Get opportunity hint
+function getOpportunityHint(query) {
+    if (query.position > 10 && query.position <= 20) {
+        return 'Move to page 1 with content optimization';
+    }
+    if (query.ctr < 0.02 && query.position <= 10) {
+        return 'Improve meta description for better CTR';
+    }
+    if (query.impressions > 1000 && query.clicks < 50) {
+        return 'High visibility - optimize for conversions';
+    }
+    return 'Optimize content for this query';
+}
+
+// Get action hint for opportunities
+function getActionHint(opportunity) {
+    if (opportunity.position > 10 && opportunity.position <= 15) {
+        return '🎯 Add related content section';
+    }
+    if (opportunity.ctr < 0.01) {
+        return '✏️ Rewrite title & meta description';
+    }
+    if (opportunity.position > 15) {
+        return '📝 Create dedicated content';
+    }
+    return '🔧 Optimize existing content';
+}
+
+// Calculate CTR trend
+function calculateCTRTrend(gscData, trendData) {
+    if (!trendData || !trendData.clicksChange || !trendData.impressionsChange) return null;
+    
+    // CTR trend is more complex than just clicks/impressions change
+    const currentCTR = gscData.ctr;
+    const previousClicks = gscData.clicks / (1 + trendData.clicksChange / 100);
+    const previousImpressions = gscData.impressions / (1 + trendData.impressionsChange / 100);
+    const previousCTR = previousClicks / previousImpressions;
+    
+    return ((currentCTR - previousCTR) / previousCTR * 100);
+}
+
+// Escape HTML for security
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Date range update handler
+window.updateGSCDateRange = async function(button, url) {
+    const pills = button.parentElement.querySelectorAll('.date-pill');
+    pills.forEach(pill => pill.classList.remove('active'));
+    button.classList.add('active');
+    
+    const days = parseInt(button.getAttribute('data-days'));
+    const dateRangeText = button.textContent;
+    
+    // Update date display
+    const dateInfo = button.closest('.gsc-date-selector').querySelector('#date-range-text');
+    if (dateInfo) {
+        dateInfo.textContent = `Last ${dateRangeText}`;
+    }
+    
+    // Show loading state
+    const container = button.closest('.gsc-section-enhanced');
+    if (container) {
+        container.classList.add('loading');
+    }
+    
+    // Fetch new data with date range
+    await fetchGSCDataWithDateRange(url, days);
+    
+    // Remove loading state
+    if (container) {
+        container.classList.remove('loading');
+    }
+};
+
+// Toggle query view
+window.toggleQueryView = function(view, url) {
+    const container = document.getElementById('query-view-container');
+    const buttons = container.parentElement.querySelectorAll('.toggle-btn');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    const gscData = gscDataMap.get(url);
+    if (!gscData || !gscData.topQueries) return;
+    
+    switch(view) {
+        case 'chart':
+            container.innerHTML = createQueryChart(gscData.topQueries);
+            break;
+        case 'table':
+            container.innerHTML = createQueryTable(gscData.topQueries);
+            break;
+        default:
+            container.innerHTML = gscData.topQueries
+                .slice(0, 5)
+                .map((query, index) => createVisualQueryItem(query, index))
+                .join('');
+    }
+};
+
+// Create query chart view
+function createQueryChart(queries) {
+    const maxImpressions = Math.max(...queries.map(q => q.impressions));
+    
+    return `
+        <div class="query-chart-container">
+            ${queries.slice(0, 10).map(query => `
+                <div class="query-chart-item">
+                    <div class="query-chart-label">${escapeHtml(query.query)}</div>
+                    <div class="query-chart-bars">
+                        <div class="impressions-bar" style="width: ${(query.impressions / maxImpressions * 100)}%">
+                            <span class="bar-value">${formatMetricValue(query.impressions)}</span>
+                        </div>
+                        <div class="clicks-bar" style="width: ${(query.clicks / query.impressions * 100)}%">
+                            <span class="bar-value">${query.clicks}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+            <div class="chart-legend">
+                <span class="legend-item impressions">Impressions</span>
+                <span class="legend-item clicks">Clicks (CTR)</span>
+            </div>
+        </div>
+    `;
+}
+
+// Create query table view
+function createQueryTable(queries) {
+    return `
+        <div class="query-table-container">
+            <table class="query-table">
+                <thead>
+                    <tr>
+                        <th>Query</th>
+                        <th>Clicks</th>
+                        <th>Impr.</th>
+                        <th>CTR</th>
+                        <th>Pos.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${queries.map(query => `
+                        <tr>
+                            <td class="query-cell">${escapeHtml(query.query)}</td>
+                            <td class="numeric-cell">${formatMetricValue(query.clicks)}</td>
+                            <td class="numeric-cell">${formatMetricValue(query.impressions)}</td>
+                            <td class="numeric-cell">${(query.ctr * 100).toFixed(1)}%</td>
+                            <td class="numeric-cell">#${query.position.toFixed(1)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Show all queries modal
+window.showAllQueries = function(url) {
+    const gscData = gscDataMap.get(url);
+    if (!gscData || !gscData.topQueries) return;
+    
+    // Create modal with all queries
+    const modal = document.createElement('div');
+    modal.className = 'gsc-modal';
+    modal.innerHTML = `
+        <div class="gsc-modal-content">
+            <div class="modal-header">
+                <h2>All Search Queries</h2>
+                <button class="close-modal" onclick="this.closest('.gsc-modal').remove()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="all-queries-list">
+                    ${gscData.topQueries.map((query, index) => createVisualQueryItem(query, index)).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+};
+
+// Export visual report
+window.exportVisualReport = function(url) {
+    const gscData = gscDataMap.get(url);
+    if (!gscData) return;
+    
+    // Generate visual report data
+    const report = {
+        url: url,
+        generatedAt: new Date().toISOString(),
+        performanceScore: calculatePerformanceScore(gscData),
+        metrics: {
+            clicks: gscData.clicks,
+            impressions: gscData.impressions,
+            ctr: (gscData.ctr * 100).toFixed(2) + '%',
+            position: gscData.position.toFixed(1)
+        },
+        trends: gscData.trend || {},
+        topQueries: gscData.topQueries || [],
+        opportunities: gscData.opportunities || [],
+        insights: gscData.insights || []
+    };
+    
+    // Create downloadable report
+    const reportHTML = generateVisualReportHTML(report);
+    const blob = new Blob([reportHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `gsc-visual-report-${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // Show success message
+    showNotification('Visual report exported successfully!', 'success');
+};
+
+// Generate visual report HTML
+function generateVisualReportHTML(report) {
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>GSC Performance Report - ${report.url}</title>
+            <style>
+                /* Include relevant styles here */
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+                /* ... more styles ... */
+            </style>
+        </head>
+        <body>
+            <h1>Search Performance Report</h1>
+            <p>Generated: ${new Date(report.generatedAt).toLocaleString()}</p>
+            <!-- Report content here -->
+        </body>
+        </html>
+    `;
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `gsc-notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'success' ? '#4caf50' : '#2196f3'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Fetch GSC data with date range
+async function fetchGSCDataWithDateRange(url, days) {
+    // This would be integrated with your existing fetchNodeGSCData function
+    // For now, showing the structure
+    
+    const today = new Date();
+    const startDate = new Date(today.getTime() - (days * 24 * 60 * 60 * 1000));
+    
+    // You would modify your existing fetchSingleNodeData to accept date parameters
+    // and update the GSC API calls accordingly
+    
+    console.log(`Fetching GSC data for ${url} from ${startDate.toISOString()} to ${today.toISOString()}`);
+    
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Update the display
+    const nodeData = findNodeByUrl(url);
+    if (nodeData && window.showEnhancedTooltip) {
+        const tooltip = document.querySelector('.enhanced-tooltip.visible');
+        if (tooltip) {
+            // Refresh tooltip with new date range data
+            showEnhancedTooltipWithImprovedGSC(event, nodeData);
+        }
+    }
+}
 
     // Create individual metric cards with trend indicators
     function createMetricCard(label, value, trendValue, icon, useK = false) {
