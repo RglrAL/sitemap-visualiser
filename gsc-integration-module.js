@@ -3644,7 +3644,8 @@ Generated: ${new Date().toLocaleDateString()}
     }
 
     // Export GSC data
-    window.exportGSCData = function(url) {
+    // Export GSC data function
+    function exportGSCData(url) {
         const gscData = gscDataMap.get(url);
         if (!gscData || gscData.noDataFound) {
             alert('No data to export');
@@ -3685,6 +3686,10 @@ Generated: ${new Date().toLocaleDateString()}
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(csvUrl);
+    }
+
+    // Expose to global scope
+    window.exportGSCData = exportGSCData;
     };
 
     // ===========================================
