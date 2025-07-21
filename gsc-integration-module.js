@@ -381,6 +381,154 @@
         }
     }
 
+    // Helper functions for enhanced analysis
+    function getCTRBenchmark(position) {
+        // Industry standard CTR benchmarks by position
+        if (position <= 1) return 0.28;
+        if (position <= 2) return 0.15;
+        if (position <= 3) return 0.11;
+        if (position <= 4) return 0.08;
+        if (position <= 5) return 0.06;
+        if (position <= 10) return 0.03;
+        return 0.01;
+    }
+
+    function getCTRStatusIcon(performance) {
+        switch(performance) {
+            case 'excellent': return '🌟';
+            case 'good': return '✅';
+            case 'fair': return '⚠️';
+            case 'poor': return '🔴';
+            default: return '❓';
+        }
+    }
+
+    function getPositionStatusIcon(performance) {
+        switch(performance) {
+            case 'excellent': return '🏆';
+            case 'good': return '🥇';
+            case 'fair': return '🥈';
+            case 'poor': return '📉';
+            default: return '❓';
+        }
+    }
+
+    function getPositionGrade(position) {
+        if (position <= 3) return 'A+';
+        if (position <= 5) return 'A';
+        if (position <= 10) return 'B';
+        if (position <= 20) return 'C';
+        return 'D';
+    }
+
+    function getCTRGrade(ctr, benchmark) {
+        const ratio = ctr / benchmark;
+        if (ratio >= 1.5) return 'A+';
+        if (ratio >= 1.2) return 'A';
+        if (ratio >= 1.0) return 'B';
+        if (ratio >= 0.8) return 'C';
+        return 'D';
+    }
+
+    function getTrafficGrade(clicks) {
+        if (clicks >= 1000) return 'A+';
+        if (clicks >= 500) return 'A';
+        if (clicks >= 100) return 'B';
+        if (clicks >= 50) return 'C';
+        return 'D';
+    }
+
+    function getTrendGrade(trend) {
+        if (!trend) return 'N/A';
+        const clickChange = parseFloat(trend.clicksChange);
+        if (clickChange >= 20) return 'A+';
+        if (clickChange >= 10) return 'A';
+        if (clickChange >= 0) return 'B';
+        if (clickChange >= -10) return 'C';
+        return 'D';
+    }
+
+    function getQueryOpportunity(query) {
+        if (query.position > 10 && query.impressions > 100) {
+            return { label: 'HIGH POTENTIAL', color: '#f44336' };
+        }
+        if (query.position > 5 && query.ctr < 0.05) {
+            return { label: 'CTR BOOST', color: '#ff9800' };
+        }
+        if (query.position <= 3 && query.ctr > 0.15) {
+            return { label: 'PERFORMING', color: '#4caf50' };
+        }
+        return { label: 'MONITOR', color: '#666' };
+    }
+
+    function generateQuickWins(gscData, avgPosition, ctrPerformance) {
+        const wins = [];
+        
+        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
+            wins.push({
+                title: 'Optimize Title & Meta Description',
+                description: 'Your CTR is below benchmark. Improve click-through rates with compelling titles.',
+                impact: 'HIGH'
+            });
+        }
+        
+        if (avgPosition > 10 && gscData.impressions > 100) {
+            wins.push({
+                title: 'Target Featured Snippets',
+                description: 'High impressions but low position. Structure content for featured snippets.',
+                impact: 'MEDIUM'
+            });
+        }
+        
+        if (gscData.topQueries && gscData.topQueries.length > 0) {
+            wins.push({
+                title: 'Expand Top-Performing Keywords',
+                description: 'Create supporting content around your best-performing queries.',
+                impact: 'MEDIUM'
+            });
+        }
+        
+        return wins.slice(0, 3); // Limit to 3 quick wins
+    }
+
+    function generateActionPlan(gscData, avgPosition, ctrPerformance) {
+        const actions = [];
+        
+        // Always include content audit
+        actions.push({
+            title: 'Conduct Content Quality Audit',
+            description: 'Review and update content to ensure it matches search intent and provides comprehensive, valuable information.',
+            priority: 'high',
+            timeframe: '1-2 weeks',
+            impact: 'High traffic increase',
+            difficulty: 'Medium'
+        });
+        
+        // CTR optimization if needed
+        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
+            actions.push({
+                title: 'Optimize Click-Through Rates',
+                description: 'Rewrite title tags and meta descriptions to be more compelling and include primary keywords. A/B test different variations.',
+                priority: 'high',
+                timeframe: '3-5 days',
+                impact: 'Immediate traffic boost',
+                difficulty: 'Easy'
+            });
+        }
+        
+        // Technical optimization
+        actions.push({
+            title: 'Technical SEO Enhancement',
+            description: 'Improve page speed, mobile responsiveness, and internal linking structure. Ensure proper schema markup implementation.',
+            priority: 'medium',
+            timeframe: '2-3 weeks',
+            impact: 'Long-term ranking gains',
+            difficulty: 'Hard'
+        });
+        
+        return actions;
+    }
+
     // ===========================================
     // MAIN GSC INTEGRATION FUNCTIONS
     // ===========================================
@@ -1368,713 +1516,6 @@
                 </svg>
                 <span id="gscText">Connect to Search Console</span>
             `;
-    }
-
-    // Helper functions for enhanced analysis
-    function getCTRBenchmark(position) {
-        // Industry standard CTR benchmarks by position
-        if (position <= 1) return 0.28;
-        if (position <= 2) return 0.15;
-        if (position <= 3) return 0.11;
-        if (position <= 4) return 0.08;
-        if (position <= 5) return 0.06;
-        if (position <= 10) return 0.03;
-        return 0.01;
-    }
-
-    function getCTRStatusIcon(performance) {
-        switch(performance) {
-            case 'excellent': return '🌟';
-            case 'good': return '✅';
-            case 'fair': return '⚠️';
-            case 'poor': return '🔴';
-            default: return '❓';
-        }
-    }
-
-    function getPositionStatusIcon(performance) {
-        switch(performance) {
-            case 'excellent': return '🏆';
-            case 'good': return '🥇';
-            case 'fair': return '🥈';
-            case 'poor': return '📉';
-            default: return '❓';
-        }
-    }
-
-    function getPositionGrade(position) {
-        if (position <= 3) return 'A+';
-        if (position <= 5) return 'A';
-        if (position <= 10) return 'B';
-        if (position <= 20) return 'C';
-        return 'D';
-    }
-
-    function getCTRGrade(ctr, benchmark) {
-        const ratio = ctr / benchmark;
-        if (ratio >= 1.5) return 'A+';
-        if (ratio >= 1.2) return 'A';
-        if (ratio >= 1.0) return 'B';
-        if (ratio >= 0.8) return 'C';
-        return 'D';
-    }
-
-    function getTrafficGrade(clicks) {
-        if (clicks >= 1000) return 'A+';
-        if (clicks >= 500) return 'A';
-        if (clicks >= 100) return 'B';
-        if (clicks >= 50) return 'C';
-        return 'D';
-    }
-
-    function getTrendGrade(trend) {
-        if (!trend) return 'N/A';
-        const clickChange = parseFloat(trend.clicksChange);
-        if (clickChange >= 20) return 'A+';
-        if (clickChange >= 10) return 'A';
-        if (clickChange >= 0) return 'B';
-        if (clickChange >= -10) return 'C';
-        return 'D';
-    }
-
-    function getQueryOpportunity(query) {
-        if (query.position > 10 && query.impressions > 100) {
-            return { label: 'HIGH POTENTIAL', color: '#f44336' };
-        }
-        if (query.position > 5 && query.ctr < 0.05) {
-            return { label: 'CTR BOOST', color: '#ff9800' };
-        }
-        if (query.position <= 3 && query.ctr > 0.15) {
-            return { label: 'PERFORMING', color: '#4caf50' };
-        }
-        return { label: 'MONITOR', color: '#666' };
-    }
-
-    function generateQuickWins(gscData, avgPosition, ctrPerformance) {
-        const wins = [];
-        
-        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
-            wins.push({
-                title: 'Optimize Title & Meta Description',
-                description: 'Your CTR is below benchmark. Improve click-through rates with compelling titles.',
-                impact: 'HIGH'
-            });
-        }
-        
-        if (avgPosition > 10 && gscData.impressions > 100) {
-            wins.push({
-                title: 'Target Featured Snippets',
-                description: 'High impressions but low position. Structure content for featured snippets.',
-                impact: 'MEDIUM'
-            });
-        }
-        
-        if (gscData.topQueries && gscData.topQueries.length > 0) {
-            wins.push({
-                title: 'Expand Top-Performing Keywords',
-                description: 'Create supporting content around your best-performing queries.',
-                impact: 'MEDIUM'
-            });
-        }
-        
-        return wins.slice(0, 3); // Limit to 3 quick wins
-    }
-
-    function generateActionPlan(gscData, avgPosition, ctrPerformance) {
-        const actions = [];
-        
-        // Always include content audit
-        actions.push({
-            title: 'Conduct Content Quality Audit',
-            description: 'Review and update content to ensure it matches search intent and provides comprehensive, valuable information.',
-            priority: 'high',
-            timeframe: '1-2 weeks',
-            impact: 'High traffic increase',
-            difficulty: 'Medium'
-        });
-        
-        // CTR optimization if needed
-        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
-            actions.push({
-                title: 'Optimize Click-Through Rates',
-                description: 'Rewrite title tags and meta descriptions to be more compelling and include primary keywords. A/B test different variations.',
-                priority: 'high',
-                timeframe: '3-5 days',
-                impact: 'Immediate traffic boost',
-                difficulty: 'Easy'
-            });
-        }
-        
-        // Technical optimization
-        actions.push({
-            title: 'Technical SEO Enhancement',
-            description: 'Improve page speed, mobile responsiveness, and internal linking structure. Ensure proper schema markup implementation.',
-            priority: 'medium',
-            timeframe: '2-3 weeks',
-            impact: 'Long-term ranking gains',
-            difficulty: 'Hard'
-        });
-        
-        return actions;
-    }
-
-    // Enhanced export functions
-    function exportEnhancedGSCData(url) {
-        const gscData = gscDataMap.get(url);
-        if (!gscData || gscData.noDataFound) {
-            alert('No data to export');
-            return;
-        }
-        
-        const performanceScore = calculateSimplePerformanceScore(gscData);
-        const timestamp = new Date().toISOString();
-        
-        let csv = 'GSC Enhanced Analysis Report\n';
-        csv += `Generated: ${timestamp}\n`;
-        csv += `URL: ${url}\n`;
-        csv += `Performance Score: ${performanceScore}/100\n\n`;
-        
-        // Main metrics
-        csv += 'MAIN METRICS\n';
-        csv += 'Metric,Value,Trend\n';
-        csv += `Clicks,${gscData.clicks},${gscData.trend ? gscData.trend.clicksChange + '%' : 'N/A'}\n`;
-        csv += `Impressions,${gscData.impressions},${gscData.trend ? gscData.trend.impressionsChange + '%' : 'N/A'}\n`;
-        csv += `CTR,${(gscData.ctr * 100).toFixed(2)}%,N/A\n`;
-        csv += `Position,${gscData.position.toFixed(1)},${gscData.trend ? gscData.trend.positionChange : 'N/A'}\n\n`;
-        
-        // Top queries
-        if (gscData.topQueries && gscData.topQueries.length > 0) {
-            csv += 'TOP PERFORMING KEYWORDS\n';
-            csv += 'Rank,Query,Clicks,Impressions,CTR,Position,Opportunity\n';
-            gscData.topQueries.forEach((query, index) => {
-                const opp = getQueryOpportunity(query);
-                csv += `${index + 1},"${query.query}",${query.clicks},${query.impressions},${(query.ctr * 100).toFixed(2)}%,${query.position.toFixed(1)},${opp.label}\n`;
-            });
-            csv += '\n';
-        }
-        
-        // Opportunities
-        if (gscData.opportunities && gscData.opportunities.length > 0) {
-            csv += 'OPTIMIZATION OPPORTUNITIES\n';
-            csv += 'Priority,Query,Impressions,Current Clicks,Position,Potential Clicks\n';
-            gscData.opportunities.forEach((opp, index) => {
-                csv += `${index + 1},"${opp.query}",${opp.impressions},${opp.clicks},${opp.position.toFixed(1)},${opp.potentialClicks}\n`;
-            });
-        }
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const csvUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = csvUrl;
-        link.download = `gsc-enhanced-analysis-${url.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(csvUrl);
-    }
-
-    function copyAnalysisToClipboard(url) {
-        const gscData = gscDataMap.get(url);
-        if (!gscData || gscData.noDataFound) {
-            alert('No data to copy');
-            return;
-        }
-        
-        const performanceScore = calculateSimplePerformanceScore(gscData);
-        const summary = `
-📊 GSC PERFORMANCE ANALYSIS
-
-🔗 Page: ${url}
-📈 Performance Score: ${performanceScore}/100
-
-KEY METRICS (Last 30 days):
-• Clicks: ${formatNumber(gscData.clicks)} ${gscData.trend ? `(${gscData.trend.clicksChange > 0 ? '+' : ''}${gscData.trend.clicksChange}%)` : ''}
-• Impressions: ${formatNumber(gscData.impressions)} ${gscData.trend ? `(${gscData.trend.impressionsChange > 0 ? '+' : ''}${gscData.trend.impressionsChange}%)` : ''}
-• CTR: ${(gscData.ctr * 100).toFixed(1)}%
-• Avg Position: #${gscData.position.toFixed(0)}
-
-TOP KEYWORDS:
-${gscData.topQueries ? gscData.topQueries.slice(0, 5).map((q, i) => 
-    `${i + 1}. "${q.query}" - ${q.clicks} clicks, #${q.position.toFixed(0)} position`
-).join('\n') : 'No keyword data available'}
-
-${gscData.opportunities && gscData.opportunities.length > 0 ? `
-🚀 OPPORTUNITIES:
-${gscData.opportunities.slice(0, 3).map((o, i) => 
-    `${i + 1}. "${o.query}" - ${o.impressions} impressions, potential +${o.potentialClicks} clicks`
-).join('\n')}` : ''}
-
-Generated: ${new Date().toLocaleDateString()}
-        `.trim();
-        
-        navigator.clipboard.writeText(summary).then(() => {
-            // Show success message
-            const message = document.createElement('div');
-            message.style.cssText = `
-                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                background: #4caf50; color: white; padding: 15px 25px; border-radius: 8px;
-                font-weight: 600; z-index: 10001; animation: fadeIn 0.3s ease;
-            `;
-            message.textContent = '✅ Analysis copied to clipboard!';
-            document.body.appendChild(message);
-            
-            setTimeout(() => {
-                message.style.opacity = '0';
-                setTimeout(() => message.remove(), 300);
-            }, 2000);
-        }).catch(() => {
-            alert('Failed to copy to clipboard. Please try again.');
-        });
-    }
-
-    // Export GSC data function
-    function exportGSCData(url) {
-        const gscData = gscDataMap.get(url);
-        if (!gscData || gscData.noDataFound) {
-            alert('No data to export');
-            return;
-        }
-        
-        let csv = 'URL,Clicks,Impressions,CTR,Position,Trend_Clicks,Trend_Impressions,Trend_Position\n';
-        csv += `"${url}",${gscData.clicks},${gscData.impressions},${(gscData.ctr * 100).toFixed(2)}%,${gscData.position.toFixed(1)}`;
-        
-        if (gscData.trend) {
-            csv += `,${gscData.trend.clicksChange}%,${gscData.trend.impressionsChange}%,${gscData.trend.positionChange}`;
-        } else {
-            csv += ',,,';
-        }
-        csv += '\n\n';
-        
-        if (gscData.topQueries && gscData.topQueries.length > 0) {
-            csv += 'Top Queries,Clicks,Impressions,CTR,Position\n';
-            gscData.topQueries.forEach(query => {
-                csv += `"${query.query}",${query.clicks},${query.impressions},${(query.ctr * 100).toFixed(2)}%,${query.position.toFixed(1)}\n`;
-            });
-            csv += '\n';
-        }
-        
-        if (gscData.opportunities && gscData.opportunities.length > 0) {
-            csv += 'Optimization Opportunities,Impressions,Clicks,CTR,Position,Potential_Clicks\n';
-            gscData.opportunities.forEach(opp => {
-                csv += `"${opp.query}",${opp.impressions},${opp.clicks},${(opp.ctr * 100).toFixed(2)}%,${opp.position.toFixed(1)},${opp.potentialClicks}\n`;
-            });
-        }
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const csvUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = csvUrl;
-        link.download = `gsc-analysis-${url.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(csvUrl);
-    }
-
-    // Expose to global scope
-    window.exportGSCData = exportGSCData;
-    window.exportEnhancedGSCData = exportEnhancedGSCData;
-    window.copyAnalysisToClipboard = copyAnalysisToClipboard;
-
-    // ===========================================
-    // DEBUGGING TOOLS AND DIAGNOSTICS
-    // ===========================================
-
-    function initializeDebugging() {
-        // GSC Debugging and Diagnostic Tools
-        window.GSCDebugger = {
-            
-            // Test connection and site matching
-            async testConnection() {
-                console.group('🔍 GSC Connection Test');
-                
-                const status = window.GSCIntegration.debug.getStatus();
-                console.table(status);
-                
-                if (!status.gscConnected) {
-                    console.error('❌ Not connected to GSC');
-                    console.groupEnd();
-                    return;
-                }
-                
-                // Test basic API access
-                try {
-                    const sites = await robustGSCApiCall(async () => {
-                        return await gapi.client.request({
-                            path: 'https://www.googleapis.com/webmasters/v3/sites',
-                            method: 'GET'
-                        });
-                    });
-                    console.log('✅ API Access OK');
-                    console.log('Available sites:', sites.result.siteEntry);
-                } catch (error) {
-                    console.error('❌ API Access Failed:', error);
-                }
-                
-                console.groupEnd();
-            },
-
-            // Test URL matching for a specific URL
-            async testUrlMatching(testUrl) {
-                console.group(`🎯 URL Matching Test: ${testUrl}`);
-                
-                if (!window.GSCIntegration.isConnected()) {
-                    console.error('❌ GSC not connected');
-                    console.groupEnd();
-                    return;
-                }
-                
-                const variations = createEnhancedUrlVariations(testUrl);
-                console.log(`Generated ${variations.length} variations:`);
-                variations.forEach((v, i) => console.log(`${i + 1}. ${v}`));
-                
-                // Test each variation
-                const results = [];
-                for (const [index, variation] of variations.entries()) {
-                    console.log(`\n🧪 Testing variation ${index + 1}: ${variation}`);
-                    
-                    try {
-                        const today = new Date();
-                        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-                        
-                        const result = await robustGSCApiCall(async () => {
-                            return await gapi.client.request({
-                                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                                method: 'POST',
-                                body: {
-                                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                                    endDate: today.toISOString().split('T')[0],
-                                    dimensions: ['page'],
-                                    dimensionFilterGroups: [{
-                                        filters: [{
-                                            dimension: 'page',
-                                            operator: 'equals',
-                                            expression: variation
-                                        }]
-                                    }],
-                                    rowLimit: 1
-                                }
-                            });
-                        });
-                        
-                        const hasData = result.result.rows && result.result.rows.length > 0;
-                        results.push({
-                            variation,
-                            success: true,
-                            hasData,
-                            data: hasData ? result.result.rows[0] : null
-                        });
-                        
-                        console.log(hasData ? '✅ HAS DATA' : '⚪ NO DATA', hasData ? result.result.rows[0] : '');
-                        
-                        if (hasData) {
-                            break; // Found data, no need to test more
-                        }
-                        
-                    } catch (error) {
-                        results.push({
-                            variation,
-                            success: false,
-                            error: error.message
-                        });
-                        console.log('❌ ERROR:', error.message);
-                    }
-                    
-                    // Small delay between tests
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
-                
-                console.log('\n📊 Summary:');
-                console.table(results);
-                
-                const successful = results.filter(r => r.success && r.hasData);
-                if (successful.length > 0) {
-                    console.log(`✅ Found ${successful.length} working variation(s)`);
-                } else {
-                    console.log('❌ No variations returned data');
-                    console.log('💡 Suggestions:');
-                    console.log('   - Check if URL exists in GSC (try searching manually)');
-                    console.log('   - Verify the site property is correct');
-                    console.log('   - Check if URL has received clicks in the last 30 days');
-                }
-                
-                console.groupEnd();
-                return results;
-            },
-
-            // Analyze sitemap vs GSC coverage
-            async analyzeCoverage() {
-                console.group('📈 Sitemap vs GSC Coverage Analysis');
-                
-                if (!window.treeData) {
-                    console.error('❌ No sitemap data loaded');
-                    console.groupEnd();
-                    return;
-                }
-                
-                // Get all URLs from sitemap
-                const allUrls = [];
-                function collectUrls(node) {
-                    if (node.url) allUrls.push(node.url);
-                    if (node.children) {
-                        node.children.forEach(collectUrls);
-                    }
-                }
-                collectUrls(window.treeData);
-                
-                console.log(`📋 Found ${allUrls.length} URLs in sitemap`);
-                
-                // Sample a few URLs for testing (to avoid rate limits)
-                const sampleUrls = allUrls.slice(0, Math.min(10, allUrls.length));
-                console.log(`🧪 Testing sample of ${sampleUrls.length} URLs`);
-                
-                const coverage = {
-                    total: allUrls.length,
-                    tested: 0,
-                    found: 0,
-                    notFound: 0,
-                    errors: 0
-                };
-                
-                for (const url of sampleUrls) {
-                    coverage.tested++;
-                    console.log(`\n🔍 Testing: ${url}`);
-                    
-                    try {
-                        const variations = createEnhancedUrlVariations(url);
-                        let found = false;
-                        
-                        for (const variation of variations.slice(0, 5)) { // Limit variations for speed
-                            try {
-                                const today = new Date();
-                                const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-                                
-                                const result = await robustGSCApiCall(async () => {
-                                    return await gapi.client.request({
-                                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-                                        method: 'POST',
-                                        body: {
-                                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                                            endDate: today.toISOString().split('T')[0],
-                                            dimensions: ['page'],
-                                            dimensionFilterGroups: [{
-                                                filters: [{
-                                                    dimension: 'page',
-                                                    operator: 'equals',
-                                                    expression: variation
-                                                }]
-                                            }],
-                                            rowLimit: 1
-                                        }
-                                    });
-                                });
-                                
-                                if (result.result.rows && result.result.rows.length > 0) {
-                                    console.log(`✅ Found data for: ${variation}`);
-                                    found = true;
-                                    coverage.found++;
-                                    break;
-                                }
-                                
-                            } catch (error) {
-                                // Continue with next variation
-                            }
-                            
-                            // Rate limiting
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                        }
-                        
-                        if (!found) {
-                            console.log('⚪ No data found');
-                            coverage.notFound++;
-                        }
-                        
-                    } catch (error) {
-                        console.log('❌ Error:', error.message);
-                        coverage.errors++;
-                    }
-                }
-                
-                console.log('\n📊 Coverage Summary:');
-                console.table(coverage);
-                
-                const coveragePercent = (coverage.found / coverage.tested * 100).toFixed(1);
-                console.log(`🎯 Coverage: ${coveragePercent}% of tested URLs found in GSC`);
-                
-                if (coverage.found < coverage.tested * 0.5) {
-                    console.log('\n💡 Low coverage suggestions:');
-                    console.log('   - Check if the correct GSC property is selected');
-                    console.log('   - Verify URLs in sitemap match those in GSC');
-                    console.log('   - Consider if pages have received organic clicks recently');
-                }
-                
-                console.groupEnd();
-                return coverage;
-            },
-
-            // Show current cache status
-            showCacheStatus() {
-                console.group('💾 GSC Cache Status');
-                
-                const cacheSize = gscDataMap.size;
-                console.log(`Total cached entries: ${cacheSize}`);
-                
-                if (cacheSize === 0) {
-                    console.log('ℹ️ Cache is empty');
-                } else {
-                    const entries = Array.from(gscDataMap.entries());
-                    const withData = entries.filter(([url, data]) => !data.noDataFound);
-                    const noData = entries.filter(([url, data]) => data.noDataFound);
-                    
-                    console.log(`✅ With data: ${withData.length}`);
-                    console.log(`⚪ No data found: ${noData.length}`);
-                    
-                    // Show some examples
-                    if (withData.length > 0) {
-                        console.log('\n📊 Sample entries with data:');
-                        withData.slice(0, 3).forEach(([url, data]) => {
-                            console.log(`${url}: ${data.clicks} clicks, ${data.impressions} impressions`);
-                        });
-                    }
-                    
-                    if (noData.length > 0) {
-                        console.log('\n⚪ Sample entries without data:');
-                        noData.slice(0, 3).forEach(([url, data]) => {
-                            console.log(`${url}: No data (tried ${data.triedVariations || 'unknown'} variations)`);
-                        });
-                    }
-                }
-                
-                console.groupEnd();
-            },
-
-            // Clear cache and restart
-            async restart() {
-                console.log('🔄 Restarting GSC Integration...');
-                window.GSCIntegration.reset();
-                console.log('✅ Cache cleared, ready for fresh start');
-            }
-        };
-
-        // Add keyboard shortcut for debugging
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+Shift+G for GSC debugging
-            if (e.key === 'G' && e.ctrlKey && e.shiftKey) {
-                e.preventDefault();
-                console.log('🔧 GSC Debugger activated! Try:');
-                console.log('   GSCDebugger.testConnection()');
-                console.log('   GSCDebugger.testUrlMatching("your-url-here")');
-                console.log('   GSCDebugger.analyzeCoverage()');
-                console.log('   GSCDebugger.showCacheStatus()');
-                window.GSCDebugger.testConnection();
-            }
-        });
-
-        debugLog('Debugging tools initialized');
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Ctrl+L to load GSC data for all visible nodes
-        if (e.key === 'l' && e.ctrlKey && gscConnected && gscDataLoaded) {
-            e.preventDefault();
-            loadVisibleNodesGSCData();
-            
-            const feedback = document.createElement('div');
-            feedback.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(74, 144, 226, 0.9);
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                font-size: 14px;
-                z-index: 10001;
-                pointer-events: none;
-            `;
-            feedback.textContent = 'Loading enhanced GSC data for visible nodes...';
-            document.body.appendChild(feedback);
-            
-            setTimeout(() => {
-                feedback.style.opacity = '0';
-                setTimeout(() => feedback.remove(), 300);
-            }, 2000);
-        }
-
-        // Ctrl+Shift+R to refresh GSC connection
-        if (e.key === 'R' && e.ctrlKey && e.shiftKey && gscConnected) {
-            e.preventDefault();
-            debugLog('Manual refresh triggered via keyboard shortcut');
-            
-            const refreshFeedback = document.createElement('div');
-            refreshFeedback.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(255, 152, 0, 0.9);
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                font-size: 14px;
-                z-index: 10001;
-                pointer-events: none;
-            `;
-            refreshFeedback.textContent = 'Refreshing GSC connection...';
-            document.body.appendChild(refreshFeedback);
-            
-            // Refresh token
-            refreshToken().then(() => {
-                refreshFeedback.textContent = 'GSC connection refreshed!';
-                refreshFeedback.style.background = 'rgba(76, 175, 80, 0.9)';
-                
-                setTimeout(() => {
-                    refreshFeedback.style.opacity = '0';
-                    setTimeout(() => refreshFeedback.remove(), 300);
-                }, 2000);
-            }).catch((error) => {
-                refreshFeedback.textContent = 'Refresh failed: ' + error.message;
-                refreshFeedback.style.background = 'rgba(244, 67, 54, 0.9)';
-                
-                setTimeout(() => {
-                    refreshFeedback.style.opacity = '0';
-                    setTimeout(() => refreshFeedback.remove(), 300);
-                }, 3000);
-            });
-        }
-    });
-
-    // Console welcome message
-    setTimeout(() => {
-        if (typeof console !== 'undefined' && console.log) {
-            console.log(`
-🚀 GSC Integration Module Loaded!
-
-Enhanced features:
-• Robust URL matching with 15+ variations
-• Automatic token refresh and error recovery  
-• Connection health monitoring
-• Comprehensive debugging tools
-
-Keyboard shortcuts:
-• Ctrl+L: Load GSC data for all visible nodes
-• Ctrl+Shift+G: Open GSC debugger  
-• Ctrl+Shift+R: Refresh GSC connection
-
-Debugging commands:
-• GSCDebugger.testConnection()
-• GSCDebugger.testUrlMatching("your-url")
-• GSCDebugger.analyzeCoverage()
-• GSCDebugger.showCacheStatus()
-
-API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
-            `);
-        }
-    }, 1000);
-
-})();
             
             gscButton.style.cssText = `
                 display: flex !important;
@@ -2114,6 +1555,49 @@ API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
         };
         
         checkAndAdd();
+    }
+
+    // Additional helper functions
+    function formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toLocaleString();
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function calculateSimplePerformanceScore(gscData) {
+        let score = 0;
+        
+        // CTR component (0-40 points)
+        const ctrScore = Math.min((gscData.ctr * 100) / 5 * 40, 40);
+        score += ctrScore;
+        
+        // Position component (0-30 points)
+        const positionScore = Math.max(30 - (gscData.position / 20 * 30), 0);
+        score += positionScore;
+        
+        // Click volume component (0-20 points)
+        const clickScore = Math.min(gscData.clicks / 100 * 20, 20);
+        score += clickScore;
+        
+        // Growth component (0-10 points)
+        if (gscData.trend && gscData.trend.clicksChange > 0) {
+            score += Math.min(gscData.trend.clicksChange / 10, 10);
+        }
+        
+        return Math.round(score);
+    }
+
+    function getScoreColor(score) {
+        if (score >= 75) return '#4caf50';
+        if (score >= 50) return '#1a73e8';
+        if (score >= 25) return '#ff9800';
+        return '#f44336';
     }
 
     // ===========================================
@@ -2839,164 +2323,6 @@ API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
         return result;
     }
 
-    // Helper functions for simplified tooltips
-    function calculateSimplePerformanceScore(gscData) {
-        let score = 0;
-        
-        // CTR component (0-40 points)
-        const ctrScore = Math.min((gscData.ctr * 100) / 5 * 40, 40);
-        score += ctrScore;
-        
-        // Position component (0-30 points)
-        const positionScore = Math.max(30 - (gscData.position / 20 * 30), 0);
-        score += positionScore;
-        
-        // Click volume component (0-20 points)
-        const clickScore = Math.min(gscData.clicks / 100 * 20, 20);
-        score += clickScore;
-        
-        // Growth component (0-10 points)
-        if (gscData.trend && gscData.trend.clicksChange > 0) {
-            score += Math.min(gscData.trend.clicksChange / 10, 10);
-        }
-        
-        return Math.round(score);
-    }
-
-    function getScoreColor(score) {
-        if (score >= 75) return '#4caf50';
-        if (score >= 50) return '#1a73e8';
-        if (score >= 25) return '#ff9800';
-        return '#f44336';
-    }
-
-    function formatNumber(num) {
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-        return num.toLocaleString();
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Add loading animation styles
-    function addLoadingAnimationStyles() {
-        if (document.getElementById('gsc-loading-animations')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'gsc-loading-animations';
-        style.textContent = `
-            @keyframes gsc-spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            
-            @keyframes gsc-shimmer {
-                0% { background-position: 200% 0; }
-                100% { background-position: -200% 0; }
-            }
-            
-            @keyframes gsc-shimmer-slide {
-                0% { left: -100%; }
-                50% { left: 100%; }
-                100% { left: 100%; }
-            }
-            
-            .gsc-step {
-                transition: all 0.3s ease;
-            }
-            
-            .gsc-step.active {
-                transform: translateX(2px);
-            }
-            
-            #gsc-progress-bar {
-                position: relative;
-                overflow: hidden;
-            }
-            
-            #gsc-progress-bar::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
-                animation: gsc-progress-shine 2s ease-in-out infinite;
-            }
-            
-            @keyframes gsc-progress-shine {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(200%); }
-            }
-            
-            /* Pulse effect for loading container */
-            #gsc-loading-container {
-                animation: gsc-pulse 2s ease-in-out infinite;
-            }
-            
-            @keyframes gsc-pulse {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.01); }
-            }
-            
-            /* Smooth transitions */
-            #gsc-progress-percentage {
-                transition: all 0.3s ease;
-            }
-            
-            /* Mobile responsive adjustments */
-            @media (max-width: 480px) {
-                #gsc-loading-steps {
-                    font-size: 0.7rem;
-                }
-                
-                #gsc-progress-bar {
-                    height: 6px;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // Add simplified tooltip styles
-    function addSimplifiedTooltipStyles() {
-        if (document.getElementById('simplified-tooltip-styles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'simplified-tooltip-styles';
-        style.textContent = `
-            .simplified-tooltip {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                font-size: 14px;
-                line-height: 1.4;
-            }
-            
-            .simplified-tooltip h4 {
-                margin: 0 0 4px 0;
-                font-size: 1rem;
-                color: #1f4788;
-            }
-            
-            .simplified-tooltip button:hover {
-                background: #1557b0 !important;
-                transform: translateY(-1px);
-            }
-            
-            @media (max-width: 768px) {
-                .simplified-tooltip {
-                    max-width: 320px;
-                    font-size: 13px;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
     // ===========================================
     // GSC STYLES AND UI FUNCTIONS
     // ===========================================
@@ -3200,6 +2526,121 @@ API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
         document.head.appendChild(style);
         
         debugLog('Enhanced animated GSC styles added to page');
+    }
+
+    // Add loading animation styles
+    function addLoadingAnimationStyles() {
+        if (document.getElementById('gsc-loading-animations')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'gsc-loading-animations';
+        style.textContent = `
+            @keyframes gsc-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            @keyframes gsc-shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+            
+            @keyframes gsc-shimmer-slide {
+                0% { left: -100%; }
+                50% { left: 100%; }
+                100% { left: 100%; }
+            }
+            
+            .gsc-step {
+                transition: all 0.3s ease;
+            }
+            
+            .gsc-step.active {
+                transform: translateX(2px);
+            }
+            
+            #gsc-progress-bar {
+                position: relative;
+                overflow: hidden;
+            }
+            
+            #gsc-progress-bar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+                animation: gsc-progress-shine 2s ease-in-out infinite;
+            }
+            
+            @keyframes gsc-progress-shine {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(200%); }
+            }
+            
+            /* Pulse effect for loading container */
+            #gsc-loading-container {
+                animation: gsc-pulse 2s ease-in-out infinite;
+            }
+            
+            @keyframes gsc-pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.01); }
+            }
+            
+            /* Smooth transitions */
+            #gsc-progress-percentage {
+                transition: all 0.3s ease;
+            }
+            
+            /* Mobile responsive adjustments */
+            @media (max-width: 480px) {
+                #gsc-loading-steps {
+                    font-size: 0.7rem;
+                }
+                
+                #gsc-progress-bar {
+                    height: 6px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Add simplified tooltip styles
+    function addSimplifiedTooltipStyles() {
+        if (document.getElementById('simplified-tooltip-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'simplified-tooltip-styles';
+        style.textContent = `
+            .simplified-tooltip {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 14px;
+                line-height: 1.4;
+            }
+            
+            .simplified-tooltip h4 {
+                margin: 0 0 4px 0;
+                font-size: 1rem;
+                color: #1f4788;
+            }
+            
+            .simplified-tooltip button:hover {
+                background: #1557b0 !important;
+                transform: translateY(-1px);
+            }
+            
+            @media (max-width: 768px) {
+                .simplified-tooltip {
+                    max-width: 320px;
+                    font-size: 13px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     // Hook into sitemap loading
@@ -3855,153 +3296,6 @@ API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
                 </div>
             </div>
         `;
-
-    // Helper functions for enhanced analysis
-    function getCTRBenchmark(position) {
-        // Industry standard CTR benchmarks by position
-        if (position <= 1) return 0.28;
-        if (position <= 2) return 0.15;
-        if (position <= 3) return 0.11;
-        if (position <= 4) return 0.08;
-        if (position <= 5) return 0.06;
-        if (position <= 10) return 0.03;
-        return 0.01;
-    }
-
-    function getCTRStatusIcon(performance) {
-        switch(performance) {
-            case 'excellent': return '🌟';
-            case 'good': return '✅';
-            case 'fair': return '⚠️';
-            case 'poor': return '🔴';
-            default: return '❓';
-        }
-    }
-
-    function getPositionStatusIcon(performance) {
-        switch(performance) {
-            case 'excellent': return '🏆';
-            case 'good': return '🥇';
-            case 'fair': return '🥈';
-            case 'poor': return '📉';
-            default: return '❓';
-        }
-    }
-
-    function getPositionGrade(position) {
-        if (position <= 3) return 'A+';
-        if (position <= 5) return 'A';
-        if (position <= 10) return 'B';
-        if (position <= 20) return 'C';
-        return 'D';
-    }
-
-    function getCTRGrade(ctr, benchmark) {
-        const ratio = ctr / benchmark;
-        if (ratio >= 1.5) return 'A+';
-        if (ratio >= 1.2) return 'A';
-        if (ratio >= 1.0) return 'B';
-        if (ratio >= 0.8) return 'C';
-        return 'D';
-    }
-
-    function getTrafficGrade(clicks) {
-        if (clicks >= 1000) return 'A+';
-        if (clicks >= 500) return 'A';
-        if (clicks >= 100) return 'B';
-        if (clicks >= 50) return 'C';
-        return 'D';
-    }
-
-    function getTrendGrade(trend) {
-        if (!trend) return 'N/A';
-        const clickChange = parseFloat(trend.clicksChange);
-        if (clickChange >= 20) return 'A+';
-        if (clickChange >= 10) return 'A';
-        if (clickChange >= 0) return 'B';
-        if (clickChange >= -10) return 'C';
-        return 'D';
-    }
-
-    function getQueryOpportunity(query) {
-        if (query.position > 10 && query.impressions > 100) {
-            return { label: 'HIGH POTENTIAL', color: '#f44336' };
-        }
-        if (query.position > 5 && query.ctr < 0.05) {
-            return { label: 'CTR BOOST', color: '#ff9800' };
-        }
-        if (query.position <= 3 && query.ctr > 0.15) {
-            return { label: 'PERFORMING', color: '#4caf50' };
-        }
-        return { label: 'MONITOR', color: '#666' };
-    }
-
-    function generateQuickWins(gscData, avgPosition, ctrPerformance) {
-        const wins = [];
-        
-        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
-            wins.push({
-                title: 'Optimize Title & Meta Description',
-                description: 'Your CTR is below benchmark. Improve click-through rates with compelling titles.',
-                impact: 'HIGH'
-            });
-        }
-        
-        if (avgPosition > 10 && gscData.impressions > 100) {
-            wins.push({
-                title: 'Target Featured Snippets',
-                description: 'High impressions but low position. Structure content for featured snippets.',
-                impact: 'MEDIUM'
-            });
-        }
-        
-        if (gscData.topQueries && gscData.topQueries.length > 0) {
-            wins.push({
-                title: 'Expand Top-Performing Keywords',
-                description: 'Create supporting content around your best-performing queries.',
-                impact: 'MEDIUM'
-            });
-        }
-        
-        return wins.slice(0, 3); // Limit to 3 quick wins
-    }
-
-    function generateActionPlan(gscData, avgPosition, ctrPerformance) {
-        const actions = [];
-        
-        // Always include content audit
-        actions.push({
-            title: 'Conduct Content Quality Audit',
-            description: 'Review and update content to ensure it matches search intent and provides comprehensive, valuable information.',
-            priority: 'high',
-            timeframe: '1-2 weeks',
-            impact: 'High traffic increase',
-            difficulty: 'Medium'
-        });
-        
-        // CTR optimization if needed
-        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
-            actions.push({
-                title: 'Optimize Click-Through Rates',
-                description: 'Rewrite title tags and meta descriptions to be more compelling and include primary keywords. A/B test different variations.',
-                priority: 'high',
-                timeframe: '3-5 days',
-                impact: 'Immediate traffic boost',
-                difficulty: 'Easy'
-            });
-        }
-        
-        // Technical optimization
-        actions.push({
-            title: 'Technical SEO Enhancement',
-            description: 'Improve page speed, mobile responsiveness, and internal linking structure. Ensure proper schema markup implementation.',
-            priority: 'medium',
-            timeframe: '2-3 weeks',
-            impact: 'Long-term ranking gains',
-            difficulty: 'Hard'
-        });
-        
-        return actions;
     }
 
     // Enhanced export functions
@@ -4112,125 +3406,7 @@ Generated: ${new Date().toLocaleDateString()}
             alert('Failed to copy to clipboard. Please try again.');
         });
     }
-        return `
-            <h2 style="color: #1f4788; margin-bottom: 20px;">📊 Content Performance Analysis</h2>
-            <div style="color: #666; margin-bottom: 20px; word-break: break-all;">${url}</div>
-            
-            <!-- Performance Overview -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px;">
-                <div style="background: #f8f9ff; padding: 20px; border-radius: 10px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #4a90e2;">${gscData.clicks.toLocaleString()}</div>
-                    <div style="color: #666;">Total Clicks</div>
-                    ${gscData.trend ? `<div style="font-size: 0.8rem; color: ${gscData.trend.clicksChange >= 0 ? '#4caf50' : '#f44336'}">
-                        ${gscData.trend.clicksChange > 0 ? '+' : ''}${gscData.trend.clicksChange}% vs previous period
-                    </div>` : ''}
-                </div>
-                <div style="background: #f8f9ff; padding: 20px; border-radius: 10px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #4a90e2;">${gscData.impressions.toLocaleString()}</div>
-                    <div style="color: #666;">Impressions</div>
-                    ${gscData.trend ? `<div style="font-size: 0.8rem; color: ${gscData.trend.impressionsChange >= 0 ? '#4caf50' : '#f44336'}">
-                        ${gscData.trend.impressionsChange > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
-                    </div>` : ''}
-                </div>
-                <div style="background: #f8f9ff; padding: 20px; border-radius: 10px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #4a90e2;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                    <div style="color: #666;">Click-through Rate</div>
-                </div>
-                <div style="background: #f8f9ff; padding: 20px; border-radius: 10px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #4a90e2;">#${gscData.position.toFixed(0)}</div>
-                    <div style="color: #666;">Average Position</div>
-                    ${gscData.trend && gscData.trend.positionChange ? `<div style="font-size: 0.8rem; color: ${gscData.trend.positionChange >= 0 ? '#4caf50' : '#f44336'}">
-                        ${gscData.trend.positionChange > 0 ? '+' : ''}${gscData.trend.positionChange} positions
-                    </div>` : ''}
-                </div>
-            </div>
-            
-            <!-- Top Performing Queries -->
-            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #1f4788;">🎯 Top Performing Keywords</h3>
-                <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                    <div style="background: #1f4788; color: white; padding: 12px; font-weight: bold;">
-                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 10px;">
-                            <div>Search Query</div>
-                            <div style="text-align: center;">Clicks</div>
-                            <div style="text-align: center;">Impressions</div>
-                            <div style="text-align: center;">CTR</div>
-                            <div style="text-align: center;">Position</div>
-                        </div>
-                    </div>
-                    ${gscData.topQueries.map((query, i) => `
-                        <div style="padding: 12px; background: ${i % 2 === 0 ? '#f9f9f9' : 'white'}; border-bottom: 1px solid #f0f0f0;">
-                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 10px; align-items: center;">
-                                <div style="font-weight: 500;">${escapeHtml(query.query)}</div>
-                                <div style="text-align: center;">${query.clicks}</div>
-                                <div style="text-align: center;">${query.impressions}</div>
-                                <div style="text-align: center;">${(query.ctr * 100).toFixed(1)}%</div>
-                                <div style="text-align: center; color: ${query.position <= 3 ? '#4caf50' : query.position <= 10 ? '#ff9800' : '#f44336'}">
-                                    #${query.position.toFixed(0)}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            ` : ''}
-            
-            <!-- Optimization Opportunities -->
-            ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #ff9800;">⚡ Content Optimization Opportunities</h3>
-                <p style="color: #666; margin-bottom: 15px;">Keywords with high potential for improvement</p>
-                ${gscData.opportunities.map(opp => `
-                    <div style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 10px; border-radius: 6px;">
-                        <div style="font-weight: bold; color: #e65100; margin-bottom: 5px;">"${escapeHtml(opp.query)}"</div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; font-size: 0.9rem;">
-                            <div><strong>Impressions:</strong> ${opp.impressions}</div>
-                            <div><strong>Clicks:</strong> ${opp.clicks}</div>
-                            <div><strong>CTR:</strong> ${(opp.ctr * 100).toFixed(1)}%</div>
-                            <div><strong>Position:</strong> #${opp.position.toFixed(0)}</div>
-                            <div style="color: #ff9800;"><strong>Potential:</strong> +${opp.potentialClicks} clicks</div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            ` : ''}
-            
-            <!-- Content Insights & Recommendations -->
-            ${gscData.insights && gscData.insights.length > 0 ? `
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #1f4788;">💡 Content Recommendations</h3>
-                ${gscData.insights.map(insight => `
-                    <div style="background: #e8f2ff; border-left: 4px solid #4a90e2; padding: 15px; margin-bottom: 10px; border-radius: 6px;">
-                        <div style="font-weight: bold; color: #1565c0; margin-bottom: 5px;">${insight.title}</div>
-                        <div style="color: #333;">${insight.description}</div>
-                        <div style="margin-top: 8px;">
-                            <span style="background: #1f4788; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">
-                                ${insight.priority.toUpperCase()} PRIORITY
-                            </span>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            ` : ''}
-            
-            <!-- Export Options -->
-            <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <button onclick="exportGSCData('${url}')" 
-                        style="background: #4a90e2; color: white; border: none; padding: 10px 20px; 
-                               border-radius: 6px; margin-right: 10px; cursor: pointer;">
-                    📊 Export Data
-                </button>
-                <button onclick="this.closest('.modal').remove()" 
-                        style="background: #666; color: white; border: none; padding: 10px 20px; 
-                               border-radius: 6px; cursor: pointer;">
-                    Close
-                </button>
-            </div>
-        `;
-    }
 
-    // Export GSC data
     // Export GSC data function
     function exportGSCData(url) {
         const gscData = gscDataMap.get(url);
@@ -4277,7 +3453,8 @@ Generated: ${new Date().toLocaleDateString()}
 
     // Expose to global scope
     window.exportGSCData = exportGSCData;
-    };
+    window.exportEnhancedGSCData = exportEnhancedGSCData;
+    window.copyAnalysisToClipboard = copyAnalysisToClipboard;
 
     // ===========================================
     // DEBUGGING TOOLS AND DIAGNOSTICS
