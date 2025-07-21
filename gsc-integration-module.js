@@ -1118,7 +1118,7 @@ function createEnhancedTooltip(data, d) {
         max-width: 420px;
         min-width: 320px;
         opacity: 0;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: opacity 0.2s ease;
         pointer-events: auto;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
@@ -1136,14 +1136,13 @@ function createEnhancedTooltip(data, d) {
     
     tooltip.innerHTML = html;
     
-    // Trigger fade in with scale
+    // Trigger fade in
     setTimeout(() => {
         tooltip.style.opacity = '1';
-        tooltip.style.transform = 'scale(1)';
     }, 10);
     
     return tooltip;
-}   
+}  
 
 
 function createEnhancedHeader(data) {
@@ -1175,9 +1174,7 @@ function createEnhancedHeader(data) {
     const urlSection = data.url ? `
         <div style="margin-top: 8px;">
             <a href="${data.url}" target="_blank" rel="noopener noreferrer" 
-               style="color: #1976d2; text-decoration: none; font-size: 0.8rem; word-break: break-all; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f0f7ff; border-radius: 6px; transition: all 0.2s ease;"
-               onmouseover="this.style.background='#e3f2fd'; this.style.transform='translateX(2px)'"
-               onmouseout="this.style.background='#f0f7ff'; this.style.transform='translateX(0)'">
+               style="color: #1976d2; text-decoration: none; font-size: 0.8rem; word-break: break-all; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f0f7ff; border-radius: 6px;">
                 <span>🔗</span>
                 <span>${data.url}</span>
                 <span style="opacity: 0.7;">↗</span>
@@ -1200,7 +1197,8 @@ function createEnhancedHeader(data) {
     `;
 }
 
-function createPageInfoSection(data, d) {
+
+unction createPageInfoSection(data, d) {
     // Calculate page structure info
     let descendantCount = 0;
     let siblingCount = 0;
@@ -1467,9 +1465,7 @@ function createPageInfoSection(data, d) {
                 
                 <div style="text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                     <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
-                            style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);"
-                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(25, 118, 210, 0.4)'"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(25, 118, 210, 0.3)'">
+                            style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);">
                         📈 Full Analysis & Export
                     </button>
                 </div>
@@ -1516,9 +1512,7 @@ function createMetricCard(label, value, trend, icon, color, isPosition = false) 
     }
     
     return `
-        <div style="background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-left: 3px solid ${color}; transition: all 0.2s ease;"
-             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.08)'"
-             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.04)'">
+        <div style="background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-left: 3px solid ${color};">
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
                 <span style="font-size: 0.9rem;">${icon}</span>
                 <span style="font-size: 0.75rem; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">${label}</span>
