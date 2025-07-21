@@ -2031,69 +2031,71 @@ function getPageInfo(nodeData, treeContext = null) {
     // Calculate children count
     info.children = nodeData.children ? nodeData.children.length : 0;
     
-    // Determine page type from URL pattern
-    info.type = determinePageType(nodeData.url, nodeData.name);
-    
-    // Calculate depth from URL structure
-    info.depth = calculatePageDepth(nodeData.url);
-    
-    // Find siblings count by traversing tree (if tree context available)
+    // Get tree context info
+    let treeInfo = null;
     if (treeContext) {
-        const nodeContext = findNodeInTree(treeContext, nodeData.url);
-        if (nodeContext) {
-            info.siblings = nodeContext.siblings || 0;
-            info.depth = nodeContext.depth || info.depth;
+        treeInfo = findNodeInTree(treeContext, nodeData.url);
+        if (treeInfo.node) {
+            info.depth = treeInfo.depth;
+            info.siblings = treeInfo.siblings;
         }
     }
+    
+    // Fallback depth calculation if tree context failed
+    if (info.depth === 0 && !treeInfo) {
+        info.depth = calculatePageDepth(nodeData.url);
+    }
+    
+    // Simple tree-position-based type detection
+    info.type = determinePageType(nodeData.url, nodeData.name, nodeData, treeContext);
     
     return info;
 }
 
-function determinePageType(url, name) {
+function determinePageType(url, name, nodeData = null, treeContext = null) {
     if (!url) return 'Unknown';
     
-    const urlPath = url.toLowerCase();
-    const pageName = (name || '').toLowerCase();
-    
-    // Homepage
-    if (urlPath === '/' || urlPath.match(/^https?:\/\/[^\/]+\/?$/)) {
-        return 'Homepage';
+    // Check if it's a language root (ends in /en/ or /ga/)
+    if (url.toLowerCase().match(/\/(en|ga)\/?$/)) {
+        return 'Language Root';
     }
     
-    // Common page types based on URL patterns
-    const patterns = [
-        { pattern: /\/blog\/|\/news\/|\/article\//, type: 'Blog/Article' },
-        { pattern: /\/category\/|\/categories\//, type: 'Category' },
-        { pattern: /\/product\/|\/products\/|\/shop\//, type: 'Product' },
-        { pattern: /\/service\/|\/services\//, type: 'Service' },
-        { pattern: /\/about\/|\/contact\/|\/privacy\/|\/terms\//, type: 'Information' },
-        { pattern: /\/tag\/|\/tags\//, type: 'Tag' },
-        { pattern: /\/author\/|\/authors\//, type: 'Author' },
-        { pattern: /\/search\/|\/results\//, type: 'Search' },
-        { pattern: /\/landing\/|\/campaign\//, type: 'Landing' },
-        { pattern: /\/(en|es|fr|de|it|pt|ga)\//, type: 'Localized' },
-        { pattern: /sitemap\.xml$|robots\.txt$|\.xml$/, type: 'Technical' },
-        { pattern: /\/api\//, type: 'API' }
-    ];
+    // Get tree depth and children info
+    let depth = 0;
+    let hasChildren = false;
     
-    for (const { pattern, type } of patterns) {
-        if (pattern.test(urlPath)) {
-            return type;
+    if (nodeData && nodeData.children) {
+        hasChildren = nodeData.children.length > 0;
+    }
+    
+    // Try to get accurate depth from tree context
+    if (treeContext) {
+        const nodeInfo = findNodeInTree(treeContext, url);
+        if (nodeInfo && nodeInfo.depth !== undefined) {
+            depth = nodeInfo.depth;
         }
     }
     
-    // Check by file extension
-    if (urlPath.match(/\.(pdf|doc|docx|xls|xlsx|zip)$/)) {
-        return 'Download';
+    // Fallback: calculate depth from URL
+    if (depth === 0) {
+        depth = calculatePageDepth(url);
     }
     
-    // Check depth-based classification
-    const segments = urlPath.split('/').filter(s => s.length > 0);
-    if (segments.length <= 1) return 'Root';
-    if (segments.length === 2) return 'Section';
-    if (segments.length === 3) return 'Subsection';
+    // Determine type based on tree position
+    if (depth === 0) {
+        return 'Homepage';
+    } else if (depth === 1) {
+        return hasChildren ? 'Category' : 'Root Content';
+    } else if (depth === 2) {
+        return hasChildren ? 'Sub-Category' : 'Content Page';
+    } else if (depth === 3) {
+        return hasChildren ? 'Sub-Sub-Category' : 'Content Page';
+    } else if (depth >= 4) {
+        return hasChildren ? 'Deep Category' : 'Content Page';
+    }
     
-    return 'Content Page';
+    // If no children, it's a leaf node = content page
+    return hasChildren ? 'Category' : 'Content Page';
 }
 
 function calculatePageDepth(url) {
@@ -2114,7 +2116,8 @@ function findNodeInTree(treeData, targetUrl) {
     const result = {
         node: null,
         depth: 0,
-        siblings: 0
+        siblings: 0,
+        hasChildren: false
     };
     
     function traverse(node, depth = 0, parent = null) {
@@ -2122,6 +2125,7 @@ function findNodeInTree(treeData, targetUrl) {
             result.node = node;
             result.depth = depth;
             result.siblings = parent && parent.children ? parent.children.length - 1 : 0;
+            result.hasChildren = node.children && node.children.length > 0;
             return true;
         }
         
