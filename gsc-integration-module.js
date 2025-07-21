@@ -1074,35 +1074,212 @@
     }
     
     function showSimplifiedTooltip(event, d) {
-        if (!d.data) return;
+    if (!d.data) return;
+    
+    // Hide any existing tooltip first
+    hideCurrentTooltip();
+    
+    // Create enhanced tooltip structure
+    const tooltip = createEnhancedTooltip(d.data, d);
+    
+    // Position tooltip
+    positionTooltip(tooltip, event);
+    
+    // Show tooltip
+    document.body.appendChild(tooltip);
+    currentTooltip = tooltip;
+    
+    // Add hover protection (simplified)
+    tooltip.addEventListener('mouseenter', () => {
+        clearTimeout(hideTimer);
+    });
+    
+    tooltip.addEventListener('mouseleave', () => {
+        window.hideEnhancedTooltip();
+    });
+    
+    // Trigger GSC data loading (non-blocking)
+    if (gscConnected && d.data.url && !gscDataMap.has(d.data.url)) {
+        loadGSCDataAsync(d.data, tooltip);
+    }
+}
+
+function createEnhancedTooltip(data, d) {
+    const tooltip = document.createElement('div');
+    tooltip.className = 'enhanced-tooltip simplified-tooltip';
+    tooltip.style.cssText = `
+        position: absolute;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafe 100%);
+        border: 1px solid #e3f2fd;
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: 0 8px 32px rgba(26, 115, 232, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+        z-index: 10000;
+        max-width: 420px;
+        min-width: 320px;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: auto;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        overflow: hidden;
+    `;
+    
+    // Build enhanced content
+    let html = createEnhancedHeader(data) + createPageInfoSection(data, d);
+    
+    // Add GSC placeholder if connected
+    if (gscConnected && data.url) {
+        html += '<div id="gsc-placeholder" style="margin: 16px; padding: 16px; background: #f8f9ff; border-radius: 8px; border-left: 4px solid #1976d2;"><div style="display: flex; align-items: center; gap: 8px; color: #1565c0;"><div class="loading-dots">📊</div><span>Loading performance data...</span></div></div>';
+    }
+    
+    tooltip.innerHTML = html;
+    
+    // Trigger fade in with scale
+    setTimeout(() => {
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'scale(1)';
+    }, 10);
+    
+    return tooltip;
+}   
+
+
+function createEnhancedHeader(data) {
+    const now = new Date();
+    let freshnessInfo = '';
+    let lastModifiedInfo = '';
+    
+    if (data.lastModified) {
+        const lastMod = new Date(data.lastModified);
+        const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
         
-        // Hide any existing tooltip first
-        hideCurrentTooltip();
+        let freshnessLabel, freshnessColor, freshnessBg;
+        if (daysSince < 7) {
+            freshnessLabel = 'Fresh'; freshnessColor = '#2e7d32'; freshnessBg = '#e8f5e8';
+        } else if (daysSince < 30) {
+            freshnessLabel = 'Recent'; freshnessColor = '#558b2f'; freshnessBg = '#f1f8e9';
+        } else if (daysSince < 90) {
+            freshnessLabel = 'Good'; freshnessColor = '#1976d2'; freshnessBg = '#e3f2fd';
+        } else if (daysSince < 180) {
+            freshnessLabel = 'Aging'; freshnessColor = '#f57f17'; freshnessBg = '#fff8e1';
+        } else {
+            freshnessLabel = 'Old'; freshnessColor = '#d32f2f'; freshnessBg = '#ffebee';
+        }
         
-        // Create basic tooltip structure
-        const tooltip = createBasicTooltip(d.data);
-        
-        // Position tooltip
-        positionTooltip(tooltip, event);
-        
-        // Show tooltip
-        document.body.appendChild(tooltip);
-        currentTooltip = tooltip;
-        
-        // Add hover protection (simplified)
-        tooltip.addEventListener('mouseenter', () => {
-            clearTimeout(hideTimer);
-        });
-        
-        tooltip.addEventListener('mouseleave', () => {
-            window.hideEnhancedTooltip();
-        });
-        
-        // Trigger GSC data loading (non-blocking)
-        if (gscConnected && d.data.url && !gscDataMap.has(d.data.url)) {
-            loadGSCDataAsync(d.data, tooltip);
+        freshnessInfo = `<span style="background: ${freshnessBg}; color: ${freshnessColor}; padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${freshnessLabel}</span>`;
+        lastModifiedInfo = `<div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">📅 Updated ${formatRelativeDate(lastMod)}</div>`;
+    }
+    
+    const urlSection = data.url ? `
+        <div style="margin-top: 8px;">
+            <a href="${data.url}" target="_blank" rel="noopener noreferrer" 
+               style="color: #1976d2; text-decoration: none; font-size: 0.8rem; word-break: break-all; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f0f7ff; border-radius: 6px; transition: all 0.2s ease;"
+               onmouseover="this.style.background='#e3f2fd'; this.style.transform='translateX(2px)'"
+               onmouseout="this.style.background='#f0f7ff'; this.style.transform='translateX(0)'">
+                <span>🔗</span>
+                <span>${data.url}</span>
+                <span style="opacity: 0.7;">↗</span>
+            </a>
+            ${lastModifiedInfo}
+        </div>
+    ` : lastModifiedInfo;
+    
+    return `
+        <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 16px; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.6;"></div>
+            <div style="position: relative; z-index: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px;">
+                    <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600; flex: 1; line-height: 1.3;">${data.name}</h4>
+                    ${freshnessInfo}
+                </div>
+                ${urlSection}
+            </div>
+        </div>
+    `;
+}
+
+function createPageInfoSection(data, d) {
+    // Calculate page structure info
+    let descendantCount = 0;
+    let siblingCount = 0;
+    
+    function countDescendants(node) {
+        if (node.children) {
+            descendantCount += node.children.length;
+            node.children.forEach(child => countDescendants(child));
+        } else if (node._children) {
+            descendantCount += node._children.length;
+            node._children.forEach(child => countDescendants(child));
         }
     }
+    countDescendants(d);
+
+    if (d.parent) {
+        siblingCount = (d.parent.children ? d.parent.children.length : 
+                       d.parent._children ? d.parent._children.length : 0) - 1;
+    }
+    
+    const isLeaf = !d.children && !d._children;
+    const nodeType = d.depth === 0 ? 'Root' : 
+                    d.depth === 1 ? 'Category' :
+                    d.depth === 2 ? 'Section' :
+                    isLeaf ? 'Page' : 'Container';
+    
+    const typeIcon = d.depth === 0 ? '🏠' : 
+                    d.depth === 1 ? '📁' :
+                    d.depth === 2 ? '📂' :
+                    isLeaf ? '📄' : '🗂️';
+    
+    const typeColor = d.depth === 0 ? '#e53e3e' : 
+                     d.depth === 1 ? '#3182ce' :
+                     d.depth === 2 ? '#38a169' :
+                     isLeaf ? '#805ad5' : '#718096';
+
+    return `
+        <div style="padding: 16px; background: #fafbfc;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 1.2rem;">${typeIcon}</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Type</div>
+                        <div style="font-weight: 600; color: ${typeColor}; font-size: 0.9rem;">${nodeType}</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 1.2rem;">📏</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Level</div>
+                        <div style="font-weight: 600; color: #374151; font-size: 0.9rem;">${d.depth}</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 1.2rem;">${isLeaf ? '👫' : '👥'}</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">${isLeaf ? 'Siblings' : 'Children'}</div>
+                        <div style="font-weight: 600; color: #374151; font-size: 0.9rem;">${isLeaf ? siblingCount : descendantCount}</div>
+                    </div>
+                </div>
+                
+                ${data.pageCount ? `
+                <div style="display: flex; align-items: center; gap: 8px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 1.2rem;">📊</div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Total Pages</div>
+                        <div style="font-weight: 600; color: #374151; font-size: 0.9rem;">${data.pageCount.toLocaleString()}</div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+
+
     
     function hideCurrentTooltip() {
         if (currentTooltip) {
@@ -1225,75 +1402,201 @@
     }
     
     function updateTooltipWithGSCData(tooltip, gscData) {
-        const placeholder = tooltip.querySelector('#gsc-placeholder');
-        if (!placeholder) return;
-        
-        if (!gscData || gscData.noDataFound) {
-            placeholder.innerHTML = gscData?.noDataFound ? 
-                '<div style="color: #999; font-size: 0.8rem;">📭 No search data found</div>' : 
-                '<div style="color: #999; font-size: 0.8rem;">❌ Performance data unavailable</div>';
-            return;
-        }
-        
-        // Create simplified GSC content
-        const performanceScore = calculateSimplePerformanceScore(gscData);
-        const gscHtml = `
-            <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
-                    <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
-                        ${performanceScore}/100
-                    </div>
+    const placeholder = tooltip.querySelector('#gsc-placeholder');
+    if (!placeholder) return;
+    
+    if (!gscData || gscData.noDataFound) {
+        placeholder.innerHTML = gscData?.noDataFound ? 
+            '<div style="text-align: center; color: #64748b; padding: 12px;"><div style="font-size: 2rem; margin-bottom: 8px;">📭</div><div style="font-weight: 500;">No search data found</div><div style="font-size: 0.8rem; opacity: 0.8;">Page may be new or not indexed</div></div>' : 
+            '<div style="text-align: center; color: #64748b; padding: 12px;"><div style="font-size: 2rem; margin-bottom: 8px;">❌</div><div style="font-weight: 500;">Performance data unavailable</div></div>';
+        return;
+    }
+    
+    // Create enhanced GSC content with trends and better styling
+    const performanceScore = calculateSimplePerformanceScore(gscData);
+    const trendData = gscData.trend || {};
+    
+    const gscHtml = `
+        <div style="margin: 16px; background: linear-gradient(135deg, #f8fafe 0%, #e8f4f8 100%); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(26, 115, 232, 0.08);">
+            <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.2rem;">📊</span>
+                    <span style="font-weight: 600; font-size: 1rem;">Search Performance (30d)</span>
                 </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Clicks</div>
-                    </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Impressions</div>
-                    </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                        <div style="font-size: 0.75rem; color: #666;">CTR</div>
-                    </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Position</div>
-                    </div>
+                <div style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 8px; height: 8px; background: ${getScoreColor(performanceScore)}; border-radius: 50%;"></div>
+                    <span style="font-weight: 700; font-size: 0.9rem;">${performanceScore}/100</span>
+                </div>
+            </div>
+            
+            <div style="padding: 16px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                    ${createMetricCard('Clicks', formatNumber(gscData.clicks), trendData.clicksChange, '👆', '#10b981')}
+                    ${createMetricCard('Impressions', formatNumber(gscData.impressions), trendData.impressionsChange, '👀', '#3b82f6')}
+                    ${createMetricCard('CTR', (gscData.ctr * 100).toFixed(1) + '%', calculateCTRTrend(gscData, trendData), '🎯', '#8b5cf6')}
+                    ${createMetricCard('Position', '#' + gscData.position.toFixed(1), trendData.positionChange, '📍', '#f59e0b', true)}
                 </div>
                 
                 ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                    <div style="background: white; padding: 10px; border-radius: 6px; border-top: 2px solid #1f4788;">
-                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 6px; font-weight: 500;">🎯 Top Search Query:</div>
-                        <div style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 4px;">"${escapeHtml(gscData.topQueries[0].query)}"</div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #666;">
-                            <span>${gscData.topQueries[0].clicks} clicks</span>
-                            <span>#${gscData.topQueries[0].position.toFixed(0)} avg pos</span>
-                            <span>${(gscData.topQueries[0].ctr * 100).toFixed(1)}% CTR</span>
+                    <div style="background: white; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-left: 4px solid #1976d2;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <div style="font-size: 0.9rem; color: #374151; font-weight: 600;">🎯 Top Search Query</div>
+                            ${gscData.topQueries[0].opportunity ? `
+                                <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                                    ⚡ OPPORTUNITY
+                                </span>
+                            ` : ''}
+                        </div>
+                        <div style="font-size: 1rem; font-weight: 600; color: #111827; margin-bottom: 8px; line-height: 1.3;">"${escapeHtml(gscData.topQueries[0].query)}"</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                            <div style="color: #10b981; font-weight: 600;">${gscData.topQueries[0].clicks} clicks</div>
+                            <div style="color: #3b82f6; font-weight: 600;">#${gscData.topQueries[0].position.toFixed(0)} position</div>
+                            <div style="color: #8b5cf6; font-weight: 600;">${(gscData.topQueries[0].ctr * 100).toFixed(1)}% CTR</div>
                         </div>
                     </div>
                 ` : ''}
                 
                 ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-                    <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-top: 8px;">
-                        <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
+                    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 12px; border-radius: 10px; border-left: 4px solid #f59e0b; margin-top: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; color: #92400e; font-weight: 600; font-size: 0.9rem;">
+                            <span>⚡</span>
+                            <span>${gscData.opportunities.length} optimization opportunities found</span>
+                        </div>
                     </div>
                 ` : ''}
                 
-                <div style="text-align: center; margin-top: 12px;">
+                <div style="text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                     <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
-                            style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
-                        📈 Full Analysis
+                            style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(25, 118, 210, 0.4)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(25, 118, 210, 0.3)'">
+                        📈 Full Analysis & Export
                     </button>
                 </div>
             </div>
-        `;
+        </div>
+    `;
+    
+    placeholder.outerHTML = gscHtml;
+}
+
+function createMetricCard(label, value, trend, icon, color, isPosition = false) {
+    let trendElement = '';
+    
+    if (trend !== null && trend !== undefined && !isNaN(trend)) {
+        const trendValue = parseFloat(trend);
+        let trendColor, trendIcon, trendDirection;
         
-        placeholder.outerHTML = gscHtml;
+        if (isPosition) {
+            // For position, lower is better (inverted logic)
+            if (trendValue > 0) {
+                trendColor = '#ef4444'; trendIcon = '↗'; trendDirection = 'worse';
+            } else if (trendValue < 0) {
+                trendColor = '#10b981'; trendIcon = '↘'; trendDirection = 'better';
+            } else {
+                trendColor = '#6b7280'; trendIcon = '→'; trendDirection = 'same';
+            }
+        } else {
+            // For other metrics, higher is better
+            if (trendValue > 0) {
+                trendColor = '#10b981'; trendIcon = '↗'; trendDirection = 'better';
+            } else if (trendValue < 0) {
+                trendColor = '#ef4444'; trendIcon = '↘'; trendDirection = 'worse';
+            } else {
+                trendColor = '#6b7280'; trendIcon = '→'; trendDirection = 'same';
+            }
+        }
+        
+        trendElement = `
+            <div style="display: flex; align-items: center; gap: 2px; margin-top: 4px; padding: 2px 6px; background: ${trendColor}20; border-radius: 12px; width: fit-content;">
+                <span style="color: ${trendColor}; font-size: 0.7rem; font-weight: 700;">${trendIcon}</span>
+                <span style="color: ${trendColor}; font-size: 0.7rem; font-weight: 600;">${Math.abs(trendValue).toFixed(1)}%</span>
+            </div>
+        `;
     }
+    
+    return `
+        <div style="background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-left: 3px solid ${color}; transition: all 0.2s ease;"
+             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.08)'"
+             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.04)'">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                <span style="font-size: 0.9rem;">${icon}</span>
+                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">${label}</span>
+            </div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: #111827; line-height: 1.2; margin-bottom: 2px;">${value}</div>
+            ${trendElement}
+        </div>
+    `;
+}
+
+// Helper function to format relative dates
+function formatRelativeDate(date) {
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) return `${Math.ceil(diffDays / 30)} months ago`;
+    return `${Math.ceil(diffDays / 365)} years ago`;
+}
+
+// Helper function to calculate CTR trend
+function calculateCTRTrend(gscData, trendData) {
+    if (!trendData || !trendData.clicksChange || !trendData.impressionsChange) return null;
+    
+    const currentCTR = gscData.ctr;
+    const clicksChange = parseFloat(trendData.clicksChange) / 100;
+    const impressionsChange = parseFloat(trendData.impressionsChange) / 100;
+    
+    const previousClicks = gscData.clicks / (1 + clicksChange);
+    const previousImpressions = gscData.impressions / (1 + impressionsChange);
+    const previousCTR = previousClicks / previousImpressions;
+    
+    return ((currentCTR - previousCTR) / previousCTR * 100);
+}
+
+// Add enhanced tooltip styles
+function addSimplifiedTooltipStyles() {
+    if (document.getElementById('simplified-tooltip-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'simplified-tooltip-styles';
+    style.textContent = `
+        .simplified-tooltip {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            transform: scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .simplified-tooltip h4 {
+            margin: 0 0 4px 0;
+            font-size: 1rem;
+            color: white;
+        }
+        
+        .loading-dots {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @media (max-width: 768px) {
+            .simplified-tooltip {
+                max-width: 350px;
+                min-width: 280px;
+                font-size: 13px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
     
     function updateGSCPlaceholder(tooltip, message) {
         const placeholder = tooltip.querySelector('#gsc-placeholder');
