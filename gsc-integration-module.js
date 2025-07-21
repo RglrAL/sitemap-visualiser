@@ -1185,6 +1185,8 @@ function getCleanedStyles() {
             font-size: 14px;
             line-height: 1.4;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            pointer-events: auto !important;  /* Ensure tooltip is interactive */
+z-index: 10000;  /* High z-index to stay on top */
         }
 
         .enhanced-tooltip.visible {
@@ -3041,20 +3043,38 @@ function getCleanedStyles() {
     }
 
     // Hook into tooltips with enhanced display
-    function hookIntoTooltips() {
-        const checkAndHook = () => {
-            if (window.showEnhancedTooltip) {
-                const originalShowEnhancedTooltip = window.showEnhancedTooltip;
-                window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
-                    showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC);
+    // Hook into tooltips with enhanced display
+function hookIntoTooltips() {
+    const checkAndHook = () => {
+        if (window.showEnhancedTooltip) {
+            const originalShowEnhancedTooltip = window.showEnhancedTooltip;
+            window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
+                showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC);
+            };
+            
+            // Also hook into hideEnhancedTooltip to add delay
+            if (window.hideEnhancedTooltip) {
+                const originalHide = window.hideEnhancedTooltip;
+                window.hideEnhancedTooltip = function() {
+                    // Clear any pending hide first
+                    if (tooltipHideTimeout) {
+                        clearTimeout(tooltipHideTimeout);
+                    }
+                    
+                    // Only hide after delay to allow mouse to reach tooltip
+                    tooltipHideTimeout = setTimeout(() => {
+                        originalHide.apply(this, arguments);
+                    }, 300); // 300ms delay before hiding
                 };
-                debugLog('Hooked into tooltip display');
-            } else {
-                setTimeout(checkAndHook, 100);
             }
-        };
-        checkAndHook();
-    }
+            
+            debugLog('Hooked into tooltip display');
+        } else {
+            setTimeout(checkAndHook, 100);
+        }
+    };
+    checkAndHook();
+}
 
     // ============================================================================
     // ENHANCED TOOLTIP DISPLAY FUNCTIONS
@@ -3062,6 +3082,11 @@ function getCleanedStyles() {
 
     // Enhanced tooltip with improved GSC data display
     function showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC = false) {
+        // Clear any pending hide timeout when showing tooltip
+if (tooltipHideTimeout) {
+    clearTimeout(tooltipHideTimeout);
+    tooltipHideTimeout = null;
+}
         if (!window.enhancedTooltip || !d.data) return;
         
         const data = d.data;
@@ -3169,12 +3194,13 @@ function getCleanedStyles() {
         const pageWidth = window.innerWidth;
         const pageHeight = window.innerHeight;
         
-        let left = event.pageX + 15;
-        let top = event.pageY - tooltipRect.height / 2;
-        
-        if (left + tooltipRect.width > pageWidth - 20) {
-            left = event.pageX - tooltipRect.width - 15;
-        }
+        // Reduced gap to prevent mouse "falling through"
+let left = event.pageX + 10;  // Reduced from 15 to 10
+let top = event.pageY - tooltipRect.height / 2;
+
+if (left + tooltipRect.width > pageWidth - 20) {
+    left = event.pageX - tooltipRect.width - 10;  // Reduced from 15 to 10
+}
         
         if (top < 20) {
             top = 20;
@@ -3190,6 +3216,7 @@ function getCleanedStyles() {
             .transition()
             .duration(200)
             .style("opacity", 1);
+        .style("pointer-events", "auto")  // Ensure tooltip is interactive
             
         // Add mouse events to the tooltip itself
         window.enhancedTooltip
