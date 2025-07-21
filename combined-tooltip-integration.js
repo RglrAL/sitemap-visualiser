@@ -1,353 +1,353 @@
-// combined-tooltip-integration.js - FINAL WORKING VERSION
-// Replace your existing file with this - it's based on the aggressive override that worked
+// combined-tooltip-integration.js - REFINED MINIMAL VERSION
+// Fixes: hover behavior, size, design, buttons, undefined values
 
 (function() {
-    console.log('🚀 Loading FINAL working combined tooltip integration...');
+    console.log('🚀 Loading refined minimal combined tooltip integration...');
 
-    // The proven working tooltip function (from successful aggressive override)
-    const workingTooltipFunction = function(event, d) {
-        console.log('🎯 Enhanced combined tooltip for:', d.data?.name);
+    // The refined tooltip function with fixed behavior
+    const refinedTooltipFunction = function(event, d) {
+        console.log('🎯 Refined tooltip for:', d.data?.name);
         
         if (!d.data) {
             console.warn('⚠️ No data provided to tooltip');
             return;
         }
 
-        // Hide existing tooltip
-        if (window.currentTooltip) {
-            window.currentTooltip.remove();
-            window.currentTooltip = null;
-        }
+        // Hide existing tooltip immediately
+        hideRefinedTooltip(true);
 
-        // Create rich combined tooltip
+        // Create minimal combined tooltip
         const tooltip = document.createElement('div');
-        tooltip.className = 'enhanced-tooltip combined-analytics-tooltip';
+        tooltip.className = 'enhanced-tooltip refined-combined-tooltip';
         tooltip.style.cssText = `
             position: absolute;
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
             padding: 0;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
             z-index: 10000;
-            max-width: 600px;
+            max-width: 420px;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
             overflow: hidden;
+            pointer-events: auto;
         `;
 
-        // Enhanced content with detailed layout
-        tooltip.innerHTML = createRichCombinedContent(d.data);
+        // Create refined content
+        tooltip.innerHTML = createRefinedContent(d.data);
 
         // Position tooltip
-        tooltip.style.left = (event.pageX + 15) + 'px';
-        tooltip.style.top = (event.pageY - 10) + 'px';
+        positionRefinedTooltip(tooltip, event);
 
         // Add to DOM
         document.body.appendChild(tooltip);
-        window.currentTooltip = tooltip;
+        window.currentRefinedTooltip = tooltip;
         tooltip._nodeData = d.data;
 
         // Show with animation
         setTimeout(() => tooltip.style.opacity = '1', 10);
 
-        // Add hover protection
-        tooltip.addEventListener('mouseenter', () => {
-            if (window.hideTimer) clearTimeout(window.hideTimer);
-        });
-        
-        tooltip.addEventListener('mouseleave', () => {
-            window.hideEnhancedTooltip();
-        });
-
-        // Position adjustment after render
-        setTimeout(() => {
-            const rect = tooltip.getBoundingClientRect();
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            
-            if (rect.right > windowWidth - 20) {
-                tooltip.style.left = (event.pageX - rect.width - 15) + 'px';
-            }
-            
-            if (rect.bottom > windowHeight - 20) {
-                tooltip.style.top = (event.pageY - rect.height - 15) + 'px';
-            }
-        }, 50);
+        // Fixed hover behavior
+        addRefinedHoverBehavior(tooltip);
 
         // Load analytics data
-        loadCombinedAnalyticsData(tooltip, d.data);
+        loadRefinedAnalyticsData(tooltip, d.data);
     };
 
-    // Create rich combined content
-    function createRichCombinedContent(data) {
-        // Get freshness info if available
-        let freshnessInfo = '';
-        let lastModifiedDisplay = '';
-        
-        if (typeof getFreshnessInfo === 'function' && data.lastModified) {
-            const freshnessData = getFreshnessInfo(data.lastModified);
-            if (freshnessData) {
-                freshnessInfo = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
-                lastModifiedDisplay = `
-                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 0; border-top: 1px solid #f0f0f0;">
-                        <span style="font-size: 0.75rem; color: #666;">📅 Updated:</span>
-                        <span style="font-size: 0.8rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
-                        <span style="font-size: 0.75rem; color: #999;">(${freshnessData.relativeTime})</span>
-                    </div>
-                `;
-            }
-        }
-
-        // Get page info if available
-        let pageInfoDisplay = '';
-        if (typeof getPageInfo === 'function') {
-            const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
-            const pageInfo = getPageInfo(data, treeContext);
-            
-            pageInfoDisplay = `
-                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 3px solid #6c757d;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.75rem;">
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">🏷️ Type:</span>
-                            <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">📏 Depth:</span>
-                            <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">👶 Children:</span>
-                            <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <span style="color: #666;">👫 Siblings:</span>
-                            <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+    // Create refined minimal content
+    function createRefinedContent(data) {
+        // Safely get page info - with fallbacks for undefined
+        const pageInfo = getPageInfoSafe(data);
+        const freshnessInfo = getFreshnessInfoSafe(data);
 
         return `
-            <!-- Page Header -->
-            <div style="padding: 20px; border-bottom: 1px solid #e0e0e0; background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px;">
-                    <h4 style="margin: 0; color: #1f4788; font-size: 1.2rem; font-weight: 600; flex: 1;">${data.name}</h4>
-                    ${freshnessInfo}
+            <!-- Compact Page Header -->
+            <div style="padding: 14px 16px; border-bottom: 1px solid #f0f0f0; background: #fafbfc;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
+                    <h4 style="margin: 0; color: #1a1a1a; font-size: 0.95rem; font-weight: 600; flex: 1; line-height: 1.3;">
+                        ${data.name || 'Page'}
+                    </h4>
+                    ${freshnessInfo.badge}
                 </div>
                 
                 ${data.url ? `
                     <a href="${data.url}" target="_blank" 
-                       style="font-size: 0.85rem; color: #4a90e2; text-decoration: none; word-break: break-all; 
-                              margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
+                       style="font-size: 0.75rem; color: #0066cc; text-decoration: none; word-break: break-all; 
+                              display: block; margin-bottom: 6px;" 
                        onmouseover="this.style.textDecoration='underline'" 
                        onmouseout="this.style.textDecoration='none'">
                         ${data.url}
                     </a>
                 ` : ''}
                 
-                ${lastModifiedDisplay}
-                ${pageInfoDisplay}
+                <!-- Compact Page Info -->
+                <div style="display: flex; gap: 12px; font-size: 0.7rem; color: #666; margin-top: 8px;">
+                    <span>📁 ${pageInfo.type}</span>
+                    <span>📏 Level ${pageInfo.depth}</span>
+                    <span>👶 ${pageInfo.children}</span>
+                    ${freshnessInfo.text ? `<span>📅 ${freshnessInfo.text}</span>` : ''}
+                </div>
             </div>
 
-            <!-- Combined Analytics Section -->
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <!-- Compact Analytics Section -->
+            <div style="padding: 16px;">
                 
-                <!-- Analytics Header -->
-                <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600;">📊 Performance Analytics</h3>
-                        <div style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 15px; font-size: 0.75rem; font-weight: 500;">
-                            Last 30 Days
+                <!-- Search Console Card -->
+                <div id="refined-gsc-card" style="background: #f8f9ff; border: 1px solid #e3f2fd; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 0.9rem;">🔍</span>
+                            <span style="font-size: 0.85rem; font-weight: 600; color: #1565c0;">Search Console</span>
                         </div>
+                        <span id="refined-gsc-status" style="font-size: 0.7rem; color: #666; background: #fff; padding: 2px 6px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                            Loading...
+                        </span>
+                    </div>
+                    <div id="refined-gsc-content">
+                        <div style="text-align: center; color: #666; padding: 12px;">⏳ Loading search data...</div>
                     </div>
                 </div>
                 
-                <!-- Analytics Grid -->
-                <div style="padding: 20px;">
-                    
-                    <!-- Search Console Card -->
-                    <div id="gsc-analytics-card" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; margin-bottom: 16px; backdrop-filter: blur(10px);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 1.1rem;">🔍</span>
-                                <span style="font-size: 0.95rem; font-weight: 600;">Search Console</span>
-                            </div>
-                            <span id="gsc-status-indicator" style="font-size: 0.75rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
-                                Loading...
-                            </span>
+                <!-- Google Analytics Card -->
+                <div id="refined-ga4-card" style="background: #fff8e1; border: 1px solid #ffecb3; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 0.9rem;">📈</span>
+                            <span style="font-size: 0.85rem; font-weight: 600; color: #f57c00;">Google Analytics</span>
                         </div>
-                        <div id="gsc-data-content">
-                            <div style="text-align: center; opacity: 0.8; padding: 20px;">
-                                <div style="margin-bottom: 8px;">⏳</div>
-                                <div style="font-size: 0.9rem;">Fetching search performance data...</div>
-                            </div>
-                        </div>
+                        <span id="refined-ga4-status" style="font-size: 0.7rem; color: #666; background: #fff; padding: 2px 6px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                            Loading...
+                        </span>
                     </div>
-                    
-                    <!-- Google Analytics 4 Card -->
-                    <div id="ga4-analytics-card" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 1.1rem;">📈</span>
-                                <span style="font-size: 0.95rem; font-weight: 600;">Google Analytics 4</span>
-                            </div>
-                            <span id="ga4-status-indicator" style="font-size: 0.75rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
-                                Loading...
-                            </span>
-                        </div>
-                        <div id="ga4-data-content">
-                            <div style="text-align: center; opacity: 0.8; padding: 20px;">
-                                <div style="margin-bottom: 8px;">⏳</div>
-                                <div style="font-size: 0.9rem;">Fetching user analytics data...</div>
-                            </div>
-                        </div>
+                    <div id="refined-ga4-content">
+                        <div style="text-align: center; color: #666; padding: 12px;">⏳ Loading analytics data...</div>
                     </div>
-                    
                 </div>
                 
-                <!-- Action Footer -->
-                <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <button onclick="window.open('${data.url}', '_blank')" 
-                            style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px 18px; 
-                                   border-radius: 8px; font-size: 0.85rem; cursor: pointer; flex: 1; font-weight: 500; transition: all 0.2s;"
-                            onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'"
-                            onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
-                        🔗 Visit Page
+                <!-- Compact Action Buttons -->
+                <div style="display: flex; gap: 6px; margin-top: 12px;">
+                    <button class="refined-btn refined-btn-primary" data-action="visit" data-url="${data.url}">
+                        🔗 Visit
                     </button>
-                    <button onclick="window.refreshCombinedTooltipData && window.refreshCombinedTooltipData()" 
-                            style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px 18px; 
-                                   border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 500; transition: all 0.2s;"
-                            onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'"
-                            onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
-                        🔄 Refresh
+                    <button class="refined-btn refined-btn-secondary" data-action="refresh">
+                        🔄
                     </button>
-                    <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${data.url}')" 
-                            style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px 18px; 
-                                   border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 500; transition: all 0.2s;"
-                            onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'"
-                            onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
-                        📊 Detailed Analysis
+                    <button class="refined-btn refined-btn-secondary" data-action="detailed" data-url="${data.url}">
+                        📊
                     </button>
                 </div>
             </div>
+
+            <style>
+                .refined-btn {
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    font-size: 0.75rem;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                    flex: 1;
+                }
+                
+                .refined-btn-primary {
+                    background: #1565c0;
+                    color: white;
+                }
+                
+                .refined-btn-primary:hover {
+                    background: #0d47a1;
+                    transform: translateY(-1px);
+                }
+                
+                .refined-btn-secondary {
+                    background: #f5f5f5;
+                    color: #666;
+                    border: 1px solid #e0e0e0;
+                }
+                
+                .refined-btn-secondary:hover {
+                    background: #eeeeee;
+                    transform: translateY(-1px);
+                }
+            </style>
         `;
     }
 
-    // Load combined analytics data
-    async function loadCombinedAnalyticsData(tooltip, nodeData) {
-        console.log('📊 Loading combined analytics for:', nodeData.name);
+    // Safe page info function with fallbacks
+    function getPageInfoSafe(data) {
+        let pageInfo = {
+            type: 'Page',
+            depth: 0,
+            children: 0,
+            siblings: 0
+        };
+
+        try {
+            // Try to use existing function if available
+            if (typeof getPageInfo === 'function') {
+                const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+                const result = getPageInfo(data, treeContext);
+                if (result && typeof result === 'object') {
+                    pageInfo = { ...pageInfo, ...result };
+                }
+            } else {
+                // Fallback: calculate from data
+                if (data.children) {
+                    pageInfo.children = data.children.length;
+                }
+                
+                if (data.url) {
+                    // Simple depth calculation
+                    const pathSegments = data.url.split('/').filter(segment => segment.length > 0);
+                    pageInfo.depth = Math.max(0, pathSegments.length - 2); // Subtract domain parts
+                    
+                    // Simple type detection
+                    if (pageInfo.children > 0) {
+                        pageInfo.type = pageInfo.depth <= 1 ? 'Category' : 'Sub-Category';
+                    } else {
+                        pageInfo.type = 'Content Page';
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Error getting page info:', error);
+        }
+
+        return pageInfo;
+    }
+
+    // Safe freshness info function with fallbacks
+    function getFreshnessInfoSafe(data) {
+        let result = {
+            badge: '',
+            text: ''
+        };
+
+        try {
+            if (typeof getFreshnessInfo === 'function' && data.lastModified) {
+                const freshnessData = getFreshnessInfo(data.lastModified);
+                if (freshnessData && freshnessData.freshnessLabel) {
+                    result.badge = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
+                    result.text = freshnessData.formattedDate;
+                }
+            } else if (data.lastModified) {
+                // Fallback: simple date display
+                try {
+                    const date = new Date(data.lastModified);
+                    if (!isNaN(date.getTime())) {
+                        result.text = date.toLocaleDateString();
+                        result.badge = '<span style="background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">Updated</span>';
+                    }
+                } catch (e) {
+                    // Invalid date, skip
+                }
+            }
+        } catch (error) {
+            console.warn('Error getting freshness info:', error);
+        }
+
+        return result;
+    }
+
+    // Load refined analytics data
+    async function loadRefinedAnalyticsData(tooltip, nodeData) {
+        console.log('📊 Loading refined analytics for:', nodeData.name);
         
-        const gscContent = tooltip.querySelector('#gsc-data-content');
-        const ga4Content = tooltip.querySelector('#ga4-data-content');
-        const gscStatus = tooltip.querySelector('#gsc-status-indicator');
-        const ga4Status = tooltip.querySelector('#ga4-status-indicator');
+        const gscContent = tooltip.querySelector('#refined-gsc-content');
+        const ga4Content = tooltip.querySelector('#refined-ga4-content');
+        const gscStatus = tooltip.querySelector('#refined-gsc-status');
+        const ga4Status = tooltip.querySelector('#refined-ga4-status');
         
         // Load Search Console data
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
             gscStatus.textContent = '🟢 Connected';
+            gscStatus.style.color = '#4caf50';
             try {
                 const gscData = await window.GSCIntegration.fetchNodeData(nodeData);
-                console.log('🔍 GSC data loaded:', gscData);
                 
                 if (gscData && !gscData.noDataFound && !gscData.error) {
-                    gscContent.innerHTML = createDetailedGSCDisplay(gscData);
+                    gscContent.innerHTML = createCompactGSCDisplay(gscData);
                 } else {
-                    gscContent.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">📭 No search performance data found</div>';
+                    gscContent.innerHTML = '<div style="text-align: center; color: #999; padding: 10px; font-size: 0.8rem;">📭 No search data</div>';
                 }
             } catch (error) {
                 console.error('❌ GSC error:', error);
                 gscStatus.textContent = '🔴 Error';
-                gscContent.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px; color: #ffcdd2;">❌ Error loading GSC data</div>';
+                gscStatus.style.color = '#f44336';
+                gscContent.innerHTML = '<div style="text-align: center; color: #f44336; padding: 10px; font-size: 0.8rem;">❌ Error</div>';
             }
         } else {
             gscStatus.textContent = '🔴 Not Connected';
-            gscContent.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">🔌 Search Console not connected</div>';
+            gscStatus.style.color = '#f44336';
+            gscContent.innerHTML = '<div style="text-align: center; color: #999; padding: 10px; font-size: 0.8rem;">🔌 Not connected</div>';
         }
         
         // Load GA4 data
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
             ga4Status.textContent = '🟢 Connected';
+            ga4Status.style.color = '#4caf50';
             try {
                 const ga4Data = await window.GA4Integration.fetchData(nodeData.url);
-                console.log('📈 GA4 data loaded:', ga4Data);
                 
                 if (ga4Data && !ga4Data.noDataFound && !ga4Data.error) {
-                    ga4Content.innerHTML = createDetailedGA4Display(ga4Data);
+                    ga4Content.innerHTML = createCompactGA4Display(ga4Data);
                 } else {
-                    ga4Content.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">📭 No user analytics data found</div>';
+                    ga4Content.innerHTML = '<div style="text-align: center; color: #999; padding: 10px; font-size: 0.8rem;">📭 No analytics data</div>';
                 }
             } catch (error) {
                 console.error('❌ GA4 error:', error);
                 ga4Status.textContent = '🔴 Error';
-                ga4Content.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px; color: #ffcdd2;">❌ Error loading GA4 data</div>';
+                ga4Status.style.color = '#f44336';
+                ga4Content.innerHTML = '<div style="text-align: center; color: #f44336; padding: 10px; font-size: 0.8rem;">❌ Error</div>';
             }
         } else {
             ga4Status.textContent = '🔴 Not Connected';
-            ga4Content.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">🔌 Google Analytics 4 not connected</div>';
+            ga4Status.style.color = '#f44336';
+            ga4Content.innerHTML = '<div style="text-align: center; color: #999; padding: 10px; font-size: 0.8rem;">🔌 Not connected</div>';
         }
     }
 
-    // Create detailed GSC display
-    function createDetailedGSCDisplay(gscData) {
-        const hasQueries = gscData.topQueries && gscData.topQueries.length > 0;
-        
+    // Create compact GSC display
+    function createCompactGSCDisplay(gscData) {
         return `
-            <!-- Main Metrics Grid -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: ${hasQueries ? '16px' : '0'};">
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #4fc3f7;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #e3f2fd;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1565c0; margin-bottom: 2px;">
                         ${formatNumber(gscData.clicks)}
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Clicks</div>
-                    ${gscData.trend && gscData.trend.clicksChange ? `
-                        <div style="font-size: 0.7rem; margin-top: 2px; color: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#81c784' : '#e57373'};">
-                            ${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%
-                        </div>
-                    ` : ''}
+                    <div style="font-size: 0.7rem; color: #666;">Clicks</div>
                 </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #81c784;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #e3f2fd;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1565c0; margin-bottom: 2px;">
                         ${formatNumber(gscData.impressions)}
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Impressions</div>
-                    ${gscData.trend && gscData.trend.impressionsChange ? `
-                        <div style="font-size: 0.7rem; margin-top: 2px; color: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#81c784' : '#e57373'};">
-                            ${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
-                        </div>
-                    ` : ''}
+                    <div style="font-size: 0.7rem; color: #666;">Impressions</div>
                 </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #ffb74d;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #e3f2fd;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1565c0; margin-bottom: 2px;">
                         ${(gscData.ctr * 100).toFixed(1)}%
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">CTR</div>
+                    <div style="font-size: 0.7rem; color: #666;">CTR</div>
                 </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #f06292;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #e3f2fd;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #1565c0; margin-bottom: 2px;">
                         #${gscData.position.toFixed(0)}
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Avg Position</div>
-                    ${gscData.trend && gscData.trend.positionChange ? `
-                        <div style="font-size: 0.7rem; margin-top: 2px; color: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#81c784' : '#e57373'};">
-                            ${parseFloat(gscData.trend.positionChange) > 0 ? '+' : ''}${gscData.trend.positionChange}
-                        </div>
-                    ` : ''}
+                    <div style="font-size: 0.7rem; color: #666;">Position</div>
                 </div>
             </div>
-
-            ${hasQueries ? `
-                <!-- Top Keywords -->
-                <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; opacity: 0.9;">🎯 Top Keywords:</div>
-                    ${gscData.topQueries.slice(0, 3).map((query, index) => `
-                        <div style="margin-bottom: ${index < 2 ? '6px' : '0'}; font-size: 0.8rem;">
-                            <div style="font-weight: 500; margin-bottom: 2px;">"${escapeHtml(query.query)}"</div>
-                            <div style="opacity: 0.8; font-size: 0.75rem;">
-                                ${query.clicks} clicks • #${query.position.toFixed(0)} position • ${(query.ctr * 100).toFixed(1)}% CTR
-                            </div>
+            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
+                <div style="background: white; padding: 8px; border-radius: 6px; border: 1px solid #e3f2fd; margin-top: 8px;">
+                    <div style="font-size: 0.75rem; font-weight: 600; color: #1565c0; margin-bottom: 6px;">Top Keywords:</div>
+                    ${gscData.topQueries.slice(0, 2).map(query => `
+                        <div style="font-size: 0.7rem; margin-bottom: 3px;">
+                            <div style="font-weight: 500; color: #333;">"${escapeHtml(query.query)}"</div>
+                            <div style="color: #666;">${query.clicks} clicks • #${query.position.toFixed(0)}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -355,83 +355,144 @@
         `;
     }
 
-    // Create detailed GA4 display
-    function createDetailedGA4Display(ga4Data) {
+    // Create compact GA4 display
+    function createCompactGA4Display(ga4Data) {
         return `
-            <!-- Main Metrics Grid -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #4fc3f7;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #ffecb3;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #f57c00; margin-bottom: 2px;">
                         ${formatNumber(ga4Data.users || 0)}
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Users</div>
+                    <div style="font-size: 0.7rem; color: #666;">Users</div>
                 </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #81c784;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #ffecb3;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #f57c00; margin-bottom: 2px;">
                         ${formatNumber(ga4Data.pageViews || 0)}
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Page Views</div>
+                    <div style="font-size: 0.7rem; color: #666;">Page Views</div>
                 </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #ffb74d;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #ffecb3;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #f57c00; margin-bottom: 2px;">
                         ${formatNumber(ga4Data.sessions || 0)}
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Sessions</div>
+                    <div style="font-size: 0.7rem; color: #666;">Sessions</div>
                 </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
-                    <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #f06292;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; border: 1px solid #ffecb3;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #f57c00; margin-bottom: 2px;">
                         ${((ga4Data.engagementRate || 0) * 100).toFixed(0)}%
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.9;">Engagement</div>
-                </div>
-            </div>
-
-            <!-- Additional Metrics Row -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <div style="text-align: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 2px;">
-                        ${formatNumber(ga4Data.newUsers || 0)}
-                    </div>
-                    <div style="font-size: 0.7rem; opacity: 0.8;">New Users</div>
-                </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 2px;">
-                        ${formatDuration(ga4Data.avgSessionDuration || 0)}
-                    </div>
-                    <div style="font-size: 0.7rem; opacity: 0.8;">Avg Duration</div>
-                </div>
-                <div style="text-align: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
-                    <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 2px;">
-                        ${((ga4Data.bounceRate || 0) * 100).toFixed(0)}%
-                    </div>
-                    <div style="font-size: 0.7rem; opacity: 0.8;">Bounce Rate</div>
+                    <div style="font-size: 0.7rem; color: #666;">Engagement</div>
                 </div>
             </div>
         `;
     }
 
-    // Hide function
-    const workingHideFunction = function() {
-        window.hideTimer = setTimeout(() => {
-            if (window.currentTooltip) {
-                window.currentTooltip.style.opacity = '0';
-                setTimeout(() => {
-                    if (window.currentTooltip) {
-                        window.currentTooltip.remove();
-                        window.currentTooltip = null;
-                    }
-                }, 300);
-            }
-        }, 100);
-    };
-
-    // Refresh function
-    window.refreshCombinedTooltipData = function() {
-        console.log('🔄 Refreshing combined tooltip data...');
-        if (window.currentTooltip && window.currentTooltip._nodeData) {
-            loadCombinedAnalyticsData(window.currentTooltip, window.currentTooltip._nodeData);
+    // Fixed hide function with immediate option
+    function hideRefinedTooltip(immediate = false) {
+        if (window.refinedHideTimer) {
+            clearTimeout(window.refinedHideTimer);
         }
-    };
+        
+        const delay = immediate ? 0 : 150;
+        
+        window.refinedHideTimer = setTimeout(() => {
+            if (window.currentRefinedTooltip) {
+                window.currentRefinedTooltip.style.opacity = '0';
+                setTimeout(() => {
+                    if (window.currentRefinedTooltip) {
+                        window.currentRefinedTooltip.remove();
+                        window.currentRefinedTooltip = null;
+                    }
+                }, 200);
+            }
+        }, delay);
+    }
+
+    // Fixed hover behavior
+    function addRefinedHoverBehavior(tooltip) {
+        let isHovering = false;
+        
+        // Mouse enter tooltip
+        tooltip.addEventListener('mouseenter', () => {
+            isHovering = true;
+            if (window.refinedHideTimer) {
+                clearTimeout(window.refinedHideTimer);
+            }
+        });
+        
+        // Mouse leave tooltip
+        tooltip.addEventListener('mouseleave', () => {
+            isHovering = false;
+            hideRefinedTooltip();
+        });
+        
+        // Fixed button clicks using event delegation
+        tooltip.addEventListener('click', (e) => {
+            const button = e.target.closest('.refined-btn');
+            if (!button) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const action = button.dataset.action;
+            const url = button.dataset.url;
+            
+            console.log('🎯 Button clicked:', action, url);
+            
+            switch (action) {
+                case 'visit':
+                    if (url) {
+                        window.open(url, '_blank');
+                    }
+                    break;
+                case 'refresh':
+                    if (window.currentRefinedTooltip && window.currentRefinedTooltip._nodeData) {
+                        loadRefinedAnalyticsData(window.currentRefinedTooltip, window.currentRefinedTooltip._nodeData);
+                    }
+                    break;
+                case 'detailed':
+                    if (window.showDetailedGSCAnalysis && url) {
+                        window.showDetailedGSCAnalysis(url);
+                    }
+                    break;
+            }
+        });
+    }
+
+    // Position tooltip with better boundary detection
+    function positionRefinedTooltip(tooltip, event) {
+        let left = event.pageX + 15;
+        let top = event.pageY - 10;
+        
+        // Initial position
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+        
+        // Adjust after render
+        setTimeout(() => {
+            const rect = tooltip.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            // Horizontal adjustment
+            if (rect.right > windowWidth - 20) {
+                tooltip.style.left = (event.pageX - rect.width - 15) + 'px';
+            }
+            
+            // Vertical adjustment
+            if (rect.bottom > windowHeight - 20) {
+                tooltip.style.top = Math.max(10, event.pageY - rect.height - 15) + 'px';
+            }
+            
+            // Ensure tooltip is always visible
+            if (rect.top < 10) {
+                tooltip.style.top = '10px';
+            }
+            if (rect.left < 10) {
+                tooltip.style.left = '10px';
+            }
+        }, 50);
+    }
 
     // Utility functions
     function formatNumber(num) {
@@ -441,58 +502,48 @@
         return num.toLocaleString();
     }
 
-    function formatDuration(seconds) {
-        if (!seconds || seconds < 1) return '0s';
-        if (seconds < 60) return `${Math.round(seconds)}s`;
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = Math.round(seconds % 60);
-        return `${minutes}m ${remainingSeconds}s`;
-    }
-
     function escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // PROVEN INSTALLATION METHOD (from working aggressive override)
-    function installWorkingTooltipSystem() {
-        console.log('✅ Installing proven working tooltip system...');
+    // Install refined tooltip system
+    function installRefinedTooltipSystem() {
+        console.log('✅ Installing refined tooltip system...');
         
-        // Direct installation (this pattern worked)
-        window.showEnhancedTooltip = workingTooltipFunction;
-        window.hideEnhancedTooltip = workingHideFunction;
+        // Install functions
+        window.showEnhancedTooltip = refinedTooltipFunction;
+        window.hideEnhancedTooltip = hideRefinedTooltip;
         
-        console.log('🎯 Tooltip functions installed:', {
-            show: typeof window.showEnhancedTooltip,
-            hide: typeof window.hideEnhancedTooltip
-        });
+        console.log('🎯 Refined tooltip functions installed');
 
-        // Monitor for interference and reinstall if needed
+        // Monitor for interference
         let checkCount = 0;
         const monitorInterval = setInterval(() => {
             checkCount++;
             
-            // Check if functions are still ours
-            const showIsOurs = window.showEnhancedTooltip === workingTooltipFunction;
-            const hideIsOurs = window.hideEnhancedTooltip === workingHideFunction;
+            if (window.showEnhancedTooltip !== refinedTooltipFunction) {
+                console.log('🔄 Show function overridden, reinstalling...');
+                window.showEnhancedTooltip = refinedTooltipFunction;
+            }
             
-            if (!showIsOurs || !hideIsOurs) {
-                console.log('🔄 Functions overridden, reinstalling...');
-                window.showEnhancedTooltip = workingTooltipFunction;
-                window.hideEnhancedTooltip = workingHideFunction;
+            if (window.hideEnhancedTooltip !== hideRefinedTooltip) {
+                console.log('🔄 Hide function overridden, reinstalling...');
+                window.hideEnhancedTooltip = hideRefinedTooltip;
             }
             
             // Stop monitoring after 30 seconds
             if (checkCount > 150) {
                 clearInterval(monitorInterval);
-                console.log('✅ Tooltip system monitoring complete');
+                console.log('✅ Refined tooltip monitoring complete');
             }
         }, 200);
     }
 
-    // Wait for integrations then install
-    function waitForIntegrationsAndInstall() {
+    // Wait for integrations and install
+    function waitAndInstallRefined() {
         let attempts = 0;
         const maxAttempts = 50;
         
@@ -501,14 +552,12 @@
             const gscReady = !!window.GSCIntegration;
             const ga4Ready = !!window.GA4Integration;
             
-            console.log(`🔍 Integration check ${attempts}/${maxAttempts}:`, { gscReady, ga4Ready });
-            
             if (gscReady && ga4Ready) {
-                console.log('✅ Both integrations ready - installing tooltip system');
-                installWorkingTooltipSystem();
+                console.log('✅ Both integrations ready - installing refined tooltips');
+                installRefinedTooltipSystem();
             } else if (attempts >= maxAttempts) {
-                console.log('⚠️ Max attempts reached - installing anyway');
-                installWorkingTooltipSystem();
+                console.log('⚠️ Max attempts reached - installing refined tooltips anyway');
+                installRefinedTooltipSystem();
             } else {
                 setTimeout(checkReady, 200);
             }
@@ -519,11 +568,11 @@
 
     // Initialize
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', waitForIntegrationsAndInstall);
+        document.addEventListener('DOMContentLoaded', waitAndInstallRefined);
     } else {
-        waitForIntegrationsAndInstall();
+        waitAndInstallRefined();
     }
 
-    console.log('🚀 Final working combined tooltip integration loaded!');
+    console.log('🚀 Refined minimal combined tooltip integration loaded!');
 
 })();
