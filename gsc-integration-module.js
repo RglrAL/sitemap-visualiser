@@ -1568,8 +1568,6 @@ function addSimplifiedTooltipStyles() {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 14px;
             line-height: 1.4;
-            transform: scale(0.95);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .simplified-tooltip h4 {
