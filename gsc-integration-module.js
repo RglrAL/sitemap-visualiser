@@ -1176,8 +1176,9 @@
                     <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
                     ${freshnessInfo}
                 </div>
-                ${data.url ? `<div style="font-size: 0.75rem; color: #666; word-break: break-all; margin-bottom: 8px;">${data.url}</div>` : ''}
-            </div>
+             ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
+onmouseover="this.style.textDecoration='underline'" 
+onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}</div>
         `;
     }
     
@@ -1225,75 +1226,121 @@
     }
     
     function updateTooltipWithGSCData(tooltip, gscData) {
-        const placeholder = tooltip.querySelector('#gsc-placeholder');
-        if (!placeholder) return;
-        
-        if (!gscData || gscData.noDataFound) {
-            placeholder.innerHTML = gscData?.noDataFound ? 
-                '<div style="color: #999; font-size: 0.8rem;">📭 No search data found</div>' : 
-                '<div style="color: #999; font-size: 0.8rem;">❌ Performance data unavailable</div>';
-            return;
-        }
-        
-        // Create simplified GSC content
-        const performanceScore = calculateSimplePerformanceScore(gscData);
-        const gscHtml = `
-            <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
-                    <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
-                        ${performanceScore}/100
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Clicks</div>
-                    </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Impressions</div>
-                    </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                        <div style="font-size: 0.75rem; color: #666;">CTR</div>
-                    </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
-                        <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Position</div>
-                    </div>
-                </div>
-                
-                ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                    <div style="background: white; padding: 10px; border-radius: 6px; border-top: 2px solid #1f4788;">
-                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 6px; font-weight: 500;">🎯 Top Search Query:</div>
-                        <div style="font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 4px;">"${escapeHtml(gscData.topQueries[0].query)}"</div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #666;">
-                            <span>${gscData.topQueries[0].clicks} clicks</span>
-                            <span>#${gscData.topQueries[0].position.toFixed(0)} avg pos</span>
-                            <span>${(gscData.topQueries[0].ctr * 100).toFixed(1)}% CTR</span>
-                        </div>
-                    </div>
-                ` : ''}
-                
-                ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-                    <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-top: 8px;">
-                        <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
-                    </div>
-                ` : ''}
-                
-                <div style="text-align: center; margin-top: 12px;">
-                    <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
-                            style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
-                        📈 Full Analysis
-                    </button>
+    const placeholder = tooltip.querySelector('#gsc-placeholder');
+    if (!placeholder) return;
+    
+    if (!gscData || gscData.noDataFound) {
+        placeholder.innerHTML = gscData?.noDataFound ? 
+            '<div style="color: #999; font-size: 0.8rem;">📭 No search data found</div>' : 
+            '<div style="color: #999; font-size: 0.8rem;">❌ Performance data unavailable</div>';
+        return;
+    }
+    
+    // Create enhanced GSC content with all improvements
+    const performanceScore = calculateSimplePerformanceScore(gscData);
+    const gscHtml = `
+        <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
+                <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                    ${performanceScore}/100
                 </div>
             </div>
-        `;
-        
-        placeholder.outerHTML = gscHtml;
-    }
+            
+            <!-- Enhanced metrics grid with trends -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
+                    <div style="font-size: 0.75rem; color: #666;">Clicks</div>
+                    ${gscData.trend && gscData.trend.clicksChange ? `
+                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px; 
+                                    background: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf5020' : '#f4433620'}; 
+                                    color: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf50' : '#f44336'};">
+                            ${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
+                    <div style="font-size: 0.75rem; color: #666;">Impressions</div>
+                    ${gscData.trend && gscData.trend.impressionsChange ? `
+                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
+                                    background: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf5020' : '#f4433620'};
+                                    color: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf50' : '#f44336'};">
+                            ${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
+                    <div style="font-size: 0.75rem; color: #666;">CTR</div>
+                </div>
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
+                    <div style="font-size: 0.75rem; color: #666;">Position</div>
+                    ${gscData.trend && gscData.trend.positionChange ? `
+                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
+                                    background: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf5020' : '#f4433620'};
+                                    color: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf50' : '#f44336'};">
+                            ${parseFloat(gscData.trend.positionChange) > 0 ? '+' : ''}${gscData.trend.positionChange}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <!-- Top 3 Search Queries Section -->
+            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
+                <div style="background: white; padding: 12px; border-radius: 6px; border-top: 2px solid #1f4788; margin-bottom: 8px;">
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
+                    ${gscData.topQueries.slice(0, 3).map((query, index) => `
+                        <div style="margin-bottom: ${index < 2 ? '8px' : '0'}; padding: ${index < 2 ? '0 0 8px 0' : '0'}; 
+                                    border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+                                <span style="background: #1f4788; color: white; width: 16px; height: 16px; border-radius: 50%; 
+                                            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
+                                    ${index + 1}
+                                </span>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: #333; flex: 1;">"${escapeHtml(query.query)}"</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: #666; margin-left: 24px;">
+                                <span>${query.clicks} clicks</span>
+                                <span>#${query.position.toFixed(0)} avg</span>
+                                <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            <!-- Opportunities section (if any) -->
+            ${gscData.opportunities && gscData.opportunities.length > 0 ? `
+                <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-bottom: 8px;">
+                    <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
+                </div>
+            ` : ''}
+            
+            <!-- Action buttons -->
+            <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px;">
+                <button onclick="window.open('${escapeHtml(gscData.url)}', '_blank')" 
+                        style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
+                        onmouseover="this.style.background='#45a049'" 
+                        onmouseout="this.style.background='#4caf50'">
+                    🔗 Visit Page
+                </button>
+                <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
+                        style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
+                        onmouseover="this.style.background='#1557b0'" 
+                        onmouseout="this.style.background='#1f4788'">
+                    📈 Full Analysis
+                </button>
+            </div>
+        </div>
+    `;
+    
+    placeholder.outerHTML = gscHtml;
+}
     
     function updateGSCPlaceholder(tooltip, message) {
         const placeholder = tooltip.querySelector('#gsc-placeholder');
