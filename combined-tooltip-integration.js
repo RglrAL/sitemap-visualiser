@@ -94,7 +94,7 @@
     }
 
     // Create analytics section with real-time status
-    function createAnalyticsSection() {
+    function createAnalyticsSection(nodeData) {
         return `
             <div id="combined-analytics-container" style="margin-top: 12px;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden;">
@@ -313,8 +313,8 @@
         }
     }
 
-    // Show enhanced tooltip
-    async function showEnhancedTooltip(event, d) {
+    // Enhanced tooltip functions (using window assignment to avoid conflicts)
+    const enhancedTooltipShow = async function(event, d) {
         console.log('🎯 FIXED Enhanced tooltip triggered for:', d.data?.name);
         
         if (!d.data) {
@@ -323,13 +323,13 @@
         }
 
         // Hide any existing tooltip
-        hideEnhancedTooltip();
+        enhancedTooltipHide();
 
         // Create new tooltip
         const tooltip = createCombinedTooltip(d.data);
         
         // Add analytics section
-        tooltip.innerHTML += createAnalyticsSection();
+        tooltip.innerHTML += createAnalyticsSection(d.data);
         
         // Position tooltip
         positionTooltip(tooltip, event);
@@ -340,8 +340,9 @@
         // Show tooltip
         setTimeout(() => tooltip.style.opacity = '1', 10);
         
-        // Store reference
+        // Store reference and node data
         window.currentEnhancedTooltip = tooltip;
+        tooltip._nodeData = d.data;
         
         // Add hover protection
         tooltip.addEventListener('mouseenter', () => {
@@ -351,7 +352,7 @@
         });
         
         tooltip.addEventListener('mouseleave', () => {
-            hideEnhancedTooltip();
+            enhancedTooltipHide();
         });
 
         // Load analytics data
@@ -360,10 +361,9 @@
         } catch (error) {
             console.error('❌ Error loading analytics data:', error);
         }
-    }
+    };
 
-    // Hide enhanced tooltip
-    function hideEnhancedTooltip() {
+    const enhancedTooltipHide = function() {
         window.tooltipHideTimer = setTimeout(() => {
             if (window.currentEnhancedTooltip) {
                 window.currentEnhancedTooltip.style.opacity = '0';
@@ -375,7 +375,7 @@
                 }, 300);
             }
         }, 100);
-    }
+    };
 
     // Utility functions
     function formatNumber(num) {
@@ -410,42 +410,29 @@
     }
 
     // Refresh analytics data function
-    function refreshAnalyticsData() {
-        if (window.currentEnhancedTooltip) {
+    const refreshAnalyticsData = function() {
+        if (window.currentEnhancedTooltip && window.currentEnhancedTooltip._nodeData) {
             const nodeData = window.currentEnhancedTooltip._nodeData;
-            if (nodeData) {
-                loadAnalyticsData(window.currentEnhancedTooltip, nodeData);
-            }
+            loadAnalyticsData(window.currentEnhancedTooltip, nodeData);
         }
-    }
+    };
 
     // Force install the fixed tooltip system
-    function installFixedTooltipSystem() {
+    const installFixedTooltipSystem = function() {
         console.log('🔧 Installing FIXED tooltip system...');
         
         // Remove any existing overrides
         removeForceOverride();
         
-        // Force install our functions
-        window.showEnhancedTooltip = showEnhancedTooltip;
-        window.hideEnhancedTooltip = hideEnhancedTooltip;
+        // Force install our functions using direct assignment
+        window.showEnhancedTooltip = enhancedTooltipShow;
+        window.hideEnhancedTooltip = enhancedTooltipHide;
         window.refreshAnalyticsData = refreshAnalyticsData;
         
-        // Prevent future overrides
-        Object.defineProperty(window, 'showEnhancedTooltip', {
-            value: showEnhancedTooltip,
-            writable: false,
-            configurable: false
-        });
-        
-        Object.defineProperty(window, 'hideEnhancedTooltip', {
-            value: hideEnhancedTooltip,
-            writable: false,
-            configurable: false
-        });
-        
-        console.log('✅ FIXED tooltip system installed and protected');
-    }
+        console.log('✅ FIXED tooltip system installed');
+        console.log('🔧 showEnhancedTooltip type:', typeof window.showEnhancedTooltip);
+        console.log('🔧 hideEnhancedTooltip type:', typeof window.hideEnhancedTooltip);
+    };
 
     // Initialize when ready
     waitForIntegrations(() => {
