@@ -171,16 +171,17 @@
 
     // Initialize
     function initGSCIntegration() {
-        debugLog('Initializing GSC Integration...');
-        addGSCButton();
-        addGSCStyles();
-        addSimplifiedTooltipStyles();
-        initializeGoogleAPI();
-        hookIntoSitemapLoader();
-        hookIntoTooltips();
-        listenForTreeReady();
-        setupCacheCleanup();
-    }
+    debugLog('Initializing GSC Integration...');
+    addGSCButton();
+    addGSCStyles();
+    addSimplifiedTooltipStyles();
+    addLoadingAnimationStyles(); // Add this line
+    initializeGoogleAPI();
+    hookIntoSitemapLoader();
+    hookIntoTooltips();
+    listenForTreeReady();
+    setupCacheCleanup();
+}
 
     // Initialize Google API
     function initializeGoogleAPI() {
@@ -1120,42 +1121,121 @@
     }
     
     function createBasicTooltip(data) {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'enhanced-tooltip simplified-tooltip';
-        tooltip.style.cssText = `
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            max-width: 400px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            pointer-events: auto;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
-        `;
-        
-        // Build basic content
-        let html = createBasicContent(data);
-        
-        // Add GSC placeholder if connected
-        if (gscConnected && data.url) {
-            html += '<div id="gsc-placeholder" style="margin-top: 12px; color: #666; font-size: 0.9rem;">📊 Loading performance data...</div>';
-        }
-        
-        tooltip.innerHTML = html;
-        
-        // Trigger fade in
-        setTimeout(() => {
-            tooltip.style.opacity = '1';
-        }, 10);
-        
-        return tooltip;
+    const tooltip = document.createElement('div');
+    tooltip.className = 'enhanced-tooltip simplified-tooltip';
+    tooltip.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        max-width: 400px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: auto;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+    `;
+    
+    // Build basic content
+    let html = createBasicContent(data);
+    
+    // Add sleek loading progress if connected
+    if (gscConnected && data.url) {
+        html += createSleekLoadingProgress();
     }
+    
+    tooltip.innerHTML = html;
+    
+    // Trigger fade in
+    setTimeout(() => {
+        tooltip.style.opacity = '1';
+    }, 10);
+    
+    return tooltip;
+}
+
+
+
+
+
+    function createSleekLoadingProgress() {
+    return `
+        <div id="gsc-loading-container" style="margin-top: 12px;">
+            <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
+                
+                <!-- Loading header -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="gsc-loading-spinner" style="
+                            width: 16px; 
+                            height: 16px; 
+                            border: 2px solid #e3f2fd; 
+                            border-top: 2px solid #4a90e2; 
+                            border-radius: 50%; 
+                            animation: gsc-spin 1s linear infinite;
+                        "></div>
+                        <span style="font-weight: 600; color: #1f4788; font-size: 0.9rem;">Loading Performance Data</span>
+                    </div>
+                    <span id="gsc-progress-percentage" style="font-size: 0.8rem; color: #666; font-weight: 500;">0%</span>
+                </div>
+                
+                <!-- Progress bar container -->
+                <div style="background: #f0f4ff; border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 12px; position: relative;">
+                    <div id="gsc-progress-bar" style="
+                        height: 100%;
+                        width: 0%;
+                        background: linear-gradient(90deg, #4a90e2 0%, #1f4788 50%, #4a90e2 100%);
+                        background-size: 200% 100%;
+                        border-radius: 10px;
+                        transition: width 0.3s ease;
+                        animation: gsc-shimmer 2s ease-in-out infinite;
+                        position: relative;
+                    "></div>
+                    
+                    <!-- Shimmer overlay -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: -100%;
+                        width: 100%;
+                        height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+                        animation: gsc-shimmer-slide 1.5s ease-in-out infinite;
+                    "></div>
+                </div>
+                
+                <!-- Loading steps -->
+                <div id="gsc-loading-steps" style="font-size: 0.75rem; color: #666;">
+                    <div id="gsc-step-1" class="gsc-step active" style="margin-bottom: 4px; opacity: 0.7;">
+                        🔍 Connecting to Search Console...
+                    </div>
+                    <div id="gsc-step-2" class="gsc-step" style="margin-bottom: 4px; opacity: 0.4;">
+                        📊 Analyzing page performance...
+                    </div>
+                    <div id="gsc-step-3" class="gsc-step" style="margin-bottom: 4px; opacity: 0.4;">
+                        🎯 Finding top keywords...
+                    </div>
+                    <div id="gsc-step-4" class="gsc-step" style="opacity: 0.4;">
+                        ⚡ Identifying opportunities...
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    `;
+}
+
+
+
+    
+
+
+
+    
     
     function createBasicContent(data) {
     const now = new Date();
@@ -1275,22 +1355,189 @@
     
     // Async GSC data loading (non-blocking)
     async function loadGSCDataAsync(data, tooltip) {
-        if (!tooltip || !data.url) return;
+    if (!tooltip || !data.url) return;
+    
+    const progressContainer = tooltip.querySelector('#gsc-loading-container');
+    if (!progressContainer) return;
+    
+    const progressBar = tooltip.querySelector('#gsc-progress-bar');
+    const progressText = tooltip.querySelector('#gsc-progress-percentage');
+    const steps = tooltip.querySelectorAll('.gsc-step');
+    
+    try {
+        // Simulate realistic loading progress
+        const progressStages = [
+            { progress: 15, step: 0, delay: 200 },
+            { progress: 35, step: 1, delay: 300 },
+            { progress: 65, step: 2, delay: 400 },
+            { progress: 85, step: 3, delay: 300 },
+            { progress: 100, step: 3, delay: 200 }
+        ];
         
-        try {
-            const gscData = await fetchNodeGSCData(data);
+        // Animate through progress stages
+        for (let i = 0; i < progressStages.length; i++) {
+            const stage = progressStages[i];
             
-            // Check if tooltip still exists and is the current one
-            if (tooltip === currentTooltip && tooltip.parentNode) {
-                updateTooltipWithGSCData(tooltip, gscData);
+            // Check if tooltip still exists
+            if (tooltip !== currentTooltip || !tooltip.parentNode) return;
+            
+            // Update progress bar
+            if (progressBar) {
+                progressBar.style.width = stage.progress + '%';
             }
-        } catch (error) {
-            console.warn('GSC data loading failed:', error);
-            if (tooltip === currentTooltip && tooltip.parentNode) {
-                updateGSCPlaceholder(tooltip, 'Performance data unavailable');
+            
+            // Update percentage
+            if (progressText) {
+                progressText.textContent = stage.progress + '%';
             }
+            
+            // Update active step
+            steps.forEach((step, index) => {
+                if (index === stage.step) {
+                    step.style.opacity = '1';
+                    step.style.fontWeight = '600';
+                    step.style.color = '#1f4788';
+                } else if (index < stage.step) {
+                    step.style.opacity = '0.8';
+                    step.style.color = '#28a745';
+                    // Add checkmark to completed steps
+                    if (!step.textContent.includes('✅')) {
+                        step.textContent = step.textContent.replace(/🔍|📊|🎯|⚡/, '✅');
+                    }
+                } else {
+                    step.style.opacity = '0.4';
+                    step.style.color = '#666';
+                }
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, stage.delay));
+        }
+        
+        // Fetch the actual GSC data
+        const gscData = await fetchNodeGSCData(data);
+        
+        // Check if tooltip still exists and is the current one
+        if (tooltip === currentTooltip && tooltip.parentNode) {
+            // Add a brief "Complete" state
+            if (progressText) progressText.textContent = 'Complete!';
+            
+            // Fade out loading and show results
+            setTimeout(() => {
+                if (tooltip === currentTooltip && tooltip.parentNode) {
+                    updateTooltipWithGSCData(tooltip, gscData);
+                }
+            }, 300);
+        }
+        
+    } catch (error) {
+        console.warn('GSC data loading failed:', error);
+        if (tooltip === currentTooltip && tooltip.parentNode) {
+            showLoadingError(tooltip, 'Unable to load performance data');
         }
     }
+}
+
+
+
+
+
+    // Show loading error state
+function showLoadingError(tooltip, message) {
+    const progressContainer = tooltip.querySelector('#gsc-loading-container');
+    if (!progressContainer) return;
+    
+    progressContainer.innerHTML = `
+        <div style="background: #fff5f5; padding: 12px; border-radius: 6px; border-left: 3px solid #f56565; text-align: center;">
+            <div style="color: #e53e3e; font-size: 0.85rem; margin-bottom: 4px;">❌ Loading Failed</div>
+            <div style="color: #666; font-size: 0.75rem;">${message}</div>
+        </div>
+    `;
+}
+
+// Add CSS animations for the loading effects
+function addLoadingAnimationStyles() {
+    if (document.getElementById('gsc-loading-animations')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'gsc-loading-animations';
+    style.textContent = `
+        @keyframes gsc-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes gsc-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        @keyframes gsc-shimmer-slide {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+        
+        .gsc-step {
+            transition: all 0.3s ease;
+        }
+        
+        .gsc-step.active {
+            transform: translateX(2px);
+        }
+        
+        #gsc-progress-bar {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #gsc-progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: gsc-progress-shine 2s ease-in-out infinite;
+        }
+        
+        @keyframes gsc-progress-shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+        
+        /* Pulse effect for loading container */
+        #gsc-loading-container {
+            animation: gsc-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes gsc-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.01); }
+        }
+        
+        /* Smooth transitions */
+        #gsc-progress-percentage {
+            transition: all 0.3s ease;
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 480px) {
+            #gsc-loading-steps {
+                font-size: 0.7rem;
+            }
+            
+            #gsc-progress-bar {
+                height: 6px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+
+
+    
 
 
 
