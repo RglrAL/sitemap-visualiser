@@ -1368,6 +1368,713 @@
                 </svg>
                 <span id="gscText">Connect to Search Console</span>
             `;
+    }
+
+    // Helper functions for enhanced analysis
+    function getCTRBenchmark(position) {
+        // Industry standard CTR benchmarks by position
+        if (position <= 1) return 0.28;
+        if (position <= 2) return 0.15;
+        if (position <= 3) return 0.11;
+        if (position <= 4) return 0.08;
+        if (position <= 5) return 0.06;
+        if (position <= 10) return 0.03;
+        return 0.01;
+    }
+
+    function getCTRStatusIcon(performance) {
+        switch(performance) {
+            case 'excellent': return '🌟';
+            case 'good': return '✅';
+            case 'fair': return '⚠️';
+            case 'poor': return '🔴';
+            default: return '❓';
+        }
+    }
+
+    function getPositionStatusIcon(performance) {
+        switch(performance) {
+            case 'excellent': return '🏆';
+            case 'good': return '🥇';
+            case 'fair': return '🥈';
+            case 'poor': return '📉';
+            default: return '❓';
+        }
+    }
+
+    function getPositionGrade(position) {
+        if (position <= 3) return 'A+';
+        if (position <= 5) return 'A';
+        if (position <= 10) return 'B';
+        if (position <= 20) return 'C';
+        return 'D';
+    }
+
+    function getCTRGrade(ctr, benchmark) {
+        const ratio = ctr / benchmark;
+        if (ratio >= 1.5) return 'A+';
+        if (ratio >= 1.2) return 'A';
+        if (ratio >= 1.0) return 'B';
+        if (ratio >= 0.8) return 'C';
+        return 'D';
+    }
+
+    function getTrafficGrade(clicks) {
+        if (clicks >= 1000) return 'A+';
+        if (clicks >= 500) return 'A';
+        if (clicks >= 100) return 'B';
+        if (clicks >= 50) return 'C';
+        return 'D';
+    }
+
+    function getTrendGrade(trend) {
+        if (!trend) return 'N/A';
+        const clickChange = parseFloat(trend.clicksChange);
+        if (clickChange >= 20) return 'A+';
+        if (clickChange >= 10) return 'A';
+        if (clickChange >= 0) return 'B';
+        if (clickChange >= -10) return 'C';
+        return 'D';
+    }
+
+    function getQueryOpportunity(query) {
+        if (query.position > 10 && query.impressions > 100) {
+            return { label: 'HIGH POTENTIAL', color: '#f44336' };
+        }
+        if (query.position > 5 && query.ctr < 0.05) {
+            return { label: 'CTR BOOST', color: '#ff9800' };
+        }
+        if (query.position <= 3 && query.ctr > 0.15) {
+            return { label: 'PERFORMING', color: '#4caf50' };
+        }
+        return { label: 'MONITOR', color: '#666' };
+    }
+
+    function generateQuickWins(gscData, avgPosition, ctrPerformance) {
+        const wins = [];
+        
+        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
+            wins.push({
+                title: 'Optimize Title & Meta Description',
+                description: 'Your CTR is below benchmark. Improve click-through rates with compelling titles.',
+                impact: 'HIGH'
+            });
+        }
+        
+        if (avgPosition > 10 && gscData.impressions > 100) {
+            wins.push({
+                title: 'Target Featured Snippets',
+                description: 'High impressions but low position. Structure content for featured snippets.',
+                impact: 'MEDIUM'
+            });
+        }
+        
+        if (gscData.topQueries && gscData.topQueries.length > 0) {
+            wins.push({
+                title: 'Expand Top-Performing Keywords',
+                description: 'Create supporting content around your best-performing queries.',
+                impact: 'MEDIUM'
+            });
+        }
+        
+        return wins.slice(0, 3); // Limit to 3 quick wins
+    }
+
+    function generateActionPlan(gscData, avgPosition, ctrPerformance) {
+        const actions = [];
+        
+        // Always include content audit
+        actions.push({
+            title: 'Conduct Content Quality Audit',
+            description: 'Review and update content to ensure it matches search intent and provides comprehensive, valuable information.',
+            priority: 'high',
+            timeframe: '1-2 weeks',
+            impact: 'High traffic increase',
+            difficulty: 'Medium'
+        });
+        
+        // CTR optimization if needed
+        if (ctrPerformance === 'poor' || ctrPerformance === 'fair') {
+            actions.push({
+                title: 'Optimize Click-Through Rates',
+                description: 'Rewrite title tags and meta descriptions to be more compelling and include primary keywords. A/B test different variations.',
+                priority: 'high',
+                timeframe: '3-5 days',
+                impact: 'Immediate traffic boost',
+                difficulty: 'Easy'
+            });
+        }
+        
+        // Technical optimization
+        actions.push({
+            title: 'Technical SEO Enhancement',
+            description: 'Improve page speed, mobile responsiveness, and internal linking structure. Ensure proper schema markup implementation.',
+            priority: 'medium',
+            timeframe: '2-3 weeks',
+            impact: 'Long-term ranking gains',
+            difficulty: 'Hard'
+        });
+        
+        return actions;
+    }
+
+    // Enhanced export functions
+    function exportEnhancedGSCData(url) {
+        const gscData = gscDataMap.get(url);
+        if (!gscData || gscData.noDataFound) {
+            alert('No data to export');
+            return;
+        }
+        
+        const performanceScore = calculateSimplePerformanceScore(gscData);
+        const timestamp = new Date().toISOString();
+        
+        let csv = 'GSC Enhanced Analysis Report\n';
+        csv += `Generated: ${timestamp}\n`;
+        csv += `URL: ${url}\n`;
+        csv += `Performance Score: ${performanceScore}/100\n\n`;
+        
+        // Main metrics
+        csv += 'MAIN METRICS\n';
+        csv += 'Metric,Value,Trend\n';
+        csv += `Clicks,${gscData.clicks},${gscData.trend ? gscData.trend.clicksChange + '%' : 'N/A'}\n`;
+        csv += `Impressions,${gscData.impressions},${gscData.trend ? gscData.trend.impressionsChange + '%' : 'N/A'}\n`;
+        csv += `CTR,${(gscData.ctr * 100).toFixed(2)}%,N/A\n`;
+        csv += `Position,${gscData.position.toFixed(1)},${gscData.trend ? gscData.trend.positionChange : 'N/A'}\n\n`;
+        
+        // Top queries
+        if (gscData.topQueries && gscData.topQueries.length > 0) {
+            csv += 'TOP PERFORMING KEYWORDS\n';
+            csv += 'Rank,Query,Clicks,Impressions,CTR,Position,Opportunity\n';
+            gscData.topQueries.forEach((query, index) => {
+                const opp = getQueryOpportunity(query);
+                csv += `${index + 1},"${query.query}",${query.clicks},${query.impressions},${(query.ctr * 100).toFixed(2)}%,${query.position.toFixed(1)},${opp.label}\n`;
+            });
+            csv += '\n';
+        }
+        
+        // Opportunities
+        if (gscData.opportunities && gscData.opportunities.length > 0) {
+            csv += 'OPTIMIZATION OPPORTUNITIES\n';
+            csv += 'Priority,Query,Impressions,Current Clicks,Position,Potential Clicks\n';
+            gscData.opportunities.forEach((opp, index) => {
+                csv += `${index + 1},"${opp.query}",${opp.impressions},${opp.clicks},${opp.position.toFixed(1)},${opp.potentialClicks}\n`;
+            });
+        }
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const csvUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = csvUrl;
+        link.download = `gsc-enhanced-analysis-${url.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(csvUrl);
+    }
+
+    function copyAnalysisToClipboard(url) {
+        const gscData = gscDataMap.get(url);
+        if (!gscData || gscData.noDataFound) {
+            alert('No data to copy');
+            return;
+        }
+        
+        const performanceScore = calculateSimplePerformanceScore(gscData);
+        const summary = `
+📊 GSC PERFORMANCE ANALYSIS
+
+🔗 Page: ${url}
+📈 Performance Score: ${performanceScore}/100
+
+KEY METRICS (Last 30 days):
+• Clicks: ${formatNumber(gscData.clicks)} ${gscData.trend ? `(${gscData.trend.clicksChange > 0 ? '+' : ''}${gscData.trend.clicksChange}%)` : ''}
+• Impressions: ${formatNumber(gscData.impressions)} ${gscData.trend ? `(${gscData.trend.impressionsChange > 0 ? '+' : ''}${gscData.trend.impressionsChange}%)` : ''}
+• CTR: ${(gscData.ctr * 100).toFixed(1)}%
+• Avg Position: #${gscData.position.toFixed(0)}
+
+TOP KEYWORDS:
+${gscData.topQueries ? gscData.topQueries.slice(0, 5).map((q, i) => 
+    `${i + 1}. "${q.query}" - ${q.clicks} clicks, #${q.position.toFixed(0)} position`
+).join('\n') : 'No keyword data available'}
+
+${gscData.opportunities && gscData.opportunities.length > 0 ? `
+🚀 OPPORTUNITIES:
+${gscData.opportunities.slice(0, 3).map((o, i) => 
+    `${i + 1}. "${o.query}" - ${o.impressions} impressions, potential +${o.potentialClicks} clicks`
+).join('\n')}` : ''}
+
+Generated: ${new Date().toLocaleDateString()}
+        `.trim();
+        
+        navigator.clipboard.writeText(summary).then(() => {
+            // Show success message
+            const message = document.createElement('div');
+            message.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: #4caf50; color: white; padding: 15px 25px; border-radius: 8px;
+                font-weight: 600; z-index: 10001; animation: fadeIn 0.3s ease;
+            `;
+            message.textContent = '✅ Analysis copied to clipboard!';
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                message.style.opacity = '0';
+                setTimeout(() => message.remove(), 300);
+            }, 2000);
+        }).catch(() => {
+            alert('Failed to copy to clipboard. Please try again.');
+        });
+    }
+
+    // Export GSC data function
+    function exportGSCData(url) {
+        const gscData = gscDataMap.get(url);
+        if (!gscData || gscData.noDataFound) {
+            alert('No data to export');
+            return;
+        }
+        
+        let csv = 'URL,Clicks,Impressions,CTR,Position,Trend_Clicks,Trend_Impressions,Trend_Position\n';
+        csv += `"${url}",${gscData.clicks},${gscData.impressions},${(gscData.ctr * 100).toFixed(2)}%,${gscData.position.toFixed(1)}`;
+        
+        if (gscData.trend) {
+            csv += `,${gscData.trend.clicksChange}%,${gscData.trend.impressionsChange}%,${gscData.trend.positionChange}`;
+        } else {
+            csv += ',,,';
+        }
+        csv += '\n\n';
+        
+        if (gscData.topQueries && gscData.topQueries.length > 0) {
+            csv += 'Top Queries,Clicks,Impressions,CTR,Position\n';
+            gscData.topQueries.forEach(query => {
+                csv += `"${query.query}",${query.clicks},${query.impressions},${(query.ctr * 100).toFixed(2)}%,${query.position.toFixed(1)}\n`;
+            });
+            csv += '\n';
+        }
+        
+        if (gscData.opportunities && gscData.opportunities.length > 0) {
+            csv += 'Optimization Opportunities,Impressions,Clicks,CTR,Position,Potential_Clicks\n';
+            gscData.opportunities.forEach(opp => {
+                csv += `"${opp.query}",${opp.impressions},${opp.clicks},${(opp.ctr * 100).toFixed(2)}%,${opp.position.toFixed(1)},${opp.potentialClicks}\n`;
+            });
+        }
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const csvUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = csvUrl;
+        link.download = `gsc-analysis-${url.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(csvUrl);
+    }
+
+    // Expose to global scope
+    window.exportGSCData = exportGSCData;
+    window.exportEnhancedGSCData = exportEnhancedGSCData;
+    window.copyAnalysisToClipboard = copyAnalysisToClipboard;
+
+    // ===========================================
+    // DEBUGGING TOOLS AND DIAGNOSTICS
+    // ===========================================
+
+    function initializeDebugging() {
+        // GSC Debugging and Diagnostic Tools
+        window.GSCDebugger = {
+            
+            // Test connection and site matching
+            async testConnection() {
+                console.group('🔍 GSC Connection Test');
+                
+                const status = window.GSCIntegration.debug.getStatus();
+                console.table(status);
+                
+                if (!status.gscConnected) {
+                    console.error('❌ Not connected to GSC');
+                    console.groupEnd();
+                    return;
+                }
+                
+                // Test basic API access
+                try {
+                    const sites = await robustGSCApiCall(async () => {
+                        return await gapi.client.request({
+                            path: 'https://www.googleapis.com/webmasters/v3/sites',
+                            method: 'GET'
+                        });
+                    });
+                    console.log('✅ API Access OK');
+                    console.log('Available sites:', sites.result.siteEntry);
+                } catch (error) {
+                    console.error('❌ API Access Failed:', error);
+                }
+                
+                console.groupEnd();
+            },
+
+            // Test URL matching for a specific URL
+            async testUrlMatching(testUrl) {
+                console.group(`🎯 URL Matching Test: ${testUrl}`);
+                
+                if (!window.GSCIntegration.isConnected()) {
+                    console.error('❌ GSC not connected');
+                    console.groupEnd();
+                    return;
+                }
+                
+                const variations = createEnhancedUrlVariations(testUrl);
+                console.log(`Generated ${variations.length} variations:`);
+                variations.forEach((v, i) => console.log(`${i + 1}. ${v}`));
+                
+                // Test each variation
+                const results = [];
+                for (const [index, variation] of variations.entries()) {
+                    console.log(`\n🧪 Testing variation ${index + 1}: ${variation}`);
+                    
+                    try {
+                        const today = new Date();
+                        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                        
+                        const result = await robustGSCApiCall(async () => {
+                            return await gapi.client.request({
+                                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                                method: 'POST',
+                                body: {
+                                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                                    endDate: today.toISOString().split('T')[0],
+                                    dimensions: ['page'],
+                                    dimensionFilterGroups: [{
+                                        filters: [{
+                                            dimension: 'page',
+                                            operator: 'equals',
+                                            expression: variation
+                                        }]
+                                    }],
+                                    rowLimit: 1
+                                }
+                            });
+                        });
+                        
+                        const hasData = result.result.rows && result.result.rows.length > 0;
+                        results.push({
+                            variation,
+                            success: true,
+                            hasData,
+                            data: hasData ? result.result.rows[0] : null
+                        });
+                        
+                        console.log(hasData ? '✅ HAS DATA' : '⚪ NO DATA', hasData ? result.result.rows[0] : '');
+                        
+                        if (hasData) {
+                            break; // Found data, no need to test more
+                        }
+                        
+                    } catch (error) {
+                        results.push({
+                            variation,
+                            success: false,
+                            error: error.message
+                        });
+                        console.log('❌ ERROR:', error.message);
+                    }
+                    
+                    // Small delay between tests
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                
+                console.log('\n📊 Summary:');
+                console.table(results);
+                
+                const successful = results.filter(r => r.success && r.hasData);
+                if (successful.length > 0) {
+                    console.log(`✅ Found ${successful.length} working variation(s)`);
+                } else {
+                    console.log('❌ No variations returned data');
+                    console.log('💡 Suggestions:');
+                    console.log('   - Check if URL exists in GSC (try searching manually)');
+                    console.log('   - Verify the site property is correct');
+                    console.log('   - Check if URL has received clicks in the last 30 days');
+                }
+                
+                console.groupEnd();
+                return results;
+            },
+
+            // Analyze sitemap vs GSC coverage
+            async analyzeCoverage() {
+                console.group('📈 Sitemap vs GSC Coverage Analysis');
+                
+                if (!window.treeData) {
+                    console.error('❌ No sitemap data loaded');
+                    console.groupEnd();
+                    return;
+                }
+                
+                // Get all URLs from sitemap
+                const allUrls = [];
+                function collectUrls(node) {
+                    if (node.url) allUrls.push(node.url);
+                    if (node.children) {
+                        node.children.forEach(collectUrls);
+                    }
+                }
+                collectUrls(window.treeData);
+                
+                console.log(`📋 Found ${allUrls.length} URLs in sitemap`);
+                
+                // Sample a few URLs for testing (to avoid rate limits)
+                const sampleUrls = allUrls.slice(0, Math.min(10, allUrls.length));
+                console.log(`🧪 Testing sample of ${sampleUrls.length} URLs`);
+                
+                const coverage = {
+                    total: allUrls.length,
+                    tested: 0,
+                    found: 0,
+                    notFound: 0,
+                    errors: 0
+                };
+                
+                for (const url of sampleUrls) {
+                    coverage.tested++;
+                    console.log(`\n🔍 Testing: ${url}`);
+                    
+                    try {
+                        const variations = createEnhancedUrlVariations(url);
+                        let found = false;
+                        
+                        for (const variation of variations.slice(0, 5)) { // Limit variations for speed
+                            try {
+                                const today = new Date();
+                                const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                                
+                                const result = await robustGSCApiCall(async () => {
+                                    return await gapi.client.request({
+                                        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                                        method: 'POST',
+                                        body: {
+                                            startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                                            endDate: today.toISOString().split('T')[0],
+                                            dimensions: ['page'],
+                                            dimensionFilterGroups: [{
+                                                filters: [{
+                                                    dimension: 'page',
+                                                    operator: 'equals',
+                                                    expression: variation
+                                                }]
+                                            }],
+                                            rowLimit: 1
+                                        }
+                                    });
+                                });
+                                
+                                if (result.result.rows && result.result.rows.length > 0) {
+                                    console.log(`✅ Found data for: ${variation}`);
+                                    found = true;
+                                    coverage.found++;
+                                    break;
+                                }
+                                
+                            } catch (error) {
+                                // Continue with next variation
+                            }
+                            
+                            // Rate limiting
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        
+                        if (!found) {
+                            console.log('⚪ No data found');
+                            coverage.notFound++;
+                        }
+                        
+                    } catch (error) {
+                        console.log('❌ Error:', error.message);
+                        coverage.errors++;
+                    }
+                }
+                
+                console.log('\n📊 Coverage Summary:');
+                console.table(coverage);
+                
+                const coveragePercent = (coverage.found / coverage.tested * 100).toFixed(1);
+                console.log(`🎯 Coverage: ${coveragePercent}% of tested URLs found in GSC`);
+                
+                if (coverage.found < coverage.tested * 0.5) {
+                    console.log('\n💡 Low coverage suggestions:');
+                    console.log('   - Check if the correct GSC property is selected');
+                    console.log('   - Verify URLs in sitemap match those in GSC');
+                    console.log('   - Consider if pages have received organic clicks recently');
+                }
+                
+                console.groupEnd();
+                return coverage;
+            },
+
+            // Show current cache status
+            showCacheStatus() {
+                console.group('💾 GSC Cache Status');
+                
+                const cacheSize = gscDataMap.size;
+                console.log(`Total cached entries: ${cacheSize}`);
+                
+                if (cacheSize === 0) {
+                    console.log('ℹ️ Cache is empty');
+                } else {
+                    const entries = Array.from(gscDataMap.entries());
+                    const withData = entries.filter(([url, data]) => !data.noDataFound);
+                    const noData = entries.filter(([url, data]) => data.noDataFound);
+                    
+                    console.log(`✅ With data: ${withData.length}`);
+                    console.log(`⚪ No data found: ${noData.length}`);
+                    
+                    // Show some examples
+                    if (withData.length > 0) {
+                        console.log('\n📊 Sample entries with data:');
+                        withData.slice(0, 3).forEach(([url, data]) => {
+                            console.log(`${url}: ${data.clicks} clicks, ${data.impressions} impressions`);
+                        });
+                    }
+                    
+                    if (noData.length > 0) {
+                        console.log('\n⚪ Sample entries without data:');
+                        noData.slice(0, 3).forEach(([url, data]) => {
+                            console.log(`${url}: No data (tried ${data.triedVariations || 'unknown'} variations)`);
+                        });
+                    }
+                }
+                
+                console.groupEnd();
+            },
+
+            // Clear cache and restart
+            async restart() {
+                console.log('🔄 Restarting GSC Integration...');
+                window.GSCIntegration.reset();
+                console.log('✅ Cache cleared, ready for fresh start');
+            }
+        };
+
+        // Add keyboard shortcut for debugging
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+G for GSC debugging
+            if (e.key === 'G' && e.ctrlKey && e.shiftKey) {
+                e.preventDefault();
+                console.log('🔧 GSC Debugger activated! Try:');
+                console.log('   GSCDebugger.testConnection()');
+                console.log('   GSCDebugger.testUrlMatching("your-url-here")');
+                console.log('   GSCDebugger.analyzeCoverage()');
+                console.log('   GSCDebugger.showCacheStatus()');
+                window.GSCDebugger.testConnection();
+            }
+        });
+
+        debugLog('Debugging tools initialized');
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+L to load GSC data for all visible nodes
+        if (e.key === 'l' && e.ctrlKey && gscConnected && gscDataLoaded) {
+            e.preventDefault();
+            loadVisibleNodesGSCData();
+            
+            const feedback = document.createElement('div');
+            feedback.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(74, 144, 226, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 14px;
+                z-index: 10001;
+                pointer-events: none;
+            `;
+            feedback.textContent = 'Loading enhanced GSC data for visible nodes...';
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                setTimeout(() => feedback.remove(), 300);
+            }, 2000);
+        }
+
+        // Ctrl+Shift+R to refresh GSC connection
+        if (e.key === 'R' && e.ctrlKey && e.shiftKey && gscConnected) {
+            e.preventDefault();
+            debugLog('Manual refresh triggered via keyboard shortcut');
+            
+            const refreshFeedback = document.createElement('div');
+            refreshFeedback.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 152, 0, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 14px;
+                z-index: 10001;
+                pointer-events: none;
+            `;
+            refreshFeedback.textContent = 'Refreshing GSC connection...';
+            document.body.appendChild(refreshFeedback);
+            
+            // Refresh token
+            refreshToken().then(() => {
+                refreshFeedback.textContent = 'GSC connection refreshed!';
+                refreshFeedback.style.background = 'rgba(76, 175, 80, 0.9)';
+                
+                setTimeout(() => {
+                    refreshFeedback.style.opacity = '0';
+                    setTimeout(() => refreshFeedback.remove(), 300);
+                }, 2000);
+            }).catch((error) => {
+                refreshFeedback.textContent = 'Refresh failed: ' + error.message;
+                refreshFeedback.style.background = 'rgba(244, 67, 54, 0.9)';
+                
+                setTimeout(() => {
+                    refreshFeedback.style.opacity = '0';
+                    setTimeout(() => refreshFeedback.remove(), 300);
+                }, 3000);
+            });
+        }
+    });
+
+    // Console welcome message
+    setTimeout(() => {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(`
+🚀 GSC Integration Module Loaded!
+
+Enhanced features:
+• Robust URL matching with 15+ variations
+• Automatic token refresh and error recovery  
+• Connection health monitoring
+• Comprehensive debugging tools
+
+Keyboard shortcuts:
+• Ctrl+L: Load GSC data for all visible nodes
+• Ctrl+Shift+G: Open GSC debugger  
+• Ctrl+Shift+R: Refresh GSC connection
+
+Debugging commands:
+• GSCDebugger.testConnection()
+• GSCDebugger.testUrlMatching("your-url")
+• GSCDebugger.analyzeCoverage()
+• GSCDebugger.showCacheStatus()
+
+API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
+            `);
+        }
+    }, 1000);
+
+})();
             
             gscButton.style.cssText = `
                 display: flex !important;
@@ -2746,10 +3453,7 @@
         
         modal.appendChild(content);
         document.body.appendChild(modal);
-    }
-
-   
-        
+    };
 
     // Enhanced analysis HTML generation with modern design
     function generateEnhancedDetailedAnalysisHTML(url, gscData) {
@@ -3151,7 +3855,6 @@
                 </div>
             </div>
         `;
-    }
 
     // Helper functions for enhanced analysis
     function getCTRBenchmark(position) {
