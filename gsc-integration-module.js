@@ -1567,39 +1567,7 @@ function replaceLoadingWithGSCData(tooltip, gscData, originalData) {
         <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
             
             <!-- Header with matched freshness info -->
-            ${freshnessData ? `
-                <div style="background: #f0f4ff; padding: 8px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #4a90e2;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 0.8rem; color: #666;">📅 Last Updated:</span>
-                            <span style="font-size: 0.85rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
-                            <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
-                        </div>
-                        <span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>
-                    </div>
-                </div>
-            ` : ''}
             
-            <!-- Page Info Section -->
-            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #6c757d;">
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.75rem;">
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">🏷️</span>
-                        <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">📏 Level ${pageInfo.depth}</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">👶</span>
-                        <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children} children</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">👫</span>
-                        <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings} siblings</span>
-                    </div>
-                </div>
-            </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
