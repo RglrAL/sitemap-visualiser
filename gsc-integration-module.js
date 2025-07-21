@@ -1198,7 +1198,7 @@ function createEnhancedHeader(data) {
 }
 
 
-unction createPageInfoSection(data, d) {
+function createPageInfoSection(data, d) {
     // Calculate page structure info
     let descendantCount = 0;
     let siblingCount = 0;
@@ -1291,70 +1291,9 @@ unction createPageInfoSection(data, d) {
         }
     }
     
-    function createBasicTooltip(data) {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'enhanced-tooltip simplified-tooltip';
-        tooltip.style.cssText = `
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            max-width: 400px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            pointer-events: auto;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
-        `;
-        
-        // Build basic content
-        let html = createBasicContent(data);
-        
-        // Add GSC placeholder if connected
-        if (gscConnected && data.url) {
-            html += '<div id="gsc-placeholder" style="margin-top: 12px; color: #666; font-size: 0.9rem;">📊 Loading performance data...</div>';
-        }
-        
-        tooltip.innerHTML = html;
-        
-        // Trigger fade in
-        setTimeout(() => {
-            tooltip.style.opacity = '1';
-        }, 10);
-        
-        return tooltip;
-    }
     
-    function createBasicContent(data) {
-        const now = new Date();
-        let freshnessInfo = '';
-        
-        if (data.lastModified) {
-            const lastMod = new Date(data.lastModified);
-            const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
-            const freshnessLabel = daysSince < 30 ? 'Recent' : 
-                                 daysSince < 90 ? 'Fresh' : 
-                                 daysSince < 180 ? 'Aging' : 'Old';
-            const freshnessColor = daysSince < 30 ? '#4caf50' : 
-                                  daysSince < 90 ? '#8bc34a' : 
-                                  daysSince < 180 ? '#ff9800' : '#f44336';
-            freshnessInfo = `<span style="background: ${freshnessColor}20; color: ${freshnessColor}; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500;">${freshnessLabel}</span>`;
-        }
-        
-        return `
-            <div style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
-                    <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
-                    ${freshnessInfo}
-                </div>
-                ${data.url ? `<div style="font-size: 0.75rem; color: #666; word-break: break-all; margin-bottom: 8px;">${data.url}</div>` : ''}
-            </div>
-        `;
-    }
+    
+    
     
     function positionTooltip(tooltip, event) {
         // Simple positioning - no complex edge detection
@@ -1551,44 +1490,7 @@ function calculateCTRTrend(gscData, trendData) {
     return ((currentCTR - previousCTR) / previousCTR * 100);
 }
 
-// Add enhanced tooltip styles
-function addSimplifiedTooltipStyles() {
-    if (document.getElementById('simplified-tooltip-styles')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'simplified-tooltip-styles';
-    style.textContent = `
-        .simplified-tooltip {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        
-        .simplified-tooltip h4 {
-            margin: 0 0 4px 0;
-            font-size: 1rem;
-            color: white;
-        }
-        
-        .loading-dots {
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        @media (max-width: 768px) {
-            .simplified-tooltip {
-                max-width: 350px;
-                min-width: 280px;
-                font-size: 13px;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
+
     
     function updateGSCPlaceholder(tooltip, message) {
         const placeholder = tooltip.querySelector('#gsc-placeholder');
@@ -1840,6 +1742,38 @@ function addSimplifiedTooltipStyles() {
         `;
         document.body.appendChild(indicator);
     }
+
+
+    // Helper function to format relative dates
+function formatRelativeDate(date) {
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) return `${Math.ceil(diffDays / 30)} months ago`;
+    return `${Math.ceil(diffDays / 365)} years ago`;
+}
+
+// Helper function to calculate CTR trend
+function calculateCTRTrend(gscData, trendData) {
+    if (!trendData || !trendData.clicksChange || !trendData.impressionsChange) return null;
+    
+    const currentCTR = gscData.ctr;
+    const clicksChange = parseFloat(trendData.clicksChange) / 100;
+    const impressionsChange = parseFloat(trendData.impressionsChange) / 100;
+    
+    const previousClicks = gscData.clicks / (1 + clicksChange);
+    const previousImpressions = gscData.impressions / (1 + impressionsChange);
+    const previousCTR = previousClicks / previousImpressions;
+    
+    return ((currentCTR - previousCTR) / previousCTR * 100);
+}
+
+
+    
 
     function hideGSCLoadingIndicator() {
         const indicator = document.getElementById('gscLoadingIndicator');
