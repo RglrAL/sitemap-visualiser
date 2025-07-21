@@ -8,6 +8,11 @@
         SCOPES: 'https://www.googleapis.com/auth/webmasters.readonly'
     };
 
+    let tooltipTimeout = null;
+let isOverTooltip = false;
+let isOverNode = false;
+let currentTooltipNode = null;
+
     // GSC data storage
     let gscDataMap = new Map();
     let gscConnected = false;
@@ -174,6 +179,8 @@
         hookIntoTooltips();
         listenForTreeReady();
         setupCacheCleanup();
+        addTooltipInteractionStyles();
+
     }
 
     // Initialize Google API
@@ -3041,19 +3048,40 @@ function getCleanedStyles() {
 
     // Hook into tooltips with enhanced display
     function hookIntoTooltips() {
-        const checkAndHook = () => {
-            if (window.showEnhancedTooltip) {
-                const originalShowEnhancedTooltip = window.showEnhancedTooltip;
-                window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
-                    showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC);
+    const checkAndHook = () => {
+        if (window.showEnhancedTooltip) {
+            // Store the original function
+            const originalShowEnhancedTooltip = window.showEnhancedTooltip;
+            
+            // Create our enhanced version
+            window.showEnhancedTooltip = function(event, d, isLoadingGSC = false) {
+                currentTooltipNode = d;
+                showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC);
+            };
+            
+            // Also hook into the hide function if it exists
+            if (window.hideEnhancedTooltip) {
+                const originalHideTooltip = window.hideEnhancedTooltip;
+                window.hideEnhancedTooltip = function() {
+                    // Add a delay before hiding
+                    if (tooltipTimeout) clearTimeout(tooltipTimeout);
+                    
+                    tooltipTimeout = setTimeout(() => {
+                        if (!isOverTooltip && !isOverNode) {
+                            originalHideTooltip.apply(this, arguments);
+                            currentTooltipNode = null;
+                        }
+                    }, 200); // 200ms delay before hiding
                 };
-                debugLog('Hooked into tooltip display');
-            } else {
-                setTimeout(checkAndHook, 100);
             }
-        };
-        checkAndHook();
-    }
+            
+            debugLog('Hooked into tooltip display with enhanced mouse handling');
+        } else {
+            setTimeout(checkAndHook, 100);
+        }
+    };
+    checkAndHook();
+}
 
     // ============================================================================
     // ENHANCED TOOLTIP DISPLAY FUNCTIONS
@@ -3061,152 +3089,250 @@ function getCleanedStyles() {
 
     // Enhanced tooltip with improved GSC data display
     function showEnhancedTooltipWithImprovedGSC(event, d, isLoadingGSC = false) {
-        if (!window.enhancedTooltip || !d.data) return;
-        
-        const data = d.data;
-        const now = new Date();
-        
-        // Trigger lazy loading if needed
-        if (gscConnected && gscDataLoaded && data.url && !gscDataMap.has(data.url) && !isLoadingGSC) {
-            isLoadingGSC = true;
-            fetchNodeGSCData(data).then(() => {
-                const currentTooltip = document.querySelector('.enhanced-tooltip.visible');
-                if (currentTooltip) {
-                    showEnhancedTooltipWithImprovedGSC(event, d, false);
-                }
-            });
-        }
-        
-        // Calculate freshness and basic info
-        let freshnessClass = '';
-        let freshnessLabel = 'No date';
-        if (data.lastModified) {
-            const lastMod = new Date(data.lastModified);
-            const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
-            
-            if (daysSince < 30) {
-                freshnessClass = 'freshness-new';
-                freshnessLabel = 'New';
-            } else if (daysSince < 90) {
-                freshnessClass = 'freshness-fresh';
-                freshnessLabel = 'Fresh';
-            } else if (daysSince < 180) {
-                freshnessClass = 'freshness-recent';
-                freshnessLabel = 'Recent';
-            } else if (daysSince < 365) {
-                freshnessClass = 'freshness-aging';
-                freshnessLabel = 'Aging';
-            } else if (daysSince < 730) {
-                freshnessClass = 'freshness-old';
-                freshnessLabel = 'Old';
-            } else {
-                freshnessClass = 'freshness-stale';
-                freshnessLabel = 'Stale';
+    if (!window.enhancedTooltip || !d.data) return;
+    
+    const data = d.data;
+    const now = new Date();
+    
+    // Clear any existing hide timeout
+    if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+        tooltipTimeout = null;
+    }
+    
+    // Mark that we're over a node
+    isOverNode = true;
+    
+    // Trigger lazy loading if needed
+    if (gscConnected && gscDataLoaded && data.url && !gscDataMap.has(data.url) && !isLoadingGSC) {
+        isLoadingGSC = true;
+        fetchNodeGSCData(data).then(() => {
+            const currentTooltip = document.querySelector('.enhanced-tooltip.visible');
+            if (currentTooltip && currentTooltipNode === d) {
+                showEnhancedTooltipWithImprovedGSC(event, d, false);
             }
-        }
+        });
+    }
+    
+    // ... [Keep all the existing tooltip content generation code] ...
+    // Calculate freshness and basic info
+    let freshnessClass = '';
+    let freshnessLabel = 'No date';
+    if (data.lastModified) {
+        const lastMod = new Date(data.lastModified);
+        const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
         
-        // Calculate descendant/sibling counts
-        let descendantCount = 0;
-        let siblingCount = 0;
-        function countDescendants(node) {
-            if (node.children) {
-                descendantCount += node.children.length;
-                node.children.forEach(child => countDescendants(child));
-            } else if (node._children) {
-                descendantCount += node._children.length;
-                node._children.forEach(child => countDescendants(child));
-            }
+        if (daysSince < 30) {
+            freshnessClass = 'freshness-new';
+            freshnessLabel = 'New';
+        } else if (daysSince < 90) {
+            freshnessClass = 'freshness-fresh';
+            freshnessLabel = 'Fresh';
+        } else if (daysSince < 180) {
+            freshnessClass = 'freshness-recent';
+            freshnessLabel = 'Recent';
+        } else if (daysSince < 365) {
+            freshnessClass = 'freshness-aging';
+            freshnessLabel = 'Aging';
+        } else if (daysSince < 730) {
+            freshnessClass = 'freshness-old';
+            freshnessLabel = 'Old';
+        } else {
+            freshnessClass = 'freshness-stale';
+            freshnessLabel = 'Stale';
         }
-        countDescendants(d);
+    }
+    
+    // Calculate descendant/sibling counts
+    let descendantCount = 0;
+    let siblingCount = 0;
+    function countDescendants(node) {
+        if (node.children) {
+            descendantCount += node.children.length;
+            node.children.forEach(child => countDescendants(child));
+        } else if (node._children) {
+            descendantCount += node._children.length;
+            node._children.forEach(child => countDescendants(child));
+        }
+    }
+    countDescendants(d);
 
-        if (d.parent) {
-            siblingCount = (d.parent.children ? d.parent.children.length : 
-                           d.parent._children ? d.parent._children.length : 0) - 1;
-        }
-        
-        const isLeaf = !d.children && !d._children;
-        const nodeType = d.depth === 0 ? 'Root' : 
-                        d.depth === 1 ? 'Language/Category' :
-                        isLeaf ? 'Page' : 'Section';
-        
-        // Start building the enhanced tooltip
-        let html = `
-            <div class="tooltip-header-enhanced">
-                <div class="tooltip-title-row">
-                    <span class="tooltip-page-title">${data.name}</span>
-                    <span class="tooltip-freshness ${freshnessClass}">${freshnessLabel}</span>
-                </div>
-                ${data.url ? `<div class="tooltip-url">${data.url}</div>` : ''}
+    if (d.parent) {
+        siblingCount = (d.parent.children ? d.parent.children.length : 
+                       d.parent._children ? d.parent._children.length : 0) - 1;
+    }
+    
+    const isLeaf = !d.children && !d._children;
+    const nodeType = d.depth === 0 ? 'Root' : 
+                    d.depth === 1 ? 'Language/Category' :
+                    isLeaf ? 'Page' : 'Section';
+    
+    // Start building the enhanced tooltip
+    let html = `
+        <div class="tooltip-header-enhanced">
+            <div class="tooltip-title-row">
+                <span class="tooltip-page-title">${data.name}</span>
+                <span class="tooltip-freshness ${freshnessClass}">${freshnessLabel}</span>
             </div>
-        `;
+            ${data.url ? `<div class="tooltip-url">${data.url}</div>` : ''}
+        </div>
+    `;
+    
+    // GSC Performance Section
+    if (gscConnected && data.url) {
+        const gscData = gscDataMap.get(data.url);
         
-        // GSC Performance Section
-        if (gscConnected && data.url) {
-            const gscData = gscDataMap.get(data.url);
-            
-            if (isLoadingGSC || (!gscData && !gscDataMap.has(data.url))) {
-                html += createGSCLoadingSection();
-            } else if (gscData && !gscData.noDataFound) {
-                html += createEnhancedGSCSection(gscData);
-            } else if (gscData && gscData.noDataFound) {
-                html += createNoGSCDataSection();
+        if (isLoadingGSC || (!gscData && !gscDataMap.has(data.url))) {
+            html += createGSCLoadingSection();
+        } else if (gscData && !gscData.noDataFound) {
+            html += createEnhancedGSCSection(gscData);
+        } else if (gscData && gscData.noDataFound) {
+            html += createNoGSCDataSection();
+        }
+    }
+    
+    // Basic site structure info
+    html += createSiteStructureSection(d, nodeType, descendantCount, siblingCount, isLeaf, data);
+    
+    // Actions section
+    html += createActionsSection(data, d, isLeaf);
+    
+    // Apply the HTML and show tooltip
+    window.enhancedTooltip.html(html);
+    
+    // Position tooltip - ADJUSTED POSITIONING
+    const tooltipNode = window.enhancedTooltip.node();
+    const tooltipRect = tooltipNode.getBoundingClientRect();
+    const pageWidth = window.innerWidth;
+    const pageHeight = window.innerHeight;
+    
+    // Reduce the gap between node and tooltip
+    let left = event.pageX + 10; // Reduced from 15
+    let top = event.pageY - tooltipRect.height / 2;
+    
+    if (left + tooltipRect.width > pageWidth - 20) {
+        left = event.pageX - tooltipRect.width - 10; // Reduced from 15
+    }
+    
+    if (top < 20) {
+        top = 20;
+    } else if (top + tooltipRect.height > pageHeight - 20) {
+        top = pageHeight - tooltipRect.height - 20;
+    }
+    
+    window.enhancedTooltip
+        .style("left", left + "px")
+        .style("top", top + "px")
+        .style("opacity", 0)
+        .classed("visible", true)
+        .transition()
+        .duration(200)
+        .style("opacity", 1);
+    
+    // Enhanced mouse event handling for the tooltip
+    window.enhancedTooltip
+        .on("mouseenter", function() {
+            isOverTooltip = true;
+            if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = null;
             }
+        })
+        .on("mouseleave", function() {
+            isOverTooltip = false;
+            hideTooltipWithDelay();
+        });
+}
+
+// Add this helper function for delayed hiding
+function hideTooltipWithDelay() {
+    if (tooltipTimeout) clearTimeout(tooltipTimeout);
+    
+    tooltipTimeout = setTimeout(() => {
+        if (!isOverTooltip && !isOverNode && window.enhancedTooltip) {
+            window.enhancedTooltip
+                .transition()
+                .duration(200)
+                .style("opacity", 0)
+                .on("end", function() {
+                    d3.select(this).classed("visible", false);
+                    currentTooltipNode = null;
+                });
         }
-        
-        // Basic site structure info
-        html += createSiteStructureSection(d, nodeType, descendantCount, siblingCount, isLeaf, data);
-        
-        // Actions section
-        html += createActionsSection(data, d, isLeaf);
-        
-        // Apply the HTML and show tooltip
-        window.enhancedTooltip.html(html);
-        
-        // Position tooltip
-        const tooltipNode = window.enhancedTooltip.node();
-        const tooltipRect = tooltipNode.getBoundingClientRect();
-        const pageWidth = window.innerWidth;
-        const pageHeight = window.innerHeight;
-        
-        let left = event.pageX + 15;
-        let top = event.pageY - tooltipRect.height / 2;
-        
-        if (left + tooltipRect.width > pageWidth - 20) {
-            left = event.pageX - tooltipRect.width - 15;
-        }
-        
-        if (top < 20) {
-            top = 20;
-        } else if (top + tooltipRect.height > pageHeight - 20) {
-            top = pageHeight - tooltipRect.height - 20;
-        }
-        
-        window.enhancedTooltip
-            .style("left", left + "px")
-            .style("top", top + "px")
-            .style("opacity", 0)
-            .classed("visible", true)
-            .transition()
-            .duration(200)
-            .style("opacity", 1);
-            
-        // Add mouse events to the tooltip itself
-        window.enhancedTooltip
-            .on("mouseenter", function() {
-                window.tooltipMouseOver = true;
-                if (window.hideTooltipTimeout) clearTimeout(window.hideTooltipTimeout);
+    }, 300); // 300ms delay before checking if we should hide
+}
+
+// Add event listeners to the nodes to track mouse state
+function setupNodeMouseTracking() {
+    // This should be called after the D3 visualization is created
+    if (window.d3 && window.d3.selectAll) {
+        window.d3.selectAll('.node')
+            .on('mouseenter.gsc', function(event, d) {
+                isOverNode = true;
+                if (tooltipTimeout) clearTimeout(tooltipTimeout);
             })
-            .on("mouseleave", function() {
-                window.tooltipMouseOver = false;
-                window.enhancedTooltip
-                    .transition()
-                    .duration(200)
-                    .style("opacity", 0)
-                    .on("end", function() {
-                        d3.select(this).classed("visible", false);
-                    });
+            .on('mouseleave.gsc', function(event, d) {
+                isOverNode = false;
+                hideTooltipWithDelay();
             });
     }
+}
+
+// Hook into the tree ready event to set up node tracking
+gscEvents.on('treeReady', () => {
+    setTimeout(() => {
+        setupNodeMouseTracking();
+    }, 500);
+});
+
+// Also add some CSS to improve tooltip interaction
+function addTooltipInteractionStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Improve tooltip interaction */
+        .enhanced-tooltip {
+            pointer-events: auto !important;
+        }
+        
+        /* Create an invisible bridge between node and tooltip */
+        .enhanced-tooltip::before {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 100%;
+            left: -30px;
+            top: 0;
+            /* Uncomment to debug: background: rgba(255,0,0,0.2); */
+        }
+        
+        /* When tooltip is on the left side */
+        .enhanced-tooltip.tooltip-left::before {
+            left: auto;
+            right: -30px;
+        }
+        
+        /* Ensure smooth cursor transitions */
+        .node {
+            cursor: pointer;
+        }
+        
+        .enhanced-tooltip {
+            cursor: default;
+        }
+        
+        /* Prevent tooltip from blocking node interactions */
+        .enhanced-tooltip.hiding {
+            pointer-events: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+
+
+
+
+    
 
     // Enhanced visual display functions to integrate into your existing GSC module
 // Add these to your existing code, replacing the current createEnhancedGSCSection function
