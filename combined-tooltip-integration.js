@@ -1,55 +1,12 @@
-// rich-combined-tooltip-integration.js - FILE VERSION
-// Replace your combined-tooltip-integration.js file with this content
+// combined-tooltip-integration.js - FINAL WORKING VERSION
+// Replace your existing file with this - it's based on the aggressive override that worked
 
 (function() {
-    console.log('🚀 Loading rich combined tooltip integration (FILE VERSION)...');
+    console.log('🚀 Loading FINAL working combined tooltip integration...');
 
-    // Robust override mechanism - waits for page to be ready
-    function initializeRichTooltips() {
-        console.log('🔧 Initializing rich combined tooltips...');
-        
-        // Wait for both integrations and DOM
-        const waitForReady = () => {
-            const hasGSC = window.GSCIntegration;
-            const hasGA4 = window.GA4Integration;
-            const hasDOM = document.readyState === 'complete' || document.readyState === 'interactive';
-            
-            console.log('📊 Readiness check:', { hasGSC: !!hasGSC, hasGA4: !!hasGA4, hasDOM });
-            
-            if (hasGSC && hasGA4 && hasDOM) {
-                installRichTooltipSystem();
-            } else {
-                setTimeout(waitForReady, 200);
-            }
-        };
-        
-        waitForReady();
-    }
-
-    // Rich tooltip system installation
-    function installRichTooltipSystem() {
-        console.log('🎯 Installing rich tooltip system...');
-        
-        // Store original functions if they exist
-        const originalShow = window.showEnhancedTooltip;
-        const originalHide = window.hideEnhancedTooltip;
-        
-        // Install our enhanced functions
-        window.showEnhancedTooltip = showRichCombinedTooltip;
-        window.hideEnhancedTooltip = hideRichTooltip;
-        window.refreshRichTooltipData = refreshRichTooltipData;
-        
-        console.log('✅ Rich combined tooltip system installed');
-        console.log('📋 Available functions:', {
-            show: typeof window.showEnhancedTooltip,
-            hide: typeof window.hideEnhancedTooltip,
-            refresh: typeof window.refreshRichTooltipData
-        });
-    }
-
-    // Main rich tooltip show function
-    async function showRichCombinedTooltip(event, d) {
-        console.log('🎯 Rich combined tooltip for:', d.data?.name);
+    // The proven working tooltip function (from successful aggressive override)
+    const workingTooltipFunction = function(event, d) {
+        console.log('🎯 Enhanced combined tooltip for:', d.data?.name);
         
         if (!d.data) {
             console.warn('⚠️ No data provided to tooltip');
@@ -57,39 +14,14 @@
         }
 
         // Hide existing tooltip
-        hideRichTooltip();
-
-        // Create rich tooltip
-        const tooltip = createRichTooltip(d.data);
-        
-        // Position tooltip
-        positionTooltip(tooltip, event);
-        
-        // Add to DOM
-        document.body.appendChild(tooltip);
-        
-        // Store references
-        window.currentRichTooltip = tooltip;
-        tooltip._nodeData = d.data;
-        
-        // Show with animation
-        setTimeout(() => tooltip.style.opacity = '1', 10);
-        
-        // Add hover protection
-        addHoverProtection(tooltip);
-
-        // Load analytics data
-        try {
-            await loadRichAnalyticsData(tooltip, d.data);
-        } catch (error) {
-            console.error('❌ Error loading rich analytics data:', error);
+        if (window.currentTooltip) {
+            window.currentTooltip.remove();
+            window.currentTooltip = null;
         }
-    }
 
-    // Create rich tooltip with detailed layout
-    function createRichTooltip(nodeData) {
+        // Create rich combined tooltip
         const tooltip = document.createElement('div');
-        tooltip.className = 'enhanced-tooltip rich-combined-tooltip';
+        tooltip.className = 'enhanced-tooltip combined-analytics-tooltip';
         tooltip.style.cssText = `
             position: absolute;
             background: white;
@@ -101,22 +33,56 @@
             max-width: 600px;
             opacity: 0;
             transition: opacity 0.3s ease;
-            pointer-events: auto;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
             overflow: hidden;
         `;
 
-        // Create rich content structure
-        tooltip.innerHTML = createRichTooltipContent(nodeData);
-        
-        return tooltip;
-    }
+        // Enhanced content with detailed layout
+        tooltip.innerHTML = createRichCombinedContent(d.data);
 
-    // Create rich tooltip content with detailed info
-    function createRichTooltipContent(data) {
-        // Get freshness info (if available from your existing functions)
+        // Position tooltip
+        tooltip.style.left = (event.pageX + 15) + 'px';
+        tooltip.style.top = (event.pageY - 10) + 'px';
+
+        // Add to DOM
+        document.body.appendChild(tooltip);
+        window.currentTooltip = tooltip;
+        tooltip._nodeData = d.data;
+
+        // Show with animation
+        setTimeout(() => tooltip.style.opacity = '1', 10);
+
+        // Add hover protection
+        tooltip.addEventListener('mouseenter', () => {
+            if (window.hideTimer) clearTimeout(window.hideTimer);
+        });
+        
+        tooltip.addEventListener('mouseleave', () => {
+            window.hideEnhancedTooltip();
+        });
+
+        // Position adjustment after render
+        setTimeout(() => {
+            const rect = tooltip.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            if (rect.right > windowWidth - 20) {
+                tooltip.style.left = (event.pageX - rect.width - 15) + 'px';
+            }
+            
+            if (rect.bottom > windowHeight - 20) {
+                tooltip.style.top = (event.pageY - rect.height - 15) + 'px';
+            }
+        }, 50);
+
+        // Load analytics data
+        loadCombinedAnalyticsData(tooltip, d.data);
+    };
+
+    // Create rich combined content
+    function createRichCombinedContent(data) {
+        // Get freshness info if available
         let freshnessInfo = '';
         let lastModifiedDisplay = '';
         
@@ -134,7 +100,7 @@
             }
         }
 
-        // Get page info (if available from your existing functions)
+        // Get page info if available
         let pageInfoDisplay = '';
         if (typeof getPageInfo === 'function') {
             const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
@@ -168,13 +134,13 @@
             <!-- Page Header -->
             <div style="padding: 20px; border-bottom: 1px solid #e0e0e0; background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%);">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px;">
-                    <h4 style="margin: 0; color: #1f4788; font-size: 1.1rem; font-weight: 600; flex: 1;">${data.name}</h4>
+                    <h4 style="margin: 0; color: #1f4788; font-size: 1.2rem; font-weight: 600; flex: 1;">${data.name}</h4>
                     ${freshnessInfo}
                 </div>
                 
                 ${data.url ? `
                     <a href="${data.url}" target="_blank" 
-                       style="font-size: 0.8rem; color: #4a90e2; text-decoration: none; word-break: break-all; 
+                       style="font-size: 0.85rem; color: #4a90e2; text-decoration: none; word-break: break-all; 
                               margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
                        onmouseover="this.style.textDecoration='underline'" 
                        onmouseout="this.style.textDecoration='none'">
@@ -187,7 +153,7 @@
             </div>
 
             <!-- Combined Analytics Section -->
-            <div id="rich-analytics-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                 
                 <!-- Analytics Header -->
                 <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -199,21 +165,21 @@
                     </div>
                 </div>
                 
-                <!-- Metrics Grid -->
+                <!-- Analytics Grid -->
                 <div style="padding: 20px;">
                     
                     <!-- Search Console Card -->
-                    <div id="rich-gsc-card" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; margin-bottom: 16px; backdrop-filter: blur(10px);">
+                    <div id="gsc-analytics-card" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; margin-bottom: 16px; backdrop-filter: blur(10px);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 1.1rem;">🔍</span>
                                 <span style="font-size: 0.95rem; font-weight: 600;">Search Console</span>
                             </div>
-                            <span id="rich-gsc-status" style="font-size: 0.75rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
+                            <span id="gsc-status-indicator" style="font-size: 0.75rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
                                 Loading...
                             </span>
                         </div>
-                        <div id="rich-gsc-content">
+                        <div id="gsc-data-content">
                             <div style="text-align: center; opacity: 0.8; padding: 20px;">
                                 <div style="margin-bottom: 8px;">⏳</div>
                                 <div style="font-size: 0.9rem;">Fetching search performance data...</div>
@@ -222,17 +188,17 @@
                     </div>
                     
                     <!-- Google Analytics 4 Card -->
-                    <div id="rich-ga4-card" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px);">
+                    <div id="ga4-analytics-card" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; backdrop-filter: blur(10px);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 1.1rem;">📈</span>
                                 <span style="font-size: 0.95rem; font-weight: 600;">Google Analytics 4</span>
                             </div>
-                            <span id="rich-ga4-status" style="font-size: 0.75rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
+                            <span id="ga4-status-indicator" style="font-size: 0.75rem; opacity: 0.9; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">
                                 Loading...
                             </span>
                         </div>
-                        <div id="rich-ga4-content">
+                        <div id="ga4-data-content">
                             <div style="text-align: center; opacity: 0.8; padding: 20px;">
                                 <div style="margin-bottom: 8px;">⏳</div>
                                 <div style="font-size: 0.9rem;">Fetching user analytics data...</div>
@@ -251,14 +217,14 @@
                             onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
                         🔗 Visit Page
                     </button>
-                    <button onclick="window.refreshRichTooltipData && window.refreshRichTooltipData()" 
+                    <button onclick="window.refreshCombinedTooltipData && window.refreshCombinedTooltipData()" 
                             style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px 18px; 
                                    border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 500; transition: all 0.2s;"
                             onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'"
                             onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
                         🔄 Refresh
                     </button>
-                    <button onclick="window.showDetailedAnalysis && window.showDetailedAnalysis('${data.url}')" 
+                    <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${data.url}')" 
                             style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 10px 18px; 
                                    border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-weight: 500; transition: all 0.2s;"
                             onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'"
@@ -270,64 +236,62 @@
         `;
     }
 
-    // Load rich analytics data with detailed metrics
-    async function loadRichAnalyticsData(tooltip, nodeData) {
-        console.log('📊 Loading rich analytics for:', nodeData.name);
+    // Load combined analytics data
+    async function loadCombinedAnalyticsData(tooltip, nodeData) {
+        console.log('📊 Loading combined analytics for:', nodeData.name);
         
-        const gscContent = tooltip.querySelector('#rich-gsc-content');
-        const ga4Content = tooltip.querySelector('#rich-ga4-content');
-        const gscStatus = tooltip.querySelector('#rich-gsc-status');
-        const ga4Status = tooltip.querySelector('#rich-ga4-status');
+        const gscContent = tooltip.querySelector('#gsc-data-content');
+        const ga4Content = tooltip.querySelector('#ga4-data-content');
+        const gscStatus = tooltip.querySelector('#gsc-status-indicator');
+        const ga4Status = tooltip.querySelector('#ga4-status-indicator');
         
-        // Load Search Console data with detailed metrics
+        // Load Search Console data
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
             gscStatus.textContent = '🟢 Connected';
             try {
                 const gscData = await window.GSCIntegration.fetchNodeData(nodeData);
-                console.log('🔍 Rich GSC data:', gscData);
+                console.log('🔍 GSC data loaded:', gscData);
                 
                 if (gscData && !gscData.noDataFound && !gscData.error) {
-                    // Create detailed GSC display
-                    gscContent.innerHTML = createRichGSCDisplay(gscData);
+                    gscContent.innerHTML = createDetailedGSCDisplay(gscData);
                 } else {
-                    gscContent.innerHTML = createNoDataDisplay('search', '📭 No search performance data found for this page');
+                    gscContent.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">📭 No search performance data found</div>';
                 }
             } catch (error) {
                 console.error('❌ GSC error:', error);
                 gscStatus.textContent = '🔴 Error';
-                gscContent.innerHTML = createErrorDisplay('search', 'Error loading Search Console data');
+                gscContent.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px; color: #ffcdd2;">❌ Error loading GSC data</div>';
             }
         } else {
             gscStatus.textContent = '🔴 Not Connected';
-            gscContent.innerHTML = createNotConnectedDisplay('search', 'Search Console not connected');
+            gscContent.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">🔌 Search Console not connected</div>';
         }
         
-        // Load GA4 data with detailed metrics
+        // Load GA4 data
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
             ga4Status.textContent = '🟢 Connected';
             try {
                 const ga4Data = await window.GA4Integration.fetchData(nodeData.url);
-                console.log('📈 Rich GA4 data:', ga4Data);
+                console.log('📈 GA4 data loaded:', ga4Data);
                 
                 if (ga4Data && !ga4Data.noDataFound && !ga4Data.error) {
-                    // Create detailed GA4 display
-                    ga4Content.innerHTML = createRichGA4Display(ga4Data);
+                    ga4Content.innerHTML = createDetailedGA4Display(ga4Data);
                 } else {
-                    ga4Content.innerHTML = createNoDataDisplay('analytics', '📭 No user analytics data found for this page');
+                    ga4Content.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">📭 No user analytics data found</div>';
                 }
             } catch (error) {
                 console.error('❌ GA4 error:', error);
                 ga4Status.textContent = '🔴 Error';
-                ga4Content.innerHTML = createErrorDisplay('analytics', 'Error loading Google Analytics data');
+                ga4Content.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px; color: #ffcdd2;">❌ Error loading GA4 data</div>';
             }
         } else {
             ga4Status.textContent = '🔴 Not Connected';
-            ga4Content.innerHTML = createNotConnectedDisplay('analytics', 'Google Analytics 4 not connected');
+            ga4Content.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 20px;">🔌 Google Analytics 4 not connected</div>';
         }
     }
 
-    // Create rich GSC display with detailed metrics
-    function createRichGSCDisplay(gscData) {
+    // Create detailed GSC display
+    function createDetailedGSCDisplay(gscData) {
         const hasQueries = gscData.topQueries && gscData.topQueries.length > 0;
         
         return `
@@ -391,11 +355,11 @@
         `;
     }
 
-    // Create rich GA4 display with detailed metrics
-    function createRichGA4Display(ga4Data) {
+    // Create detailed GA4 display
+    function createDetailedGA4Display(ga4Data) {
         return `
             <!-- Main Metrics Grid -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
                 <div style="text-align: center; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px;">
                     <div style="font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; color: #4fc3f7;">
                         ${formatNumber(ga4Data.users || 0)}
@@ -423,7 +387,7 @@
             </div>
 
             <!-- Additional Metrics Row -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
                 <div style="text-align: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
                     <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 2px;">
                         ${formatNumber(ga4Data.newUsers || 0)}
@@ -446,102 +410,28 @@
         `;
     }
 
-    // Helper display functions
-    function createNoDataDisplay(type, message) {
-        return `
-            <div style="text-align: center; opacity: 0.7; padding: 20px;">
-                <div style="font-size: 1.5rem; margin-bottom: 8px;">📭</div>
-                <div style="font-size: 0.9rem;">${message}</div>
-                <div style="font-size: 0.75rem; margin-top: 4px; opacity: 0.8;">
-                    Try checking if this page has received ${type === 'search' ? 'organic search traffic' : 'user visits'} recently
-                </div>
-            </div>
-        `;
-    }
-
-    function createErrorDisplay(type, message) {
-        return `
-            <div style="text-align: center; opacity: 0.7; padding: 20px;">
-                <div style="font-size: 1.5rem; margin-bottom: 8px;">❌</div>
-                <div style="font-size: 0.9rem; color: #ffcdd2;">${message}</div>
-                <div style="font-size: 0.75rem; margin-top: 4px; opacity: 0.8;">
-                    Try refreshing or reconnecting the integration
-                </div>
-            </div>
-        `;
-    }
-
-    function createNotConnectedDisplay(type, message) {
-        return `
-            <div style="text-align: center; opacity: 0.7; padding: 20px;">
-                <div style="font-size: 1.5rem; margin-bottom: 8px;">🔌</div>
-                <div style="font-size: 0.9rem;">${message}</div>
-                <div style="font-size: 0.75rem; margin-top: 4px; opacity: 0.8;">
-                    Click the "${type === 'search' ? 'Connect GSC' : 'Connect GA4'}" button to enable ${type} analytics
-                </div>
-            </div>
-        `;
-    }
-
-    // Hide rich tooltip
-    function hideRichTooltip() {
-        window.tooltipHideTimer = setTimeout(() => {
-            if (window.currentRichTooltip) {
-                window.currentRichTooltip.style.opacity = '0';
+    // Hide function
+    const workingHideFunction = function() {
+        window.hideTimer = setTimeout(() => {
+            if (window.currentTooltip) {
+                window.currentTooltip.style.opacity = '0';
                 setTimeout(() => {
-                    if (window.currentRichTooltip) {
-                        window.currentRichTooltip.remove();
-                        window.currentRichTooltip = null;
+                    if (window.currentTooltip) {
+                        window.currentTooltip.remove();
+                        window.currentTooltip = null;
                     }
                 }, 300);
             }
         }, 100);
-    }
+    };
 
-    // Refresh rich tooltip data
-    function refreshRichTooltipData() {
-        if (window.currentRichTooltip && window.currentRichTooltip._nodeData) {
-            console.log('🔄 Refreshing rich tooltip data...');
-            loadRichAnalyticsData(window.currentRichTooltip, window.currentRichTooltip._nodeData);
+    // Refresh function
+    window.refreshCombinedTooltipData = function() {
+        console.log('🔄 Refreshing combined tooltip data...');
+        if (window.currentTooltip && window.currentTooltip._nodeData) {
+            loadCombinedAnalyticsData(window.currentTooltip, window.currentTooltip._nodeData);
         }
-    }
-
-    // Add hover protection
-    function addHoverProtection(tooltip) {
-        tooltip.addEventListener('mouseenter', () => {
-            if (window.tooltipHideTimer) {
-                clearTimeout(window.tooltipHideTimer);
-            }
-        });
-        
-        tooltip.addEventListener('mouseleave', () => {
-            hideRichTooltip();
-        });
-    }
-
-    // Position tooltip with boundary detection
-    function positionTooltip(tooltip, event) {
-        let left = event.pageX + 15;
-        let top = event.pageY - 10;
-        
-        tooltip.style.left = left + 'px';
-        tooltip.style.top = top + 'px';
-        
-        // Boundary check after render
-        setTimeout(() => {
-            const rect = tooltip.getBoundingClientRect();
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            
-            if (rect.right > windowWidth - 20) {
-                tooltip.style.left = (event.pageX - rect.width - 15) + 'px';
-            }
-            
-            if (rect.bottom > windowHeight - 20) {
-                tooltip.style.top = (event.pageY - rect.height - 15) + 'px';
-            }
-        }, 50);
-    }
+    };
 
     // Utility functions
     function formatNumber(num) {
@@ -565,13 +455,75 @@
         return div.innerHTML;
     }
 
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeRichTooltips);
-    } else {
-        initializeRichTooltips();
+    // PROVEN INSTALLATION METHOD (from working aggressive override)
+    function installWorkingTooltipSystem() {
+        console.log('✅ Installing proven working tooltip system...');
+        
+        // Direct installation (this pattern worked)
+        window.showEnhancedTooltip = workingTooltipFunction;
+        window.hideEnhancedTooltip = workingHideFunction;
+        
+        console.log('🎯 Tooltip functions installed:', {
+            show: typeof window.showEnhancedTooltip,
+            hide: typeof window.hideEnhancedTooltip
+        });
+
+        // Monitor for interference and reinstall if needed
+        let checkCount = 0;
+        const monitorInterval = setInterval(() => {
+            checkCount++;
+            
+            // Check if functions are still ours
+            const showIsOurs = window.showEnhancedTooltip === workingTooltipFunction;
+            const hideIsOurs = window.hideEnhancedTooltip === workingHideFunction;
+            
+            if (!showIsOurs || !hideIsOurs) {
+                console.log('🔄 Functions overridden, reinstalling...');
+                window.showEnhancedTooltip = workingTooltipFunction;
+                window.hideEnhancedTooltip = workingHideFunction;
+            }
+            
+            // Stop monitoring after 30 seconds
+            if (checkCount > 150) {
+                clearInterval(monitorInterval);
+                console.log('✅ Tooltip system monitoring complete');
+            }
+        }, 200);
     }
 
-    console.log('📋 Rich combined tooltip integration loaded - waiting for integrations...');
+    // Wait for integrations then install
+    function waitForIntegrationsAndInstall() {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        const checkReady = () => {
+            attempts++;
+            const gscReady = !!window.GSCIntegration;
+            const ga4Ready = !!window.GA4Integration;
+            
+            console.log(`🔍 Integration check ${attempts}/${maxAttempts}:`, { gscReady, ga4Ready });
+            
+            if (gscReady && ga4Ready) {
+                console.log('✅ Both integrations ready - installing tooltip system');
+                installWorkingTooltipSystem();
+            } else if (attempts >= maxAttempts) {
+                console.log('⚠️ Max attempts reached - installing anyway');
+                installWorkingTooltipSystem();
+            } else {
+                setTimeout(checkReady, 200);
+            }
+        };
+        
+        checkReady();
+    }
+
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', waitForIntegrationsAndInstall);
+    } else {
+        waitForIntegrationsAndInstall();
+    }
+
+    console.log('🚀 Final working combined tooltip integration loaded!');
 
 })();
