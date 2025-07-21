@@ -3212,7 +3212,7 @@ function getCleanedStyles() {
                 });
         }, 500); // Wait 500ms before hiding
     });
-
+}
     // Enhanced visual display functions to integrate into your existing GSC module
 // Add these to your existing code, replacing the current createEnhancedGSCSection function
 
