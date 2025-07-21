@@ -2052,11 +2052,21 @@ function getPageInfo(nodeData, treeContext = null) {
     return info;
 }
 
+
+    
+
 function determinePageType(url, name, nodeData = null, treeContext = null) {
     if (!url) return 'Unknown';
     
+    const urlLower = url.toLowerCase();
+    
+    // Check if it's the root homepage
+    if (urlLower === '/' || urlLower.match(/^https?:\/\/[^\/]+\/?$/)) {
+        return 'Homepage';
+    }
+    
     // Check if it's a language root (ends in /en/ or /ga/)
-    if (url.toLowerCase().match(/\/(en|ga)\/?$/)) {
+    if (urlLower.match(/\/(en|ga)\/?$/)) {
         return 'Language Root';
     }
     
@@ -2077,24 +2087,33 @@ function determinePageType(url, name, nodeData = null, treeContext = null) {
     }
     
     // Fallback: calculate depth from URL
-    if (depth === 0) {
+    if (depth === 0 && url !== '/') {
         depth = calculatePageDepth(url);
     }
     
-    // Determine type based on tree position
-    if (depth === 0) {
+    // Check if this page is under a language root
+    const isUnderLanguageRoot = urlLower.match(/\/(en|ga)\//);
+    
+    // Adjust effective depth for pages under language roots
+    let effectiveDepth = depth;
+    if (isUnderLanguageRoot && depth > 1) {
+        effectiveDepth = depth - 1; // Subtract 1 because language adds an extra level
+    }
+    
+    // Determine type based on effective tree position
+    if (effectiveDepth === 0) {
         return 'Homepage';
-    } else if (depth === 1) {
+    } else if (effectiveDepth === 1) {
         return hasChildren ? 'Category' : 'Root Content';
-    } else if (depth === 2) {
+    } else if (effectiveDepth === 2) {
         return hasChildren ? 'Sub-Category' : 'Content Page';
-    } else if (depth === 3) {
+    } else if (effectiveDepth === 3) {
         return hasChildren ? 'Sub-Sub-Category' : 'Content Page';
-    } else if (depth >= 4) {
+    } else if (effectiveDepth >= 4) {
         return hasChildren ? 'Deep Category' : 'Content Page';
     }
     
-    // If no children, it's a leaf node = content page
+    // Default fallback
     return hasChildren ? 'Category' : 'Content Page';
 }
 
