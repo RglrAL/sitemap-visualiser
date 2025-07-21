@@ -4,7 +4,7 @@
 (function() {
     console.log('🚀 Loading refined minimal combined tooltip integration...');
 
-    // The refined tooltip function with fixed behavior
+    // The refined tooltip function with stable behavior
     const refinedTooltipFunction = function(event, d) {
         console.log('🎯 Refined tooltip for:', d.data?.name);
         
@@ -13,8 +13,23 @@
             return;
         }
 
-        // Hide existing tooltip immediately
-        hideRefinedTooltip(true);
+        // Clear any existing hide timers
+        if (window.refinedHideTimer) {
+            clearTimeout(window.refinedHideTimer);
+            window.refinedHideTimer = null;
+        }
+
+        // Only hide existing tooltip if it's for a different node
+        if (window.currentRefinedTooltip) {
+            const existingNodeName = window.currentRefinedTooltip._nodeData?.name;
+            if (existingNodeName !== d.data.name) {
+                window.currentRefinedTooltip.remove();
+                window.currentRefinedTooltip = null;
+            } else {
+                // Same node, don't recreate
+                return;
+            }
+        }
 
         // Create minimal combined tooltip
         const tooltip = document.createElement('div');
@@ -29,7 +44,7 @@
             z-index: 10000;
             max-width: 420px;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.3s ease;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 13px;
             line-height: 1.4;
@@ -40,7 +55,7 @@
         // Create refined content
         tooltip.innerHTML = createRefinedContent(d.data);
 
-        // Position tooltip
+        // Position tooltip AWAY from cursor to avoid interference
         positionRefinedTooltip(tooltip, event);
 
         // Add to DOM
@@ -48,11 +63,15 @@
         window.currentRefinedTooltip = tooltip;
         tooltip._nodeData = d.data;
 
-        // Show with animation
-        setTimeout(() => tooltip.style.opacity = '1', 10);
+        // Show with animation after positioning
+        setTimeout(() => {
+            if (tooltip.parentNode) {
+                tooltip.style.opacity = '1';
+            }
+        }, 50);
 
-        // Fixed hover behavior
-        addRefinedHoverBehavior(tooltip);
+        // Stable hover behavior - no immediate hiding
+        addStableHoverBehavior(tooltip);
 
         // Load analytics data
         loadRefinedAnalyticsData(tooltip, d.data);
@@ -387,13 +406,13 @@
         `;
     }
 
-    // Fixed hide function with immediate option
+    // Stable hide function - longer delays, better control
     function hideRefinedTooltip(immediate = false) {
         if (window.refinedHideTimer) {
             clearTimeout(window.refinedHideTimer);
         }
         
-        const delay = immediate ? 0 : 150;
+        const delay = immediate ? 0 : 300; // Longer delay to prevent flashing
         
         window.refinedHideTimer = setTimeout(() => {
             if (window.currentRefinedTooltip) {
@@ -403,30 +422,28 @@
                         window.currentRefinedTooltip.remove();
                         window.currentRefinedTooltip = null;
                     }
-                }, 200);
+                }, 300);
             }
         }, delay);
     }
 
-    // Fixed hover behavior
-    function addRefinedHoverBehavior(tooltip) {
-        let isHovering = false;
-        
-        // Mouse enter tooltip
+    // Stable hover behavior - prevents flickering
+    function addStableHoverBehavior(tooltip) {
+        // Tooltip hover events
         tooltip.addEventListener('mouseenter', () => {
-            isHovering = true;
+            // Cancel any pending hide when entering tooltip
             if (window.refinedHideTimer) {
                 clearTimeout(window.refinedHideTimer);
+                window.refinedHideTimer = null;
             }
         });
         
-        // Mouse leave tooltip
         tooltip.addEventListener('mouseleave', () => {
-            isHovering = false;
+            // Start hide timer when leaving tooltip
             hideRefinedTooltip();
         });
         
-        // Fixed button clicks using event delegation
+        // Button clicks using event delegation
         tooltip.addEventListener('click', (e) => {
             const button = e.target.closest('.refined-btn');
             if (!button) return;
@@ -437,11 +454,11 @@
             const action = button.dataset.action;
             const url = button.dataset.url;
             
-            console.log('🎯 Button clicked:', action, url);
+            console.log('🎯 Button clicked:', action);
             
             switch (action) {
                 case 'visit':
-                    if (url) {
+                    if (url && url !== 'undefined') {
                         window.open(url, '_blank');
                     }
                     break;
@@ -451,7 +468,7 @@
                     }
                     break;
                 case 'detailed':
-                    if (window.showDetailedGSCAnalysis && url) {
+                    if (window.showDetailedGSCAnalysis && url && url !== 'undefined') {
                         window.showDetailedGSCAnalysis(url);
                     }
                     break;
@@ -459,39 +476,42 @@
         });
     }
 
-    // Position tooltip with better boundary detection
+    // Position tooltip AWAY from cursor to prevent interference
     function positionRefinedTooltip(tooltip, event) {
-        let left = event.pageX + 15;
-        let top = event.pageY - 10;
+        // Position further away from cursor to avoid hover conflicts
+        let left = event.pageX + 25; // Increased distance
+        let top = event.pageY - 50;  // Position above cursor
         
         // Initial position
         tooltip.style.left = left + 'px';
         tooltip.style.top = top + 'px';
         
-        // Adjust after render
+        // Adjust after render to ensure visibility
         setTimeout(() => {
             const rect = tooltip.getBoundingClientRect();
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             
-            // Horizontal adjustment
+            // Horizontal adjustment - ensure tooltip doesn't go off screen
             if (rect.right > windowWidth - 20) {
-                tooltip.style.left = (event.pageX - rect.width - 15) + 'px';
+                tooltip.style.left = (event.pageX - rect.width - 25) + 'px';
             }
             
-            // Vertical adjustment
-            if (rect.bottom > windowHeight - 20) {
-                tooltip.style.top = Math.max(10, event.pageY - rect.height - 15) + 'px';
-            }
-            
-            // Ensure tooltip is always visible
+            // Vertical adjustment - keep tooltip visible
             if (rect.top < 10) {
-                tooltip.style.top = '10px';
+                tooltip.style.top = (event.pageY + 25) + 'px'; // Position below if above doesn't fit
             }
-            if (rect.left < 10) {
+            
+            if (rect.bottom > windowHeight - 20) {
+                tooltip.style.top = Math.max(10, windowHeight - rect.height - 20) + 'px';
+            }
+            
+            // Final safety check - ensure never off screen
+            const finalRect = tooltip.getBoundingClientRect();
+            if (finalRect.left < 10) {
                 tooltip.style.left = '10px';
             }
-        }, 50);
+        }, 10);
     }
 
     // Utility functions
@@ -513,9 +533,15 @@
     function installRefinedTooltipSystem() {
         console.log('✅ Installing refined tooltip system...');
         
-        // Install functions
+        // Install main functions
         window.showEnhancedTooltip = refinedTooltipFunction;
-        window.hideEnhancedTooltip = hideRefinedTooltip;
+        
+        // Override the existing hideEnhancedTooltip to work with our system
+        const originalHide = window.hideEnhancedTooltip;
+        window.hideEnhancedTooltip = function() {
+            // Use our stable hide function
+            hideRefinedTooltip();
+        };
         
         console.log('🎯 Refined tooltip functions installed');
 
