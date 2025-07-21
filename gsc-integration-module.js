@@ -1370,8 +1370,7 @@
             { progress: 15, step: 0, delay: 200 },
             { progress: 35, step: 1, delay: 300 },
             { progress: 65, step: 2, delay: 400 },
-            { progress: 85, step: 3, delay: 300 },
-            { progress: 100, step: 3, delay: 200 }
+            { progress: 85, step: 3, delay: 300 }
         ];
         
         // Animate through progress stages
@@ -1418,15 +1417,28 @@
         
         // Check if tooltip still exists and is the current one
         if (tooltip === currentTooltip && tooltip.parentNode) {
-            // Add a brief "Complete" state
-            if (progressText) progressText.textContent = 'Complete!';
+            // Complete the final step
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressText) progressText.textContent = '100%';
             
-            // Fade out loading and show results
-            setTimeout(() => {
-                if (tooltip === currentTooltip && tooltip.parentNode) {
-                    updateTooltipWithGSCData(tooltip, gscData);
+            // Mark final step as complete
+            steps.forEach((step, index) => {
+                if (index === 3) { // Final step
+                    step.style.opacity = '0.8';
+                    step.style.color = '#28a745';
+                    if (!step.textContent.includes('✅')) {
+                        step.textContent = step.textContent.replace('⚡', '✅');
+                    }
                 }
-            }, 300);
+            });
+            
+            // Brief pause to show completion
+            await new Promise(resolve => setTimeout(resolve, 400));
+            
+            // Replace loading with actual data
+            if (tooltip === currentTooltip && tooltip.parentNode) {
+                replaceLoadingWithGSCData(tooltip, gscData, data);
+            }
         }
         
     } catch (error) {
@@ -1435,6 +1447,183 @@
             showLoadingError(tooltip, 'Unable to load performance data');
         }
     }
+}
+
+
+function replaceLoadingWithGSCData(tooltip, gscData, originalData) {
+    const loadingContainer = tooltip.querySelector('#gsc-loading-container');
+    if (!loadingContainer) return;
+    
+    if (!gscData || gscData.noDataFound) {
+        loadingContainer.innerHTML = gscData?.noDataFound ? 
+            '<div style="color: #999; font-size: 0.8rem; text-align: center; padding: 20px;">📭 No search data found</div>' : 
+            '<div style="color: #999; font-size: 0.8rem; text-align: center; padding: 20px;">❌ Performance data unavailable</div>';
+        return;
+    }
+    
+    // Get page info
+    const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+    const pageInfo = getPageInfo(originalData, treeContext);
+    
+    // Create enhanced GSC content
+    const performanceScore = calculateSimplePerformanceScore(gscData);
+    const gscHtml = `
+        <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
+            
+            <!-- Header with date info if available -->
+            ${originalData.lastModified ? `
+                <div style="background: #f0f4ff; padding: 8px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #4a90e2;">
+                    <div style="display: flex; justify-content: between; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.8rem; color: #666;">📅 Last Updated:</span>
+                        <span style="font-size: 0.85rem; color: #333; font-weight: 500;">
+                            ${new Date(originalData.lastModified).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short', 
+                                day: 'numeric'
+                            })}
+                        </span>
+                        <span style="font-size: 0.7rem; color: #999;">
+                            (${(() => {
+                                const daysSince = Math.floor((new Date() - new Date(originalData.lastModified)) / (1000 * 60 * 60 * 24));
+                                return daysSince === 0 ? 'today' :
+                                       daysSince === 1 ? 'yesterday' :
+                                       daysSince < 7 ? `${daysSince} days ago` :
+                                       daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                                       daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                                       `${Math.floor(daysSince / 365)} years ago`;
+                            })()})
+                        </span>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Page Info Section -->
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #6c757d;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">🏷️</span>
+                        <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">📏 Level ${pageInfo.depth}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👶</span>
+                        <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children} children</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👫</span>
+                        <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings} siblings</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
+                <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                    ${performanceScore}/100
+                </div>
+            </div>
+            
+            <!-- Enhanced metrics grid with trends -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
+                    <div style="font-size: 0.75rem; color: #666;">Clicks</div>
+                    ${gscData.trend && gscData.trend.clicksChange ? `
+                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px; 
+                                    background: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf5020' : '#f4433620'}; 
+                                    color: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf50' : '#f44336'};">
+                            ${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
+                    <div style="font-size: 0.75rem; color: #666;">Impressions</div>
+                    ${gscData.trend && gscData.trend.impressionsChange ? `
+                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
+                                    background: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf5020' : '#f4433620'};
+                                    color: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf50' : '#f44336'};">
+                            ${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
+                    <div style="font-size: 0.75rem; color: #666;">CTR</div>
+                </div>
+                <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
+                    <div style="font-size: 0.75rem; color: #666;">Position</div>
+                    ${gscData.trend && gscData.trend.positionChange ? `
+                        <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
+                                    background: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf5020' : '#f4433620'};
+                                    color: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf50' : '#f44336'};">
+                            ${parseFloat(gscData.trend.positionChange) > 0 ? '+' : ''}${gscData.trend.positionChange}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <!-- Top 3 Search Queries Section -->
+            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
+                <div style="background: white; padding: 12px; border-radius: 6px; border-top: 2px solid #1f4788; margin-bottom: 8px;">
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
+                    ${gscData.topQueries.slice(0, 3).map((query, index) => `
+                        <div style="margin-bottom: ${index < 2 ? '8px' : '0'}; padding: ${index < 2 ? '0 0 8px 0' : '0'}; 
+                                    border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+                                <span style="background: #1f4788; color: white; width: 16px; height: 16px; border-radius: 50%; 
+                                            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
+                                    ${index + 1}
+                                </span>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: #333; flex: 1;">"${escapeHtml(query.query)}"</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: #666; margin-left: 24px;">
+                                <span>${query.clicks} clicks</span>
+                                <span>#${query.position.toFixed(0)} avg</span>
+                                <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            <!-- Opportunities section (if any) -->
+            ${gscData.opportunities && gscData.opportunities.length > 0 ? `
+                <div style="background: #fff8e1; padding: 8px; border-radius: 6px; border-left: 3px solid #ff9800; margin-bottom: 8px;">
+                    <div style="font-size: 0.8rem; color: #e65100; font-weight: 600;">⚡ ${gscData.opportunities.length} optimization opportunities found</div>
+                </div>
+            ` : ''}
+            
+            <!-- Action buttons -->
+            <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px;">
+                <button onclick="window.open('${escapeHtml(gscData.url)}', '_blank')" 
+                        style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
+                        onmouseover="this.style.background='#45a049'" 
+                        onmouseout="this.style.background='#4caf50'">
+                    🔗 Visit Page
+                </button>
+                <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
+                        style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                               font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
+                        onmouseover="this.style.background='#1557b0'" 
+                        onmouseout="this.style.background='#1f4788'">
+                    📈 Full Analysis
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add smooth transition effect
+    loadingContainer.style.transition = 'opacity 0.3s ease';
+    loadingContainer.style.opacity = '0';
+    
+    setTimeout(() => {
+        loadingContainer.outerHTML = gscHtml;
+    }, 300);
 }
 
 
@@ -1534,7 +1723,6 @@ function addLoadingAnimationStyles() {
     `;
     document.head.appendChild(style);
 }
-
 
 
     
