@@ -2943,7 +2943,7 @@
                     <div style="margin-bottom: 40px;">
                         <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">📈 Key Performance Metrics</h2>
                         
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
                             
                             <!-- Clicks Card -->
                             <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 16px; position: relative; overflow: hidden;">
