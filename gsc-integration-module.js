@@ -1199,6 +1199,34 @@
         `;
     }
     
+    // Get page info
+    const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+    const pageInfo = getPageInfo(data, treeContext);
+    
+    // Create page info display
+    const pageInfoDisplay = `
+        <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.7rem;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #666;">🏷️ Type:</span>
+                    <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #666;">📏 Depth:</span>
+                    <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #666;">👶 Children:</span>
+                    <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #666;">👫 Siblings:</span>
+                    <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
     return `
         <div style="margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
@@ -1209,9 +1237,13 @@
                 onmouseover="this.style.textDecoration='underline'" 
                 onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}
             ${lastModifiedDisplay}
+            ${pageInfoDisplay}
         </div>
     `;
 }
+
+
+    
 
 
 
@@ -1275,17 +1307,66 @@
         return;
     }
     
-    // Get the original node data to access lastModified (passed from the tooltip creation)
+    // Get the original node data to access lastModified and page info
     const tooltipContainer = tooltip.closest('.enhanced-tooltip');
     const originalData = tooltipContainer?._nodeData || {};
     
-    // Create enhanced GSC content with last modified date
+    // Get page info
+    const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+    const pageInfo = getPageInfo(originalData, treeContext);
+    
+    // Create enhanced GSC content with page info
     const performanceScore = calculateSimplePerformanceScore(gscData);
     const gscHtml = `
         <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
             
             <!-- Header with date info if available -->
+            ${originalData.lastModified ? `
+                <div style="background: #f0f4ff; padding: 8px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #4a90e2;">
+                    <div style="display: flex; justify-content: between; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.8rem; color: #666;">📅 Last Updated:</span>
+                        <span style="font-size: 0.85rem; color: #333; font-weight: 500;">
+                            ${new Date(originalData.lastModified).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short', 
+                                day: 'numeric'
+                            })}
+                        </span>
+                        <span style="font-size: 0.7rem; color: #999;">
+                            (${(() => {
+                                const daysSince = Math.floor((new Date() - new Date(originalData.lastModified)) / (1000 * 60 * 60 * 24));
+                                return daysSince === 0 ? 'today' :
+                                       daysSince === 1 ? 'yesterday' :
+                                       daysSince < 7 ? `${daysSince} days ago` :
+                                       daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                                       daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                                       `${Math.floor(daysSince / 365)} years ago`;
+                            })()})
+                        </span>
+                    </div>
+                </div>
+            ` : ''}
             
+            <!-- Page Info Section -->
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #6c757d;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">🏷️</span>
+                        <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">📏 Level ${pageInfo.depth}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👶</span>
+                        <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children} children</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="color: #666;">👫</span>
+                        <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings} siblings</span>
+                    </div>
+                </div>
+            </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
@@ -1586,6 +1667,141 @@
         };
         checkAndHook();
     }
+
+
+
+// Helper functions to extract page information from tree structure
+function getPageInfo(nodeData, treeContext = null) {
+    const info = {
+        type: 'Unknown',
+        depth: 0,
+        children: 0,
+        siblings: 0
+    };
+    
+    if (!nodeData) return info;
+    
+    // Calculate children count
+    info.children = nodeData.children ? nodeData.children.length : 0;
+    
+    // Determine page type from URL pattern
+    info.type = determinePageType(nodeData.url, nodeData.name);
+    
+    // Calculate depth from URL structure
+    info.depth = calculatePageDepth(nodeData.url);
+    
+    // Find siblings count by traversing tree (if tree context available)
+    if (treeContext) {
+        const nodeContext = findNodeInTree(treeContext, nodeData.url);
+        if (nodeContext) {
+            info.siblings = nodeContext.siblings || 0;
+            info.depth = nodeContext.depth || info.depth;
+        }
+    }
+    
+    return info;
+}
+
+function determinePageType(url, name) {
+    if (!url) return 'Unknown';
+    
+    const urlPath = url.toLowerCase();
+    const pageName = (name || '').toLowerCase();
+    
+    // Homepage
+    if (urlPath === '/' || urlPath.match(/^https?:\/\/[^\/]+\/?$/)) {
+        return 'Homepage';
+    }
+    
+    // Common page types based on URL patterns
+    const patterns = [
+        { pattern: /\/blog\/|\/news\/|\/article\//, type: 'Blog/Article' },
+        { pattern: /\/category\/|\/categories\//, type: 'Category' },
+        { pattern: /\/product\/|\/products\/|\/shop\//, type: 'Product' },
+        { pattern: /\/service\/|\/services\//, type: 'Service' },
+        { pattern: /\/about\/|\/contact\/|\/privacy\/|\/terms\//, type: 'Information' },
+        { pattern: /\/tag\/|\/tags\//, type: 'Tag' },
+        { pattern: /\/author\/|\/authors\//, type: 'Author' },
+        { pattern: /\/search\/|\/results\//, type: 'Search' },
+        { pattern: /\/landing\/|\/campaign\//, type: 'Landing' },
+        { pattern: /\/(en|es|fr|de|it|pt|ga)\//, type: 'Localized' },
+        { pattern: /sitemap\.xml$|robots\.txt$|\.xml$/, type: 'Technical' },
+        { pattern: /\/api\//, type: 'API' }
+    ];
+    
+    for (const { pattern, type } of patterns) {
+        if (pattern.test(urlPath)) {
+            return type;
+        }
+    }
+    
+    // Check by file extension
+    if (urlPath.match(/\.(pdf|doc|docx|xls|xlsx|zip)$/)) {
+        return 'Download';
+    }
+    
+    // Check depth-based classification
+    const segments = urlPath.split('/').filter(s => s.length > 0);
+    if (segments.length <= 1) return 'Root';
+    if (segments.length === 2) return 'Section';
+    if (segments.length === 3) return 'Subsection';
+    
+    return 'Content Page';
+}
+
+function calculatePageDepth(url) {
+    if (!url) return 0;
+    
+    try {
+        const urlObj = new URL(url);
+        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+        return pathSegments.length;
+    } catch (e) {
+        // Fallback for relative URLs
+        const segments = url.split('/').filter(segment => segment.length > 0);
+        return segments.length;
+    }
+}
+
+function findNodeInTree(treeData, targetUrl) {
+    const result = {
+        node: null,
+        depth: 0,
+        siblings: 0
+    };
+    
+    function traverse(node, depth = 0, parent = null) {
+        if (node.url === targetUrl) {
+            result.node = node;
+            result.depth = depth;
+            result.siblings = parent && parent.children ? parent.children.length - 1 : 0;
+            return true;
+        }
+        
+        if (node.children) {
+            for (const child of node.children) {
+                if (traverse(child, depth + 1, node)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    if (treeData) {
+        traverse(treeData);
+    }
+    
+    return result;
+}
+
+
+
+    
+
+
+    
 
     // Listen for tree ready
     function listenForTreeReady() {
