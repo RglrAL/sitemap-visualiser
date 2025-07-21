@@ -1104,6 +1104,10 @@
     }
 }
 
+
+
+    
+
 function createEnhancedTooltip(data, d) {
     const tooltip = document.createElement('div');
     tooltip.className = 'enhanced-tooltip simplified-tooltip';
@@ -1142,7 +1146,10 @@ function createEnhancedTooltip(data, d) {
     }, 10);
     
     return tooltip;
-}  
+}
+
+
+    
 
 
 function createEnhancedHeader(data) {
@@ -1196,6 +1203,9 @@ function createEnhancedHeader(data) {
         </div>
     `;
 }
+
+
+    
 
 
 function createPageInfoSection(data, d) {
@@ -1321,22 +1331,26 @@ function createPageInfoSection(data, d) {
     
     // Async GSC data loading (non-blocking)
     async function loadGSCDataAsync(data, tooltip) {
-        if (!tooltip || !data.url) return;
+    if (!tooltip || !data.url) return;
+    
+    try {
+        const gscData = await fetchNodeGSCData(data);
         
-        try {
-            const gscData = await fetchNodeGSCData(data);
-            
-            // Check if tooltip still exists and is the current one
-            if (tooltip === currentTooltip && tooltip.parentNode) {
-                updateTooltipWithGSCData(tooltip, gscData);
-            }
-        } catch (error) {
-            console.warn('GSC data loading failed:', error);
-            if (tooltip === currentTooltip && tooltip.parentNode) {
-                updateGSCPlaceholder(tooltip, 'Performance data unavailable');
-            }
+        // Check if tooltip still exists and is the current one
+        if (tooltip === currentTooltip && tooltip.parentNode) {
+            updateTooltipWithGSCData(tooltip, gscData);
+        }
+    } catch (error) {
+        console.warn('GSC data loading failed:', error);
+        if (tooltip === currentTooltip && tooltip.parentNode) {
+            updateGSCPlaceholder(tooltip, 'Performance data unavailable');
         }
     }
+}
+
+
+
+    
     
     function updateTooltipWithGSCData(tooltip, gscData) {
     const placeholder = tooltip.querySelector('#gsc-placeholder');
@@ -1415,6 +1429,9 @@ function createPageInfoSection(data, d) {
     placeholder.outerHTML = gscHtml;
 }
 
+
+    
+
 function createMetricCard(label, value, trend, icon, color, isPosition = false) {
     let trendElement = '';
     
@@ -1461,6 +1478,10 @@ function createMetricCard(label, value, trend, icon, color, isPosition = false) 
         </div>
     `;
 }
+
+
+
+    
 
 // Helper function to format relative dates
 function formatRelativeDate(date) {
