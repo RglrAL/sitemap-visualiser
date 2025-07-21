@@ -273,58 +273,62 @@
 
     // Handle auth response
     function handleAuthResponse(response) {
-        debugLog('Handling auth response...', response);
-        
-        if (response.error) {
-            console.error('[GSC Integration] Authentication error:', response);
-            updateConnectionStatus(false);
-            return;
-        }
-        
-        accessToken = response.access_token;
-        debugLog('Access token received');
-        
-        if (gapi && gapi.client) {
-            gapi.client.setToken({ access_token: accessToken });
-            debugLog('Token set in GAPI client');
-        }
-        
-        updateConnectionStatus(true);
-        gscEvents.emit('authenticated');
-        
-        // Start lazy loading initialization
-        initializeLazyLoading();
+    debugLog('Handling auth response...', response);
+    hideGSCLoadingState();
+    
+    if (response.error) {
+        console.error('[GSC Integration] Authentication error:', response);
+        updateConnectionStatus(false);
+        return;
     }
+    
+    accessToken = response.access_token;
+    debugLog('Access token received');
+    
+    if (gapi && gapi.client) {
+        gapi.client.setToken({ access_token: accessToken });
+        debugLog('Token set in GAPI client');
+    }
+    
+    updateConnectionStatus(true);
+    gscEvents.emit('authenticated');
+    
+    // Start lazy loading initialization
+    initializeLazyLoading();
+}
 
     // Toggle connection
     function toggleGSCConnection() {
-        debugLog('Toggle connection called. Current state:', gscConnected);
+    debugLog('Toggle connection called. Current state:', gscConnected);
+    
+    if (gscConnected) {
+        if (accessToken) {
+            google.accounts.oauth2.revoke(accessToken, () => {
+                debugLog('Access token revoked');
+            });
+        }
+        updateConnectionStatus(false);
+        resetGSCData();
+    } else {
+        if (!gisInited || !gapiInited) {
+            alert('Google services are still loading. Please wait a moment and try again.');
+            return;
+        }
         
-        if (gscConnected) {
-            if (accessToken) {
-                google.accounts.oauth2.revoke(accessToken, () => {
-                    debugLog('Access token revoked');
-                });
-            }
-            updateConnectionStatus(false);
-            resetGSCData();
-        } else {
-            if (!gisInited || !gapiInited) {
-                alert('Google services are still loading. Please wait a moment and try again.');
-                return;
-            }
+        if (tokenClient) {
+            debugLog('Requesting access token...');
+            showGSCLoadingState();
             
-            if (tokenClient) {
-                debugLog('Requesting access token...');
-                try {
-                    tokenClient.requestAccessToken({ prompt: '' });
-                } catch (error) {
-                    console.error('[GSC Integration] Error requesting access token:', error);
-                    alert('Failed to open authentication window. Please check your popup blocker.');
-                }
+            try {
+                tokenClient.requestAccessToken({ prompt: '' });
+            } catch (error) {
+                console.error('[GSC Integration] Error requesting access token:', error);
+                hideGSCLoadingState();
+                alert('Failed to open authentication window. Please check your popup blocker.');
             }
         }
     }
+}
 
     // Initialize lazy loading
     function initializeLazyLoading() {
@@ -935,40 +939,70 @@
     
     if (gscBtn) {
         if (connected) {
-            gscBtn.classList.add('connected');
-            gscBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important';
-            gscBtn.style.color = 'white !important';
-            gscBtn.style.borderColor = '#4caf50 !important';
-            gscBtn.style.boxShadow = '0 2px 8px rgba(76,175,80,0.3)';
+            // Add connecting animation first
+            gscBtn.classList.add('connecting');
+            setTimeout(() => gscBtn.classList.remove('connecting'), 600);
             
-            // Add subtle glow to the Google icon when connected
-            if (gscIcon) {
-                gscIcon.style.filter = 'drop-shadow(0 0 2px rgba(255,255,255,0.5))';
-            }
+            // Then add connected state
+            setTimeout(() => {
+                gscBtn.classList.add('connected');
+                gscBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important';
+                gscBtn.style.color = 'white !important';
+                gscBtn.style.borderColor = '#4caf50 !important';
+                
+                if (gscText) gscText.textContent = 'GSC Connected';
+            }, 300);
             
-            if (gscText) gscText.textContent = 'GSC Connected';
         } else {
-            gscBtn.classList.remove('connected');
+            gscBtn.classList.remove('connected', 'connecting');
             gscBtn.style.background = '#ffffff !important';
             gscBtn.style.color = '#3c4043 !important';
             gscBtn.style.borderColor = '#dadce0 !important';
             gscBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             
-            // Reset icon glow
-            if (gscIcon) {
-                gscIcon.style.filter = '';
-            }
-            
-            if (gscText) gscText.textContent = 'Connect to Search Console';
+            if (gscText) gscText.textContent = 'Connect GSC';
         }
     }
     
-    debugLog('Connection status updated:', connected);
+    debugLog('Connection status updated with animations:', connected);
     
     if (!connected) {
         resetGSCData();
     }
 }
+
+
+
+    // Remove loading state
+function hideGSCLoadingState() {
+    const gscBtn = document.getElementById('gscConnectBtn');
+    const gscText = document.getElementById('gscText');
+    
+    if (gscBtn && gscText) {
+        gscBtn.style.pointerEvents = 'auto';
+        // Text will be updated by updateConnectionStatus
+    }
+}
+
+
+
+    
+
+
+    function showGSCLoadingState() {
+    const gscBtn = document.getElementById('gscConnectBtn');
+    const gscText = document.getElementById('gscText');
+    
+    if (gscBtn && gscText) {
+        gscText.innerHTML = 'Connecting<span class="gsc-loading-dots"><span></span><span></span><span></span></span>';
+        gscBtn.style.pointerEvents = 'none';
+    }
+}
+
+
+
+
+    
 
     // Add GSC button to navigation
     function addGSCButton() {
@@ -2013,7 +2047,7 @@ function addLoadingAnimationStyles() {
         /* Import Google Sans font */
         @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&display=swap');
         
-        /* GSC Integration Styles with Google Material Design */
+        /* GSC Integration Styles with Animations */
         .nav-gsc-btn {
             display: flex !important;
             align-items: center;
@@ -2035,6 +2069,7 @@ function addLoadingAnimationStyles() {
             font-weight: 500;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             min-height: 36px;
+            overflow: hidden;
         }
         
         .nav-gsc-btn:hover {
@@ -2044,28 +2079,112 @@ function addLoadingAnimationStyles() {
             transform: translateY(-1px);
         }
         
+        /* CONNECTED STATE WITH ANIMATIONS */
         .nav-gsc-btn.connected {
             background: linear-gradient(135deg, #4caf50 0%, #45a049 100%) !important;
             color: white !important;
             border-color: #4caf50 !important;
             box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+            animation: gsc-connected-pulse 3s ease-in-out infinite;
         }
         
         .nav-gsc-btn.connected:hover {
             background: linear-gradient(135deg, #45a049 0%, #388e3c 100%) !important;
             box-shadow: 0 3px 12px rgba(76,175,80,0.4) !important;
             transform: translateY(-2px);
+            animation: gsc-connected-pulse 2s ease-in-out infinite;
         }
 
+        /* Connected pulse animation */
+        @keyframes gsc-connected-pulse {
+            0%, 100% { 
+                box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 0 rgba(76,175,80,0.4);
+            }
+            50% { 
+                box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 4px rgba(76,175,80,0.1);
+            }
+        }
+
+        /* Data flow animation for connected state */
+        .nav-gsc-btn.connected::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: gsc-data-flow 2.5s ease-in-out infinite;
+        }
+
+        @keyframes gsc-data-flow {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        /* Icon animations */
         #gscIcon {
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
             flex-shrink: 0;
         }
 
+        .nav-gsc-btn.connected #gscIcon {
+            filter: drop-shadow(0 0 3px rgba(255,255,255,0.6));
+            animation: gsc-icon-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes gsc-icon-glow {
+            0% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+            100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.8)); }
+        }
+
+        /* Text animation */
         #gscText {
             font-weight: 500;
             white-space: nowrap;
             letter-spacing: 0.25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-gsc-btn.connected #gscText {
+            text-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+
+        /* Success animation when first connected */
+        .nav-gsc-btn.connecting {
+            animation: gsc-connecting 0.6s ease-out;
+        }
+
+        @keyframes gsc-connecting {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Loading dots animation */
+        .gsc-loading-dots {
+            display: inline-flex;
+            gap: 2px;
+            margin-left: 4px;
+        }
+
+        .gsc-loading-dots span {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.4;
+            animation: gsc-loading-dot 1.4s ease-in-out infinite;
+        }
+
+        .gsc-loading-dots span:nth-child(1) { animation-delay: 0s; }
+        .gsc-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .gsc-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes gsc-loading-dot {
+            0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
+            40% { opacity: 1; transform: scale(1.2); }
         }
 
         /* Ripple effect on click */
@@ -2074,10 +2193,31 @@ function addLoadingAnimationStyles() {
             box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
         }
 
+        .nav-gsc-btn.connected:active {
+            animation: gsc-click-ripple 0.3s ease-out;
+        }
+
+        @keyframes gsc-click-ripple {
+            0% { box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 0 rgba(76,175,80,0.6); }
+            100% { box-shadow: 0 2px 8px rgba(76,175,80,0.3), 0 0 0 8px rgba(76,175,80,0); }
+        }
+
         /* Focus accessibility */
         .nav-gsc-btn:focus {
             outline: 2px solid #4285f4;
             outline-offset: 2px;
+        }
+
+        /* Subtle background animation for connected state */
+        .nav-gsc-btn.connected {
+            background-size: 200% 200%;
+            animation: gsc-connected-pulse 3s ease-in-out infinite, 
+                      gsc-gradient-shift 4s ease-in-out infinite;
+        }
+
+        @keyframes gsc-gradient-shift {
+            0%, 100% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
         }
 
         .modal {
@@ -2096,7 +2236,7 @@ function addLoadingAnimationStyles() {
     `;
     document.head.appendChild(style);
     
-    debugLog('Enhanced GSC styles added to page');
+    debugLog('Enhanced animated GSC styles added to page');
 }
 
     // Hook into sitemap loading
