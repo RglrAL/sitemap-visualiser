@@ -1,4 +1,5 @@
-// combined-tooltip-integration.js - Add this to enhance your existing tooltips with GA4 data
+// combined-tooltip-integration.js - FIXED VERSION
+// Replace your existing combined-tooltip-integration (1).js with this
 
 (function() {
     // Wait for both integrations to be ready
@@ -40,9 +41,9 @@
         return tooltip;
     }
 
-    // Create the basic page info content
+    // Create the basic page info content (keep your original function if you have it)
     function createBasicTooltipContent(data) {
-        // Get freshness info (if your original code has this function)
+        // Get freshness info (using your original function if available)
         let freshnessInfo = '';
         let lastModifiedDisplay = '';
         
@@ -60,6 +61,36 @@
             }
         }
 
+        // Get page info (using your original function if available)
+        let pageInfoDisplay = '';
+        if (typeof getPageInfo === 'function') {
+            const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+            const pageInfo = getPageInfo(data, treeContext);
+            
+            pageInfoDisplay = `
+                <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.7rem;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="color: #666;">🏷️ Type:</span>
+                            <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="color: #666;">📏 Depth:</span>
+                            <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="color: #666;">👶 Children:</span>
+                            <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span style="color: #666;">👫 Siblings:</span>
+                            <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         return `
             <div style="margin-bottom: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
@@ -70,6 +101,7 @@
                     onmouseover="this.style.textDecoration='underline'" 
                     onmouseout="this.style.textDecoration='none'">${data.url}</a>` : ''}
                 ${lastModifiedDisplay}
+                ${pageInfoDisplay}
             </div>
         `;
     }
@@ -140,7 +172,10 @@
             if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
                 promises.push(
                     window.GSCIntegration.fetchNodeData(nodeData)
-                        .then(data => { results.gsc = data; })
+                        .then(data => { 
+                            results.gsc = data;
+                            console.log('🔍 GSC data loaded:', data);
+                        })
                         .catch(error => { 
                             console.warn('GSC fetch failed:', error);
                             results.gsc = { noDataFound: true, error: error.message };
@@ -154,7 +189,10 @@
             if (window.GA4Integration && window.GA4Integration.isConnected()) {
                 promises.push(
                     window.GA4Integration.fetchData(nodeData.url)
-                        .then(data => { results.ga4 = data; })
+                        .then(data => { 
+                            results.ga4 = data;
+                            console.log('📊 GA4 data loaded:', data);
+                        })
                         .catch(error => { 
                             console.warn('GA4 fetch failed:', error);
                             results.ga4 = { noDataFound: true, error: error.message };
@@ -187,22 +225,38 @@
             if (status === 'success') {
                 spinnerElement.innerHTML = '✅';
                 spinnerElement.style.animation = 'none';
+                spinnerElement.style.border = 'none';
+                spinnerElement.style.fontSize = '12px';
             } else if (status === 'error') {
                 spinnerElement.innerHTML = '❌';
                 spinnerElement.style.animation = 'none';
+                spinnerElement.style.border = 'none';
+                spinnerElement.style.fontSize = '12px';
             }
         }
     }
 
-    // Generate combined analytics HTML
-    function generateCombinedAnalyticsHTML(gscData, ga4Data) {
-        const hasGSC = gscData && !gscData.noDataFound;
-        const hasGA4 = ga4Data && !ga4Data.noDataFound;
+    // Generate combined analytics HTML - FIXED VERSION
+    function generateCombinedAnalyticsHTML(gscData, ga4Data, nodeData) {
+        const hasGSC = gscData && !gscData.noDataFound && !gscData.error;
+        const hasGA4 = ga4Data && !ga4Data.noDataFound && !ga4Data.error;
+        
+        console.log('🎨 Generating HTML with:', { 
+            hasGSC, 
+            hasGA4, 
+            gscData: gscData?.clicks || 'no data', 
+            ga4Data: ga4Data?.users || 'no data' 
+        });
         
         if (!hasGSC && !hasGA4) {
             return `
                 <div style="margin-top: 16px; text-align: center; padding: 20px; color: #666; background: #f8f9fa; border-radius: 8px;">
                     📭 No analytics data available
+                    <div style="font-size: 0.8rem; margin-top: 8px; color: #999;">
+                        ${!gscData || gscData.error ? 'GSC: ' + (gscData?.error || 'Not connected') : ''}
+                        ${(!gscData || gscData.error) && (!ga4Data || ga4Data.error) ? ' • ' : ''}
+                        ${!ga4Data || ga4Data.error ? 'GA4: ' + (ga4Data?.error || 'Not connected') : ''}
+                    </div>
                 </div>
             `;
         }
@@ -319,10 +373,10 @@
             const combinedData = await fetchCombinedAnalyticsData(nodeData);
             
             // Update status indicators
-            updateLoadingStatus('gsc', combinedData.gsc && !combinedData.gsc.noDataFound ? 'success' : 'error', 
-                              combinedData.gsc && !combinedData.gsc.noDataFound ? 'Ready' : 'No data');
-            updateLoadingStatus('ga4', combinedData.ga4 && !combinedData.ga4.noDataFound ? 'success' : 'error',
-                              combinedData.ga4 && !combinedData.ga4.noDataFound ? 'Ready' : 'No data');
+            updateLoadingStatus('gsc', combinedData.gsc && !combinedData.gsc.noDataFound && !combinedData.gsc.error ? 'success' : 'error', 
+                              combinedData.gsc && !combinedData.gsc.noDataFound && !combinedData.gsc.error ? 'Ready' : 'No data');
+            updateLoadingStatus('ga4', combinedData.ga4 && !combinedData.ga4.noDataFound && !combinedData.ga4.error ? 'success' : 'error',
+                              combinedData.ga4 && !combinedData.ga4.noDataFound && !combinedData.ga4.error ? 'Ready' : 'No data');
             
             // Brief delay to show completion
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -331,7 +385,7 @@
             if (tooltip.parentNode) {
                 const loadingSection = tooltip.querySelector('#combined-analytics-loading');
                 if (loadingSection) {
-                    const combinedHTML = generateCombinedAnalyticsHTML(combinedData.gsc, combinedData.ga4);
+                    const combinedHTML = generateCombinedAnalyticsHTML(combinedData.gsc, combinedData.ga4, nodeData);
                     loadingSection.outerHTML = combinedHTML;
                 }
             }
@@ -398,10 +452,11 @@
         // Override with combined version
         window.showEnhancedTooltip = function(event, d) {
             if (!d.data) return;
+            console.log('🎯 Enhanced tooltip triggered for:', d.data.name);
             showCombinedTooltip(event, d.data);
         };
         
-        // Keep existing hide functionality
+        // Keep existing hide functionality or create if missing
         if (!originalHide) {
             window.hideEnhancedTooltip = function() {
                 if (window.currentTooltip) {
@@ -422,7 +477,7 @@
     // Initialize when both integrations are ready
     waitForIntegrations(() => {
         enhanceExistingTooltips();
-        console.log('🚀 Combined analytics tooltips ready!');
+        console.log('🚀 Combined analytics tooltips ready with your original styling!');
     });
 
 })();
