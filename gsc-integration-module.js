@@ -3936,14 +3936,14 @@ window.exportVisualReport = function(url) {
     // Create downloadable report
     const reportHTML = generateVisualReportHTML(report);
     const blob = new Blob([reportHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(blob);  // Changed from 'url' to 'blobUrl'
     const link = document.createElement('a');
-    link.href = url;
+    link.href = blobUrl;  // Updated reference
     link.download = `gsc-visual-report-${new Date().toISOString().split('T')[0]}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(blobUrl);  // Updated reference
     
     // Show success message
     showNotification('Visual report exported successfully!', 'success');
@@ -4500,47 +4500,47 @@ async function fetchGSCDataWithDateRange(url, days) {
 
     // Export GSC data
     window.exportGSCData = function(url) {
-        const gscData = gscDataMap.get(url);
-        if (!gscData || gscData.noDataFound) {
-            alert('No data to export');
-            return;
-        }
-        
-        let csv = 'URL,Clicks,Impressions,CTR,Position,Trend_Clicks,Trend_Impressions,Trend_Position\n';
-        csv += `"${url}",${gscData.clicks},${gscData.impressions},${(gscData.ctr * 100).toFixed(2)}%,${gscData.position.toFixed(1)}`;
-        
-        if (gscData.trend) {
-            csv += `,${gscData.trend.clicksChange}%,${gscData.trend.impressionsChange}%,${gscData.trend.positionChange}`;
-        } else {
-            csv += ',,,';
-        }
-        csv += '\n\n';
-        
-        if (gscData.topQueries && gscData.topQueries.length > 0) {
-            csv += 'Top Queries,Clicks,Impressions,CTR,Position\n';
-            gscData.topQueries.forEach(query => {
-                csv += `"${query.query}",${query.clicks},${query.impressions},${(query.ctr * 100).toFixed(2)}%,${query.position.toFixed(1)}\n`;
-            });
-            csv += '\n';
-        }
-        
-        if (gscData.opportunities && gscData.opportunities.length > 0) {
-            csv += 'Optimization Opportunities,Impressions,Clicks,CTR,Position,Potential_Clicks\n';
-            gscData.opportunities.forEach(opp => {
-                csv += `"${opp.query}",${opp.impressions},${opp.clicks},${(opp.ctr * 100).toFixed(2)}%,${opp.position.toFixed(1)},${opp.potentialClicks}\n`;
-            });
-        }
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const urlObj = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = urlObj;
-        link.download = `gsc-analysis-${url.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(urlObj);
+    const gscData = gscDataMap.get(url);
+    if (!gscData || gscData.noDataFound) {
+        alert('No data to export');
+        return;
     }
+    
+    let csv = 'URL,Clicks,Impressions,CTR,Position,Trend_Clicks,Trend_Impressions,Trend_Position\n';
+    csv += `"${url}",${gscData.clicks},${gscData.impressions},${(gscData.ctr * 100).toFixed(2)}%,${gscData.position.toFixed(1)}`;
+    
+    if (gscData.trend) {
+        csv += `,${gscData.trend.clicksChange}%,${gscData.trend.impressionsChange}%,${gscData.trend.positionChange}`;
+    } else {
+        csv += ',,,';
+    }
+    csv += '\n\n';
+    
+    if (gscData.topQueries && gscData.topQueries.length > 0) {
+        csv += 'Top Queries,Clicks,Impressions,CTR,Position\n';
+        gscData.topQueries.forEach(query => {
+            csv += `"${query.query}",${query.clicks},${query.impressions},${(query.ctr * 100).toFixed(2)}%,${query.position.toFixed(1)}\n`;
+        });
+        csv += '\n';
+    }
+    
+    if (gscData.opportunities && gscData.opportunities.length > 0) {
+        csv += 'Optimization Opportunities,Impressions,Clicks,CTR,Position,Potential_Clicks\n';
+        gscData.opportunities.forEach(opp => {
+            csv += `"${opp.query}",${opp.impressions},${opp.clicks},${(opp.ctr * 100).toFixed(2)}%,${opp.position.toFixed(1)},${opp.potentialClicks}\n`;
+        });
+    }
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvUrl = URL.createObjectURL(blob);  // Changed from 'urlObj' to 'csvUrl' for clarity
+    const link = document.createElement('a');
+    link.href = csvUrl;
+    link.download = `gsc-analysis-${url.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(csvUrl);
+};
 
     // UI Helper Functions
     function showGSCLoadingIndicator() {
