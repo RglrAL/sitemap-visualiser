@@ -1,11 +1,14 @@
-// combined-tooltip-integration.js - FIXED VERSION
-// Replace your existing combined-tooltip-integration (1).js with this
+// combined-tooltip-integration.js - PERMANENT VERSION
+// Replace your entire combined-tooltip-integration (1).js file with this
 
 (function() {
+    console.log('🚀 Loading permanent combined tooltip integration...');
+
     // Wait for both integrations to be ready
     function waitForIntegrations(callback) {
         const checkReady = () => {
             if (window.GSCIntegration && window.GA4Integration) {
+                console.log('✅ Both integrations ready');
                 callback();
             } else {
                 setTimeout(checkReady, 100);
@@ -14,7 +17,12 @@
         checkReady();
     }
 
-    // Enhanced tooltip with both GSC and GA4 data
+    // Clear existing tooltips
+    function clearExistingTooltips() {
+        document.querySelectorAll('.enhanced-tooltip, .combined-analytics-tooltip, [class*="tooltip"]').forEach(el => el.remove());
+    }
+
+    // Enhanced tooltip with both GSC and GA4 data + connection status
     function createCombinedTooltip(nodeData) {
         const tooltip = document.createElement('div');
         tooltip.className = 'enhanced-tooltip combined-analytics-tooltip';
@@ -35,13 +43,13 @@
             line-height: 1.4;
         `;
 
-        // Create basic content
+        // Create basic content with your original styling
         tooltip.innerHTML = createBasicTooltipContent(nodeData);
         
         return tooltip;
     }
 
-    // Create the basic page info content (keep your original function if you have it)
+    // Create the basic page info content (enhanced with your original features)
     function createBasicTooltipContent(data) {
         // Get freshness info (using your original function if available)
         let freshnessInfo = '';
@@ -106,8 +114,8 @@
         `;
     }
 
-    // Create loading section for both analytics sources
-    function createCombinedLoadingSection() {
+    // Create analytics loading section with connection status
+    function createAnalyticsLoadingSection() {
         return `
             <div id="combined-analytics-loading" style="margin-top: 16px;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden;">
@@ -115,229 +123,175 @@
                     <!-- Header -->
                     <div style="background: rgba(255,255,255,0.15); padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                         <div style="color: white; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
-                            <span>📊 Loading Analytics Data</span>
+                            <span>📊 Analytics Data (30 days)</span>
                             <div style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">
-                                Multi-Source
+                                Live Data
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Dual Progress Section -->
+                    <!-- Analytics Sections -->
                     <div style="background: rgba(255,255,255,0.1); padding: 16px;">
                         
-                        <!-- GSC Progress -->
-                        <div id="gsc-loading-section" style="margin-bottom: 12px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                <div style="display: flex; align-items: center; gap: 8px; color: white; font-size: 0.85rem;">
-                                    <div class="loading-spinner gsc-spinner" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2); border-top: 2px solid #4caf50; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                    <span>🔍 Search Console</span>
-                                </div>
-                                <span id="gsc-status" style="color: rgba(255,255,255,0.8); font-size: 0.75rem;">Loading...</span>
+                        <!-- GSC Section -->
+                        <div id="gsc-section" style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 6px; font-weight: 500; display: flex; justify-content: space-between; align-items: center;">
+                                <span>🔍 Search Console</span>
+                                <span id="gsc-connection-status" style="font-size: 0.7rem; opacity: 0.8;">Checking...</span>
+                            </div>
+                            <div id="gsc-content" style="font-size: 0.9rem;">
+                                <div class="loading-dots">Loading data...</div>
                             </div>
                         </div>
                         
-                        <!-- GA4 Progress -->
-                        <div id="ga4-loading-section">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                <div style="display: flex; align-items: center; gap: 8px; color: white; font-size: 0.85rem;">
-                                    <div class="loading-spinner ga4-spinner" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2); border-top: 2px solid #ff6b35; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                    <span>📊 Analytics 4</span>
-                                </div>
-                                <span id="ga4-status" style="color: rgba(255,255,255,0.8); font-size: 0.75rem;">Loading...</span>
+                        <!-- GA4 Section -->
+                        <div id="ga4-section" style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 6px; font-weight: 500; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📊 Google Analytics 4</span>
+                                <span id="ga4-connection-status" style="font-size: 0.7rem; opacity: 0.8;">Checking...</span>
+                            </div>
+                            <div id="ga4-content" style="font-size: 0.9rem;">
+                                <div class="loading-dots">Loading data...</div>
                             </div>
                         </div>
                         
+                        <!-- Reconnect Section (hidden by default) -->
+                        <div id="reconnect-section" style="margin-top: 10px; text-align: center; display: none;">
+                            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 4px;">⚠️ Connection Issues Detected</div>
+                            </div>
+                            <button onclick="window.reconnectAnalytics && window.reconnectAnalytics()" 
+                                    style="background: rgba(255,255,255,0.3); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
+                                🔄 Reconnect Analytics
+                            </button>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px 16px; display: flex; gap: 8px;">
+                        <button onclick="window.open('${nodeData.url}', '_blank')" 
+                                style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; flex: 1;">
+                            🔗 Visit Page
+                        </button>
                     </div>
                 </div>
             </div>
             
             <style>
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
+                .loading-dots {
+                    opacity: 0.8;
+                }
+                
+                .loading-dots::after {
+                    content: '...';
+                    animation: loading-dots 1.5s infinite;
+                }
+                
+                @keyframes loading-dots {
+                    0%, 20% { content: '.'; }
+                    40% { content: '..'; }
+                    60%, 100% { content: '...'; }
                 }
             </style>
         `;
     }
 
-    // Fetch both GSC and GA4 data in parallel
-    async function fetchCombinedAnalyticsData(nodeData) {
-        const results = { gsc: null, ga4: null };
+    // Load analytics data with robust error handling
+    async function loadAnalyticsDataRobust(tooltip, nodeData) {
+        console.log('📊 Loading analytics data for:', nodeData.name);
         
-        try {
-            // Start both requests in parallel
-            const promises = [];
-            
-            // GSC data
-            if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
-                promises.push(
-                    window.GSCIntegration.fetchNodeData(nodeData)
-                        .then(data => { 
-                            results.gsc = data;
-                            console.log('🔍 GSC data loaded:', data);
-                        })
-                        .catch(error => { 
-                            console.warn('GSC fetch failed:', error);
-                            results.gsc = { noDataFound: true, error: error.message };
-                        })
-                );
-            } else {
-                results.gsc = { noDataFound: true, error: 'GSC not connected' };
-            }
-            
-            // GA4 data
-            if (window.GA4Integration && window.GA4Integration.isConnected()) {
-                promises.push(
-                    window.GA4Integration.fetchData(nodeData.url)
-                        .then(data => { 
-                            results.ga4 = data;
-                            console.log('📊 GA4 data loaded:', data);
-                        })
-                        .catch(error => { 
-                            console.warn('GA4 fetch failed:', error);
-                            results.ga4 = { noDataFound: true, error: error.message };
-                        })
-                );
-            } else {
-                results.ga4 = { noDataFound: true, error: 'GA4 not connected' };
-            }
-            
-            // Wait for both to complete
-            await Promise.all(promises);
-            
-        } catch (error) {
-            console.error('Error fetching combined analytics data:', error);
-        }
+        const gscContent = tooltip.querySelector('#gsc-content');
+        const ga4Content = tooltip.querySelector('#ga4-content');
+        const gscStatus = tooltip.querySelector('#gsc-connection-status');
+        const ga4Status = tooltip.querySelector('#ga4-connection-status');
+        const reconnectSection = tooltip.querySelector('#reconnect-section');
         
-        return results;
-    }
-
-    // Update loading status for individual sources
-    function updateLoadingStatus(source, status, message) {
-        const statusElement = document.querySelector(`#${source}-status`);
-        const spinnerElement = document.querySelector(`.${source}-spinner`);
+        let needsReconnection = false;
         
-        if (statusElement) {
-            statusElement.textContent = message;
-        }
-        
-        if (spinnerElement) {
-            if (status === 'success') {
-                spinnerElement.innerHTML = '✅';
-                spinnerElement.style.animation = 'none';
-                spinnerElement.style.border = 'none';
-                spinnerElement.style.fontSize = '12px';
-            } else if (status === 'error') {
-                spinnerElement.innerHTML = '❌';
-                spinnerElement.style.animation = 'none';
-                spinnerElement.style.border = 'none';
-                spinnerElement.style.fontSize = '12px';
-            }
-        }
-    }
-
-    // Generate combined analytics HTML - FIXED VERSION
-    function generateCombinedAnalyticsHTML(gscData, ga4Data, nodeData) {
-        const hasGSC = gscData && !gscData.noDataFound && !gscData.error;
-        const hasGA4 = ga4Data && !ga4Data.noDataFound && !ga4Data.error;
-        
-        console.log('🎨 Generating HTML with:', { 
-            hasGSC, 
-            hasGA4, 
-            gscData: gscData?.clicks || 'no data', 
-            ga4Data: ga4Data?.users || 'no data' 
-        });
-        
-        if (!hasGSC && !hasGA4) {
-            return `
-                <div style="margin-top: 16px; text-align: center; padding: 20px; color: #666; background: #f8f9fa; border-radius: 8px;">
-                    📭 No analytics data available
-                    <div style="font-size: 0.8rem; margin-top: 8px; color: #999;">
-                        ${!gscData || gscData.error ? 'GSC: ' + (gscData?.error || 'Not connected') : ''}
-                        ${(!gscData || gscData.error) && (!ga4Data || ga4Data.error) ? ' • ' : ''}
-                        ${!ga4Data || ga4Data.error ? 'GA4: ' + (ga4Data?.error || 'Not connected') : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        let html = `
-            <div style="margin-top: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden;">
+        // Load GSC data
+        if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
+            gscStatus.textContent = '🟢 Connected';
+            try {
+                const gscData = await window.GSCIntegration.fetchNodeData(nodeData);
+                console.log('🔍 GSC data loaded:', gscData);
                 
-                <!-- Combined Header -->
-                <div style="background: rgba(255,255,255,0.15); padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <div style="color: white; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-                        📊 Analytics Overview (30d)
-                        <div style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">
-                            ${hasGSC ? 'GSC' : ''}${hasGSC && hasGA4 ? ' + ' : ''}${hasGA4 ? 'GA4' : ''}
+                if (gscData && !gscData.noDataFound && !gscData.error) {
+                    gscContent.innerHTML = `
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px;">
+                            ${formatNumber(gscData.clicks)} clicks
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Combined Metrics -->
-                <div style="background: rgba(255,255,255,0.1); padding: 16px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-        `;
-
-        // GSC Metrics
-        if (hasGSC) {
-            html += `
-                <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; border-left: 3px solid #4caf50;">
-                    <div style="color: rgba(255,255,255,0.8); font-size: 0.75rem; margin-bottom: 4px;">🔍 Search Performance</div>
-                    <div style="color: white; font-weight: 600; margin-bottom: 6px;">${formatNumber(gscData.clicks)} clicks</div>
-                    <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem;">
-                        ${formatNumber(gscData.impressions)} impr • ${(gscData.ctr * 100).toFixed(1)}% CTR • #${gscData.position.toFixed(0)} pos
-                    </div>
-                </div>
-            `;
+                        <div style="font-size: 0.85rem; opacity: 0.9; line-height: 1.3;">
+                            ${formatNumber(gscData.impressions)} impressions<br>
+                            ${(gscData.ctr * 100).toFixed(1)}% CTR • #${gscData.position.toFixed(0)} avg position
+                        </div>
+                    `;
+                } else {
+                    gscContent.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">No data available</div>';
+                }
+            } catch (error) {
+                console.error('❌ GSC error:', error);
+                gscContent.innerHTML = '<div style="opacity: 0.7; color: #ffcdd2; font-size: 0.9rem;">Error loading data</div>';
+                gscStatus.textContent = '🔴 Error';
+                needsReconnection = true;
+            }
+        } else {
+            gscContent.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">Not connected</div>';
+            gscStatus.textContent = '🔴 Disconnected';
+            needsReconnection = true;
         }
-
-        // GA4 Metrics
-        if (hasGA4) {
-            html += `
-                <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; border-left: 3px solid #ff6b35;">
-                    <div style="color: rgba(255,255,255,0.8); font-size: 0.75rem; margin-bottom: 4px;">👥 User Engagement</div>
-                    <div style="color: white; font-weight: 600; margin-bottom: 6px;">${formatNumber(ga4Data.users)} users</div>
-                    <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem;">
-                        ${formatNumber(ga4Data.pageViews)} views • ${(ga4Data.engagementRate * 100).toFixed(0)}% engaged
-                    </div>
-                </div>
+        
+        // Load GA4 data
+        if (window.GA4Integration && window.GA4Integration.isConnected()) {
+            ga4Status.textContent = '🟢 Connected';
+            try {
+                console.log('📊 Fetching GA4 data...');
+                const ga4Data = await window.GA4Integration.fetchData(nodeData.url);
+                console.log('📊 GA4 data loaded:', ga4Data);
                 
-                <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; border-left: 3px solid #2196f3;">
-                    <div style="color: rgba(255,255,255,0.8); font-size: 0.75rem; margin-bottom: 4px;">📄 Page Performance</div>
-                    <div style="color: white; font-weight: 600; margin-bottom: 6px;">${formatNumber(ga4Data.sessions)} sessions</div>
-                    <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem;">
-                        ${(ga4Data.bounceRate * 100).toFixed(1)}% bounce • ${formatDuration(ga4Data.avgSessionDuration)}
-                    </div>
-                </div>
-            `;
+                if (ga4Data && !ga4Data.noDataFound && !ga4Data.error) {
+                    ga4Content.innerHTML = `
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 4px;">
+                            ${formatNumber(ga4Data.users || 0)} users
+                        </div>
+                        <div style="font-size: 0.85rem; opacity: 0.9; line-height: 1.3;">
+                            ${formatNumber(ga4Data.pageViews || 0)} page views<br>
+                            ${formatNumber(ga4Data.sessions || 0)} sessions • ${((ga4Data.engagementRate || 0) * 100).toFixed(0)}% engaged
+                        </div>
+                    `;
+                    console.log('✅ GA4 content updated successfully');
+                } else {
+                    console.warn('⚠️ GA4 data issue:', ga4Data);
+                    if (ga4Data?.error && ga4Data.error.includes('401')) {
+                        ga4Content.innerHTML = '<div style="opacity: 0.7; color: #ffcdd2; font-size: 0.9rem;">Authentication expired</div>';
+                        ga4Status.textContent = '🔴 Auth expired';
+                        needsReconnection = true;
+                    } else {
+                        ga4Content.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">No data available</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('❌ GA4 error:', error);
+                ga4Content.innerHTML = '<div style="opacity: 0.7; color: #ffcdd2; font-size: 0.9rem;">Error loading data</div>';
+                ga4Status.textContent = '🔴 Error';
+                needsReconnection = true;
+            }
+        } else {
+            ga4Content.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">Not connected</div>';
+            ga4Status.textContent = '🔴 Disconnected';
+            needsReconnection = true;
         }
-
-        html += `
-                    </div>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div style="background: rgba(255,255,255,0.05); padding: 12px 16px; display: flex; gap: 8px;">
-                    <button onclick="window.open('${nodeData.url}', '_blank')" 
-                            style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; flex: 1;">
-                        🔗 Visit Page
-                    </button>
-                    ${hasGSC ? `
-                    <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${nodeData.url}')" 
-                            style="background: rgba(255,255,255,0.3); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; flex: 1;">
-                        📈 Deep Analysis
-                    </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-
-        return html;
+        
+        // Show reconnect section if needed
+        if (needsReconnection) {
+            reconnectSection.style.display = 'block';
+        }
     }
 
     // Enhanced tooltip show function
     async function showCombinedTooltip(event, nodeData) {
+        console.log('🎯 Enhanced tooltip triggered for:', nodeData.name);
+        
         // Hide existing tooltip
         if (window.hideEnhancedTooltip) {
             window.hideEnhancedTooltip();
@@ -346,10 +300,10 @@
         // Create combined tooltip
         const tooltip = createCombinedTooltip(nodeData);
         
-        // Add loading section
-        tooltip.innerHTML += createCombinedLoadingSection();
+        // Add analytics loading section
+        tooltip.innerHTML += createAnalyticsLoadingSection();
         
-        // Position tooltip (use your existing positioning logic)
+        // Position tooltip
         positionTooltip(tooltip, event);
         
         // Add to DOM and show
@@ -368,45 +322,13 @@
             if (window.hideEnhancedTooltip) window.hideEnhancedTooltip();
         });
 
-        // Fetch combined data
-        try {
-            const combinedData = await fetchCombinedAnalyticsData(nodeData);
-            
-            // Update status indicators
-            updateLoadingStatus('gsc', combinedData.gsc && !combinedData.gsc.noDataFound && !combinedData.gsc.error ? 'success' : 'error', 
-                              combinedData.gsc && !combinedData.gsc.noDataFound && !combinedData.gsc.error ? 'Ready' : 'No data');
-            updateLoadingStatus('ga4', combinedData.ga4 && !combinedData.ga4.noDataFound && !combinedData.ga4.error ? 'success' : 'error',
-                              combinedData.ga4 && !combinedData.ga4.noDataFound && !combinedData.ga4.error ? 'Ready' : 'No data');
-            
-            // Brief delay to show completion
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Replace loading with data
-            if (tooltip.parentNode) {
-                const loadingSection = tooltip.querySelector('#combined-analytics-loading');
-                if (loadingSection) {
-                    const combinedHTML = generateCombinedAnalyticsHTML(combinedData.gsc, combinedData.ga4, nodeData);
-                    loadingSection.outerHTML = combinedHTML;
-                }
-            }
-            
-        } catch (error) {
-            console.error('Error loading combined analytics:', error);
-            // Show error state
-            const loadingSection = tooltip.querySelector('#combined-analytics-loading');
-            if (loadingSection) {
-                loadingSection.innerHTML = `
-                    <div style="background: #fff5f5; padding: 12px; border-radius: 6px; border-left: 3px solid #f56565; text-align: center;">
-                        <div style="color: #e53e3e; font-size: 0.85rem; margin-bottom: 4px;">❌ Loading Failed</div>
-                        <div style="color: #666; font-size: 0.75rem;">Unable to load analytics data</div>
-                    </div>
-                `;
-            }
-        }
+        // Load analytics data
+        await loadAnalyticsDataRobust(tooltip, nodeData);
     }
 
     // Utility functions
     function formatNumber(num) {
+        if (!num || num === 0) return '0';
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toLocaleString();
@@ -443,8 +365,46 @@
         }, 50);
     }
 
+    // Reconnect function
+    function reconnectAnalytics() {
+        console.log('🔄 Reconnecting analytics integrations...');
+        
+        // Find and click the connect buttons
+        const gscButton = document.getElementById('gscConnectBtn');
+        const ga4Button = document.getElementById('ga4ConnectBtn');
+        
+        if (gscButton) {
+            const gscConnected = gscButton.classList.contains('connected');
+            if (gscConnected) {
+                gscButton.click(); // Disconnect
+                setTimeout(() => gscButton.click(), 500); // Reconnect
+            } else {
+                gscButton.click(); // Connect
+            }
+        }
+        
+        if (ga4Button) {
+            const ga4Connected = ga4Button.classList.contains('connected');
+            if (ga4Connected) {
+                ga4Button.click(); // Disconnect  
+                setTimeout(() => ga4Button.click(), 1000); // Reconnect
+            } else {
+                ga4Button.click(); // Connect
+            }
+        }
+        
+        // Hide current tooltip
+        if (window.hideEnhancedTooltip) {
+            window.hideEnhancedTooltip();
+        }
+        
+        console.log('✅ Reconnection initiated - follow the auth flows');
+    }
+
     // Hook into existing tooltip system
     function enhanceExistingTooltips() {
+        console.log('🔧 Enhancing existing tooltips with combined analytics...');
+        
         // Store original functions
         const originalShow = window.showEnhancedTooltip;
         const originalHide = window.hideEnhancedTooltip;
@@ -452,7 +412,6 @@
         // Override with combined version
         window.showEnhancedTooltip = function(event, d) {
             if (!d.data) return;
-            console.log('🎯 Enhanced tooltip triggered for:', d.data.name);
             showCombinedTooltip(event, d.data);
         };
         
@@ -471,13 +430,16 @@
             };
         }
         
-        console.log('✅ Enhanced tooltips with combined GSC + GA4 data');
+        // Make reconnect function globally available
+        window.reconnectAnalytics = reconnectAnalytics;
+        
+        console.log('✅ Enhanced tooltips with combined GSC + GA4 data and connection status');
     }
 
     // Initialize when both integrations are ready
     waitForIntegrations(() => {
         enhanceExistingTooltips();
-        console.log('🚀 Combined analytics tooltips ready with your original styling!');
+        console.log('🚀 Permanent combined analytics tooltips ready with connection status!');
     });
 
 })();
