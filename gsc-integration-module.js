@@ -4673,6 +4673,8 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
     `;
 }
 
+window.createEnhancedDashboardHTML = createEnhancedDashboardHTML;
+
 function createEnhancedDashboardStyles() {
     return `
         <style>
