@@ -3854,4 +3854,344 @@ API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
         }
     }, 1000);
 
+
+// ADD THESE FUNCTIONS TO YOUR gsc-integration-module (24).js
+// Add these functions to the GSCIntegration object at the end
+
+// Period comparison functions for GSC trends
+window.GSCIntegration.fetchNodeDataForPeriod = async function(nodeData, startDate, endDate) {
+    if (!nodeData || !nodeData.url || !gscConnected || !gscSiteUrl) {
+        debugLog('GSC not connected or missing data for period fetch');
+        return null;
+    }
+
+    debugLog('Fetching GSC data for period:', {
+        url: nodeData.url,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+    });
+
+    // Check cache for this specific period
+    const cacheKey = `${nodeData.url}_${startDate.getTime()}_${endDate.getTime()}`;
+    if (gscDataMap.has(cacheKey)) {
+        return gscDataMap.get(cacheKey);
+    }
+
+    // Check if request is already pending
+    if (pendingRequests.has(cacheKey)) {
+        return pendingRequests.get(cacheKey);
+    }
+
+    // Create and store the promise
+    const promise = fetchSingleNodeDataForPeriod(nodeData, startDate, endDate);
+    pendingRequests.set(cacheKey, promise);
+
+    try {
+        const result = await promise;
+        return result;
+    } finally {
+        pendingRequests.delete(cacheKey);
+    }
+};
+
+// Enhanced function to fetch data for a specific period
+async function fetchSingleNodeDataForPeriod(node, startDate, endDate) {
+    if (!node || !node.url) return null;
+
+    debugLog('Fetching GSC data for specific period:', {
+        url: node.url,
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0]
+    });
+
+    const urlVariations = createEnhancedUrlVariations(node.url);
+    let foundData = null;
+    let attempts = 0;
+
+    // Try variations in order of likelihood
+    for (const variation of urlVariations) {
+        attempts++;
+
+        try {
+            debugLog(`Trying variation ${attempts}/${urlVariations.length} for period:`, variation);
+
+            const result = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0],
+                        dimensions: ['page'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 1
+                    }
+                });
+            });
+
+            if (result.result && result.result.rows && result.result.rows.length > 0) {
+                debugLog(`✅ Found period data for variation:`, variation);
+
+                // Get basic period data
+                const row = result.result.rows[0];
+                const periodData = {
+                    pagePath: variation,
+                    clicks: row.clicks || 0,
+                    impressions: row.impressions || 0,
+                    ctr: row.ctr || 0,
+                    position: row.position || 0,
+                    noDataFound: false,
+                    fetchedAt: Date.now(),
+                    period: {
+                        start: startDate.toISOString().split('T')[0],
+                        end: endDate.toISOString().split('T')[0]
+                    }
+                };
+
+                // Get top queries for this period (optional but useful)
+                try {
+                    const queriesResponse = await robustGSCApiCall(async () => {
+                        return await gapi.client.request({
+                            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                            method: 'POST',
+                            body: {
+                                startDate: startDate.toISOString().split('T')[0],
+                                endDate: endDate.toISOString().split('T')[0],
+                                dimensions: ['query'],
+                                dimensionFilterGroups: [{
+                                    filters: [{
+                                        dimension: 'page',
+                                        operator: 'equals',
+                                        expression: variation
+                                    }]
+                                }],
+                                rowLimit: 5
+                            }
+                        });
+                    });
+
+                    const queries = queriesResponse.result.rows || [];
+                    periodData.topQueries = queries.slice(0, 3).map(q => ({
+                        query: q.keys[0],
+                        clicks: q.clicks,
+                        impressions: q.impressions,
+                        ctr: q.ctr,
+                        position: q.position
+                    }));
+
+                } catch (queryError) {
+                    debugLog('Failed to get queries for period:', queryError);
+                }
+
+                foundData = periodData;
+                break;
+            }
+
+            // Add small delay between variations to avoid rate limiting
+            if (attempts < urlVariations.length) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+        } catch (error) {
+            debugLog(`❌ Error with variation ${variation} for period:`, error.message);
+
+            // If we hit rate limits, wait longer
+            if (error.status === 429) {
+                debugLog('Rate limited, waiting 2 seconds...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+    }
+
+    if (foundData) {
+        // Cache the result
+        const cacheKey = `${node.url}_${startDate.getTime()}_${endDate.getTime()}`;
+        gscDataMap.set(cacheKey, foundData);
+        return foundData;
+    }
+
+    // No data found for any variation
+    const noData = {
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        position: 0,
+        noDataFound: true,
+        fetchedAt: Date.now(),
+        triedVariations: urlVariations.length,
+        period: {
+            start: startDate.toISOString().split('T')[0],
+            end: endDate.toISOString().split('T')[0]
+        }
+    };
+
+    const cacheKey = `${node.url}_${startDate.getTime()}_${endDate.getTime()}`;
+    gscDataMap.set(cacheKey, noData);
+    debugLog(`No GSC period data found after trying ${urlVariations.length} variations`);
+    return noData;
+}
+
+// Helper function to get previous period data (30-60 days ago)
+window.GSCIntegration.fetchPreviousPeriodData = async function(nodeData) {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const sixtyDaysAgo = new Date(today.getTime() - (60 * 24 * 60 * 60 * 1000));
+    
+    return await window.GSCIntegration.fetchNodeDataForPeriod(nodeData, sixtyDaysAgo, thirtyDaysAgo);
+};
+
+// Enhanced function to get current vs previous comparison
+window.GSCIntegration.fetchTrendComparison = async function(nodeData) {
+    debugLog('Fetching trend comparison for:', nodeData.name);
+    
+    try {
+        // Fetch both periods in parallel
+        const [currentData, previousData] = await Promise.all([
+            window.GSCIntegration.fetchNodeData(nodeData), // Current period (last 30 days)
+            window.GSCIntegration.fetchPreviousPeriodData(nodeData) // Previous period (30-60 days ago)
+        ]);
+
+        if (!currentData || currentData.noDataFound) {
+            return { 
+                current: currentData, 
+                previous: null, 
+                trends: null 
+            };
+        }
+
+        // Calculate trends if we have previous data
+        let trends = null;
+        if (previousData && !previousData.noDataFound) {
+            trends = calculateGSCTrends(currentData, previousData);
+        }
+
+        return {
+            current: currentData,
+            previous: previousData,
+            trends: trends
+        };
+
+    } catch (error) {
+        debugLog('Error fetching trend comparison:', error);
+        return { 
+            current: null, 
+            previous: null, 
+            trends: null, 
+            error: error.message 
+        };
+    }
+};
+
+// Calculate trend percentages and insights
+function calculateGSCTrends(currentData, previousData) {
+    const trends = {};
+
+    // Calculate percentage changes
+    if (previousData.clicks > 0) {
+        trends.clicks = {
+            current: currentData.clicks,
+            previous: previousData.clicks,
+            percentChange: ((currentData.clicks - previousData.clicks) / previousData.clicks) * 100,
+            direction: currentData.clicks >= previousData.clicks ? 'up' : 'down'
+        };
+    }
+
+    if (previousData.impressions > 0) {
+        trends.impressions = {
+            current: currentData.impressions,
+            previous: previousData.impressions,
+            percentChange: ((currentData.impressions - previousData.impressions) / previousData.impressions) * 100,
+            direction: currentData.impressions >= previousData.impressions ? 'up' : 'down'
+        };
+    }
+
+    if (previousData.ctr > 0) {
+        trends.ctr = {
+            current: currentData.ctr,
+            previous: previousData.ctr,
+            percentChange: ((currentData.ctr - previousData.ctr) / previousData.ctr) * 100,
+            direction: currentData.ctr >= previousData.ctr ? 'up' : 'down'
+        };
+    }
+
+    if (previousData.position > 0) {
+        // For position, lower is better, so invert the logic
+        trends.position = {
+            current: currentData.position,
+            previous: previousData.position,
+            percentChange: ((previousData.position - currentData.position) / previousData.position) * 100, // Inverted
+            direction: currentData.position <= previousData.position ? 'up' : 'down' // Up means better ranking
+        };
+    }
+
+    // Add overall assessment
+    trends.overall = assessOverallTrend(trends);
+
+    debugLog('Calculated GSC trends:', trends);
+    return trends;
+}
+
+// Assess overall trend direction
+function assessOverallTrend(trends) {
+    let positiveCount = 0;
+    let negativeCount = 0;
+    let totalWeight = 0;
+
+    const weights = { clicks: 0.4, impressions: 0.2, ctr: 0.3, position: 0.1 };
+
+    Object.keys(weights).forEach(metric => {
+        if (trends[metric]) {
+            const change = trends[metric].percentChange;
+            const weight = weights[metric];
+            totalWeight += weight;
+
+            if (Math.abs(change) > 5) { // Only count significant changes
+                if (change > 0) positiveCount += weight;
+                else negativeCount += weight;
+            }
+        }
+    });
+
+    if (positiveCount > negativeCount) {
+        return { direction: 'improving', confidence: positiveCount / totalWeight };
+    } else if (negativeCount > positiveCount) {
+        return { direction: 'declining', confidence: negativeCount / totalWeight };
+    } else {
+        return { direction: 'stable', confidence: 0.5 };
+    }
+}
+
+// ADD THIS TO THE DEBUG SECTION OF YOUR GSC INTEGRATION
+// Add to window.GSCIntegration.debug object
+window.GSCIntegration.debug.testPeriodComparison = async function(url) {
+    if (!gscConnected) {
+        console.error('GSC not connected');
+        return;
+    }
+
+    console.log('🧪 Testing period comparison for:', url);
+    
+    const nodeData = { url: url, name: 'Test Page' };
+    const comparison = await window.GSCIntegration.fetchTrendComparison(nodeData);
+    
+    console.log('📊 Trend Comparison Results:');
+    console.table(comparison.current);
+    if (comparison.previous) {
+        console.table(comparison.previous);
+    }
+    if (comparison.trends) {
+        console.log('📈 Calculated Trends:', comparison.trends);
+    }
+    
+    return comparison;
+};
+
+console.log('✅ GSC Period Comparison Functions Added!');
+
 })();
