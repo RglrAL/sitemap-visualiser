@@ -84,9 +84,56 @@
             </div>
 
             <script>
-                setTimeout(() => {
-                    initializeEnhancedDashboard('${dashboardId}');
-                }, 100);
+                // More robust initialization
+                (function() {
+                    const dashboardId = '${dashboardId}';
+                    console.log('🚀 Starting dashboard initialization for:', dashboardId);
+                    
+                    function initWhenReady() {
+                        if (typeof initializeEnhancedDashboard === 'function') {
+                            initializeEnhancedDashboard(dashboardId);
+                        } else {
+                            console.log('Waiting for initializeEnhancedDashboard function...');
+                            setTimeout(initWhenReady, 50);
+                        }
+                    }
+                    
+                    // Try immediate initialization
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initWhenReady);
+                    } else {
+                        setTimeout(initWhenReady, 100);
+                    }
+                })();
+            </script>
+            
+            <!-- Fallback tab functionality -->
+            <script>
+                // Simple fallback if main initialization fails
+                window.switchTab = function(tabName) {
+                    console.log('Fallback tab switch to:', tabName);
+                    
+                    // Find the dashboard container
+                    const container = document.querySelector('.citizens-dashboard-container');
+                    if (!container) return;
+                    
+                    // Remove active from all tabs and panels
+                    container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    container.querySelectorAll('.tab-panel').forEach(panel => {
+                        panel.classList.remove('active');
+                        panel.style.display = 'none';
+                    });
+                    
+                    // Activate clicked tab
+                    const activeTab = container.querySelector(`[data-tab="${tabName}"]`);
+                    const activePanel = container.querySelector(`[data-panel="${tabName}"]`);
+                    
+                    if (activeTab) activeTab.classList.add('active');
+                    if (activePanel) {
+                        activePanel.style.display = 'block';
+                        activePanel.classList.add('active');
+                    }
+                };
             </script>
         `;
     }
@@ -4448,66 +4495,87 @@
     }
 
     // ===========================================
-    // DASHBOARD INITIALIZATION - FIXED!
+    // DASHBOARD INITIALIZATION - SIMPLIFIED AND FIXED!
     // ===========================================
 
     function initializeEnhancedDashboard(dashboardId) {
         console.log('🎯 Initializing Enhanced Dashboard:', dashboardId);
         
-        const dashboard = document.getElementById(dashboardId);
-        if (!dashboard) {
-            console.error('Dashboard not found:', dashboardId);
-            return;
-        }
+        // Try multiple times to ensure DOM is ready
+        let attempts = 0;
+        const maxAttempts = 10;
         
-        const tabBtns = dashboard.querySelectorAll('.tab-btn');
-        const tabPanels = dashboard.querySelectorAll('.tab-panel');
-        
-        console.log('Found tabs:', tabBtns.length, 'panels:', tabPanels.length);
-        
-        // Remove any existing event listeners by cloning elements
-        tabBtns.forEach(btn => {
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-        });
-        
-        // Get fresh references after cloning
-        const freshTabBtns = dashboard.querySelectorAll('.tab-btn');
-        
-        freshTabBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const targetTab = btn.dataset.tab;
-                console.log('Tab clicked:', targetTab);
-                
-                // Update buttons
-                freshTabBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // Update panels with smooth transition
-                tabPanels.forEach(panel => {
-                    if (panel.dataset.panel === targetTab) {
-                        // Show target panel
-                        panel.style.display = 'block';
-                        panel.classList.add('active');
-                        
-                        // Trigger animation
-                        requestAnimationFrame(() => {
-                            panel.style.opacity = '1';
-                            panel.style.transform = 'translateY(0)';
-                        });
+        function tryInitialize() {
+            attempts++;
+            const dashboard = document.getElementById(dashboardId);
+            
+            if (!dashboard) {
+                console.log(`Attempt ${attempts}: Dashboard not found:`, dashboardId);
+                if (attempts < maxAttempts) {
+                    setTimeout(tryInitialize, 100);
+                }
+                return;
+            }
+            
+            const tabBtns = dashboard.querySelectorAll('.tab-btn');
+            const tabPanels = dashboard.querySelectorAll('.tab-panel');
+            
+            console.log('Found tabs:', tabBtns.length, 'panels:', tabPanels.length);
+            
+            if (tabBtns.length === 0 || tabPanels.length === 0) {
+                console.log(`Attempt ${attempts}: No tabs found, retrying...`);
+                if (attempts < maxAttempts) {
+                    setTimeout(tryInitialize, 100);
+                }
+                return;
+            }
+            
+            // Simple direct event listener approach
+            tabBtns.forEach((btn, index) => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const targetTab = this.getAttribute('data-tab');
+                    console.log('Tab clicked:', targetTab);
+                    
+                    // Remove active class from all tabs
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => {
+                        p.classList.remove('active');
+                        p.style.display = 'none';
+                    });
+                    
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Show corresponding panel
+                    const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
+                    if (targetPanel) {
+                        targetPanel.style.display = 'block';
+                        targetPanel.classList.add('active');
+                        console.log('Activated panel:', targetTab);
                     } else {
-                        // Hide other panels
-                        panel.classList.remove('active');
-                        panel.style.display = 'none';
+                        console.error('Panel not found for tab:', targetTab);
                     }
                 });
             });
-        });
+            
+            // Ensure first tab is active
+            if (tabBtns.length > 0 && tabPanels.length > 0) {
+                tabBtns[0].classList.add('active');
+                tabPanels.forEach(p => p.style.display = 'none');
+                const firstPanel = tabPanels[0];
+                if (firstPanel) {
+                    firstPanel.style.display = 'block';
+                    firstPanel.classList.add('active');
+                }
+            }
+            
+            console.log('✅ Dashboard tabs initialized successfully!');
+        }
         
-        console.log('✅ Dashboard tabs initialized successfully!');
+        tryInitialize();
     }
 
     // ===========================================
