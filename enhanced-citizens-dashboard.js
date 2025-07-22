@@ -91,6 +91,137 @@
         `;
     }
 
+    // Create Key Insights function
+    function createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends) {
+        const insights = [];
+        
+        // Search performance insights
+        if (gscData && !gscData.noDataFound) {
+            if (gscData.position <= 3) {
+                insights.push({
+                    icon: '🎯',
+                    text: 'Excellent search ranking - page appears in top 3 results',
+                    type: 'positive'
+                });
+            } else if (gscData.position > 10) {
+                insights.push({
+                    icon: '📈',
+                    text: 'Opportunity to improve search ranking from page 2+',
+                    type: 'opportunity'
+                });
+            }
+            
+            if (gscData.ctr > 0.15) {
+                insights.push({
+                    icon: '⚡',
+                    text: 'High click-through rate indicates compelling titles and descriptions',
+                    type: 'positive'
+                });
+            } else if (gscData.ctr < 0.03) {
+                insights.push({
+                    icon: '🔍',
+                    text: 'Low CTR suggests title/description optimization needed',
+                    type: 'warning'
+                });
+            }
+        }
+        
+        // User behavior insights
+        if (ga4Data && !ga4Data.noDataFound) {
+            if (ga4Data.avgSessionDuration > 180) {
+                insights.push({
+                    icon: '📚',
+                    text: 'Users spend good time reading - content meets their needs',
+                    type: 'positive'
+                });
+            } else if (ga4Data.avgSessionDuration < 60) {
+                insights.push({
+                    icon: '⏱️',
+                    text: 'Short session duration - consider improving content engagement',
+                    type: 'warning'
+                });
+            }
+            
+            if (ga4Data.bounceRate < 0.4) {
+                insights.push({
+                    icon: '🔄',
+                    text: 'Low bounce rate shows users explore related content',
+                    type: 'positive'
+                });
+            }
+        }
+        
+        // Trend insights
+        if (gscTrends?.trends?.clicks && Math.abs(gscTrends.trends.clicks.percentChange) > 20) {
+            const direction = gscTrends.trends.clicks.percentChange > 0 ? 'increased' : 'decreased';
+            insights.push({
+                icon: gscTrends.trends.clicks.percentChange > 0 ? '📈' : '📉',
+                text: `Search traffic has ${direction} significantly this period`,
+                type: gscTrends.trends.clicks.percentChange > 0 ? 'positive' : 'warning'
+            });
+        }
+        
+        // Default insight if none found
+        if (insights.length === 0) {
+            insights.push({
+                icon: '📊',
+                text: 'Page performance is stable - continue monitoring for optimization opportunities',
+                type: 'neutral'
+            });
+        }
+        
+        return `
+            <div class="insights-grid">
+                ${insights.slice(0, 4).map(insight => `
+                    <div class="insight-card ${insight.type}">
+                        <div class="insight-icon">${insight.icon}</div>
+                        <div class="insight-text">${insight.text}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Additional helper functions that might be missing
+    function calculateRelevanceScore(gscData) {
+        if (!gscData || gscData.noDataFound) return 50;
+        
+        const expectedCTR = getCTRBenchmark(gscData.position);
+        const ctrPerformance = (gscData.ctr / expectedCTR);
+        
+        return Math.min(100, Math.round(ctrPerformance * 100));
+    }
+
+    function createPerformanceMatrix(gscData, ga4Data) {
+        const searchScore = calculateSearchScore(gscData);
+        const engagementScore = calculateEngagementScore(ga4Data);
+        
+        return `
+            <div class="performance-matrix">
+                <div class="matrix-chart">
+                    <div class="matrix-point" style="left: ${searchScore}%; bottom: ${engagementScore}%;">
+                        <div class="point-dot"></div>
+                        <div class="point-label">This Page</div>
+                    </div>
+                    <div class="matrix-quadrants">
+                        <div class="quadrant top-right">High Traffic<br>High Engagement</div>
+                        <div class="quadrant top-left">Low Traffic<br>High Engagement</div>
+                        <div class="quadrant bottom-right">High Traffic<br>Low Engagement</div>
+                        <div class="quadrant bottom-left">Low Traffic<br>Low Engagement</div>
+                    </div>
+                </div>
+                <div class="matrix-legend">
+                    <div class="legend-axis">
+                        <span>Search Performance →</span>
+                    </div>
+                    <div class="legend-axis vertical">
+                        <span>User Engagement ↑</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     // ===========================================
     // ENHANCED HEADER WITH PAGE METADATA
     // ===========================================
@@ -152,6 +283,77 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        `;
+    }
+
+    function createTopQueriesTable(gscData) {
+        if (!gscData?.topQueries || gscData.topQueries.length === 0) {
+            return `
+                <div class="no-data-message">
+                    <div class="no-data-text">No query data available</div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="queries-table">
+                <div class="table-header">
+                    <div class="col-query">Query</div>
+                    <div class="col-clicks">Clicks</div>
+                    <div class="col-impressions">Impressions</div>
+                    <div class="col-ctr">CTR</div>
+                    <div class="col-position">Position</div>
+                </div>
+                ${gscData.topQueries.slice(0, 10).map(query => `
+                    <div class="table-row">
+                        <div class="col-query">"${escapeHtml(query.query)}"</div>
+                        <div class="col-clicks">${formatNumber(query.clicks)}</div>
+                        <div class="col-impressions">${formatNumber(query.impressions)}</div>
+                        <div class="col-ctr">${(query.ctr * 100).toFixed(1)}%</div>
+                        <div class="col-position">#${query.position.toFixed(0)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function createSearchOpportunities(gscData) {
+        if (!gscData?.topQueries) {
+            return `<div class="no-data-message">No query data for opportunity analysis</div>`;
+        }
+        
+        const opportunities = gscData.topQueries.filter(query => 
+            (query.position > 10 && query.impressions > 100) ||
+            (query.position <= 10 && query.ctr < 0.05)
+        ).slice(0, 5);
+        
+        if (opportunities.length === 0) {
+            return `<div class="no-opportunities">✅ No major optimization opportunities found</div>`;
+        }
+        
+        return `
+            <div class="opportunities-list">
+                ${opportunities.map(opp => {
+                    const type = opp.position > 10 ? 'ranking' : 'ctr';
+                    const priority = opp.impressions > 1000 ? 'high' : 'medium';
+                    const action = type === 'ranking' ? 
+                        'Improve content quality and SEO optimization' :
+                        'Optimize title and meta description for better CTR';
+                    
+                    return `
+                        <div class="opportunity-card ${priority}">
+                            <div class="opp-type">${type === 'ranking' ? '📈 Ranking' : '🎯 CTR'} Opportunity</div>
+                            <div class="opp-query">"${escapeHtml(opp.query)}"</div>
+                            <div class="opp-metrics">
+                                ${formatNumber(opp.impressions)} impressions • 
+                                Position #${opp.position.toFixed(0)} • 
+                                ${(opp.ctr * 100).toFixed(1)}% CTR
+                            </div>
+                            <div class="opp-action">${action}</div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         `;
     }
@@ -1968,6 +2170,64 @@
         if (position <= 5) return 0.06;
         if (position <= 10) return 0.03;
         return 0.01;
+    }
+
+    // Missing panel creation functions
+    function createQualityAssessmentPanel(ga4Data, gscData) {
+        return createTrafficQualitySection(ga4Data, gscData);
+    }
+
+    function createContentScoreBreakdown(gscData, ga4Data) {
+        const searchScore = calculateSearchScore(gscData);
+        const engagementScore = calculateEngagementScore(ga4Data);
+        const relevanceScore = calculateRelevanceScore(gscData);
+        const uxScore = calculateUXScore(ga4Data);
+        const totalScore = Math.round((searchScore + engagementScore + relevanceScore + uxScore) / 4);
+        
+        return `
+            <div class="score-breakdown">
+                <div class="total-score">
+                    <div class="score-circle ${getScoreClass(totalScore)}">
+                        <div class="score-number">${totalScore}</div>
+                        <div class="score-label">Overall Score</div>
+                    </div>
+                </div>
+                
+                <div class="score-components">
+                    <div class="component">
+                        <div class="component-label">Search Performance</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${searchScore}%; background-color: #3b82f6;"></div>
+                        </div>
+                        <div class="component-score">${searchScore}/100</div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-label">User Engagement</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${engagementScore}%; background-color: #10b981;"></div>
+                        </div>
+                        <div class="component-score">${engagementScore}/100</div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-label">Content Relevance</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${relevanceScore}%; background-color: #f59e0b;"></div>
+                        </div>
+                        <div class="component-score">${relevanceScore}/100</div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-label">User Experience</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${uxScore}%; background-color: #8b5cf6;"></div>
+                        </div>
+                        <div class="component-score">${uxScore}/100</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function calculateImpactMetrics(gscData, ga4Data) {
