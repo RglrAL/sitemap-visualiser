@@ -2872,10 +2872,10 @@ function formatDuration(seconds) {
     window.showDetailedGSCAnalysis = async function(url) {
     console.log('🚀 Loading Enhanced Dashboard for:', url);
     
-    // STEP 1: Get GSC data first
+    // Get GSC data
     const gscData = window.GSCIntegration?.getData?.(url);
     
-    // STEP 2: Get GA4 data 
+    // Get GA4 data
     let ga4Data = null;
     if (window.GA4Integration?.fetchData) {
         try {
@@ -2885,7 +2885,7 @@ function formatDuration(seconds) {
         }
     }
     
-    // STEP 3: Get trend comparisons
+    // Get trend comparisons
     let gscTrends = null;
     if (window.GSCIntegration?.fetchTrendComparison) {
         try {
@@ -2904,7 +2904,7 @@ function formatDuration(seconds) {
         }
     }
 
-    // STEP 4: Get enhanced GA4 data (traffic sources, device data)
+    // Get enhanced GA4 data (traffic sources, device data)
     let trafficSources = null;
     let deviceData = null;
 
@@ -2934,28 +2934,24 @@ function formatDuration(seconds) {
         console.log('❌ fetchDeviceData function not available');
     }
 
-    // STEP 5: NOW check if we have ANY data (after everything is fetched)
+    // Check if we have ANY data (AFTER all data is fetched)
     if ((!gscData || gscData.noDataFound) && (!ga4Data || ga4Data.noDataFound)) {
         alert('No performance data available from either GSC or GA4. Please ensure at least one service is connected and has data for this page.');
         return;
     }
 
-    // STEP 6: Handle missing GSC data gracefully  
-    let finalGscData = gscData;
-    if (!gscData || gscData.noDataFound) {
-        console.log('⚠️ No GSC data available, using minimal data for dashboard compatibility');
-        finalGscData = {
-            clicks: 0,
-            impressions: 0,
-            ctr: 0,
-            position: 0,
-            noDataFound: true,
-            isMinimalForGA4Only: true,
-            topQueries: []
-        };
-    }
+    // Handle missing GSC data gracefully  
+    const finalGscData = (!gscData || gscData.noDataFound) ? {
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        position: 0,
+        noDataFound: true,
+        isMinimalForGA4Only: true,
+        topQueries: []
+    } : gscData;
 
-    // STEP 7: Create and show the dashboard
+    // Create and show the dashboard
     const modal = document.createElement('div');
     modal.className = 'enhanced-dashboard-modal';
     modal.style.cssText = `
@@ -2976,7 +2972,7 @@ function formatDuration(seconds) {
     `;
     dashboard.onclick = e => e.stopPropagation();
 
-    // Generate dashboard HTML with ALL the enhanced data
+    // Generate dashboard HTML with enhanced data
     dashboard.innerHTML = createEnhancedDashboardHTML(url, finalGscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
 
     // Add close button
@@ -3003,12 +2999,12 @@ function formatDuration(seconds) {
     modal.appendChild(dashboard);
     document.body.appendChild(modal);
 
-    console.log('✅ Enhanced dashboard created with all data!');
+    // Initialize interactive elements
+    initializeDashboardInteractions(dashboard);
 };
 
 // Keep the reference
 window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
-
 
     
 
@@ -4809,6 +4805,149 @@ function hexToRgb(hex) {
     return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 0, 0';
 }
 
+
+// Add these functions to standalone-ga4-integration.js
+
+window.GA4Integration.fetchTrafficSources = async function(pageUrl) {
+    if (!window.GA4Integration.isConnected()) return null;
+    console.log('[GA4] Fetching traffic sources for:', pageUrl);
+    
+    const propertyId = window.GA4Integration.getPropertyId();
+    const pagePath = window.GA4Integration.urlToPath(pageUrl);
+    
+    try {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dateRanges: [{
+                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0]
+                }],
+                dimensions: [
+                    { name: 'pagePath' },
+                    { name: 'sessionDefaultChannelGrouping' }
+                ],
+                metrics: [{ name: 'sessions' }],
+                dimensionFilter: {
+                    filter: {
+                        fieldName: 'pagePath',
+                        stringFilter: {
+                            matchType: 'EXACT',
+                            value: pagePath
+                        }
+                    }
+                },
+                limit: 10
+            })
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        
+        const data = await response.json();
+        const sources = {};
+        let totalSessions = 0;
+        
+        if (data.rows) {
+            data.rows.forEach(row => {
+                const source = row.dimensionValues[1].value;
+                const sessions = parseInt(row.metricValues[0].value);
+                sources[source] = (sources[source] || 0) + sessions;
+                totalSessions += sessions;
+            });
+        }
+        
+        const sourceBreakdown = Object.entries(sources).map(([source, sessions]) => ({
+            source: source,
+            sessions: sessions,
+            percentage: totalSessions > 0 ? (sessions / totalSessions) * 100 : 0
+        })).sort((a, b) => b.percentage - a.percentage);
+        
+        return { sources: sourceBreakdown, totalSessions };
+        
+    } catch (error) {
+        console.error('[GA4] Error fetching traffic sources:', error);
+        return null;
+    }
+};
+
+window.GA4Integration.fetchDeviceData = async function(pageUrl) {
+    if (!window.GA4Integration.isConnected()) return null;
+    console.log('[GA4] Fetching device data for:', pageUrl);
+    
+    const propertyId = window.GA4Integration.getPropertyId();
+    const pagePath = window.GA4Integration.urlToPath(pageUrl);
+    
+    try {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dateRanges: [{
+                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0]
+                }],
+                dimensions: [
+                    { name: 'pagePath' },
+                    { name: 'deviceCategory' }
+                ],
+                metrics: [
+                    { name: 'sessions' },
+                    { name: 'bounceRate' },
+                    { name: 'averageSessionDuration' }
+                ],
+                dimensionFilter: {
+                    filter: {
+                        fieldName: 'pagePath',
+                        stringFilter: {
+                            matchType: 'EXACT',
+                            value: pagePath
+                        }
+                    }
+                },
+                limit: 10
+            })
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        
+        const data = await response.json();
+        const devices = {};
+        
+        if (data.rows) {
+            data.rows.forEach(row => {
+                const device = row.dimensionValues[1].value;
+                devices[device] = {
+                    sessions: parseInt(row.metricValues[0].value),
+                    bounceRate: parseFloat(row.metricValues[1].value),
+                    avgDuration: parseFloat(row.metricValues[2].value)
+                };
+            });
+        }
+        
+        return devices;
+        
+    } catch (error) {
+        console.error('[GA4] Error fetching device data:', error);
+        return null;
+    }
+};
+
+console.log('✅ Enhanced GA4 functions added to integration!');
+
+    
 
 window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
 
