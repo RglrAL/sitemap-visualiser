@@ -2868,6 +2868,248 @@ function formatDuration(seconds) {
         });
     }
 
+    // Add this function to your gsc-integration-module.js (around line 3000-4000)
+// This function was missing - that's why you got "createEnhancedDashboardHTML is not defined"
+
+function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData) {
+    const pageTitle = url.split('/').filter(s => s.length > 0).pop()?.replace(/-/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Page Analysis';
+    
+    return `
+        <!-- Dashboard Styles -->
+        <style>
+            .dashboard-container * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .dashboard-header { background: linear-gradient(135deg, #5a8200 0%, #72A300 100%); color: white; padding: 30px; border-radius: 20px 20px 0 0; position: relative; overflow: hidden; }
+            .dashboard-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px); background-size: 30px 30px; opacity: 0.3; }
+            .dashboard-content { position: relative; z-index: 2; }
+            .section { padding: 25px; border-bottom: 1px solid #f0f0f0; }
+            .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; }
+            .metric-card { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; position: relative; transition: all 0.3s ease; }
+            .metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+            .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; border-radius: 12px 12px 0 0; }
+            .metric-label { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .metric-value { font-size: 1.8rem; font-weight: 800; color: #1f2937; margin-bottom: 8px; line-height: 1; }
+            .enhanced-section { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 16px; padding: 25px; margin: 20px 0; }
+            .enhanced-title { color: #0c4a6e; font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+            .data-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; margin: 8px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .success-banner { background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 12px; padding: 20px; text-align: center; margin: 25px 0; }
+        </style>
+
+        <div class="dashboard-container">
+            <!-- Header -->
+            <div class="dashboard-header">
+                <div class="dashboard-content">
+                    <h1 style="margin: 0 0 10px 0; font-size: 2rem; font-weight: 700;">${pageTitle}</h1>
+                    <div style="background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 8px; font-family: Monaco, monospace; font-size: 0.85rem; word-break: break-all; backdrop-filter: blur(10px);">
+                        ${url}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Core Metrics Section -->
+            <div class="section">
+                <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 1.4rem; font-weight: 700;">📊 Performance Overview</h2>
+                <div class="metrics-grid">
+                    
+                    <!-- GSC Metrics -->
+                    <div class="metric-card" style="--accent-color: #3b82f6;">
+                        <div class="metric-card::before" style="background: #3b82f6;"></div>
+                        <div class="metric-label">🎯 Search Console Clicks</div>
+                        <div class="metric-value" style="color: #3b82f6;">${formatNumber(gscData.clicks || 0)}</div>
+                        <div style="font-size: 0.85rem; color: #64748b;">Position: #${(gscData.position || 0).toFixed(1)} | CTR: ${((gscData.ctr || 0) * 100).toFixed(1)}%</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-label">👁️ Search Impressions</div>
+                        <div class="metric-value" style="color: #06b6d4;">${formatNumber(gscData.impressions || 0)}</div>
+                        <div style="font-size: 0.85rem; color: #64748b;">Monthly search visibility</div>
+                    </div>
+
+                    <!-- GA4 Metrics -->
+                    ${ga4Data && !ga4Data.noDataFound ? `
+                        <div class="metric-card">
+                            <div class="metric-label">📄 Page Views</div>
+                            <div class="metric-value" style="color: #f59e0b;">${formatNumber(ga4Data.pageViews || 0)}</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">Total page views</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-label">👥 Users</div>
+                            <div class="metric-value" style="color: #10b981;">${formatNumber(ga4Data.users || 0)}</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">Unique visitors</div>
+                        </div>
+                    ` : `
+                        <div class="metric-card">
+                            <div class="metric-label">📊 Google Analytics</div>
+                            <div class="metric-value" style="color: #64748b; font-size: 1.2rem;">Not Connected</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">Connect GA4 for more insights</div>
+                        </div>
+                    `}
+                </div>
+            </div>
+
+            <!-- ENHANCED DATA SECTIONS - THE KEY PART! -->
+            <div class="section">
+                <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 1.4rem; font-weight: 700;">🚀 Enhanced Analytics Data</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px;">
+                    
+                    <!-- TRAFFIC SOURCES -->
+                    <div class="enhanced-section">
+                        <div class="enhanced-title">🚦 Traffic Sources ${trafficSources ? '(ENHANCED - WORKING!)' : '(Loading...)'}</div>
+                        
+                        ${trafficSources && trafficSources.sources && trafficSources.sources.length > 0 ? `
+                            <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 2px solid #22c55e;">
+                                <div style="font-size: 1.1rem; font-weight: 600; color: #16a34a; margin-bottom: 8px;">
+                                    ✅ ENHANCED DATA LOADED SUCCESSFULLY!
+                                </div>
+                                <div style="color: #16a34a;">Total Sessions: <strong>${trafficSources.totalSessions}</strong></div>
+                            </div>
+                            
+                            ${trafficSources.sources.slice(0, 5).map(source => `
+                                <div class="data-item">
+                                    <div>
+                                        <div style="font-weight: 600; color: #374151; font-size: 1rem;">${source.source}</div>
+                                        <div style="font-size: 0.85rem; color: #6b7280;">${source.sessions} sessions</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 1.3rem; font-weight: 700; color: #0c4a6e;">${source.percentage.toFixed(1)}%</div>
+                                        <div style="width: 80px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 4px;">
+                                            <div style="width: ${source.percentage}%; height: 100%; background: linear-gradient(90deg, #0ea5e9, #06b6d4); border-radius: 3px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                        ` : `
+                            <div style="background: #fef2f2; border: 2px solid #ef4444; padding: 15px; border-radius: 10px; text-align: center;">
+                                <div style="color: #ef4444; font-weight: 600; margin-bottom: 5px;">❌ Enhanced Data Not Available</div>
+                                <div style="color: #7f1d1d; font-size: 0.9rem;">
+                                    ${!window.GA4Integration?.fetchTrafficSources ? 'Function not available' : 'No traffic source data found'}
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <!-- DEVICE PERFORMANCE -->
+                    <div class="enhanced-section">
+                        <div class="enhanced-title">📱 Device Performance ${deviceData ? '(ENHANCED - WORKING!)' : '(Loading...)'}</div>
+                        
+                        ${deviceData && Object.keys(deviceData).length > 0 ? `
+                            <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 2px solid #22c55e;">
+                                <div style="font-size: 1.1rem; font-weight: 600; color: #16a34a; margin-bottom: 8px;">
+                                    ✅ ENHANCED DATA LOADED SUCCESSFULLY!
+                                </div>
+                                <div style="color: #16a34a;">
+                                    Total Devices: <strong>${Object.keys(deviceData).length}</strong>
+                                </div>
+                            </div>
+                            
+                            <!-- Device Overview -->
+                            <div style="display: grid; grid-template-columns: repeat(${Object.keys(deviceData).length}, 1fr); gap: 12px; margin-bottom: 20px;">
+                                ${Object.entries(deviceData).map(([device, data]) => {
+                                    const totalSessions = Object.values(deviceData).reduce((sum, d) => sum + d.sessions, 0);
+                                    const percentage = totalSessions > 0 ? (data.sessions / totalSessions) * 100 : 0;
+                                    return `
+                                        <div style="text-align: center; padding: 15px; background: white; border-radius: 10px; border: 1px solid #e5e7eb;">
+                                            <div style="font-size: 2rem; margin-bottom: 8px;">
+                                                ${device === 'mobile' ? '📱' : device === 'desktop' ? '💻' : device === 'tablet' ? '📟' : '🖥️'}
+                                            </div>
+                                            <div style="font-weight: 700; color: #374151; text-transform: capitalize; margin-bottom: 4px;">${device}</div>
+                                            <div style="font-size: 1.5rem; font-weight: 800; color: #0c4a6e; margin-bottom: 4px;">${percentage.toFixed(0)}%</div>
+                                            <div style="font-size: 0.8rem; color: #6b7280;">${data.sessions} sessions</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            <!-- Detailed Device Metrics -->
+                            ${Object.entries(deviceData).map(([device, data]) => `
+                                <div class="data-item">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span style="font-size: 1.5rem;">
+                                            ${device === 'mobile' ? '📱' : device === 'desktop' ? '💻' : device === 'tablet' ? '📟' : '🖥️'}
+                                        </span>
+                                        <div>
+                                            <div style="font-weight: 600; color: #374151; text-transform: capitalize;">${device}</div>
+                                            <div style="font-size: 0.8rem; color: #6b7280;">
+                                                ${data.sessions} sessions • ${(data.bounceRate * 100).toFixed(0)}% bounce rate
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: 600; color: #0c4a6e;">
+                                            ${Math.floor(data.avgDuration / 60)}:${(data.avgDuration % 60).toFixed(0).padStart(2, '0')}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #6b7280;">avg duration</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                        ` : `
+                            <div style="background: #fef2f2; border: 2px solid #ef4444; padding: 15px; border-radius: 10px; text-align: center;">
+                                <div style="color: #ef4444; font-weight: 600; margin-bottom: 5px;">❌ Enhanced Data Not Available</div>
+                                <div style="color: #7f1d1d; font-size: 0.9rem;">
+                                    ${!window.GA4Integration?.fetchDeviceData ? 'Function not available' : 'No device data found'}
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Banner -->
+            <div class="success-banner">
+                <h3 style="color: #155724; margin: 0 0 10px 0; font-size: 1.3rem;">
+                    ${(trafficSources && trafficSources.sources) || (deviceData && Object.keys(deviceData).length > 0) ? 
+                        '🎉 Enhanced Dashboard Working Perfectly!' : 
+                        '⚠️ Enhanced Data Loading...'}
+                </h3>
+                <p style="color: #155724; margin: 0; font-size: 0.95rem;">
+                    ${(trafficSources && trafficSources.sources) || (deviceData && Object.keys(deviceData).length > 0) ? 
+                        'Your enhanced GA4 integration is successfully loading traffic sources and device performance data!' :
+                        'Connect GA4 and ensure the enhanced functions are available for full dashboard functionality.'}
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="padding: 25px; text-align: center; background: #f8fafc;">
+                <button onclick="window.open('${url}', '_blank')" 
+                        style="background: linear-gradient(135deg, #5a8200, #72A300); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; margin: 0 8px; transition: all 0.2s ease;"
+                        onmouseover="this.style.transform='translateY(-2px)'" 
+                        onmouseout="this.style.transform='translateY(0)'">
+                    🔗 Visit Page
+                </button>
+                <button onclick="console.log('Export feature - add your export logic here')" 
+                        style="background: white; color: #5a8200; border: 2px solid #5a8200; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; margin: 0 8px; transition: all 0.2s ease;"
+                        onmouseover="this.style.background='#f0f8f0'" 
+                        onmouseout="this.style.background='white'">
+                    📊 Export Report
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
     // Show detailed GSC analysis for content writers
     window.showDetailedGSCAnalysis = async function(url) {
     console.log('🚀 Loading Enhanced Dashboard for:', url);
