@@ -66,7 +66,7 @@
                         </div>
                         
                         <div class="tab-panel" data-panel="users">
-                            ${createUserBehaviorPanel(ga4Data, ga4Trends)}
+                            ${createUserBehaviorPanel(ga4Data, ga4Trends, gscData)}
                         </div>
                         
                         <div class="tab-panel" data-panel="trends">
@@ -564,7 +564,7 @@
         `;
     }
 
-    function createUserBehaviorPanel(ga4Data, ga4Trends) {
+    function createUserBehaviorPanel(ga4Data, ga4Trends, gscData) {
         if (!ga4Data || ga4Data.noDataFound) {
             return createConnectionMessage('Google Analytics', 'Connect Google Analytics to see detailed user behavior data');
         }
