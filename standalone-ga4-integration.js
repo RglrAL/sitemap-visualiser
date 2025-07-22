@@ -1012,29 +1012,29 @@ if (document.readyState === 'loading') {
 }
 
 
-// ADD THESE FUNCTIONS TO YOUR standalone-ga4-integration (4).js
-// Add these functions to the window.GA4Integration object at the end
+// REPLACE the period comparison functions at the bottom of your standalone-ga4-integration.js
+// with these FIXED versions that use the public API instead of private variables:
 
 // Period comparison functions for GA4 trends
 window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, endDate) {
-    if (!ga4Connected || !ga4PropertyId || !ga4AccessToken) {
-        ga4Log('GA4 not connected, cannot fetch period data');
+    // Use public API methods instead of private variables
+    if (!window.GA4Integration.isConnected()) {
+        console.log('[GA4] Not connected, cannot fetch period data');
         return null;
     }
     
-    const pagePath = urlToGA4Path(pageUrl);
-    ga4Log('Fetching GA4 data for period:', {
+    const propertyId = window.GA4Integration.getPropertyId();
+    if (!propertyId) {
+        console.log('[GA4] No property ID available');
+        return null;
+    }
+    
+    const pagePath = window.GA4Integration.urlToPath(pageUrl);
+    console.log('[GA4] Fetching data for period:', {
         pagePath: pagePath,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0]
     });
-    
-    // Create cache key for this specific period
-    const cacheKey = `${pagePath}_${startDate.getTime()}_${endDate.getTime()}`;
-    if (ga4DataCache.has(cacheKey)) {
-        ga4Log('Returning cached GA4 period data for:', pagePath);
-        return ga4DataCache.get(cacheKey);
-    }
     
     try {
         const requestBody = {
@@ -1065,10 +1065,10 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
             limit: 1
         };
         
-        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${ga4AccessToken}`,
+                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestBody)
@@ -1120,16 +1120,15 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
                 }
             };
             
-            ga4Log('GA4 period data found for:', pagePath, ga4Data);
+            console.log('[GA4] Period data found for:', pagePath, ga4Data);
         } else {
-            ga4Log('No GA4 period data found for:', pagePath);
+            console.log('[GA4] No period data found for:', pagePath);
         }
         
-        ga4DataCache.set(cacheKey, ga4Data);
         return ga4Data;
         
     } catch (error) {
-        ga4Log('Error fetching GA4 period data:', error);
+        console.error('[GA4] Error fetching period data:', error);
         
         const errorData = {
             pagePath: pagePath,
@@ -1141,7 +1140,6 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
                 end: endDate.toISOString().split('T')[0]
             }
         };
-        ga4DataCache.set(cacheKey, errorData);
         
         return errorData;
     }
@@ -1158,7 +1156,7 @@ window.GA4Integration.fetchPreviousPeriodData = async function(pageUrl) {
 
 // Enhanced function to get current vs previous comparison
 window.GA4Integration.fetchTrendComparison = async function(pageUrl) {
-    ga4Log('Fetching GA4 trend comparison for:', pageUrl);
+    console.log('[GA4] Fetching trend comparison for:', pageUrl);
     
     try {
         // Fetch both periods in parallel
@@ -1188,7 +1186,7 @@ window.GA4Integration.fetchTrendComparison = async function(pageUrl) {
         };
 
     } catch (error) {
-        ga4Log('Error fetching GA4 trend comparison:', error);
+        console.log('[GA4] Error fetching trend comparison:', error);
         return { 
             current: null, 
             previous: null, 
@@ -1198,7 +1196,7 @@ window.GA4Integration.fetchTrendComparison = async function(pageUrl) {
     }
 };
 
-// Calculate GA4 trend percentages and insights
+// Helper function to calculate trends (add this too if it doesn't exist)
 function calculateGA4Trends(currentData, previousData) {
     const trends = {};
 
@@ -1225,186 +1223,7 @@ function calculateGA4Trends(currentData, previousData) {
         }
     });
 
-    // Calculate engagement score trend
-    if (trends.engagementRate && trends.bounceRate) {
-        const engagementImprovement = trends.engagementRate.percentChange || 0;
-        const bounceReduction = -(trends.bounceRate.percentChange || 0); // Inverted because lower bounce is better
-        
-        trends.engagementScore = {
-            current: (currentData.engagementRate || 0) - (currentData.bounceRate || 0),
-            previous: (previousData.engagementRate || 0) - (previousData.bounceRate || 0),
-            percentChange: (engagementImprovement + bounceReduction) / 2,
-            direction: (engagementImprovement + bounceReduction) > 0 ? 'up' : 'down'
-        };
-    }
-
-    // Add overall assessment
-    trends.overall = assessOverallGA4Trend(trends);
-
-    ga4Log('Calculated GA4 trends:', trends);
     return trends;
 }
 
-// Assess overall GA4 trend direction
-function assessOverallGA4Trend(trends) {
-    let positiveCount = 0;
-    let negativeCount = 0;
-    let totalWeight = 0;
-
-    // Weight metrics by importance for content analysis
-    const weights = { 
-        users: 0.25,           // Most important - actual people visiting
-        pageViews: 0.2,        // Important - content consumption
-        sessions: 0.15,        // User engagement depth
-        engagementRate: 0.15,  // Quality of engagement
-        bounceRate: 0.1,       // Content relevance (inverted)
-        newUsers: 0.1,         // Growth indicator
-        avgSessionDuration: 0.05 // Content stickiness
-    };
-
-    Object.keys(weights).forEach(metric => {
-        if (trends[metric]) {
-            const change = trends[metric].percentChange;
-            const weight = weights[metric];
-            totalWeight += weight;
-
-            if (Math.abs(change) > 5) { // Only count significant changes
-                if (change > 0) positiveCount += weight;
-                else negativeCount += weight;
-            }
-        }
-    });
-
-    // Generate insights
-    const insights = generateGA4Insights(trends);
-
-    if (positiveCount > negativeCount) {
-        return { 
-            direction: 'improving', 
-            confidence: positiveCount / totalWeight,
-            insights: insights,
-            summary: 'Traffic and engagement trending upward'
-        };
-    } else if (negativeCount > positiveCount) {
-        return { 
-            direction: 'declining', 
-            confidence: negativeCount / totalWeight,
-            insights: insights,
-            summary: 'Traffic or engagement needs attention'
-        };
-    } else {
-        return { 
-            direction: 'stable', 
-            confidence: 0.5,
-            insights: insights,
-            summary: 'Performance holding steady'
-        };
-    }
-}
-
-// Generate actionable insights from GA4 trends
-function generateGA4Insights(trends) {
-    const insights = [];
-
-    // User growth insights
-    if (trends.users && trends.users.percentChange > 15) {
-        insights.push('🚀 Strong user growth - content resonating well');
-    } else if (trends.users && trends.users.percentChange < -15) {
-        insights.push('⚠️ User decline - consider content refresh');
-    }
-
-    // Engagement quality insights
-    if (trends.engagementRate && trends.bounceRate) {
-        const engagementUp = trends.engagementRate.percentChange > 10;
-        const bounceDown = trends.bounceRate.percentChange < -10;
-        
-        if (engagementUp && bounceDown) {
-            insights.push('✨ Excellent engagement improvement');
-        } else if (trends.bounceRate.percentChange > 20) {
-            insights.push('📱 High bounce rate - check page relevance');
-        }
-    }
-
-    // Session depth insights
-    if (trends.avgSessionDuration && trends.avgSessionDuration.percentChange > 20) {
-        insights.push('📖 Users spending more time - content is engaging');
-    }
-
-    // New vs returning users
-    if (trends.newUsers && trends.users) {
-        const newUserRatio = trends.newUsers.current / trends.users.current;
-        if (newUserRatio > 0.7) {
-            insights.push('🎯 High new user acquisition - good discoverability');
-        } else if (newUserRatio < 0.3) {
-            insights.push('🔄 Strong returning audience - good retention');
-        }
-    }
-
-    return insights.slice(0, 3); // Limit to 3 most important insights
-}
-
-// Enhanced debug function for GA4
-window.GA4Integration.debug.testPeriodComparison = async function(url) {
-    if (!ga4Connected) {
-        console.error('GA4 not connected');
-        return;
-    }
-
-    console.log('🧪 Testing GA4 period comparison for:', url);
-    
-    const comparison = await window.GA4Integration.fetchTrendComparison(url);
-    
-    console.log('📊 GA4 Trend Comparison Results:');
-    console.table(comparison.current);
-    if (comparison.previous) {
-        console.log('📈 Previous Period:');
-        console.table(comparison.previous);
-    }
-    if (comparison.trends) {
-        console.log('📈 Calculated Trends:');
-        console.log(comparison.trends);
-        
-        if (comparison.trends.overall && comparison.trends.overall.insights) {
-            console.log('💡 Insights:', comparison.trends.overall.insights);
-        }
-    }
-    
-    return comparison;
-};
-
-// Utility function to format GA4 metrics for display
-window.GA4Integration.formatMetricForDisplay = function(value, metric) {
-    if (!value && value !== 0) return '0';
-    
-    switch (metric) {
-        case 'bounceRate':
-        case 'engagementRate':
-            return `${(value * 100).toFixed(1)}%`;
-        case 'avgSessionDuration':
-            return formatDuration(value);
-        case 'pageViews':
-        case 'sessions':
-        case 'users':
-        case 'newUsers':
-        case 'activeUsers':
-            return formatNumber(value);
-        default:
-            return value.toString();
-    }
-};
-
-// Add these functions to your existing GA4Integration.debug object
-window.GA4Integration.debug.clearPeriodCache = function() {
-    // Clear only period-specific cache entries
-    const keysToDelete = [];
-    for (const [key] of ga4DataCache.entries()) {
-        if (key.includes('_') && key.match(/\d{13}_\d{13}$/)) { // Timestamp pattern
-            keysToDelete.push(key);
-        }
-    }
-    
-    keysToDelete.forEach(key => ga4DataCache.delete(key));
-    console.log(`🧹 Cleared ${keysToDelete.length} period cache entries`);
-};
-
-console.log('✅ GA4 Period Comparison Functions Added!');
+console.log('✅ GA4 Period Comparison Functions Fixed!');
