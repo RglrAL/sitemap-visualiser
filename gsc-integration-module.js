@@ -2856,45 +2856,98 @@
     }
 
     // Show detailed GSC analysis for content writers
-    window.showDetailedGSCAnalysis = function(url) {
-        const gscData = gscDataMap.get(url);
-        if (!gscData || gscData.noDataFound) {
-            alert('No GSC data available for this page');
-            return;
+    window.showDetailedGSCAnalysis = async function(url) {
+    console.log('🚀 Loading Enhanced Dashboard for:', url);
+    
+    // Get GSC data (existing)
+    const gscData = gscDataMap.get(url);
+    if (!gscData || gscData.noDataFound) {
+        alert('No performance data available for this page. Please ensure GSC is connected and this page has search data.');
+        return;
+    }
+    
+    // Get GA4 data (if available)
+    let ga4Data = null;
+    if (window.GA4Integration?.fetchData) {
+        try {
+            ga4Data = await window.GA4Integration.fetchData(url);
+        } catch (error) {
+            console.warn('Failed to fetch GA4 data:', error);
         }
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
-            align-items: center; justify-content: center; padding: 20px;
-        `;
-        
-        modal.onclick = () => modal.remove();
-        
-        const content = document.createElement('div');
-        content.style.cssText = `
-            background: white; padding: 30px; border-radius: 15px; 
-            max-width: 900px; max-height: 90vh; overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3); position: relative;
-        `;
-        content.onclick = e => e.stopPropagation();
-        
-        content.innerHTML = generateEnhancedDetailedAnalysisHTML(url, gscData);
-        
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '×';
-        closeBtn.style.cssText = `
-            position: absolute; top: 15px; right: 15px; background: none; border: none;
-            font-size: 28px; color: #666; cursor: pointer;
-        `;
-        closeBtn.onclick = () => modal.remove();
-        content.appendChild(closeBtn);
-        
-        modal.appendChild(content);
-        document.body.appendChild(modal);
+    }
+    
+    // Get trend comparisons
+    let gscTrends = null;
+    if (window.GSCIntegration?.fetchTrendComparison) {
+        try {
+            gscTrends = await window.GSCIntegration.fetchTrendComparison({ url, name: 'Page' });
+        } catch (error) {
+            console.warn('Failed to fetch GSC trends:', error);
+        }
+    }
+    
+    let ga4Trends = null;
+    if (window.GA4Integration?.fetchTrendComparison) {
+        try {
+            ga4Trends = await window.GA4Integration.fetchTrendComparison(url);
+        } catch (error) {
+            console.warn('Failed to fetch GA4 trends:', error);
+        }
+    }
+
+    // Create and show the enhanced dashboard
+    const modal = document.createElement('div');
+    modal.className = 'enhanced-dashboard-modal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
+        align-items: center; justify-content: center; padding: 20px;
+        animation: fadeIn 0.3s ease;
+    `;
+    modal.onclick = () => modal.remove();
+
+    const dashboard = document.createElement('div');
+    dashboard.style.cssText = `
+        background: white; border-radius: 20px; 
+        max-width: 1200px; width: 100%; max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;
+        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    `;
+    dashboard.onclick = e => e.stopPropagation();
+
+    // Generate dashboard HTML
+    dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends);
+
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '×';
+    closeBtn.style.cssText = `
+        position: absolute; top: 20px; right: 25px; background: none; border: none;
+        font-size: 28px; color: rgba(255,255,255,0.8); cursor: pointer;
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s ease; z-index: 10;
+    `;
+    closeBtn.onmouseover = () => {
+        closeBtn.style.background = 'rgba(255,255,255,0.2)';
+        closeBtn.style.color = 'white';
     };
+    closeBtn.onmouseout = () => {
+        closeBtn.style.background = 'none';
+        closeBtn.style.color = 'rgba(255,255,255,0.8)';
+    };
+    closeBtn.onclick = () => modal.remove();
+    dashboard.appendChild(closeBtn);
+
+    modal.appendChild(dashboard);
+    document.body.appendChild(modal);
+
+    // Initialize interactions
+    initializeEnhancedDashboardInteractions(dashboard);
+};
+
+
+    
 
     // Enhanced analysis HTML generation with modern design
     function generateEnhancedDetailedAnalysisHTML(url, gscData) {
@@ -4193,5 +4246,505 @@ window.GSCIntegration.debug.testPeriodComparison = async function(url) {
 };
 
 console.log('✅ GSC Period Comparison Functions Added!');
+
+
+function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends) {
+    const pageTitle = extractPageTitle(url);
+    const crossPlatformInsights = generateCrossPlatformInsights(gscData, ga4Data, gscTrends, ga4Trends);
+
+    return `
+        ${createEnhancedDashboardStyles()}
+        
+        <!-- Page Header Section -->
+        <div class="page-header">
+            <div class="header-background">
+                <div class="header-pattern"></div>
+                <div class="header-content">
+                    <div class="page-info">
+                        <h1 class="page-title">${pageTitle}</h1>
+                        <div class="page-meta">
+                            <div class="url-display">${url}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="header-metrics">
+                        ${createPrimaryPositionCard(gscData, gscTrends)}
+                        ${createTrendIndicators(gscTrends, ga4Trends)}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Snapshot -->
+        <div class="performance-snapshot">
+            <h2 class="section-title">📊 Performance Snapshot</h2>
+            <div class="metrics-grid">
+                ${createSearchConsoleMetrics(gscData, gscTrends)}
+                ${createGA4Metrics(ga4Data, ga4Trends)}
+                ${createCrossMetrics(gscData, ga4Data)}
+            </div>
+        </div>
+
+        <!-- Cross-Platform Insights -->
+        <div class="insights-section">
+            <h2 class="section-title">⚡ Key Insights</h2>
+            <div class="insights-grid">
+                ${crossPlatformInsights.map(insight => createInsightCard(insight)).join('')}
+            </div>
+        </div>
+
+        <!-- Search Visibility Panel -->
+        <div class="search-visibility">
+            <h2 class="section-title">🔍 Search Visibility</h2>
+            <div class="visibility-content">
+                ${createTopQueriesSection(gscData)}
+                ${createCTRAnalysisSection(gscData)}
+            </div>
+        </div>
+
+        <!-- Content Optimization Recommendations -->
+        <div class="recommendations-section">
+            <h2 class="section-title">💡 Content Optimization</h2>
+            <div class="recommendations-content">
+                ${createQuickWinsSection(crossPlatformInsights)}
+            </div>
+        </div>
+
+        <!-- Citizens Impact Metrics -->
+        <div class="impact-section">
+            <h2 class="section-title">🎯 Citizens Impact</h2>
+            <div class="impact-content">
+                ${createCitizensImpactMetrics(ga4Data, gscData)}
+            </div>
+        </div>
+
+        <!-- Action Center -->
+        <div class="action-center">
+            ${createActionButtons(url)}
+        </div>
+    `;
+}
+
+function createEnhancedDashboardStyles() {
+    return `
+        <style>
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+            .enhanced-dashboard-modal * { box-sizing: border-box; }
+
+            .page-header { margin: 0 0 30px 0; border-radius: 20px 20px 0 0; overflow: hidden; }
+            .header-background { background: linear-gradient(135deg, #5a8200 0%, #72A300 100%); position: relative; overflow: hidden; }
+            .header-pattern { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px); background-size: 30px 30px; opacity: 0.3; }
+            .header-content { position: relative; z-index: 2; padding: 30px; display: flex; justify-content: space-between; align-items: flex-start; gap: 30px; }
+            .page-info { flex: 1; min-width: 0; }
+            .page-title { margin: 0 0 12px 0; font-size: 2rem; font-weight: 700; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.1); line-height: 1.2; }
+            .page-meta { display: flex; flex-direction: column; gap: 8px; }
+            .url-display { font-family: 'Monaco', 'Menlo', monospace; font-size: 0.85rem; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 8px; word-break: break-all; backdrop-filter: blur(10px); }
+            .header-metrics { display: flex; flex-direction: column; gap: 15px; align-items: flex-end; }
+
+            .section-title { font-size: 1.4rem; font-weight: 700; color: #1f2937; margin: 0 0 20px 0; display: flex; align-items: center; gap: 10px; }
+            .performance-snapshot, .insights-section, .search-visibility, .recommendations-section, .impact-section { padding: 30px; border-bottom: 1px solid #f3f4f6; }
+            .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+
+            .metric-card { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; position: relative; overflow: hidden; transition: all 0.3s ease; }
+            .metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+            .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--accent-color, #72A300); }
+            .metric-label { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .metric-value { font-size: 2rem; font-weight: 800; color: #1f2937; margin-bottom: 8px; line-height: 1; }
+            .metric-trend { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; }
+            .trend-positive { color: #059669; }
+            .trend-negative { color: #dc2626; }
+            .trend-neutral { color: #64748b; }
+
+            .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+            .insight-card { background: white; border: 2px solid #e2e8f0; border-radius: 16px; padding: 24px; position: relative; transition: all 0.3s ease; }
+            .insight-card.priority-high { border-color: #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); }
+            .insight-card.priority-medium { border-color: #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%); }
+            .insight-card.priority-low { border-color: #10b981; background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); }
+            .insight-title { font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0 0 8px 0; }
+            .insight-description { font-size: 0.9rem; color: #64748b; line-height: 1.5; margin: 0 0 12px 0; }
+            .insight-action { font-size: 0.85rem; font-weight: 600; color: var(--priority-color); background: rgba(var(--priority-rgb), 0.1); padding: 6px 12px; border-radius: 20px; display: inline-block; }
+
+            .visibility-content, .recommendations-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; }
+            .content-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .card-title { font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; }
+
+            .action-center { padding: 30px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); text-align: center; border-radius: 0 0 20px 20px; }
+            .action-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+            .action-btn { padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+            .action-btn.primary { background: linear-gradient(135deg, #5a8200 0%, #72A300 100%); color: white; box-shadow: 0 4px 14px rgba(114, 163, 0, 0.3); }
+            .action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(114, 163, 0, 0.4); }
+            .action-btn.secondary { background: white; color: #64748b; border: 2px solid #e2e8f0; }
+            .action-btn.secondary:hover { background: #f8fafc; border-color: #72A300; color: #72A300; transform: translateY(-1px); }
+
+            @media (max-width: 768px) {
+                .header-content { flex-direction: column; gap: 20px; }
+                .page-title { font-size: 1.5rem; }
+                .metrics-grid, .insights-grid, .visibility-content, .recommendations-content { grid-template-columns: 1fr; }
+                .action-buttons { flex-direction: column; align-items: center; }
+            }
+        </style>
+    `;
+}
+
+function createPrimaryPositionCard(gscData, gscTrends) {
+    const position = gscData.position || 0;
+    const trend = gscTrends?.trends?.position;
+    
+    return `
+        <div class="metric-card" style="--accent-color: #3b82f6; min-width: 200px;">
+            <div class="metric-label">Primary Position</div>
+            <div class="metric-value" style="color: #3b82f6;">#${position.toFixed(0)}</div>
+            ${trend ? `
+                <div class="metric-trend ${trend.direction === 'up' ? 'trend-positive' : trend.direction === 'down' ? 'trend-negative' : 'trend-neutral'}">
+                    <span>${trend.direction === 'up' ? '↗' : trend.direction === 'down' ? '↘' : '→'}</span>
+                    <span>${Math.abs(trend.percentChange).toFixed(1)}% vs last period</span>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function createTrendIndicators(gscTrends, ga4Trends) {
+    return `
+        <div style="display: flex; gap: 12px; align-items: center;">
+            ${gscTrends?.trends?.clicks ? `
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(10px);">
+                    <span style="color: white; font-size: 0.8rem;">🔍</span>
+                    <span style="color: white; font-size: 0.8rem; font-weight: 600;">
+                        ${gscTrends.trends.clicks.direction === 'up' ? '+' : ''}${gscTrends.trends.clicks.percentChange.toFixed(0)}%
+                    </span>
+                </div>
+            ` : ''}
+            ${ga4Trends?.trends?.pageViews ? `
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(10px);">
+                    <span style="color: white; font-size: 0.8rem;">📊</span>
+                    <span style="color: white; font-size: 0.8rem; font-weight: 600;">
+                        ${ga4Trends.trends.pageViews.direction === 'up' ? '+' : ''}${ga4Trends.trends.pageViews.percentChange.toFixed(0)}%
+                    </span>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function createSearchConsoleMetrics(gscData, gscTrends) {
+    const metrics = [
+        { label: 'Total Clicks', value: formatNumber(gscData.clicks || 0), trend: gscTrends?.trends?.clicks, color: '#3b82f6', icon: '🎯' },
+        { label: 'Impressions', value: formatNumber(gscData.impressions || 0), trend: gscTrends?.trends?.impressions, color: '#06b6d4', icon: '👁️' },
+        { label: 'Click-through Rate', value: `${((gscData.ctr || 0) * 100).toFixed(1)}%`, trend: gscTrends?.trends?.ctr, color: '#8b5cf6', icon: '⚡' }
+    ];
+
+    return metrics.map(metric => `
+        <div class="metric-card" style="--accent-color: ${metric.color};">
+            <div class="metric-label">${metric.icon} ${metric.label}</div>
+            <div class="metric-value" style="color: ${metric.color};">${metric.value}</div>
+            ${metric.trend ? `
+                <div class="metric-trend ${metric.trend.direction === 'up' ? 'trend-positive' : metric.trend.direction === 'down' ? 'trend-negative' : 'trend-neutral'}">
+                    <span>${metric.trend.direction === 'up' ? '↗' : metric.trend.direction === 'down' ? '↘' : '→'}</span>
+                    <span>${Math.abs(metric.trend.percentChange).toFixed(1)}% vs last period</span>
+                </div>
+            ` : '<div class="metric-trend trend-neutral">No trend data</div>'}
+        </div>
+    `).join('');
+}
+
+function createGA4Metrics(ga4Data, ga4Trends) {
+    if (!ga4Data || ga4Data.noDataFound) {
+        return `
+            <div class="metric-card" style="--accent-color: #64748b;">
+                <div class="metric-label">📊 Google Analytics</div>
+                <div class="metric-value" style="color: #64748b; font-size: 1.2rem;">Not Connected</div>
+                <div class="metric-trend trend-neutral">Connect GA4 for engagement data</div>
+            </div>
+        `;
+    }
+
+    const metrics = [
+        { label: 'Page Views', value: formatNumber(ga4Data.pageViews || 0), trend: ga4Trends?.trends?.pageViews, color: '#f59e0b', icon: '📄' },
+        { label: 'Avg. Time on Page', value: formatDuration(ga4Data.avgSessionDuration || 0), trend: ga4Trends?.trends?.avgSessionDuration, color: '#10b981', icon: '⏱️' },
+        { label: 'Bounce Rate', value: `${((ga4Data.bounceRate || 0) * 100).toFixed(1)}%`, trend: ga4Trends?.trends?.bounceRate, color: '#ef4444', icon: '⚽' }
+    ];
+
+    return metrics.map(metric => `
+        <div class="metric-card" style="--accent-color: ${metric.color};">
+            <div class="metric-label">${metric.icon} ${metric.label}</div>
+            <div class="metric-value" style="color: ${metric.color};">${metric.value}</div>
+            ${metric.trend ? `
+                <div class="metric-trend ${metric.trend.direction === 'up' ? (metric.label === 'Bounce Rate' ? 'trend-negative' : 'trend-positive') : metric.trend.direction === 'down' ? (metric.label === 'Bounce Rate' ? 'trend-positive' : 'trend-negative') : 'trend-neutral'}">
+                    <span>${metric.trend.direction === 'up' ? '↗' : metric.trend.direction === 'down' ? '↘' : '→'}</span>
+                    <span>${Math.abs(metric.trend.percentChange).toFixed(1)}% vs last period</span>
+                </div>
+            ` : '<div class="metric-trend trend-neutral">No trend data</div>'}
+        </div>
+    `).join('');
+}
+
+function createCrossMetrics(gscData, ga4Data) {
+    let conversionRate = 0;
+    let qualityScore = 50;
+
+    if (gscData.clicks > 0 && ga4Data && ga4Data.pageViews > 0) {
+        conversionRate = (ga4Data.pageViews / gscData.clicks) * 100;
+        const positionScore = Math.max(0, 100 - (gscData.position * 10));
+        const ctrScore = (gscData.ctr * 100) * 20;
+        const bounceScore = ga4Data.bounceRate ? (1 - ga4Data.bounceRate) * 100 : 50;
+        const timeScore = Math.min(100, (ga4Data.avgSessionDuration / 300) * 100);
+        qualityScore = (positionScore + ctrScore + bounceScore + timeScore) / 4;
+    }
+
+    return `
+        <div class="metric-card" style="--accent-color: #72A300;">
+            <div class="metric-label">🚀 Traffic Conversion</div>
+            <div class="metric-value" style="color: #72A300;">${conversionRate.toFixed(1)}%</div>
+            <div class="metric-trend trend-neutral">Clicks → Page Views</div>
+        </div>
+        <div class="metric-card" style="--accent-color: #8b5cf6;">
+            <div class="metric-label">⭐ Content Quality Score</div>
+            <div class="metric-value" style="color: #8b5cf6;">${qualityScore.toFixed(0)}/100</div>
+            <div class="metric-trend ${qualityScore >= 75 ? 'trend-positive' : qualityScore >= 50 ? 'trend-neutral' : 'trend-negative'}">
+                ${qualityScore >= 75 ? 'Excellent' : qualityScore >= 50 ? 'Good' : 'Needs Work'}
+            </div>
+        </div>
+    `;
+}
+
+function generateCrossPlatformInsights(gscData, ga4Data, gscTrends, ga4Trends) {
+    const insights = [];
+
+    if (gscData.position <= 5 && ga4Data && ga4Data.bounceRate > 0.7) {
+        insights.push({
+            priority: 'high',
+            title: 'Search-Content Mismatch Detected',
+            description: `Your page ranks well (#${gscData.position.toFixed(0)}) but has a high bounce rate (${(ga4Data.bounceRate * 100).toFixed(0)}%). Users aren't finding what they expect.`,
+            action: 'Review search intent and align content with user expectations',
+            color: '#ef4444'
+        });
+    }
+
+    const expectedCTR = getCTRBenchmark(gscData.position);
+    if (gscData.ctr < expectedCTR * 0.7) {
+        insights.push({
+            priority: 'medium',
+            title: 'Title & Meta Description Optimization',
+            description: `Your CTR (${(gscData.ctr * 100).toFixed(1)}%) is ${((expectedCTR - gscData.ctr) / expectedCTR * 100).toFixed(0)}% below average for position #${gscData.position.toFixed(0)}.`,
+            action: 'Rewrite title tag and meta description to be more compelling',
+            color: '#f59e0b'
+        });
+    }
+
+    if (ga4Data && ga4Data.avgSessionDuration > 180 && gscData.position > 10) {
+        insights.push({
+            priority: 'medium',
+            title: 'Hidden Gem - SEO Opportunity',
+            description: `Users love this content (${formatDuration(ga4Data.avgSessionDuration)} avg. time) but it's buried on page 2. This has scaling potential.`,
+            action: 'Invest in SEO optimization - keyword research and content expansion',
+            color: '#f59e0b'
+        });
+    }
+
+    if (insights.length === 0) {
+        insights.push({
+            priority: 'low',
+            title: 'Steady Performance',
+            description: 'Your page is performing within normal ranges. Focus on continuous improvement and monitoring trends.',
+            action: 'Continue regular content updates and track performance monthly',
+            color: '#10b981'
+        });
+    }
+
+    return insights.slice(0, 3);
+}
+
+function createInsightCard(insight) {
+    return `
+        <div class="insight-card priority-${insight.priority}" style="--priority-color: ${insight.color}; --priority-rgb: ${hexToRgb(insight.color)};">
+            <div class="insight-title">${insight.title}</div>
+            <div class="insight-description">${insight.description}</div>
+            <div class="insight-action">${insight.action}</div>
+        </div>
+    `;
+}
+
+function createTopQueriesSection(gscData) {
+    if (!gscData.topQueries || gscData.topQueries.length === 0) {
+        return `
+            <div class="content-card">
+                <div class="card-title">🎯 Top Search Queries</div>
+                <div style="text-align: center; color: #64748b; padding: 20px;">No query data available</div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="content-card">
+            <div class="card-title">🎯 Top Search Queries</div>
+            ${gscData.topQueries.slice(0, 5).map((query, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: ${index < 4 ? '1px solid #f3f4f6' : 'none'};">
+                    <div>
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">"${escapeHtml(query.query)}"</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">Position #${query.position.toFixed(0)}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 600; color: #72A300;">${query.clicks} clicks</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">${(query.ctr * 100).toFixed(1)}% CTR</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function createCTRAnalysisSection(gscData) {
+    const expectedCTR = getCTRBenchmark(gscData.position);
+    const performance = gscData.ctr >= expectedCTR * 1.2 ? 'excellent' : 
+                       gscData.ctr >= expectedCTR ? 'good' : 
+                       gscData.ctr >= expectedCTR * 0.8 ? 'fair' : 'poor';
+
+    return `
+        <div class="content-card">
+            <div class="card-title">📊 CTR Performance Analysis</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: #64748b;">Current CTR</span>
+                <span style="font-weight: 700; font-size: 1.1rem; color: #1f2937;">${(gscData.ctr * 100).toFixed(2)}%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: #64748b;">Expected CTR (Position #${gscData.position.toFixed(0)})</span>
+                <span style="font-weight: 600; color: #64748b;">${(expectedCTR * 100).toFixed(2)}%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #64748b;">Performance</span>
+                <span style="padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: capitalize;
+                             background: ${performance === 'excellent' ? '#dcfce7' : performance === 'good' ? '#dbeafe' : performance === 'fair' ? '#fef3c7' : '#fee2e2'};
+                             color: ${performance === 'excellent' ? '#166534' : performance === 'good' ? '#1e40af' : performance === 'fair' ? '#92400e' : '#dc2626'};">
+                    ${performance}
+                </span>
+            </div>
+            ${performance === 'poor' || performance === 'fair' ? `
+                <div style="padding: 12px; background: #fef3c7; border-radius: 8px; border-left: 3px solid #f59e0b; margin-top: 12px;">
+                    <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">💡 Quick Win</div>
+                    <div style="font-size: 0.85rem; color: #92400e;">
+                        Improving CTR to industry average could generate ~${Math.round((expectedCTR - gscData.ctr) * gscData.impressions)} additional clicks per month.
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function createQuickWinsSection(insights) {
+    const quickWins = insights.filter(insight => insight.priority === 'high' || insight.priority === 'medium');
+
+    return `
+        <div style="grid-column: 1 / -1;">
+            <div class="content-card">
+                <div class="card-title">⚡ Quick Wins & Priority Actions</div>
+                ${quickWins.length > 0 ? quickWins.map((win, index) => `
+                    <div style="display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: ${index < quickWins.length - 1 ? '1px solid #f3f4f6' : 'none'};">
+                        <div style="background: ${win.color}20; color: ${win.color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">
+                            ${index + 1}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">${win.title}</div>
+                            <div style="color: #64748b; margin-bottom: 8px; line-height: 1.4;">${win.description}</div>
+                            <div style="font-size: 0.85rem; font-weight: 500; color: ${win.color}; background: ${win.color}15; padding: 4px 8px; border-radius: 6px; display: inline-block;">
+                                ${win.action}
+                            </div>
+                        </div>
+                        <div style="padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+                                    background: ${win.priority === 'high' ? '#fee2e2' : '#fef3c7'};
+                                    color: ${win.priority === 'high' ? '#dc2626' : '#d97706'};">
+                            ${win.priority} Priority
+                        </div>
+                    </div>
+                `).join('') : `
+                    <div style="text-align: center; color: #64748b; padding: 20px;">
+                        <div style="font-size: 1.5rem; margin-bottom: 8px;">🎉</div>
+                        <div>No immediate issues found. Keep monitoring!</div>
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+function createCitizensImpactMetrics(ga4Data, gscData) {
+    const avgReadingTime = ga4Data ? ga4Data.avgSessionDuration : 0;
+    const informationConsumed = avgReadingTime > 0 ? Math.min(100, (avgReadingTime / 300) * 100) : 0;
+    const serviceHelpfulness = gscData.clicks > 0 ? Math.min(100, (gscData.clicks / 100) * 100) : 0;
+
+    return `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;">
+            <div class="metric-card" style="--accent-color: #10b981;">
+                <div class="metric-label">📖 Information Consumed</div>
+                <div class="metric-value" style="color: #10b981;">${informationConsumed.toFixed(0)}%</div>
+                <div class="metric-trend trend-neutral">Avg. reading time: ${formatDuration(avgReadingTime)}</div>
+            </div>
+            <div class="metric-card" style="--accent-color: #3b82f6;">
+                <div class="metric-label">🎯 Citizens Helped</div>
+                <div class="metric-value" style="color: #3b82f6;">${gscData.clicks || 0}</div>
+                <div class="metric-trend trend-neutral">Monthly search visitors</div>
+            </div>
+            <div class="metric-card" style="--accent-color: #8b5cf6;">
+                <div class="metric-label">📋 Service Effectiveness</div>
+                <div class="metric-value" style="color: #8b5cf6;">${serviceHelpfulness.toFixed(0)}/100</div>
+                <div class="metric-trend trend-neutral">Based on engagement patterns</div>
+            </div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 24px; border-radius: 16px; border-left: 4px solid #0ea5e9;">
+            <h3 style="margin: 0 0 16px 0; color: #0c4a6e; font-size: 1.1rem;">🏛️ Public Service Impact Summary</h3>
+            <div style="font-size: 0.85rem; color: #0c4a6e; line-height: 1.5;">
+                <strong>Citizens Impact Score:</strong> This page successfully helps 
+                <strong>${gscData.clicks || 0} citizens per month</strong> find the information they need, 
+                with an average engagement time of <strong>${formatDuration(avgReadingTime)}</strong>.
+                ${informationConsumed > 75 ? ' Citizens are thoroughly consuming the information provided.' : 
+                  informationConsumed > 40 ? ' Citizens are moderately engaging with the content.' : 
+                  ' Consider improving content clarity and structure.'}
+            </div>
+        </div>
+    `;
+}
+
+function createActionButtons(url) {
+    return `
+        <h3 style="margin: 0 0 16px 0; color: #374151;">Export & Share Analysis</h3>
+        <div class="action-buttons">
+            <button class="action-btn primary" onclick="window.open('${escapeHtml(url)}', '_blank')">
+                <span>🔗</span><span>Visit Page</span>
+            </button>
+            <button class="action-btn secondary" onclick="alert('Export feature coming soon!')">
+                <span>📊</span><span>Export Report</span>
+            </button>
+            <button class="action-btn secondary" onclick="alert('Copy feature coming soon!')">
+                <span>📋</span><span>Copy Summary</span>
+            </button>
+        </div>
+    `;
+}
+
+function initializeEnhancedDashboardInteractions(dashboard) {
+    // Add any interactive functions here
+}
+
+// Helper functions
+function extractPageTitle(url) {
+    const segments = url.split('/').filter(s => s.length > 0);
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment ? lastSegment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Page Analysis';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 0, 0';
+}
+
 
 })();
