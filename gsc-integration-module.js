@@ -664,7 +664,7 @@
         addLoadingAnimationStyles();
         initializeGoogleAPI();
         hookIntoSitemapLoader();
-        hookIntoTooltips();
+        
         listenForTreeReady();
         setupCacheCleanup();
         setupHealthMonitoring();
