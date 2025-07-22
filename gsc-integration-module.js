@@ -3214,11 +3214,23 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
     // REPLACE your entire showDetailedGSCAnalysis function with this beautiful version
 // This builds on your working enhanced data to create a stunning professional dashboard
 
+// REPLACE the entire window.showDetailedGSCAnalysis function with this complete version:
+
 window.showDetailedGSCAnalysis = async function(url) {
-    console.log('🚀 Loading Beautiful Enhanced Dashboard for:', url);
+    console.log('🚀 Loading Advanced Government Dashboard for:', url);
     
     // Get GSC data
     const gscData = window.GSCIntegration?.getData?.(url) || {clicks: 0, impressions: 0, ctr: 0, position: 0, topQueries: []};
+    
+    // Get GSC trends
+    let gscTrends = null;
+    if (window.GSCIntegration?.fetchTrendComparison) {
+        try {
+            gscTrends = await window.GSCIntegration.fetchTrendComparison({url: url, name: 'Page'});
+        } catch (error) {
+            console.warn('Failed to fetch GSC trends:', error);
+        }
+    }
     
     // Get GA4 data
     let ga4Data = null;
@@ -3229,8 +3241,18 @@ window.showDetailedGSCAnalysis = async function(url) {
             console.warn('Failed to fetch GA4 data:', error);
         }
     }
+    
+    // Get GA4 trends
+    let ga4Trends = null;
+    if (window.GA4Integration?.fetchTrendComparison) {
+        try {
+            ga4Trends = await window.GA4Integration.fetchTrendComparison(url);
+        } catch (error) {
+            console.warn('Failed to fetch GA4 trends:', error);
+        }
+    }
 
-    // Get enhanced GA4 data (traffic sources, device data) - YOUR WORKING CODE
+    // Get enhanced GA4 data (traffic sources, device data)
     let trafficSources = null;
     let deviceData = null;
 
@@ -3258,14 +3280,14 @@ window.showDetailedGSCAnalysis = async function(url) {
     modal.onclick = () => modal.remove();
 
     const dashboard = document.createElement('div');
-dashboard.style.cssText = `background: white; border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
-dashboard.onclick = e => e.stopPropagation();
+    dashboard.style.cssText = `background: white; border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
+    dashboard.onclick = e => e.stopPropagation();
 
-// BEAUTIFUL ENHANCED HTML
-dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
+    // BEAUTIFUL ENHANCED HTML
+    dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
 
-modal.appendChild(dashboard);
-document.body.appendChild(modal);
+    modal.appendChild(dashboard);
+    document.body.appendChild(modal);
 };
 
 console.log('🎨 Beautiful Enhanced Dashboard installed! Test it now.');
