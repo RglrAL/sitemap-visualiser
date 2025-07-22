@@ -3000,7 +3000,12 @@ function formatDuration(seconds) {
     document.body.appendChild(modal);
 
     // Initialize interactive elements
+    // Replace the problematic line with this safe version:
+if (typeof initializeDashboardInteractions === 'function') {
     initializeDashboardInteractions(dashboard);
+} else {
+    console.log('ℹ️ initializeDashboardInteractions not available - dashboard will work without interactive features');
+}
 };
 
 // Keep the reference
