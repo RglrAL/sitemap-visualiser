@@ -1859,6 +1859,117 @@
         return Math.round(engagementScore + navigationScore);
     }
 
+    // Helper functions for quality score display (out of 25 each)
+    function getSearchScore(gscData) {
+        return Math.round(calculateSearchScore(gscData) / 4); // Convert from 100 to 25 scale
+    }
+
+    function getEngagementScore(ga4Data) {
+        return Math.round(calculateEngagementScore(ga4Data) / 4); // Convert from 100 to 25 scale
+    }
+
+    function getRelevanceScore(gscData) {
+        return Math.round(calculateRelevanceScore(gscData) / 4); // Convert from 100 to 25 scale
+    }
+
+    function getUXScore(ga4Data) {
+        return Math.round(calculateUXScore(ga4Data) / 4); // Convert from 100 to 25 scale
+    }
+
+    function calculateImpactMetrics(gscData, ga4Data) {
+        const seekers = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
+        const questionsAnswered = gscData?.topQueries?.length || 0;
+        
+        let successRate = 70; // Default
+        if (ga4Data && !ga4Data.noDataFound) {
+            successRate = Math.round((1 - (ga4Data.bounceRate || 0.3)) * 100);
+        }
+        
+        return { seekers, questionsAnswered, successRate };
+    }
+
+    function calculateUXMetrics(ga4Data) {
+        return {
+            readingTime: ga4Data.avgSessionDuration,
+            retention: (1 - ga4Data.bounceRate) * 100,
+            newVsReturning: (ga4Data.newUsers / ga4Data.users) * 100
+        };
+    }
+
+    function generateUXRecommendations(ga4Data) {
+        const recommendations = [];
+        
+        if (ga4Data.avgSessionDuration < 90) {
+            recommendations.push({
+                priority: 'high',
+                title: 'Improve Content Readability',
+                description: 'Short session duration suggests content may be hard to read or not engaging enough.'
+            });
+        }
+        
+        if (ga4Data.bounceRate > 0.7) {
+            recommendations.push({
+                priority: 'medium',
+                title: 'Add Related Content Links',
+                description: 'High bounce rate - add internal links to encourage deeper content exploration.'
+            });
+        }
+        
+        if (recommendations.length === 0) {
+            recommendations.push({
+                priority: 'low',
+                title: 'Monitor User Behavior',
+                description: 'Continue tracking user engagement patterns and optimize based on feedback.'
+            });
+        }
+        
+        return recommendations;
+    }
+
+    function getCategoryIcon(category) {
+        const icons = {
+            'how_to': '🛠️',
+            'what_is': '❓',
+            'where_can': '📍',
+            'when_does': '⏰',
+            'application': '📋',
+            'form': '📄',
+            'emergency': '🚨',
+            'other': '📝'
+        };
+        return icons[category] || '📝';
+    }
+
+    function getCategoryRecommendation(category, queries) {
+        const recommendations = {
+            'how_to': 'Add step-by-step guides and video tutorials',
+            'what_is': 'Create clear definition pages with examples',
+            'where_can': 'Improve location finder and office information',
+            'when_does': 'Add deadline calendars and timeline information',
+            'application': 'Streamline application processes and add progress indicators',
+            'form': 'Provide form previews and completion guides',
+            'emergency': 'Ensure emergency information is easily accessible',
+            'other': 'Analyze these queries for content opportunities'
+        };
+        return recommendations[category] || 'Review these queries for optimization opportunities';
+    }
+
+    function getScoreClass(score) {
+        if (score >= 85) return 'excellent';
+        if (score >= 75) return 'good';
+        if (score >= 65) return 'fair';
+        return 'poor';
+    }
+
+    function getCTRBenchmark(position) {
+        if (position <= 1) return 0.28;
+        if (position <= 2) return 0.15;
+        if (position <= 3) return 0.11;
+        if (position <= 5) return 0.06;
+        if (position <= 10) return 0.03;
+        return 0.01;
+    }
+
     function calculateImpactMetrics(gscData, ga4Data) {
         const seekers = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
         const questionsAnswered = gscData?.topQueries?.length || 0;
