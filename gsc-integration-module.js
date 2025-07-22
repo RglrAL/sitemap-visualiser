@@ -3216,13 +3216,14 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
 
 // REPLACE the entire window.showDetailedGSCAnalysis function with this complete version:
 
+// REPLACE your existing window.showDetailedGSCAnalysis with this enhanced version
 window.showDetailedGSCAnalysis = async function(url) {
-    console.log('🚀 Loading Advanced Government Dashboard for:', url);
+    console.log('🚀 Loading Enhanced Citizens Dashboard for:', url);
     
-    // Get GSC data
+    // Get all your existing data (keep this part the same)
     const gscData = window.GSCIntegration?.getData?.(url) || {clicks: 0, impressions: 0, ctr: 0, position: 0, topQueries: []};
     
-    // Get GSC trends
+    // Get trends
     let gscTrends = null;
     if (window.GSCIntegration?.fetchTrendComparison) {
         try {
@@ -3252,55 +3253,35 @@ window.showDetailedGSCAnalysis = async function(url) {
         }
     }
 
-    // Get enhanced GA4 data (traffic sources, device data)
+    // Get enhanced GA4 data (if available)
     let trafficSources = null;
     let deviceData = null;
+    // Add your existing enhanced data fetching here if you have it
 
-    if (window.GA4Integration?.fetchTrafficSources) {
-        try {
-            trafficSources = await window.GA4Integration.fetchTrafficSources(url);
-            console.log('✅ Traffic sources fetched:', trafficSources);
-        } catch (error) {
-            console.warn('❌ Failed to fetch traffic sources:', error);
-        }
-    }
-
-    if (window.GA4Integration?.fetchDeviceData) {
-        try {
-            deviceData = await window.GA4Integration.fetchDeviceData(url);
-            console.log('✅ Device data fetched:', deviceData);
-        } catch (error) {
-            console.warn('❌ Failed to fetch device data:', error);
-        }
-    }
-
-    // Create modal
+    // Create modal with enhanced dashboard
     const modal = document.createElement('div');
     modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px);`;
     modal.onclick = (e) => {
-    // Only close if clicking the backdrop, not the content
-    if (e.target === modal) {
-        modal.remove();
-    }
-};
+        if (e.target === modal) {
+            modal.remove();
+        }
+    };
 
     const dashboard = document.createElement('div');
     dashboard.style.cssText = `background: white; border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
     dashboard.onclick = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-};
+        e.stopPropagation();
+        e.preventDefault();
+    };
 
-    // BEAUTIFUL ENHANCED HTML
-    dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
+    // Use the enhanced dashboard function
+    dashboard.innerHTML = window.createEnhancedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
 
     modal.appendChild(dashboard);
     document.body.appendChild(modal);
 };
 
-console.log('🎨 Beautiful Enhanced Dashboard installed! Test it now.');
-
-// Keep the reference
+// Keep this reference for compatibility
 window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
 
     
