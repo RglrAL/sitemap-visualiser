@@ -1,8 +1,8 @@
-// compact-wide-tooltip.js
-// Compact horizontal layout optimized for desktop viewing
+// compact-vertical-tooltip.js
+// Compact vertical layout with optimized spacing and readability
 
 (function() {
-    console.log('🚀 Loading compact wide tooltip...');
+    console.log('🚀 Loading compact vertical tooltip...');
 
     const modernTooltipFunction = function(event, d) {
         console.log('🎯 Compact tooltip for:', d.data?.name);
@@ -30,7 +30,7 @@
 
     function createCompactTooltip(data) {
         const tooltip = document.createElement('div');
-        tooltip.className = 'compact-enhanced-tooltip';
+        tooltip.className = 'compact-modern-tooltip';
         
         tooltip.style.cssText = `
             position: absolute;
@@ -38,10 +38,10 @@
             border-radius: 16px;
             padding: 0;
             box-shadow: 
-                0 20px 40px -12px rgba(0, 0, 0, 0.25),
+                0 20px 35px -12px rgba(0, 0, 0, 0.25),
                 0 0 0 1px rgba(0, 0, 0, 0.05);
             z-index: 10000;
-            width: 580px;
+            width: 400px;
             max-height: 85vh;
             opacity: 0;
             transform: translateY(8px) scale(0.96);
@@ -64,79 +64,88 @@
         return `
             <!-- Compact Header -->
             <div style="
-                padding: 16px 20px 12px 20px; 
+                padding: 16px 18px 14px 18px; 
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 position: relative;
             ">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
-                    <!-- Left: Page Info -->
-                    <div style="flex: 1; min-width: 0;">
+                <div style="position: relative; z-index: 2;">
+                    <!-- Title and Freshness Badge -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
                         <h3 style="
-                            margin: 0 0 6px 0; 
-                            font-size: 1.1rem; 
+                            margin: 0; 
+                            font-size: 1.05rem; 
                             font-weight: 600; 
                             color: white;
                             line-height: 1.2;
-                            white-space: nowrap;
+                            flex: 1;
+                            display: -webkit-box;
+                            -webkit-line-clamp: 2;
+                            -webkit-box-orient: vertical;
                             overflow: hidden;
-                            text-overflow: ellipsis;
                         ">${data.name || 'Page'}</h3>
-                        
-                        ${data.url ? `
-                            <a href="${data.url}" target="_blank" 
-                               style="
-                                   font-size: 0.75rem; 
-                                   color: rgba(255,255,255,0.9); 
-                                   text-decoration: none;
-                                   white-space: nowrap;
-                                   overflow: hidden;
-                                   text-overflow: ellipsis;
-                                   display: block;
-                               ">🔗 ${data.url}</a>
-                        ` : ''}
+                        ${freshnessInfo.badge}
                     </div>
                     
-                    <!-- Center: Page Stats -->
-                    <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                    <!-- URL -->
+                    ${data.url ? `
+                        <a href="${data.url}" target="_blank" 
+                           style="
+                               font-size: 0.75rem; 
+                               color: rgba(255,255,255,0.9); 
+                               text-decoration: none;
+                               display: block;
+                               white-space: nowrap;
+                               overflow: hidden;
+                               text-overflow: ellipsis;
+                               margin-bottom: 8px;
+                               padding: 3px 6px;
+                               background: rgba(255,255,255,0.15);
+                               border-radius: 4px;
+                               transition: all 0.2s ease;
+                           " 
+                           onmouseover="this.style.background='rgba(255,255,255,0.25)'" 
+                           onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                            🔗 ${data.url}
+                        </a>
+                    ` : ''}
+                    
+                    <!-- Last Edited (more compact) -->
+                    ${lastEditedInfo}
+                    
+                    <!-- Page Metrics - Compact pills -->
+                    <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
                         ${createCompactPill(pageInfo.type, '📄')}
                         ${createCompactPill(`L${pageInfo.depth}`, '🏗️')}
                         ${createCompactPill(pageInfo.children.toString(), '👶', pageInfo.children > 0)}
                         ${createCompactPill(pageInfo.siblings.toString(), '👫', pageInfo.siblings > 0)}
                     </div>
-                    
-                    <!-- Right: Freshness & Date -->
-                    <div style="text-align: right; flex-shrink: 0;">
-                        ${freshnessInfo.badge}
-                        ${lastEditedInfo}
-                    </div>
                 </div>
             </div>
 
-            <!-- Main Content: Side by Side Analytics -->
-            <div style="padding: 16px 20px; display: flex; gap: 16px;">
+            <!-- Compact Analytics Section -->
+            <div style="padding: 16px 18px;">
                 
-                <!-- Left Side: Search Console -->
-                <div style="flex: 1;">
+                <!-- Search Console - More Compact -->
+                <div id="compact-gsc-section" style="margin-bottom: 14px;">
                     <div style="
                         background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
                         border-radius: 12px;
                         overflow: hidden;
                         position: relative;
-                        height: 100%;
                     ">
                         <div style="padding: 14px; position: relative; z-index: 2;">
-                            <!-- GSC Header -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <!-- GSC Header - Compact -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 1.1rem;">🔍</span>
+                                    <span style="font-size: 1rem;">🔍</span>
                                     <div>
                                         <div style="font-weight: 600; font-size: 0.9rem; color: white;">Search Console</div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">30d vs Previous 30d</div>
+                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">30d vs Previous</div>
                                     </div>
                                 </div>
                                 <div id="gsc-status-badge" style="
-                                    padding: 3px 8px; 
+                                    padding: 4px 8px; 
                                     background: rgba(255,255,255,0.2); 
                                     border-radius: 12px; 
                                     font-size: 0.7rem; 
@@ -145,12 +154,12 @@
                                 ">Loading...</div>
                             </div>
                             
-                            <!-- GSC Metrics: 4 in a row -->
-                            <div id="gsc-metrics-container" style="margin-bottom: 12px;">
+                            <!-- GSC Metrics - Compact grid -->
+                            <div id="gsc-metrics-container" style="margin-bottom: 10px;">
                                 ${createCompactLoadingGrid()}
                             </div>
                             
-                            <!-- GSC Queries: Horizontal compact list -->
+                            <!-- GSC Queries - More compact -->
                             <div style="
                                 background: rgba(255,255,255,0.15);
                                 border-radius: 8px;
@@ -167,27 +176,26 @@
                     </div>
                 </div>
                 
-                <!-- Right Side: Google Analytics -->
-                <div style="flex: 1;">
+                <!-- Google Analytics - More Compact -->
+                <div id="compact-ga4-section" style="margin-bottom: 14px;">
                     <div style="
                         background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
                         border-radius: 12px;
                         overflow: hidden;
                         position: relative;
-                        height: 100%;
                     ">
                         <div style="padding: 14px; position: relative; z-index: 2;">
-                            <!-- GA4 Header -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <!-- GA4 Header - Compact -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 1.1rem;">📊</span>
+                                    <span style="font-size: 1rem;">📊</span>
                                     <div>
                                         <div style="font-weight: 600; font-size: 0.9rem; color: white;">Google Analytics</div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">30d vs Previous 30d</div>
+                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">30d vs Previous</div>
                                     </div>
                                 </div>
                                 <div id="ga4-status-badge" style="
-                                    padding: 3px 8px; 
+                                    padding: 4px 8px; 
                                     background: rgba(255,255,255,0.2); 
                                     border-radius: 12px; 
                                     font-size: 0.7rem; 
@@ -196,41 +204,47 @@
                                 ">Loading...</div>
                             </div>
                             
-                            <!-- GA4 Metrics: 4 in a row -->
+                            <!-- GA4 Metrics -->
                             <div id="ga4-metrics-container">
                                 ${createCompactLoadingGrid()}
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Compact Action Bar -->
-            <div style="
-                display: flex; 
-                gap: 8px; 
-                padding: 12px 20px 16px 20px; 
-                background: #f8fafc; 
-                border-top: 1px solid #e2e8f0;
-            ">
-                <button class="compact-action-btn compact-action-primary" data-action="visit" data-url="${data.url}">
-                    <span class="btn-icon">🚀</span>
-                    <span class="btn-text">Visit</span>
-                </button>
-                <button class="compact-action-btn compact-action-secondary" data-action="refresh">
-                    <span class="btn-icon">🔄</span>
-                    <span class="btn-text">Refresh</span>
-                </button>
-                <button class="compact-action-btn compact-action-secondary" data-action="detailed" data-url="${data.url}">
-                    <span class="btn-icon">📈</span>
-                    <span class="btn-text">Report</span>
-                </button>
+                
+                <!-- Compact Action Bar -->
+                <div style="
+                    display: flex; 
+                    gap: 8px; 
+                    padding: 10px 12px; 
+                    background: #f8fafc; 
+                    border-radius: 12px; 
+                    border: 1px solid #e2e8f0;
+                ">
+                    <button class="compact-action-btn compact-action-primary" data-action="visit" data-url="${data.url}">
+                        <span class="btn-icon">🚀</span>
+                        <span class="btn-text">Visit</span>
+                    </button>
+                    <button class="compact-action-btn compact-action-secondary" data-action="refresh">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Refresh</span>
+                    </button>
+                    <button class="compact-action-btn compact-action-secondary" data-action="detailed" data-url="${data.url}">
+                        <span class="btn-icon">📈</span>
+                        <span class="btn-text">Report</span>
+                    </button>
+                </div>
             </div>
 
             <style>
                 @keyframes shimmer {
                     0% { background-position: -200% -200%; }
                     100% { background-position: 200% 200%; }
+                }
+                
+                @keyframes slide-up {
+                    from { transform: translateY(6px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
                 }
                 
                 .loading-skeleton {
@@ -287,17 +301,17 @@
         return `
             <div style="
                 background: rgba(255,255,255,0.2);
-                border-radius: 20px;
+                border-radius: 12px;
                 padding: 4px 8px;
                 font-size: 0.7rem;
                 font-weight: 600;
                 color: white;
                 display: flex;
                 align-items: center;
-                gap: 3px;
+                gap: 4px;
                 ${isActive ? 'box-shadow: 0 0 0 1px rgba(255,255,255,0.4);' : ''}
             ">
-                <span>${icon}</span>
+                <span style="font-size: 0.8rem;">${icon}</span>
                 <span>${value}</span>
             </div>
         `;
@@ -325,33 +339,33 @@
                            daysSince === 1 ? '1d ago' :
                            daysSince < 7 ? `${daysSince}d ago` :
                            daysSince < 30 ? `${Math.floor(daysSince / 7)}w ago` :
-                           daysSince < 365 ? `${Math.floor(daysSince / 30)}mo ago` :
-                           `${Math.floor(daysSince / 365)}y ago`;
+                           `${Math.floor(daysSince / 30)}mo ago`;
         
         return `
             <div style="
                 font-size: 0.7rem; 
                 color: rgba(255,255,255,0.9);
-                margin-top: 4px;
-                text-align: right;
+                background: rgba(255,255,255,0.15);
+                padding: 4px 8px;
+                border-radius: 6px;
+                display: inline-block;
             ">
-                📅 ${formattedDate}<br>
-                <span style="opacity: 0.8;">${relativeTime}</span>
+                📅 ${formattedDate} (${relativeTime})
             </div>
         `;
     }
 
     function createCompactLoadingGrid() {
         return `
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                 ${Array.from({length: 4}, () => `
                     <div style="
                         background: rgba(255,255,255,0.15); 
                         border-radius: 8px; 
-                        padding: 8px; 
+                        padding: 10px; 
                         text-align: center;
                     ">
-                        <div style="height: 14px; width: 70%; margin: 0 auto 4px; background: rgba(255,255,255,0.3); border-radius: 3px;" class="loading-skeleton"></div>
+                        <div style="height: 14px; width: 60%; margin: 0 auto 6px; background: rgba(255,255,255,0.3); border-radius: 3px;" class="loading-skeleton"></div>
                         <div style="height: 8px; width: 50%; margin: 0 auto; background: rgba(255,255,255,0.2); border-radius: 3px;" class="loading-skeleton"></div>
                     </div>
                 `).join('')}
@@ -366,8 +380,8 @@
                 padding: ${i < 2 ? '0 0 6px 0' : '0'};
                 ${i < 2 ? 'border-bottom: 1px solid rgba(255,255,255,0.2);' : ''}
             ">
-                <div style="height: 12px; width: 80%; margin-bottom: 3px; background: rgba(255,255,255,0.3); border-radius: 3px;" class="loading-skeleton"></div>
-                <div style="height: 8px; width: 60%; background: rgba(255,255,255,0.2); border-radius: 3px;" class="loading-skeleton"></div>
+                <div style="height: 11px; width: 75%; margin-bottom: 4px; background: rgba(255,255,255,0.3); border-radius: 3px;" class="loading-skeleton"></div>
+                <div style="height: 8px; width: 55%; background: rgba(255,255,255,0.2); border-radius: 3px;" class="loading-skeleton"></div>
             </div>
         `).join('');
     }
@@ -403,15 +417,16 @@
             <div style="
                 background: rgba(255,255,255,0.15); 
                 border-radius: 8px; 
-                padding: 8px; 
+                padding: 10px; 
                 text-align: center;
                 border: 1px solid rgba(255,255,255,0.2);
+                animation: slide-up 0.3s ease;
             ">
-                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.9); margin-bottom: 2px; font-weight: 500;">
+                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.9); margin-bottom: 3px; font-weight: 500;">
                     ${icon} ${label}
                 </div>
                 
-                <div style="font-size: 1rem; font-weight: 700; color: white; margin-bottom: 4px;">
+                <div style="font-size: 1.1rem; font-weight: 700; color: white; margin-bottom: 4px;">
                     ${formatDisplayValue(current)}
                 </div>
                 
@@ -421,7 +436,7 @@
                     font-weight: 700;
                     padding: 2px 6px;
                     background: ${changeBg};
-                    border-radius: 12px;
+                    border-radius: 10px;
                     display: inline-flex;
                     align-items: center;
                     gap: 2px;
@@ -449,21 +464,34 @@
                 margin-bottom: ${index < 2 ? '6px' : '0'};
                 padding: ${index < 2 ? '0 0 6px 0' : '0'};
                 ${index < 2 ? 'border-bottom: 1px solid rgba(255,255,255,0.2);' : ''}
+                animation: slide-up 0.3s ease;
+                animation-delay: ${index * 0.05}s;
+                animation-fill-mode: both;
             ">
-                <div style="
-                    font-size: 0.75rem; 
-                    font-weight: 600; 
-                    color: white; 
-                    margin-bottom: 2px;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                ">${index + 1}. "${query.query}"</div>
-                
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="font-size: 0.65rem; color: rgba(255,255,255,0.8);">
-                        ${query.clicks} clicks • #${query.position.toFixed(0)} • ${(query.ctr * 100).toFixed(1)}% CTR
-                    </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+                    <span style="
+                        background: rgba(255,255,255,0.3); 
+                        color: white; 
+                        width: 18px; 
+                        height: 18px; 
+                        border-radius: 50%; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center;
+                        font-weight: 700;
+                        font-size: 0.7rem;
+                        flex-shrink: 0;
+                    ">${index + 1}</span>
+                    
+                    <div style="
+                        font-size: 0.8rem; 
+                        font-weight: 600; 
+                        color: white; 
+                        flex: 1;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    ">"${query.query}"</div>
                     
                     <div style="
                         padding: 2px 6px;
@@ -472,7 +500,12 @@
                         border-radius: 8px;
                         font-size: 0.6rem;
                         font-weight: 600;
+                        flex-shrink: 0;
                     ">${opportunity.label}</div>
+                </div>
+                
+                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.8); margin-left: 26px;">
+                    ${query.clicks} clicks • #${query.position.toFixed(0)} avg • ${(query.ctr * 100).toFixed(1)}% CTR
                 </div>
             </div>
         `;
@@ -495,7 +528,7 @@
     async function loadEnhancedAnalytics(tooltip, nodeData) {
         console.log('📈 Loading compact analytics for:', nodeData.name);
         
-        // Load both in parallel for speed
+        // Load in parallel for better performance
         const promises = [];
         
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
@@ -526,29 +559,27 @@
             
             if (!currentData || currentData.noDataFound) {
                 metricsContainer.innerHTML = createCompactNoData('No search data');
-                queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 10px; font-size: 0.7rem;">No queries</div>';
+                queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 12px; font-size: 0.75rem;">No queries available</div>';
                 return;
             }
             
             const previousData = await window.GSCIntegration.fetchPreviousPeriodData(nodeData);
             
-            // Update metrics in 4-column grid
             metricsContainer.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                     ${createCompactTrendCard('Clicks', currentData.clicks, previousData?.clicks || 0, '🎯')}
-                    ${createCompactTrendCard('Views', currentData.impressions, previousData?.impressions || 0, '👁️')}
+                    ${createCompactTrendCard('Impressions', currentData.impressions, previousData?.impressions || 0, '👁️')}
                     ${createCompactTrendCard('CTR', `${(currentData.ctr * 100).toFixed(1)}%`, `${((previousData?.ctr || 0) * 100).toFixed(1)}%`, '⚡')}
-                    ${createCompactTrendCard('Pos', currentData.position.toFixed(1), (previousData?.position || 0).toFixed(1), '📍')}
+                    ${createCompactTrendCard('Position', currentData.position.toFixed(1), (previousData?.position || 0).toFixed(1), '📍')}
                 </div>
             `;
             
-            // Update compact queries
             if (currentData.topQueries && currentData.topQueries.length > 0) {
                 queriesContainer.innerHTML = currentData.topQueries.slice(0, 3)
                     .map((query, index) => createCompactQueryCard(query, index))
                     .join('');
             } else {
-                queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 10px; font-size: 0.7rem;">No query data</div>';
+                queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 12px; font-size: 0.75rem;">No top queries data</div>';
             }
             
         } catch (error) {
@@ -556,7 +587,7 @@
             badge.textContent = '🔴 Error';
             badge.style.background = 'rgba(239, 68, 68, 0.3)';
             metricsContainer.innerHTML = createCompactNoData('Search error');
-            queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 10px; font-size: 0.7rem;">Error loading</div>';
+            queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 12px; font-size: 0.75rem;">Error loading queries</div>';
         }
     }
 
@@ -578,11 +609,11 @@
             const previousData = await window.GA4Integration.fetchPreviousPeriodData(nodeData.url);
             
             metricsContainer.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                     ${createCompactTrendCard('Users', currentData.users || 0, previousData?.users || 0, '👥')}
-                    ${createCompactTrendCard('Views', currentData.pageViews || 0, previousData?.pageViews || 0, '📄')}
+                    ${createCompactTrendCard('Page Views', currentData.pageViews || 0, previousData?.pageViews || 0, '📄')}
                     ${createCompactTrendCard('Sessions', currentData.sessions || 0, previousData?.sessions || 0, '🔄')}
-                    ${createCompactTrendCard('Bounce', `${((currentData.bounceRate || 0) * 100).toFixed(0)}%`, `${((previousData?.bounceRate || 0) * 100).toFixed(0)}%`, '⚽')}
+                    ${createCompactTrendCard('Bounce Rate', `${((currentData.bounceRate || 0) * 100).toFixed(0)}%`, `${((previousData?.bounceRate || 0) * 100).toFixed(0)}%`, '⚽')}
                 </div>
             `;
             
@@ -599,12 +630,13 @@
             <div style="
                 text-align: center; 
                 color: rgba(255,255,255,0.8); 
-                padding: 20px;
+                padding: 20px 12px;
                 font-size: 0.8rem;
                 background: rgba(255,255,255,0.05);
                 border-radius: 8px;
             ">
-                📭 ${message}
+                <div style="font-size: 1.5rem; margin-bottom: 6px; opacity: 0.6;">📭</div>
+                <div>${message}</div>
             </div>
         `;
     }
@@ -621,17 +653,19 @@
             <div style="
                 text-align: center; 
                 color: rgba(255,255,255,0.8); 
-                padding: 20px;
+                padding: 20px 12px;
                 font-size: 0.8rem;
                 background: rgba(255,255,255,0.05);
                 border-radius: 8px;
             ">
-                🔌 Connect Search Console
+                <div style="font-size: 1.5rem; margin-bottom: 6px;">🔌</div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Connect Search Console</div>
+                <div style="font-size: 0.75rem; opacity: 0.7;">Click GSC button to connect</div>
             </div>
         `;
         
         metricsContainer.innerHTML = disconnectedMessage;
-        queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.6); padding: 10px; font-size: 0.7rem;">Connect GSC for queries</div>';
+        queriesContainer.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.6); padding: 12px; font-size: 0.75rem;">Connect GSC for queries</div>';
     }
 
     function showGA4Disconnected(tooltip) {
@@ -645,12 +679,14 @@
             <div style="
                 text-align: center; 
                 color: rgba(255,255,255,0.8); 
-                padding: 20px;
+                padding: 20px 12px;
                 font-size: 0.8rem;
                 background: rgba(255,255,255,0.05);
                 border-radius: 8px;
             ">
-                🔌 Connect Analytics
+                <div style="font-size: 1.5rem; margin-bottom: 6px;">🔌</div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Connect Analytics</div>
+                <div style="font-size: 0.75rem; opacity: 0.7;">Click GA4 button to connect</div>
             </div>
         `;
     }
@@ -665,7 +701,7 @@
         return Math.round(num).toLocaleString();
     }
 
-    // Keep all your existing behavior functions...
+    // Behavior functions...
     function clearTooltipTimers() {
         if (window.enhancedHideTimer) {
             clearTimeout(window.enhancedHideTimer);
@@ -690,13 +726,16 @@
     }
 
     function positionTooltip(tooltip, event) {
-        // For wide tooltip, center it horizontally when possible
-        let left = event.pageX - 290; // Center the 580px tooltip
-        let top = event.pageY - 80;
+        let left = event.pageX + 15;
+        let top = event.pageY - 50;
+        
+        // Smart positioning
+        const tooltipWidth = 400;
+        const tooltipHeight = 450; // Estimated compact height
         
         // Keep it on screen
-        left = Math.max(10, Math.min(left, window.innerWidth - 590));
-        top = Math.max(10, Math.min(top, window.innerHeight - 300));
+        left = Math.max(10, Math.min(left, window.innerWidth - tooltipWidth - 10));
+        top = Math.max(10, Math.min(top, window.innerHeight - tooltipHeight - 10));
         
         tooltip.style.left = left + 'px';
         tooltip.style.top = top + 'px';
@@ -743,8 +782,6 @@
     }
 
     function handleCompactAction(action, url, tooltip) {
-        console.log('🎯 Compact action:', action);
-        
         switch (action) {
             case 'visit':
                 if (url && url !== 'undefined') {
@@ -764,7 +801,7 @@
         }
     }
 
-    // Keep your safe fallback functions (same as before)...
+    // Safe fallback functions (simplified for compactness)...
     function getPageInfoSafe(data) {
         try {
             if (typeof getPageInfo === 'function') {
@@ -804,12 +841,7 @@
             }
             
             if (data.lastModified) {
-                let lastMod;
-                if (typeof data.lastModified === 'string') {
-                    lastMod = new Date(data.lastModified);
-                } else if (data.lastModified instanceof Date) {
-                    lastMod = data.lastModified;
-                }
+                let lastMod = new Date(data.lastModified);
                 
                 if (lastMod && !isNaN(lastMod.getTime())) {
                     const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
@@ -858,12 +890,12 @@
 
     // Install the compact tooltip system
     function installCompactTooltipSystem() {
-        console.log('✅ Installing compact wide tooltip system...');
+        console.log('✅ Installing compact vertical tooltip...');
         
         window.showEnhancedTooltip = modernTooltipFunction;
         window.hideEnhancedTooltip = hideCompactTooltip;
         
-        console.log('🎯 Compact wide tooltip installed!');
+        console.log('🎯 Compact vertical tooltip installed!');
     }
 
     // Initialize
@@ -889,6 +921,6 @@
         initCompactTooltips();
     }
 
-    console.log('🚀 Compact wide tooltip loaded!');
+    console.log('🚀 Compact vertical tooltip loaded!');
 
 })();
