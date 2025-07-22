@@ -2874,10 +2874,25 @@ function formatDuration(seconds) {
     
     // Get GSC data (existing)
     const gscData = gscDataMap.get(url);
-    if (!gscData || gscData.noDataFound) {
-        alert('No performance data available for this page. Please ensure GSC is connected and this page has search data.');
-        return;
-    }
+    // Replace the above with this in gsc-integration-module.js:
+if ((!gscData || gscData.noDataFound) && (!ga4Data || ga4Data.noDataFound)) {
+    alert('No performance data available from either GSC or GA4. Please ensure at least one service is connected and has data for this page.');
+    return;
+}
+
+// If no GSC data but we have GA4 data, create minimal GSC data so dashboard doesn't break
+if (!gscData || gscData.noDataFound) {
+    console.log('⚠️ No GSC data available, using minimal data for dashboard compatibility');
+    gscData = {
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        position: 0,
+        noDataFound: true,
+        isMinimalForGA4Only: true,
+        topQueries: []
+    };
+}
     
     // Get GA4 data (if available)
     let ga4Data = null;
