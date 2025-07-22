@@ -103,13 +103,29 @@
                     </a>
                 ` : ''}
                 
-                <!-- Compact Page Info -->
-                <div style="display: flex; gap: 12px; font-size: 0.7rem; color: #666; margin-top: 8px;">
-                    <span>📁 ${pageInfo.type}</span>
-                    <span>📏 Level ${pageInfo.depth}</span>
-                    <span>👶 ${pageInfo.children}</span>
-                    ${freshnessInfo.text ? `<span>📅 ${freshnessInfo.text}</span>` : ''}
+                <!-- Enhanced Page Info with Siblings -->
+                <div style="display: flex; gap: 12px; font-size: 0.7rem; color: #666; margin-top: 8px; flex-wrap: wrap;">
+                    <span title="Page type based on content and hierarchy">📁 ${pageInfo.type}</span>
+                    <span title="Depth in site hierarchy">📏 Level ${pageInfo.depth}</span>
+                    <span title="Number of child pages" style="color: ${pageInfo.children > 0 ? '#4caf50' : '#999'};">👶 ${pageInfo.children} children</span>
+                    <span title="Pages at the same level with same parent" style="color: ${pageInfo.siblings > 0 ? '#2196f3' : '#999'};">👫 ${pageInfo.siblings} ${pageInfo.siblings === 1 ? 'sibling' : 'siblings'}</span>
+                    ${freshnessInfo.text ? `<span title="Last modified date">📅 ${freshnessInfo.text}</span>` : ''}
                 </div>
+                
+                ${freshnessInfo.daysSince !== null ? `
+                    <div style="background: ${freshnessInfo.freshnessColor}15; border: 1px solid ${freshnessInfo.freshnessColor}40; border-radius: 6px; padding: 6px 8px; margin-top: 8px; font-size: 0.7rem;">
+                        <span style="color: ${freshnessInfo.freshnessColor}; font-weight: 600;">Content Age:</span>
+                        <span style="color: #333; margin-left: 4px;">${freshnessInfo.daysSince} days old</span>
+                        ${freshnessInfo.daysSince > 365 ? '<span style="color: #666; margin-left: 4px;">⚠️ Consider updating</span>' : ''}
+                    </div>
+                ` : ''}
+                
+                ${pageInfo.siblings > 5 ? `
+                    <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 6px; padding: 6px 8px; margin-top: 6px; font-size: 0.7rem;">
+                        <span style="color: #1565c0; font-weight: 600;">Structure Note:</span>
+                        <span style="color: #333; margin-left: 4px;">This section has many related pages (${pageInfo.siblings} siblings)</span>
+                    </div>
+                ` : ''}
             </div>
 
             <!-- Compact Analytics Section -->
@@ -197,7 +213,7 @@
         `;
     }
 
-    // Safe page info function with fallbacks
+    // Enhanced page info function with better siblings calculation
     function getPageInfoSafe(data) {
         let pageInfo = {
             type: 'Page',
@@ -213,26 +229,43 @@
                 const result = getPageInfo(data, treeContext);
                 if (result && typeof result === 'object') {
                     pageInfo = { ...pageInfo, ...result };
-                }
-            } else {
-                // Fallback: calculate from data
-                if (data.children) {
-                    pageInfo.children = data.children.length;
-                }
-                
-                if (data.url) {
-                    // Simple depth calculation
-                    const pathSegments = data.url.split('/').filter(segment => segment.length > 0);
-                    pageInfo.depth = Math.max(0, pathSegments.length - 2); // Subtract domain parts
-                    
-                    // Simple type detection
-                    if (pageInfo.children > 0) {
-                        pageInfo.type = pageInfo.depth <= 1 ? 'Category' : 'Sub-Category';
-                    } else {
-                        pageInfo.type = 'Content Page';
-                    }
+                    return pageInfo;
                 }
             }
+
+            // Enhanced fallback: calculate from tree data
+            const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+            if (treeContext && data.url) {
+                const nodeInfo = findNodeInTreeStructure(treeContext, data.url);
+                if (nodeInfo.found) {
+                    pageInfo = {
+                        type: determinePageType(nodeInfo.node, nodeInfo.depth, nodeInfo.hasChildren),
+                        depth: nodeInfo.depth,
+                        children: nodeInfo.children,
+                        siblings: nodeInfo.siblings
+                    };
+                    return pageInfo;
+                }
+            }
+
+            // Basic fallback: calculate from URL and data
+            if (data.children) {
+                pageInfo.children = data.children.length;
+            }
+            
+            if (data.url) {
+                // Simple depth calculation
+                const pathSegments = data.url.split('/').filter(segment => segment.length > 0);
+                pageInfo.depth = Math.max(0, pathSegments.length - 2); // Subtract domain parts
+                
+                // Simple type detection
+                if (pageInfo.children > 0) {
+                    pageInfo.type = pageInfo.depth <= 1 ? 'Category' : 'Sub-Category';
+                } else {
+                    pageInfo.type = 'Content Page';
+                }
+            }
+
         } catch (error) {
             console.warn('Error getting page info:', error);
         }
@@ -240,31 +273,175 @@
         return pageInfo;
     }
 
-    // Safe freshness info function with fallbacks
+    // Find node in tree structure and calculate siblings
+    function findNodeInTreeStructure(treeData, targetUrl) {
+        const result = {
+            found: false,
+            node: null,
+            depth: 0,
+            children: 0,
+            siblings: 0,
+            hasChildren: false
+        };
+
+        function traverse(node, depth = 0, parent = null, siblingNodes = []) {
+            if (node.url === targetUrl) {
+                result.found = true;
+                result.node = node;
+                result.depth = depth;
+                result.children = node.children ? node.children.length : 0;
+                result.hasChildren = result.children > 0;
+                
+                // Calculate siblings: nodes at same level with same parent (excluding self)
+                result.siblings = Math.max(0, siblingNodes.length - 1);
+                
+                return true;
+            }
+
+            // Continue traversing children
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    if (traverse(child, depth + 1, node, node.children)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Start traversal - root node has no siblings
+        if (treeData.url === targetUrl) {
+            result.found = true;
+            result.node = treeData;
+            result.depth = 0;
+            result.children = treeData.children ? treeData.children.length : 0;
+            result.siblings = 0; // Root has no siblings
+            result.hasChildren = result.children > 0;
+        } else {
+            traverse(treeData, 0, null, [treeData]);
+        }
+
+        return result;
+    }
+
+    // Enhanced page type determination
+    function determinePageType(node, depth, hasChildren) {
+        // Root page
+        if (depth === 0) {
+            return 'Homepage';
+        }
+
+        // Check if this is a language root (common pattern)
+        if (node.url && node.url.match(/\/(en|ga|ie)\/?$/)) {
+            return 'Language Root';
+        }
+
+        // Determine type based on depth and children
+        if (hasChildren) {
+            if (depth === 1) return 'Main Category';
+            if (depth === 2) return 'Sub-Category';
+            if (depth === 3) return 'Section';
+            return 'Category';
+        } else {
+            if (depth === 1) return 'Root Page';
+            if (depth === 2) return 'Content Page';
+            if (depth >= 3) return 'Detail Page';
+            return 'Content Page';
+        }
+    }
+
+    // Enhanced freshness info function with your exact color logic
     function getFreshnessInfoSafe(data) {
         let result = {
             badge: '',
-            text: ''
+            text: '',
+            daysSince: null
         };
 
         try {
+            // Try existing function first
             if (typeof getFreshnessInfo === 'function' && data.lastModified) {
                 const freshnessData = getFreshnessInfo(data.lastModified);
                 if (freshnessData && freshnessData.freshnessLabel) {
                     result.badge = `<span style="background: ${freshnessData.freshnessColor}20; color: ${freshnessData.freshnessColor}; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">${freshnessData.freshnessLabel}</span>`;
                     result.text = freshnessData.formattedDate;
+                    result.daysSince = freshnessData.daysSince;
+                    return result;
                 }
-            } else if (data.lastModified) {
-                // Fallback: simple date display
-                try {
-                    const date = new Date(data.lastModified);
-                    if (!isNaN(date.getTime())) {
-                        result.text = date.toLocaleDateString();
-                        result.badge = '<span style="background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">Updated</span>';
-                    }
-                } catch (e) {
-                    // Invalid date, skip
+            }
+
+            // Enhanced fallback with your exact color logic
+            if (data.lastModified) {
+                let lastModified;
+                
+                // Try different date formats
+                if (typeof data.lastModified === 'string') {
+                    lastModified = new Date(data.lastModified);
+                } else if (data.lastModified instanceof Date) {
+                    lastModified = data.lastModified;
+                } else {
+                    return result; // Can't parse date
                 }
+
+                // Check if date is valid
+                if (isNaN(lastModified.getTime())) {
+                    return result;
+                }
+
+                // Calculate days since last modified
+                const now = new Date();
+                const daysSince = Math.floor((now - lastModified) / (1000 * 60 * 60 * 24));
+                
+                let freshnessClass, freshnessLabel, freshnessColor;
+                
+                // Your exact freshness logic
+                if (daysSince < 30) {
+                    freshnessClass = 'new';
+                    freshnessLabel = 'New';
+                    freshnessColor = '#4caf50'; // Green
+                } else if (daysSince < 90) {
+                    freshnessClass = 'fresh';
+                    freshnessLabel = 'Fresh';
+                    freshnessColor = '#4caf50'; // Green
+                } else if (daysSince < 180) {
+                    freshnessClass = 'recent';
+                    freshnessLabel = 'Recent';
+                    freshnessColor = '#ffc107'; // Yellow
+                } else if (daysSince < 365) {
+                    freshnessClass = 'aging';
+                    freshnessLabel = 'Aging';
+                    freshnessColor = '#ff9800'; // Orange
+                } else if (daysSince < 730) {
+                    freshnessClass = 'old';
+                    freshnessLabel = 'Old';
+                    freshnessColor = '#f44336'; // Red
+                } else {
+                    freshnessClass = 'stale';
+                    freshnessLabel = 'Stale';
+                    freshnessColor = '#d32f2f'; // Dark Red
+                }
+
+                // Format the date nicely
+                const formattedDate = lastModified.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+
+                // Create relative time string
+                const relativeTime = daysSince === 0 ? 'today' :
+                                   daysSince === 1 ? 'yesterday' :
+                                   daysSince < 7 ? `${daysSince} days ago` :
+                                   daysSince < 30 ? `${Math.floor(daysSince / 7)} weeks ago` :
+                                   daysSince < 365 ? `${Math.floor(daysSince / 30)} months ago` :
+                                   `${Math.floor(daysSince / 365)} years ago`;
+
+                result.badge = `<span style="background: ${freshnessColor}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">${freshnessLabel}</span>`;
+                result.text = `${formattedDate} (${relativeTime})`;
+                result.daysSince = daysSince;
+                result.freshnessClass = freshnessClass;
+                result.freshnessColor = freshnessColor;
             }
         } catch (error) {
             console.warn('Error getting freshness info:', error);
