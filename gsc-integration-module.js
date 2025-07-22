@@ -3111,11 +3111,14 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
     
 
     // Show detailed GSC analysis for content writers
-    window.showDetailedGSCAnalysis = async function(url) {
-    console.log('🚀 Loading Enhanced Dashboard for:', url);
+    // REPLACE your entire showDetailedGSCAnalysis function with this beautiful version
+// This builds on your working enhanced data to create a stunning professional dashboard
+
+window.showDetailedGSCAnalysis = async function(url) {
+    console.log('🚀 Loading Beautiful Enhanced Dashboard for:', url);
     
     // Get GSC data
-    const gscData = window.GSCIntegration?.getData?.(url);
+    const gscData = window.GSCIntegration?.getData?.(url) || {clicks: 0, impressions: 0, ctr: 0, position: 0, topQueries: []};
     
     // Get GA4 data
     let ga4Data = null;
@@ -3126,129 +3129,466 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
             console.warn('Failed to fetch GA4 data:', error);
         }
     }
-    
-    // Get trend comparisons
-    let gscTrends = null;
-    if (window.GSCIntegration?.fetchTrendComparison) {
-        try {
-            gscTrends = await window.GSCIntegration.fetchTrendComparison({ url, name: 'Page' });
-        } catch (error) {
-            console.warn('Failed to fetch GSC trends:', error);
-        }
-    }
-    
-    let ga4Trends = null;
-    if (window.GA4Integration?.fetchTrendComparison) {
-        try {
-            ga4Trends = await window.GA4Integration.fetchTrendComparison(url);
-        } catch (error) {
-            console.warn('Failed to fetch GA4 trends:', error);
-        }
-    }
 
-    // Get enhanced GA4 data (traffic sources, device data)
+    // Get enhanced GA4 data (traffic sources, device data) - YOUR WORKING CODE
     let trafficSources = null;
     let deviceData = null;
 
-    console.log('🔍 Fetching enhanced GA4 data for:', url);
-
     if (window.GA4Integration?.fetchTrafficSources) {
         try {
-            console.log('📡 Calling fetchTrafficSources...');
             trafficSources = await window.GA4Integration.fetchTrafficSources(url);
             console.log('✅ Traffic sources fetched:', trafficSources);
         } catch (error) {
             console.warn('❌ Failed to fetch traffic sources:', error);
         }
-    } else {
-        console.log('❌ fetchTrafficSources function not available');
     }
 
     if (window.GA4Integration?.fetchDeviceData) {
         try {
-            console.log('📡 Calling fetchDeviceData...');
             deviceData = await window.GA4Integration.fetchDeviceData(url);
             console.log('✅ Device data fetched:', deviceData);
         } catch (error) {
             console.warn('❌ Failed to fetch device data:', error);
         }
-    } else {
-        console.log('❌ fetchDeviceData function not available');
     }
 
-    // Check if we have ANY data (AFTER all data is fetched)
-    if ((!gscData || gscData.noDataFound) && (!ga4Data || ga4Data.noDataFound)) {
-        alert('No performance data available from either GSC or GA4. Please ensure at least one service is connected and has data for this page.');
-        return;
-    }
-
-    // Handle missing GSC data gracefully  
-    const finalGscData = (!gscData || gscData.noDataFound) ? {
-        clicks: 0,
-        impressions: 0,
-        ctr: 0,
-        position: 0,
-        noDataFound: true,
-        isMinimalForGA4Only: true,
-        topQueries: []
-    } : gscData;
-
-    // Create and show the dashboard
+    // Create modal
     const modal = document.createElement('div');
-    modal.className = 'enhanced-dashboard-modal';
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
-        align-items: center; justify-content: center; padding: 20px;
-        animation: fadeIn 0.3s ease;
-    `;
-
+    modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px);`;
     modal.onclick = () => modal.remove();
 
     const dashboard = document.createElement('div');
-    dashboard.style.cssText = `
-        background: white; border-radius: 20px; 
-        max-width: 1200px; width: 100%; max-height: 90vh; overflow-y: auto;
-        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;
-        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    `;
+    dashboard.style.cssText = `background: white; border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
     dashboard.onclick = e => e.stopPropagation();
 
-    // Generate dashboard HTML with enhanced data
-    dashboard.innerHTML = createEnhancedDashboardHTML(url, finalGscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
+    // Get page title for header
+    const pageTitle = url.split('/').filter(s => s.length > 0).pop()?.replace(/-/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Page Analysis';
 
-    // Add close button
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '×';
-    closeBtn.style.cssText = `
-        position: absolute; top: 20px; right: 25px; background: none; border: none;
-        font-size: 28px; color: rgba(255,255,255,0.8); cursor: pointer;
-        width: 40px; height: 40px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        transition: all 0.2s ease; z-index: 10;
+    // BEAUTIFUL ENHANCED HTML
+    dashboard.innerHTML = `
+        <!-- Embedded Styles -->
+        <style>
+            .enhanced-dashboard * { box-sizing: border-box; }
+            .enhanced-dashboard { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; line-height: 1.6; }
+            
+            @keyframes slideInFromTop { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+            @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+            
+            .dashboard-header { 
+                background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%); 
+                color: white; padding: 35px; border-radius: 24px 24px 0 0; position: relative; overflow: hidden; 
+                animation: slideInFromTop 0.6s ease-out;
+            }
+            .dashboard-header::before { 
+                content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                background: url('data:image/svg+xml,<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>'); 
+                opacity: 0.3; 
+            }
+            .dashboard-content { position: relative; z-index: 2; }
+            
+            .section { padding: 30px; border-bottom: 1px solid #f1f5f9; animation: fadeIn 0.8s ease-out; }
+            .section:last-child { border-bottom: none; }
+            
+            .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px; }
+            .enhanced-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 28px; }
+            
+            .metric-card { 
+                background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); 
+                border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; position: relative; 
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
+                animation: slideInFromTop 0.6s ease-out;
+            }
+            .metric-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+            .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; border-radius: 16px 16px 0 0; }
+            .metric-card.gsc::before { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
+            .metric-card.ga4::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+            .metric-card.combined::before { background: linear-gradient(90deg, #10b981, #059669); }
+            
+            .metric-label { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+            .metric-value { font-size: 2.2rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; line-height: 1; }
+            .metric-subtitle { font-size: 0.85rem; color: #64748b; }
+            
+            .enhanced-card { 
+                background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); 
+                border: 2px solid #e2e8f0; border-radius: 20px; padding: 28px; position: relative; 
+                transition: all 0.4s ease; overflow: hidden;
+                animation: slideInFromTop 0.8s ease-out;
+            }
+            .enhanced-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.1); }
+            .enhanced-card.working { border-color: #22c55e; background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); }
+            .enhanced-card.failed { border-color: #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); }
+            
+            .enhanced-title { 
+                font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; 
+                display: flex; align-items: center; gap: 12px; 
+            }
+            .enhanced-card.working .enhanced-title { color: #166534; }
+            .enhanced-card.failed .enhanced-title { color: #dc2626; }
+            
+            .success-badge { 
+                background: linear-gradient(135deg, #22c55e, #16a34a); color: white; 
+                padding: 12px 20px; border-radius: 12px; margin-bottom: 20px; 
+                text-align: center; font-weight: 600; font-size: 0.95rem;
+                animation: pulse 2s ease-in-out infinite;
+            }
+            .error-badge { 
+                background: linear-gradient(135deg, #ef4444, #dc2626); color: white; 
+                padding: 12px 20px; border-radius: 12px; margin-bottom: 20px; 
+                text-align: center; font-weight: 600; font-size: 0.95rem;
+            }
+            
+            .data-item { 
+                display: flex; justify-content: space-between; align-items: center; 
+                padding: 16px; background: #ffffff; margin: 10px 0; border-radius: 12px; 
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #f1f5f9;
+                transition: all 0.2s ease;
+            }
+            .data-item:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+            
+            .progress-bar { 
+                width: 80px; height: 6px; background: #e5e7eb; border-radius: 3px; 
+                overflow: hidden; margin-top: 6px; position: relative;
+            }
+            .progress-fill { 
+                height: 100%; border-radius: 3px; position: relative; overflow: hidden;
+                background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            }
+            .progress-fill::after { 
+                content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                animation: shimmer 2s ease-in-out infinite;
+            }
+            
+            .device-icon { font-size: 1.8rem; margin-right: 12px; }
+            .device-stats { display: flex; align-items: center; gap: 12px; }
+            
+            .close-btn { 
+                position: absolute; top: 20px; right: 24px; background: rgba(255,255,255,0.9); 
+                color: #64748b; border: none; padding: 8px; border-radius: 50%; 
+                cursor: pointer; font-size: 20px; width: 36px; height: 36px;
+                display: flex; align-items: center; justify-content: center;
+                transition: all 0.2s ease; z-index: 10;
+                backdrop-filter: blur(10px);
+            }
+            .close-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; transform: scale(1.1); }
+            
+            .summary-banner { 
+                background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); 
+                border: 2px solid #28a745; border-radius: 16px; padding: 24px; 
+                text-align: center; margin: 30px 0;
+                animation: fadeIn 1s ease-out;
+            }
+            .summary-banner.partial { 
+                background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); 
+                border-color: #ffc107; 
+            }
+            .summary-banner.failed { 
+                background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); 
+                border-color: #dc3545; 
+            }
+            
+            @media (max-width: 768px) {
+                .dashboard-header { padding: 25px; }
+                .section { padding: 20px; }
+                .metrics-grid, .enhanced-grid { grid-template-columns: 1fr; }
+                .enhanced-card { padding: 20px; }
+            }
+        </style>
+
+        <div class="enhanced-dashboard">
+            <!-- Close Button -->
+            <button class="close-btn" onclick="this.closest('.enhanced-dashboard').parentElement.parentElement.remove()" title="Close Dashboard">×</button>
+            
+            <!-- Header -->
+            <div class="dashboard-header">
+                <div class="dashboard-content">
+                    <h1 style="margin: 0 0 12px 0; font-size: 2.2rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        📊 Enhanced Performance Dashboard
+                    </h1>
+                    <h2 style="margin: 0 0 16px 0; font-size: 1.3rem; font-weight: 600; opacity: 0.9;">
+                        ${pageTitle}
+                    </h2>
+                    <div style="background: rgba(255,255,255,0.15); padding: 10px 16px; border-radius: 10px; font-family: 'Monaco', 'Menlo', monospace; font-size: 0.85rem; word-break: break-all; backdrop-filter: blur(10px);">
+                        🔗 ${url}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Core Metrics Section -->
+            <div class="section">
+                <h2 style="color: #1e293b; margin-bottom: 24px; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    📈 Performance Overview
+                </h2>
+                
+                <div class="metrics-grid">
+                    <!-- GSC Metrics -->
+                    <div class="metric-card gsc">
+                        <div class="metric-label">🎯 Search Console Clicks</div>
+                        <div class="metric-value" style="color: #3b82f6;">${(gscData.clicks || 0).toLocaleString()}</div>
+                        <div class="metric-subtitle">
+                            Position #${(gscData.position || 0).toFixed(1)} • 
+                            ${((gscData.ctr || 0) * 100).toFixed(1)}% CTR
+                        </div>
+                    </div>
+
+                    <div class="metric-card gsc">
+                        <div class="metric-label">👁️ Search Impressions</div>
+                        <div class="metric-value" style="color: #06b6d4;">${(gscData.impressions || 0).toLocaleString()}</div>
+                        <div class="metric-subtitle">Monthly search visibility</div>
+                    </div>
+
+                    <!-- GA4 Metrics -->
+                    ${ga4Data && !ga4Data.noDataFound ? `
+                        <div class="metric-card ga4">
+                            <div class="metric-label">📄 Page Views</div>
+                            <div class="metric-value" style="color: #f59e0b;">${(ga4Data.pageViews || 0).toLocaleString()}</div>
+                            <div class="metric-subtitle">Total page views</div>
+                        </div>
+
+                        <div class="metric-card ga4">
+                            <div class="metric-label">👥 Unique Users</div>
+                            <div class="metric-value" style="color: #10b981;">${(ga4Data.users || 0).toLocaleString()}</div>
+                            <div class="metric-subtitle">Individual visitors</div>
+                        </div>
+                    ` : `
+                        <div class="metric-card combined">
+                            <div class="metric-label">📊 Google Analytics</div>
+                            <div class="metric-value" style="color: #64748b; font-size: 1.4rem;">Not Connected</div>
+                            <div class="metric-subtitle">Connect GA4 for engagement insights</div>
+                        </div>
+                    `}
+                </div>
+            </div>
+
+            <!-- Enhanced Analytics Section -->
+            <div class="section">
+                <h2 style="color: #1e293b; margin-bottom: 24px; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    🚀 Enhanced Analytics Intelligence
+                </h2>
+                
+                <div class="enhanced-grid">
+                    <!-- Traffic Sources -->
+                    <div class="enhanced-card ${trafficSources && trafficSources.sources && trafficSources.sources.length > 0 ? 'working' : 'failed'}">
+                        <div class="enhanced-title">
+                            🚦 Traffic Sources Analysis
+                            ${trafficSources && trafficSources.sources && trafficSources.sources.length > 0 ? 
+                                '<span style="background: rgba(34,197,94,0.2); color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">ENHANCED DATA ACTIVE</span>' : 
+                                '<span style="background: rgba(239,68,68,0.2); color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">DATA UNAVAILABLE</span>'}
+                        </div>
+                        
+                        ${trafficSources && trafficSources.sources && trafficSources.sources.length > 0 ? `
+                            <div class="success-badge">
+                                🎉 Enhanced Data Successfully Loaded!
+                                <div style="margin-top: 6px; font-size: 0.9rem; opacity: 0.95;">
+                                    Analyzing ${trafficSources.totalSessions} total sessions across ${trafficSources.sources.length} traffic sources
+                                </div>
+                            </div>
+                            
+                            ${trafficSources.sources.slice(0, 6).map(source => `
+                                <div class="data-item">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem; margin-bottom: 4px;">
+                                            ${source.source}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: #64748b;">
+                                            ${source.sessions.toLocaleString()} sessions • 
+                                            ${((source.sessions / trafficSources.totalSessions) * 100).toFixed(1)}% of total traffic
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right; margin-left: 20px;">
+                                        <div style="font-size: 1.6rem; font-weight: 800; color: #166534; margin-bottom: 4px;">
+                                            ${source.percentage.toFixed(1)}%
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: ${source.percentage}%; background: linear-gradient(90deg, #22c55e, #16a34a);"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                        ` : `
+                            <div class="error-badge">
+                                ❌ Enhanced Traffic Source Data Unavailable
+                                <div style="margin-top: 6px; font-size: 0.9rem; opacity: 0.95;">
+                                    ${!window.GA4Integration?.fetchTrafficSources ? 
+                                        'fetchTrafficSources function not available in GA4Integration' : 
+                                        'Unable to fetch traffic source data for this page'}
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 20px; background: #f8fafc; border-radius: 12px; text-align: center; color: #64748b;">
+                                <div style="font-size: 2rem; margin-bottom: 12px; opacity: 0.5;">📊</div>
+                                <div style="font-weight: 600; margin-bottom: 8px;">Traffic Source Analysis Unavailable</div>
+                                <div style="font-size: 0.9rem;">Connect GA4 and ensure enhanced functions are properly configured</div>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <!-- Device Performance -->
+                    <div class="enhanced-card ${deviceData && Object.keys(deviceData).length > 0 ? 'working' : 'failed'}">
+                        <div class="enhanced-title">
+                            📱 Device Performance Intelligence
+                            ${deviceData && Object.keys(deviceData).length > 0 ? 
+                                '<span style="background: rgba(34,197,94,0.2); color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">ENHANCED DATA ACTIVE</span>' : 
+                                '<span style="background: rgba(239,68,68,0.2); color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">DATA UNAVAILABLE</span>'}
+                        </div>
+                        
+                        ${deviceData && Object.keys(deviceData).length > 0 ? `
+                            <div class="success-badge">
+                                🎉 Enhanced Data Successfully Loaded!
+                                <div style="margin-top: 6px; font-size: 0.9rem; opacity: 0.95;">
+                                    Analyzing performance across ${Object.keys(deviceData).length} device categories
+                                </div>
+                            </div>
+                            
+                            <!-- Device Overview Grid -->
+                            <div style="display: grid; grid-template-columns: repeat(${Math.min(Object.keys(deviceData).length, 3)}, 1fr); gap: 16px; margin-bottom: 24px;">
+                                ${Object.entries(deviceData).map(([device, data]) => {
+                                    const totalSessions = Object.values(deviceData).reduce((sum, d) => sum + d.sessions, 0);
+                                    const percentage = totalSessions > 0 ? (data.sessions / totalSessions) * 100 : 0;
+                                    const deviceIcon = device === 'mobile' ? '📱' : device === 'desktop' ? '💻' : device === 'tablet' ? '📟' : '🖥️';
+                                    return `
+                                        <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; border: 2px solid #e2e8f0;">
+                                            <div style="font-size: 2.5rem; margin-bottom: 12px;">${deviceIcon}</div>
+                                            <div style="font-weight: 700; color: #1e293b; text-transform: capitalize; margin-bottom: 6px; font-size: 1.1rem;">${device}</div>
+                                            <div style="font-size: 2rem; font-weight: 800; color: #166534; margin-bottom: 6px;">${percentage.toFixed(0)}%</div>
+                                            <div style="font-size: 0.85rem; color: #64748b;">${data.sessions.toLocaleString()} sessions</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            <!-- Detailed Device Metrics -->
+                            ${Object.entries(deviceData).map(([device, data]) => {
+                                const deviceIcon = device === 'mobile' ? '📱' : device === 'desktop' ? '💻' : device === 'tablet' ? '📟' : '🖥️';
+                                const bounceRate = (data.bounceRate * 100).toFixed(0);
+                                const avgDuration = Math.floor(data.avgDuration / 60) + ':' + (data.avgDuration % 60).toFixed(0).padStart(2, '0');
+                                
+                                return `
+                                    <div class="data-item">
+                                        <div class="device-stats">
+                                            <span class="device-icon">${deviceIcon}</span>
+                                            <div>
+                                                <div style="font-weight: 700; color: #1e293b; text-transform: capitalize; font-size: 1.05rem; margin-bottom: 4px;">
+                                                    ${device} Performance
+                                                </div>
+                                                <div style="font-size: 0.85rem; color: #64748b;">
+                                                    ${data.sessions.toLocaleString()} sessions • 
+                                                    ${bounceRate}% bounce rate
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-weight: 700; color: #166534; font-size: 1.2rem; margin-bottom: 2px;">
+                                                ${avgDuration}
+                                            </div>
+                                            <div style="font-size: 0.8rem; color: #64748b;">avg duration</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                            
+                        ` : `
+                            <div class="error-badge">
+                                ❌ Enhanced Device Performance Data Unavailable
+                                <div style="margin-top: 6px; font-size: 0.9rem; opacity: 0.95;">
+                                    ${!window.GA4Integration?.fetchDeviceData ? 
+                                        'fetchDeviceData function not available in GA4Integration' : 
+                                        'Unable to fetch device performance data for this page'}
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 20px; background: #f8fafc; border-radius: 12px; text-align: center; color: #64748b;">
+                                <div style="font-size: 2rem; margin-bottom: 12px; opacity: 0.5;">📱</div>
+                                <div style="font-weight: 600; margin-bottom: 8px;">Device Performance Analysis Unavailable</div>
+                                <div style="font-size: 0.9rem;">Connect GA4 and ensure enhanced functions are properly configured</div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Keywords Section (if available) -->
+            ${gscData.topQueries && gscData.topQueries.length > 0 ? `
+            <div class="section">
+                <h2 style="color: #1e293b; margin-bottom: 24px; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    🔍 Top Search Keywords
+                </h2>
+                
+                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 20px; padding: 28px;">
+                    ${gscData.topQueries.slice(0, 5).map((query, index) => `
+                        <div class="data-item">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+                                    <span style="background: #0ea5e9; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">
+                                        ${index + 1}
+                                    </span>
+                                    <div style="font-weight: 700; color: #0c4a6e; font-size: 1.05rem;">"${query.query}"</div>
+                                </div>
+                                <div style="font-size: 0.85rem; color: #64748b; margin-left: 36px;">
+                                    Position #${query.position.toFixed(0)} • ${(query.ctr * 100).toFixed(1)}% CTR
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 700; color: #0c4a6e; font-size: 1.4rem;">${query.clicks}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">clicks</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Summary Banner -->
+            <div class="section">
+                <div class="summary-banner ${(trafficSources && trafficSources.sources && trafficSources.sources.length > 0) && (deviceData && Object.keys(deviceData).length > 0) ? '' : 
+                                           ((trafficSources && trafficSources.sources && trafficSources.sources.length > 0) || (deviceData && Object.keys(deviceData).length > 0)) ? 'partial' : 'failed'}">
+                    <h3 style="color: ${(trafficSources && trafficSources.sources && trafficSources.sources.length > 0) && (deviceData && Object.keys(deviceData).length > 0) ? '#155724' : 
+                                    ((trafficSources && trafficSources.sources && trafficSources.sources.length > 0) || (deviceData && Object.keys(deviceData).length > 0)) ? '#856404' : '#721c24'}; 
+                               margin: 0 0 12px 0; font-size: 1.4rem; font-weight: 700;">
+                        ${(trafficSources && trafficSources.sources && trafficSources.sources.length > 0) && (deviceData && Object.keys(deviceData).length > 0) ? 
+                            '🎉 Enhanced Dashboard Fully Operational!' : 
+                            ((trafficSources && trafficSources.sources && trafficSources.sources.length > 0) || (deviceData && Object.keys(deviceData).length > 0)) ? 
+                                '⚡ Enhanced Dashboard Partially Active' : 
+                                '⚠️ Enhanced Features Unavailable'}
+                    </h3>
+                    <p style="color: ${(trafficSources && trafficSources.sources && trafficSources.sources.length > 0) && (deviceData && Object.keys(deviceData).length > 0) ? '#155724' : 
+                                    ((trafficSources && trafficSources.sources && trafficSources.sources.length > 0) || (deviceData && Object.keys(deviceData).length > 0)) ? '#856404' : '#721c24'}; 
+                              margin: 0; font-size: 1rem; line-height: 1.5;">
+                        ${(trafficSources && trafficSources.sources && trafficSources.sources.length > 0) && (deviceData && Object.keys(deviceData).length > 0) ? 
+                            'Your enhanced GA4 integration is working perfectly! Both traffic source analysis and device performance intelligence are active and providing detailed insights.' : 
+                            ((trafficSources && trafficSources.sources && trafficSources.sources.length > 0) || (deviceData && Object.keys(deviceData).length > 0)) ? 
+                                'Some enhanced features are working. Check GA4 connection and ensure all enhanced functions are properly configured for full functionality.' : 
+                                'Enhanced features are currently unavailable. Please ensure GA4 is connected and the enhanced integration functions are properly configured.'}
+                    </p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="text-align: center; margin-top: 30px;">
+                    <button onclick="window.open('${url}', '_blank')" 
+                            style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; padding: 14px 28px; border-radius: 12px; font-weight: 600; cursor: pointer; margin: 0 8px; font-size: 0.95rem; transition: all 0.3s ease; box-shadow: 0 4px 14px rgba(59,130,246,0.3);"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(59,130,246,0.4)'" 
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 14px rgba(59,130,246,0.3)'">
+                        🔗 Visit Page
+                    </button>
+                    <button onclick="console.log('Export functionality - add your preferred export logic here')" 
+                            style="background: white; color: #3b82f6; border: 2px solid #3b82f6; padding: 14px 28px; border-radius: 12px; font-weight: 600; cursor: pointer; margin: 0 8px; font-size: 0.95rem; transition: all 0.3s ease;"
+                            onmouseover="this.style.background='#f0f9ff'; this.style.transform='translateY(-1px)'" 
+                            onmouseout="this.style.background='white'; this.style.transform='translateY(0)'">
+                        📊 Export Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
     `;
-    closeBtn.onmouseover = () => {
-        closeBtn.style.background = 'rgba(255,255,255,0.2)';
-        closeBtn.style.color = 'white';
-    };
-    closeBtn.onmouseout = () => {
-        closeBtn.style.background = 'none';
-        closeBtn.style.color = 'rgba(255,255,255,0.8)';
-    };
-    closeBtn.onclick = () => modal.remove();
-    dashboard.appendChild(closeBtn);
 
     modal.appendChild(dashboard);
     document.body.appendChild(modal);
-
-    // Initialize interactive elements
-    // Replace the problematic line with this safe version:
-if (typeof initializeDashboardInteractions === 'function') {
-    initializeDashboardInteractions(dashboard);
-} else {
-    console.log('ℹ️ initializeDashboardInteractions not available - dashboard will work without interactive features');
-}
 };
+
+console.log('🎨 Beautiful Enhanced Dashboard installed! Test it now.');
 
 // Keep the reference
 window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
