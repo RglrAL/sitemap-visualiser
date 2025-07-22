@@ -346,7 +346,7 @@
         } else {
             if (depth === 1) return 'Root Page';
             if (depth === 2) return 'Content Page';
-            if (depth >= 3) return 'Detail Page';
+            if (depth >= 3) return 'Content Page';
             return 'Content Page';
         }
     }
