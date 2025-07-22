@@ -2908,6 +2908,36 @@ function formatDuration(seconds) {
         }
     }
 
+    // Get enhanced GA4 data (traffic sources, device data)
+let trafficSources = null;
+let deviceData = null;
+
+console.log('🔍 Fetching enhanced GA4 data for:', url);
+
+if (window.GA4Integration?.fetchTrafficSources) {
+    try {
+        console.log('📡 Calling fetchTrafficSources...');
+        trafficSources = await window.GA4Integration.fetchTrafficSources(url);
+        console.log('✅ Traffic sources fetched:', trafficSources);
+    } catch (error) {
+        console.warn('❌ Failed to fetch traffic sources:', error);
+    }
+} else {
+    console.log('❌ fetchTrafficSources function not available');
+}
+
+if (window.GA4Integration?.fetchDeviceData) {
+    try {
+        console.log('📡 Calling fetchDeviceData...');
+        deviceData = await window.GA4Integration.fetchDeviceData(url);
+        console.log('✅ Device data fetched:', deviceData);
+    } catch (error) {
+        console.warn('❌ Failed to fetch device data:', error);
+    }
+} else {
+    console.log('❌ fetchDeviceData function not available');
+}
+
     // Create and show the enhanced dashboard
     const modal = document.createElement('div');
     modal.className = 'enhanced-dashboard-modal';
@@ -2929,7 +2959,7 @@ function formatDuration(seconds) {
     dashboard.onclick = e => e.stopPropagation();
 
     // Generate dashboard HTML
-    dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends);
+    dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
 
     // Add close button
     const closeBtn = document.createElement('button');
@@ -4261,7 +4291,7 @@ window.GSCIntegration.debug.testPeriodComparison = async function(url) {
 console.log('✅ GSC Period Comparison Functions Added!');
 
 
-function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends) {
+function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData) {
     const pageTitle = extractPageTitle(url);
     const crossPlatformInsights = generateCrossPlatformInsights(gscData, ga4Data, gscTrends, ga4Trends);
 
