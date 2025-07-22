@@ -2872,224 +2872,324 @@ function formatDuration(seconds) {
 // This function was missing - that's why you got "createEnhancedDashboardHTML is not defined"
 
 function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData) {
-    const pageTitle = url.split('/').filter(s => s.length > 0).pop()?.replace(/-/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Page Analysis';
+    const pageTitle = extractPageTitle(url);
+    const governmentBenchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
+    const contentGaps = identifyContentGaps(gscData, ga4Data);
+    const priorityScore = calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends);
+    const actionableInsights = generateActionableInsights(gscData, ga4Data, governmentBenchmarks);
+    const problemQueries = identifyProblemQueries(gscData);
+    const workflowRecommendations = generateWorkflowRecommendations(governmentBenchmarks, contentGaps);
     
+    // NEW: Surge detection
+    const surgeAnalysis = detectCitizenNeedSurges(gscData, gscTrends);
+    const emergencyLevel = calculateEmergencyLevel(surgeAnalysis);
+    const contentRecommendations = generateSurgeRecommendations(surgeAnalysis, url);
+
     return `
-        <!-- Dashboard Styles -->
-        <style>
-            .dashboard-container * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .dashboard-header { background: linear-gradient(135deg, #5a8200 0%, #72A300 100%); color: white; padding: 30px; border-radius: 20px 20px 0 0; position: relative; overflow: hidden; }
-            .dashboard-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px); background-size: 30px 30px; opacity: 0.3; }
-            .dashboard-content { position: relative; z-index: 2; }
-            .section { padding: 25px; border-bottom: 1px solid #f0f0f0; }
-            .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; }
-            .metric-card { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; position: relative; transition: all 0.3s ease; }
-            .metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-            .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; border-radius: 12px 12px 0 0; }
-            .metric-label { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-            .metric-value { font-size: 1.8rem; font-weight: 800; color: #1f2937; margin-bottom: 8px; line-height: 1; }
-            .enhanced-section { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; border-radius: 16px; padding: 25px; margin: 20px 0; }
-            .enhanced-title { color: #0c4a6e; font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-            .data-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; margin: 8px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            .success-banner { background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 12px; padding: 20px; text-align: center; margin: 25px 0; }
-        </style>
-
-        <div class="dashboard-container">
-            <!-- Header -->
-            <div class="dashboard-header">
-                <div class="dashboard-content">
-                    <h1 style="margin: 0 0 10px 0; font-size: 2rem; font-weight: 700;">${pageTitle}</h1>
-                    <div style="background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 8px; font-family: Monaco, monospace; font-size: 0.85rem; word-break: break-all; backdrop-filter: blur(10px);">
-                        ${url}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Core Metrics Section -->
-            <div class="section">
-                <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 1.4rem; font-weight: 700;">📊 Performance Overview</h2>
-                <div class="metrics-grid">
+        ${createEnhancedDashboardStyles()}
+        
+        <!-- Executive Summary Header -->
+        <div class="executive-summary">
+            <div class="summary-background">
+                <div class="summary-content">
+                    <h1 class="executive-title">📊 Citizens Information Analytics Report</h1>
+                    <h2 class="page-subtitle">${pageTitle}</h2>
                     
-                    <!-- GSC Metrics -->
-                    <div class="metric-card" style="--accent-color: #3b82f6;">
-                        <div class="metric-card::before" style="background: #3b82f6;"></div>
-                        <div class="metric-label">🎯 Search Console Clicks</div>
-                        <div class="metric-value" style="color: #3b82f6;">${formatNumber(gscData.clicks || 0)}</div>
-                        <div style="font-size: 0.85rem; color: #64748b;">Position: #${(gscData.position || 0).toFixed(1)} | CTR: ${((gscData.ctr || 0) * 100).toFixed(1)}%</div>
+                    <!-- Priority Alert Banner -->
+                    ${priorityScore.level === 'critical' ? createCriticalAlert(priorityScore) : ''}
+                    
+                    <!-- Key Metrics Overview -->
+                    <div class="metrics-overview">
+                        <div class="metric-highlight ${governmentBenchmarks.overall.status}">
+                            <div class="metric-label">Overall Performance</div>
+                            <div class="metric-value">${governmentBenchmarks.overall.score}/100</div>
+                            <div class="metric-subtitle">${governmentBenchmarks.overall.status.toUpperCase()}</div>
+                        </div>
+                        
+                        <div class="metric-highlight ${priorityScore.level}">
+                            <div class="metric-label">Content Priority</div>
+                            <div class="metric-value">${priorityScore.score}/100</div>
+                            <div class="metric-subtitle">${priorityScore.level.toUpperCase()}</div>
+                        </div>
+                        
+                        <div class="metric-highlight">
+                            <div class="metric-label">Citizens Helped</div>
+                            <div class="metric-value">${formatNumber(gscData.clicks || 0)}</div>
+                            <div class="metric-subtitle">MONTHLY</div>
+                        </div>
                     </div>
-
-                    <div class="metric-card">
-                        <div class="metric-label">👁️ Search Impressions</div>
-                        <div class="metric-value" style="color: #06b6d4;">${formatNumber(gscData.impressions || 0)}</div>
-                        <div style="font-size: 0.85rem; color: #64748b;">Monthly search visibility</div>
-                    </div>
-
-                    <!-- GA4 Metrics -->
-                    ${ga4Data && !ga4Data.noDataFound ? `
-                        <div class="metric-card">
-                            <div class="metric-label">📄 Page Views</div>
-                            <div class="metric-value" style="color: #f59e0b;">${formatNumber(ga4Data.pageViews || 0)}</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">Total page views</div>
-                        </div>
-
-                        <div class="metric-card">
-                            <div class="metric-label">👥 Users</div>
-                            <div class="metric-value" style="color: #10b981;">${formatNumber(ga4Data.users || 0)}</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">Unique visitors</div>
-                        </div>
-                    ` : `
-                        <div class="metric-card">
-                            <div class="metric-label">📊 Google Analytics</div>
-                            <div class="metric-value" style="color: #64748b; font-size: 1.2rem;">Not Connected</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">Connect GA4 for more insights</div>
-                        </div>
-                    `}
+                    
+                    <div class="url-display">${url}</div>
                 </div>
             </div>
+        </div>
 
-            <!-- ENHANCED DATA SECTIONS - THE KEY PART! -->
-            <div class="section">
-                <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 1.4rem; font-weight: 700;">🚀 Enhanced Analytics Data</h2>
+        <!-- Citizen Need Surge Detection Section -->
+        ${addCitizenSurgeDetectionSection(surgeAnalysis, emergencyLevel, contentRecommendations, url)}
+
+        <!-- Government Benchmarks Section -->
+        <div class="section">
+            <h2 class="section-title">🏛️ Government Performance Benchmarks</h2>
+            <div class="benchmark-explanation">
+                <p>Performance compared to government sector standards based on research from GOV.UK, Canada.ca, and other public sector organizations.</p>
+            </div>
+            
+            <div class="benchmarks-grid">
+                ${createBenchmarkCard('Engagement Rate', 
+                    `${((ga4Data?.engagementRate || 0) * 100).toFixed(0)}%`, 
+                    '50%', 
+                    governmentBenchmarks.engagement.status,
+                    governmentBenchmarks.engagement.message)}
                 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px;">
-                    
-                    <!-- TRAFFIC SOURCES -->
-                    <div class="enhanced-section">
-                        <div class="enhanced-title">🚦 Traffic Sources ${trafficSources ? '(ENHANCED - WORKING!)' : '(Loading...)'}</div>
-                        
-                        ${trafficSources && trafficSources.sources && trafficSources.sources.length > 0 ? `
-                            <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 2px solid #22c55e;">
-                                <div style="font-size: 1.1rem; font-weight: 600; color: #16a34a; margin-bottom: 8px;">
-                                    ✅ ENHANCED DATA LOADED SUCCESSFULLY!
-                                </div>
-                                <div style="color: #16a34a;">Total Sessions: <strong>${trafficSources.totalSessions}</strong></div>
-                            </div>
-                            
-                            ${trafficSources.sources.slice(0, 5).map(source => `
-                                <div class="data-item">
-                                    <div>
-                                        <div style="font-weight: 600; color: #374151; font-size: 1rem;">${source.source}</div>
-                                        <div style="font-size: 0.85rem; color: #6b7280;">${source.sessions} sessions</div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 1.3rem; font-weight: 700; color: #0c4a6e;">${source.percentage.toFixed(1)}%</div>
-                                        <div style="width: 80px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 4px;">
-                                            <div style="width: ${source.percentage}%; height: 100%; background: linear-gradient(90deg, #0ea5e9, #06b6d4); border-radius: 3px;"></div>
-                                        </div>
-                                    </div>
+                ${createBenchmarkCard('Average Engagement Time', 
+                    formatDuration(ga4Data?.avgSessionDuration || 0), 
+                    '52 seconds', 
+                    governmentBenchmarks.engagementTime.status,
+                    governmentBenchmarks.engagementTime.message)}
+                
+                ${createBenchmarkCard('Search Discovery', 
+                    `${calculateEntranceRate(ga4Data)}%`, 
+                    '30%', 
+                    governmentBenchmarks.discovery.status,
+                    governmentBenchmarks.discovery.message)}
+                
+                ${createBenchmarkCard('Content Effectiveness', 
+                    `${((1 - (ga4Data?.bounceRate || 0.5)) * 100).toFixed(0)}%`, 
+                    '40%', 
+                    governmentBenchmarks.effectiveness.status,
+                    governmentBenchmarks.effectiveness.message)}
+            </div>
+        </div>
+
+        <!-- Problem Query Detection (GOV.UK Framework) -->
+        ${problemQueries.length > 0 ? `
+        <div class="section problem-queries">
+            <h2 class="section-title">⚠️ Problem Query Detection</h2>
+            <div class="problem-explanation">
+                <p>Based on GOV.UK's framework: queries where click positions deviate from expected patterns, requiring immediate attention.</p>
+            </div>
+            
+            <div class="problem-queries-list">
+                ${problemQueries.map(query => createProblemQueryCard(query)).join('')}
+            </div>
+        </div>
+        ` : ''}
+
+        <!-- Content Gap Analysis -->
+        <div class="section">
+            <h2 class="section-title">🔍 Content Gap Analysis</h2>
+            <div class="gap-analysis-grid">
+                
+                <!-- High Opportunity Queries -->
+                <div class="gap-card high-opportunity">
+                    <div class="gap-header">
+                        <h3>🎯 High Opportunity Queries</h3>
+                        <span class="gap-count">${contentGaps.highOpportunity.length}</span>
+                    </div>
+                    <div class="gap-description">Queries with 1000+ impressions but &lt;2% CTR</div>
+                    ${contentGaps.highOpportunity.length > 0 ? `
+                        <div class="gap-examples">
+                            ${contentGaps.highOpportunity.slice(0, 3).map(gap => `
+                                <div class="gap-example">
+                                    <strong>"${gap.query}"</strong><br>
+                                    ${gap.impressions} impressions, ${(gap.ctr * 100).toFixed(1)}% CTR
                                 </div>
                             `).join('')}
-                            
-                        ` : `
-                            <div style="background: #fef2f2; border: 2px solid #ef4444; padding: 15px; border-radius: 10px; text-align: center;">
-                                <div style="color: #ef4444; font-weight: 600; margin-bottom: 5px;">❌ Enhanced Data Not Available</div>
-                                <div style="color: #7f1d1d; font-size: 0.9rem;">
-                                    ${!window.GA4Integration?.fetchTrafficSources ? 'Function not available' : 'No traffic source data found'}
+                        </div>
+                    ` : '<div class="gap-none">✅ No major CTR gaps detected</div>'}
+                </div>
+                
+                <!-- Missing Content -->
+                <div class="gap-card missing-content">
+                    <div class="gap-header">
+                        <h3>📄 Missing Content</h3>
+                        <span class="gap-count">${contentGaps.missingContent.length}</span>
+                    </div>
+                    <div class="gap-description">Queries with 100+ impressions but no dedicated content</div>
+                    ${contentGaps.missingContent.length > 0 ? `
+                        <div class="gap-examples">
+                            ${contentGaps.missingContent.slice(0, 3).map(gap => `
+                                <div class="gap-example">
+                                    <strong>"${gap.query}"</strong><br>
+                                    ${gap.impressions} monthly impressions
                                 </div>
-                            </div>
-                        `}
+                            `).join('')}
+                        </div>
+                    ` : '<div class="gap-none">✅ Good content coverage detected</div>'}
+                </div>
+                
+                <!-- Seasonal Opportunities -->
+                <div class="gap-card seasonal">
+                    <div class="gap-header">
+                        <h3>📈 Seasonal Patterns</h3>
+                        <span class="gap-indicator">TRENDING</span>
+                    </div>
+                    <div class="gap-description">Queries with >50% month-to-month growth</div>
+                    ${contentGaps.seasonal.length > 0 ? `
+                        <div class="gap-examples">
+                            ${contentGaps.seasonal.slice(0, 3).map(gap => `
+                                <div class="gap-example">
+                                    <strong>"${gap.query}"</strong><br>
+                                    +${gap.growthRate}% growth trend
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="gap-none">📊 Monitor for seasonal trends</div>'}
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Scoring Matrix (Government Framework) -->
+        <div class="section">
+            <h2 class="section-title">📋 Content Priority Matrix</h2>
+            <div class="priority-explanation">
+                <p>Based on government sector prioritization: Traffic Volume (40%), Growth Rate (25%), Search Behavior (20%), External Discovery (15%)</p>
+            </div>
+            
+            <div class="priority-matrix">
+                <div class="priority-breakdown">
+                    <div class="priority-component">
+                        <div class="component-label">Traffic Volume (40%)</div>
+                        <div class="component-bar">
+                            <div class="component-fill" style="width: ${priorityScore.components.traffic}%"></div>
+                        </div>
+                        <div class="component-score">${priorityScore.components.traffic}/100</div>
                     </div>
                     
-                    <!-- DEVICE PERFORMANCE -->
-                    <div class="enhanced-section">
-                        <div class="enhanced-title">📱 Device Performance ${deviceData ? '(ENHANCED - WORKING!)' : '(Loading...)'}</div>
-                        
-                        ${deviceData && Object.keys(deviceData).length > 0 ? `
-                            <div style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 2px solid #22c55e;">
-                                <div style="font-size: 1.1rem; font-weight: 600; color: #16a34a; margin-bottom: 8px;">
-                                    ✅ ENHANCED DATA LOADED SUCCESSFULLY!
-                                </div>
-                                <div style="color: #16a34a;">
-                                    Total Devices: <strong>${Object.keys(deviceData).length}</strong>
-                                </div>
-                            </div>
-                            
-                            <!-- Device Overview -->
-                            <div style="display: grid; grid-template-columns: repeat(${Object.keys(deviceData).length}, 1fr); gap: 12px; margin-bottom: 20px;">
-                                ${Object.entries(deviceData).map(([device, data]) => {
-                                    const totalSessions = Object.values(deviceData).reduce((sum, d) => sum + d.sessions, 0);
-                                    const percentage = totalSessions > 0 ? (data.sessions / totalSessions) * 100 : 0;
-                                    return `
-                                        <div style="text-align: center; padding: 15px; background: white; border-radius: 10px; border: 1px solid #e5e7eb;">
-                                            <div style="font-size: 2rem; margin-bottom: 8px;">
-                                                ${device === 'mobile' ? '📱' : device === 'desktop' ? '💻' : device === 'tablet' ? '📟' : '🖥️'}
-                                            </div>
-                                            <div style="font-weight: 700; color: #374151; text-transform: capitalize; margin-bottom: 4px;">${device}</div>
-                                            <div style="font-size: 1.5rem; font-weight: 800; color: #0c4a6e; margin-bottom: 4px;">${percentage.toFixed(0)}%</div>
-                                            <div style="font-size: 0.8rem; color: #6b7280;">${data.sessions} sessions</div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
+                    <div class="priority-component">
+                        <div class="component-label">Growth Rate (25%)</div>
+                        <div class="component-bar">
+                            <div class="component-fill" style="width: ${priorityScore.components.growth}%"></div>
+                        </div>
+                        <div class="component-score">${priorityScore.components.growth}/100</div>
+                    </div>
+                    
+                    <div class="priority-component">
+                        <div class="component-label">Search Behavior (20%)</div>
+                        <div class="component-bar">
+                            <div class="component-fill" style="width: ${priorityScore.components.search}%"></div>
+                        </div>
+                        <div class="component-score">${priorityScore.components.search}/100</div>
+                    </div>
+                    
+                    <div class="priority-component">
+                        <div class="component-label">External Discovery (15%)</div>
+                        <div class="component-bar">
+                            <div class="component-fill" style="width: ${priorityScore.components.discovery}%"></div>
+                        </div>
+                        <div class="component-score">${priorityScore.components.discovery}/100</div>
+                    </div>
+                </div>
+                
+                <div class="priority-recommendation">
+                    <h3>📌 Priority Recommendation</h3>
+                    <div class="recommendation-text">${priorityScore.recommendation}</div>
+                </div>
+            </div>
+        </div>
 
-                            <!-- Detailed Device Metrics -->
-                            ${Object.entries(deviceData).map(([device, data]) => `
-                                <div class="data-item">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <span style="font-size: 1.5rem;">
-                                            ${device === 'mobile' ? '📱' : device === 'desktop' ? '💻' : device === 'tablet' ? '📟' : '🖥️'}
-                                        </span>
-                                        <div>
-                                            <div style="font-weight: 600; color: #374151; text-transform: capitalize;">${device}</div>
-                                            <div style="font-size: 0.8rem; color: #6b7280;">
-                                                ${data.sessions} sessions • ${(data.bounceRate * 100).toFixed(0)}% bounce rate
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-weight: 600; color: #0c4a6e;">
-                                            ${Math.floor(data.avgDuration / 60)}:${(data.avgDuration % 60).toFixed(0).padStart(2, '0')}
-                                        </div>
-                                        <div style="font-size: 0.8rem; color: #6b7280;">avg duration</div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            
-                        ` : `
-                            <div style="background: #fef2f2; border: 2px solid #ef4444; padding: 15px; border-radius: 10px; text-align: center;">
-                                <div style="color: #ef4444; font-weight: 600; margin-bottom: 5px;">❌ Enhanced Data Not Available</div>
-                                <div style="color: #7f1d1d; font-size: 0.9rem;">
-                                    ${!window.GA4Integration?.fetchDeviceData ? 'Function not available' : 'No device data found'}
-                                </div>
+        <!-- Actionable Insights (Evidence-Based) -->
+        <div class="section">
+            <h2 class="section-title">💡 Evidence-Based Action Items</h2>
+            <div class="insights-grid">
+                ${actionableInsights.map(insight => createActionableInsightCard(insight)).join('')}
+            </div>
+        </div>
+
+        <!-- Citizens Impact Analysis -->
+        <div class="section citizens-impact">
+            <h2 class="section-title">🎯 Citizens Service Impact</h2>
+            
+            <div class="impact-summary">
+                <div class="impact-stat">
+                    <div class="impact-number">${formatNumber(gscData.clicks || 0)}</div>
+                    <div class="impact-label">Citizens Helped Monthly</div>
+                </div>
+                <div class="impact-stat">
+                    <div class="impact-number">${formatDuration(ga4Data?.avgSessionDuration || 0)}</div>
+                    <div class="impact-label">Average Information Consumption</div>
+                </div>
+                <div class="impact-stat">
+                    <div class="impact-number">${calculateServiceScore(gscData, ga4Data)}/100</div>
+                    <div class="impact-label">Service Effectiveness</div>
+                </div>
+            </div>
+            
+            <div class="impact-analysis">
+                <h3>📊 Service Quality Assessment</h3>
+                <p>${generateServiceAnalysis(gscData, ga4Data, governmentBenchmarks)}</p>
+            </div>
+        </div>
+
+        <!-- Workflow Planning (Government Framework) -->
+        <div class="section">
+            <h2 class="section-title">📅 Recommended Review Workflow</h2>
+            
+            <div class="workflow-grid">
+                <div class="workflow-card immediate">
+                    <div class="workflow-header">
+                        <h3>🚨 Immediate Actions</h3>
+                        <span class="workflow-time">This Week</span>
+                    </div>
+                    <div class="workflow-items">
+                        ${workflowRecommendations.immediate.map(item => `
+                            <div class="workflow-item">
+                                <div class="workflow-icon">⚡</div>
+                                <div class="workflow-text">${item}</div>
                             </div>
-                        `}
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="workflow-card monthly">
+                    <div class="workflow-header">
+                        <h3>📈 Monthly Review</h3>
+                        <span class="workflow-time">Next 30 Days</span>
+                    </div>
+                    <div class="workflow-items">
+                        ${workflowRecommendations.monthly.map(item => `
+                            <div class="workflow-item">
+                                <div class="workflow-icon">📅</div>
+                                <div class="workflow-text">${item}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="workflow-card strategic">
+                    <div class="workflow-header">
+                        <h3>🎯 Strategic Planning</h3>
+                        <span class="workflow-time">Quarterly</span>
+                    </div>
+                    <div class="workflow-items">
+                        ${workflowRecommendations.strategic.map(item => `
+                            <div class="workflow-item">
+                                <div class="workflow-icon">🎯</div>
+                                <div class="workflow-text">${item}</div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Success Banner -->
-            <div class="success-banner">
-                <h3 style="color: #155724; margin: 0 0 10px 0; font-size: 1.3rem;">
-                    ${(trafficSources && trafficSources.sources) || (deviceData && Object.keys(deviceData).length > 0) ? 
-                        '🎉 Enhanced Dashboard Working Perfectly!' : 
-                        '⚠️ Enhanced Data Loading...'}
-                </h3>
-                <p style="color: #155724; margin: 0; font-size: 0.95rem;">
-                    ${(trafficSources && trafficSources.sources) || (deviceData && Object.keys(deviceData).length > 0) ? 
-                        'Your enhanced GA4 integration is successfully loading traffic sources and device performance data!' :
-                        'Connect GA4 and ensure the enhanced functions are available for full dashboard functionality.'}
-                </p>
-            </div>
-
-            <!-- Action Buttons -->
-            <div style="padding: 25px; text-align: center; background: #f8fafc;">
-                <button onclick="window.open('${url}', '_blank')" 
-                        style="background: linear-gradient(135deg, #5a8200, #72A300); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; margin: 0 8px; transition: all 0.2s ease;"
-                        onmouseover="this.style.transform='translateY(-2px)'" 
-                        onmouseout="this.style.transform='translateY(0)'">
-                    🔗 Visit Page
+        <!-- Export and Action Center -->
+        <div class="action-center">
+            <h3>📊 Export & Implementation Tools</h3>
+            <div class="action-buttons">
+                <button class="action-btn primary" onclick="window.open('${escapeHtml(url)}', '_blank')">
+                    <span>🔗</span><span>Visit Page</span>
                 </button>
-                <button onclick="console.log('Export feature - add your export logic here')" 
-                        style="background: white; color: #5a8200; border: 2px solid #5a8200; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; margin: 0 8px; transition: all 0.2s ease;"
-                        onmouseover="this.style.background='#f0f8f0'" 
-                        onmouseout="this.style.background='white'">
-                    📊 Export Report
+                <button class="action-btn secondary" onclick="exportGovernmentReport('${escapeHtml(url)}')">
+                    <span>📋</span><span>Export Action Plan</span>
+                </button>
+                <button class="action-btn secondary" onclick="scheduleReview('${escapeHtml(url)}')">
+                    <span>📅</span><span>Schedule Review</span>
                 </button>
             </div>
         </div>
     `;
 }
-
 
 
 
@@ -5393,10 +5493,1011 @@ function hexToRgb(hex) {
 }
 
 
+function calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends) {
+    const benchmarks = {};
+    
+    // Engagement Rate (Government benchmark: 50%)
+    const engagementRate = (ga4Data?.engagementRate || 0) * 100;
+    benchmarks.engagement = {
+        status: engagementRate >= 50 ? 'excellent' : engagementRate >= 35 ? 'good' : engagementRate >= 20 ? 'fair' : 'poor',
+        message: engagementRate >= 50 ? 'Exceeds government standards' : 'Below government benchmark of 50%'
+    };
+    
+    // Engagement Time (Government benchmark: 52 seconds)
+    const engagementTime = ga4Data?.avgSessionDuration || 0;
+    benchmarks.engagementTime = {
+        status: engagementTime >= 52 ? 'excellent' : engagementTime >= 35 ? 'good' : engagementTime >= 20 ? 'fair' : 'poor',
+        message: engagementTime >= 52 ? 'Meets government standard' : 'Below 52-second government benchmark'
+    };
+    
+    // Discovery (Government benchmark: 30% entrance rate)
+    const entranceRate = calculateEntranceRate(ga4Data);
+    benchmarks.discovery = {
+        status: entranceRate >= 30 ? 'excellent' : entranceRate >= 20 ? 'good' : entranceRate >= 10 ? 'fair' : 'poor',
+        message: entranceRate >= 30 ? 'Good search discoverability' : 'Poor Google discoverability - needs SEO focus'
+    };
+    
+    // Content Effectiveness (inverse of bounce rate)
+    const effectiveness = (1 - (ga4Data?.bounceRate || 0.5)) * 100;
+    benchmarks.effectiveness = {
+        status: effectiveness >= 60 ? 'excellent' : effectiveness >= 40 ? 'good' : effectiveness >= 30 ? 'fair' : 'poor',
+        message: effectiveness >= 40 ? 'Content effectively serves users' : 'High bounce rate indicates content issues'
+    };
+    
+    // Overall score
+    const scores = [
+        engagementRate >= 50 ? 100 : (engagementRate / 50) * 100,
+        engagementTime >= 52 ? 100 : (engagementTime / 52) * 100,
+        entranceRate >= 30 ? 100 : (entranceRate / 30) * 100,
+        effectiveness >= 40 ? 100 : (effectiveness / 40) * 100
+    ];
+    
+    const overallScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    benchmarks.overall = {
+        score: Math.round(overallScore),
+        status: overallScore >= 75 ? 'excellent' : overallScore >= 50 ? 'good' : overallScore >= 25 ? 'fair' : 'poor'
+    };
+    
+    return benchmarks;
+}
+
+function identifyProblemQueries(gscData) {
+    if (!gscData.topQueries) return [];
+    
+    const problems = [];
+    const queries = gscData.topQueries;
+    
+    // GOV.UK framework: position 4/5 shouldn't exceed 50% of position 1 clicks
+    if (queries.length >= 2) {
+        const topQuery = queries[0];
+        
+        queries.slice(1).forEach((query, index) => {
+            const position = index + 2; // Position 2, 3, 4, etc.
+            const clickRatio = query.clicks / topQuery.clicks;
+            
+            if (position >= 4 && clickRatio > 0.5) {
+                problems.push({
+                    query: query.query,
+                    position: query.position,
+                    clicks: query.clicks,
+                    issue: 'Position anomaly - ranking problem detected',
+                    severity: 'high'
+                });
+            }
+        });
+    }
+    
+    // Low CTR with high impressions
+    queries.forEach(query => {
+        if (query.impressions > 1000 && query.ctr < 0.02) {
+            problems.push({
+                query: query.query,
+                position: query.position,
+                ctr: query.ctr,
+                impressions: query.impressions,
+                issue: 'High impressions, low CTR - title/meta optimization needed',
+                severity: 'medium'
+            });
+        }
+    });
+    
+    return problems;
+}
+
+function identifyContentGaps(gscData, ga4Data) {
+    const gaps = {
+        highOpportunity: [],
+        missingContent: [],
+        seasonal: []
+    };
+    
+    if (gscData.topQueries) {
+        gscData.topQueries.forEach(query => {
+            // High opportunity: 1000+ impressions, <2% CTR
+            if (query.impressions >= 1000 && query.ctr < 0.02) {
+                gaps.highOpportunity.push({
+                    query: query.query,
+                    impressions: query.impressions,
+                    ctr: query.ctr,
+                    clicks: query.clicks
+                });
+            }
+            
+            // Missing content: 100+ impressions, low clicks
+            if (query.impressions >= 100 && query.clicks < 5) {
+                gaps.missingContent.push({
+                    query: query.query,
+                    impressions: query.impressions,
+                    clicks: query.clicks
+                });
+            }
+        });
+    }
+    
+    // Placeholder for seasonal analysis (would need historical data)
+    gaps.seasonal = [];
+    
+    return gaps;
+}
+
+function calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends) {
+    // Government framework weights: Traffic (40%), Growth (25%), Search (20%), Discovery (15%)
+    
+    // Traffic component (40%)
+    const monthlyViews = (ga4Data?.pageViews || 0) + (gscData?.clicks || 0);
+    const trafficScore = Math.min(100, (monthlyViews / 1000) * 10); // Scaled for government sites
+    
+    // Growth component (25%)
+    const clickGrowth = gscTrends?.trends?.clicks?.percentChange || 0;
+    const viewGrowth = ga4Trends?.trends?.pageViews?.percentChange || 0;
+    const avgGrowth = (clickGrowth + viewGrowth) / 2;
+    const growthScore = Math.min(100, Math.max(0, 50 + avgGrowth)); // 50 baseline, +/- growth
+    
+    // Search behavior component (20%)
+    const avgPosition = gscData?.position || 50;
+    const searchScore = Math.max(0, 100 - (avgPosition * 2));
+    
+    // Discovery component (15%)
+    const entranceRate = calculateEntranceRate(ga4Data);
+    const discoveryScore = Math.min(100, (entranceRate / 30) * 100); // 30% is benchmark
+    
+    const totalScore = Math.round(
+        (trafficScore * 0.4) + 
+        (growthScore * 0.25) + 
+        (searchScore * 0.2) + 
+        (discoveryScore * 0.15)
+    );
+    
+    let level = 'low';
+    let recommendation = 'Continue monitoring performance';
+    
+    if (totalScore >= 80) {
+        level = 'critical';
+        recommendation = 'High-priority optimization opportunity - immediate action recommended';
+    } else if (totalScore >= 60) {
+        level = 'high';
+        recommendation = 'Strong optimization candidate - schedule for next sprint';
+    } else if (totalScore >= 40) {
+        level = 'medium';
+        recommendation = 'Moderate opportunity - include in monthly review';
+    }
+    
+    return {
+        score: totalScore,
+        level: level,
+        recommendation: recommendation,
+        components: {
+            traffic: Math.round(trafficScore),
+            growth: Math.round(growthScore),
+            search: Math.round(searchScore),
+            discovery: Math.round(discoveryScore)
+        }
+    };
+}
+
+function generateActionableInsights(gscData, ga4Data, benchmarks) {
+    const insights = [];
+    
+    // Based on research thresholds
+    if (ga4Data?.bounceRate > 0.6 && gscData?.clicks > 100) {
+        insights.push({
+            type: 'critical',
+            title: 'Content Overhaul Required',
+            description: 'High bounce rate (>60%) combined with high search traffic indicates fundamental content issues requiring comprehensive restructuring rather than minor edits.',
+            action: 'Conduct user research and comprehensive content audit',
+            timeframe: '2-3 weeks',
+            impact: 'High'
+        });
+    }
+    
+    if (gscData?.impressions > 1000 && gscData?.ctr < 0.02) {
+        insights.push({
+            type: 'high',
+            title: 'Title & Meta Optimization',
+            description: 'High impressions with very low CTR indicates title and meta description need optimization.',
+            action: 'Rewrite title tags and meta descriptions with compelling, keyword-rich copy',
+            timeframe: '3-5 days',
+            impact: 'Medium'
+        });
+    }
+    
+    if (calculateEntranceRate(ga4Data) < 30) {
+        insights.push({
+            type: 'medium',
+            title: 'SEO Discoverability Issues',
+            description: 'Low entrance rate indicates poor Google discoverability requiring SEO-focused improvements.',
+            action: 'Improve on-page SEO, internal linking, and keyword targeting',
+            timeframe: '1-2 weeks',
+            impact: 'Medium'
+        });
+    }
+    
+    if (benchmarks.engagementTime.status === 'poor') {
+        insights.push({
+            type: 'medium',
+            title: 'Content Engagement Below Government Standards',
+            description: 'Average engagement time is below the 52-second government benchmark.',
+            action: 'Improve content structure, readability, and user experience design',
+            timeframe: '1-2 weeks',
+            impact: 'Medium'
+        });
+    }
+    
+    return insights;
+}
+
+function generateWorkflowRecommendations(benchmarks, contentGaps) {
+    return {
+        immediate: [
+            benchmarks.overall.status === 'poor' ? 'Review page performance metrics and identify critical issues' : 'Monitor current performance trends',
+            contentGaps.highOpportunity.length > 0 ? `Optimize titles/meta for ${contentGaps.highOpportunity.length} high-opportunity queries` : 'Continue monitoring query performance',
+            'Check for any exit rates >11% requiring immediate attention'
+        ].filter(Boolean),
+        
+        monthly: [
+            'Review 3-month rolling trends and user journey patterns',
+            contentGaps.missingContent.length > 0 ? `Create content for ${contentGaps.missingContent.length} missing topics` : 'Audit existing content coverage',
+            'Analyze seasonal patterns and prepare timely content',
+            'Conduct structured 60-minute performance review'
+        ],
+        
+        strategic: [
+            'Quarterly usability testing for high-traffic content',
+            'Advanced BigQuery analysis for user journey optimization',
+            'A/B testing for significant content changes',
+            'Comprehensive content audit and gap analysis'
+        ]
+    };
+}
+
+// Surge Detection Functions
+function detectCitizenNeedSurges(gscData, gscTrends) {
+    const analysis = {
+        volumeSurges: [],
+        emergingQueries: [],
+        unmetNeeds: [],
+        totalSurges: 0,
+        avgVolumeIncrease: 0
+    };
+
+    if (!gscData || !gscData.topQueries) return analysis;
+
+    gscData.topQueries.forEach(query => {
+        // Volume surge detection (>50% increase)
+        const currentImpressions = query.impressions || 0;
+        const previousImpressions = getPreviousImpressions(query, gscTrends);
+        
+        if (previousImpressions > 0) {
+            const percentIncrease = ((currentImpressions - previousImpressions) / previousImpressions) * 100;
+            
+            if (percentIncrease >= 50) {
+                analysis.volumeSurges.push({
+                    query: query.query,
+                    currentImpressions: currentImpressions,
+                    previousImpressions: previousImpressions,
+                    percentIncrease: Math.round(percentIncrease),
+                    severity: percentIncrease >= 200 ? 'critical' : percentIncrease >= 100 ? 'high' : 'medium',
+                    recommendation: generateSurgeRecommendation(query, percentIncrease)
+                });
+                analysis.totalSurges++;
+            }
+        } else if (currentImpressions >= 100) {
+            // Emerging query (didn't exist before)
+            analysis.emergingQueries.push({
+                query: query.query,
+                impressions: currentImpressions,
+                recommendation: `New information need detected - consider creating dedicated content for "${query.query}"`
+            });
+            analysis.totalSurges++;
+        }
+
+        // Unmet needs (high volume but poor performance)
+        if (currentImpressions >= 500 && (query.ctr < 0.02 || query.position > 20)) {
+            analysis.unmetNeeds.push({
+                query: query.query,
+                impressions: currentImpressions,
+                ctr: query.ctr,
+                position: query.position,
+                recommendation: `HIGH PRIORITY: Citizens searching but not finding good results`
+            });
+        }
+    });
+
+    // Calculate average increase
+    if (analysis.volumeSurges.length > 0) {
+        analysis.avgVolumeIncrease = Math.round(
+            analysis.volumeSurges.reduce((sum, surge) => sum + surge.percentIncrease, 0) / analysis.volumeSurges.length
+        );
+    }
+
+    return analysis;
+}
+
+function calculateEmergencyLevel(surgeAnalysis) {
+    const criticalSurges = surgeAnalysis.volumeSurges.filter(s => s.severity === 'critical').length;
+    const unmetNeeds = surgeAnalysis.unmetNeeds.length;
+    const totalSurges = surgeAnalysis.totalSurges;
+
+    if (criticalSurges >= 3 || unmetNeeds >= 5) {
+        return {
+            level: 'critical',
+            label: 'CRITICAL SURGE',
+            icon: '🚨',
+            alertTitle: 'Urgent Citizen Information Crisis Detected',
+            message: 'Multiple high-volume searches indicate citizens urgently need information that may be missing or hard to find.',
+            actionButton: 'Create Emergency Content'
+        };
+    } else if (criticalSurges >= 1 || unmetNeeds >= 2 || totalSurges >= 5) {
+        return {
+            level: 'high',
+            label: 'HIGH PRIORITY',
+            icon: '⚡',
+            alertTitle: 'Significant Citizen Information Needs Detected',
+            message: 'Citizens are actively searching for information. Consider prioritizing content creation.',
+            actionButton: 'Plan Content Response'
+        };
+    } else if (totalSurges >= 2) {
+        return {
+            level: 'medium',
+            label: 'MONITORING',
+            icon: '📊',
+            alertTitle: 'Moderate Information Need Changes',
+            message: 'Some shifts in citizen search behavior detected.',
+            actionButton: 'Review Changes'
+        };
+    } else {
+        return {
+            level: 'normal',
+            label: 'NORMAL',
+            icon: '✅',
+            alertTitle: 'Stable Information Needs',
+            message: 'No unusual citizen search patterns detected.'
+        };
+    }
+}
+
+function generateSurgeRecommendations(surgeAnalysis, url) {
+    const recommendations = {
+        immediateActions: [],
+        shortTermActions: [],
+        monitoringActions: []
+    };
+
+    // Immediate actions for critical items
+    surgeAnalysis.unmetNeeds.forEach(need => {
+        recommendations.immediateActions.push(
+            `Create FAQ section addressing "${need.query}" (${formatNumber(need.impressions)} monthly searches)`
+        );
+    });
+
+    surgeAnalysis.volumeSurges.filter(s => s.severity === 'critical').forEach(surge => {
+        recommendations.immediateActions.push(
+            `Update content to address surge in "${surge.query}" searches (+${surge.percentIncrease}%)`
+        );
+    });
+
+    // Short-term actions
+    surgeAnalysis.emergingQueries.forEach(query => {
+        recommendations.shortTermActions.push(
+            `Research and create content for emerging need: "${query.query}"`
+        );
+    });
+
+    surgeAnalysis.volumeSurges.filter(s => s.severity === 'high').forEach(surge => {
+        recommendations.shortTermActions.push(
+            `Optimize content for trending "${surge.query}" (+${surge.percentIncrease}% searches)`
+        );
+    });
+
+    // Monitoring actions
+    if (surgeAnalysis.totalSurges > 0) {
+        recommendations.monitoringActions.push('Set up alerts for continued search volume changes');
+        recommendations.monitoringActions.push('Monitor citizen feedback and support requests for related topics');
+        recommendations.monitoringActions.push('Review Google Trends for broader context on search patterns');
+    }
+
+    return recommendations;
+}
+
+function getPreviousImpressions(query, gscTrends) {
+    // This uses your existing trend data structure
+    if (gscTrends && gscTrends.previous && gscTrends.previous.topQueries) {
+        const previousQuery = gscTrends.previous.topQueries.find(q => q.query === query.query);
+        return previousQuery ? previousQuery.impressions : 0;
+    }
+    return 0;
+}
+
+function generateSurgeRecommendation(query, percentIncrease) {
+    if (percentIncrease >= 200) {
+        return `URGENT: ${percentIncrease}% increase suggests breaking news or crisis - create content immediately`;
+    } else if (percentIncrease >= 100) {
+        return `High priority: Significant citizen interest increase - prioritize content update`;
+    } else {
+        return `Monitor closely and consider content optimization for trending topic`;
+    }
+}
+
+function handleSurgeAlert(url, level) {
+    console.log(`🚨 ${level.toUpperCase()} surge alert for ${url}`);
+    alert(`${level.toUpperCase()} citizen information surge detected!\n\nCheck the dashboard for immediate actions needed.`);
+}
+
+// Additional helper functions
+function calculateEntranceRate(ga4Data) {
+    if (!ga4Data || !ga4Data.sessions || !ga4Data.pageViews) return 0;
+    return Math.round((ga4Data.sessions / ga4Data.pageViews) * 100);
+}
+
+function calculateServiceScore(gscData, ga4Data) {
+    const factors = [
+        Math.min(100, (gscData?.clicks || 0) / 10), // Traffic factor
+        Math.min(100, ((ga4Data?.engagementRate || 0) * 100) * 2), // Engagement factor
+        Math.min(100, ((1 - (ga4Data?.bounceRate || 0.5)) * 100) * 2), // Retention factor
+        Math.min(100, (gscData?.ctr || 0) * 1000) // CTR factor
+    ];
+    
+    return Math.round(factors.reduce((a, b) => a + b, 0) / factors.length);
+}
+
+function generateServiceAnalysis(gscData, ga4Data, benchmarks) {
+    const serviceScore = calculateServiceScore(gscData, ga4Data);
+    const monthlyUsers = gscData?.clicks || 0;
+    
+    if (serviceScore >= 75) {
+        return `This page effectively serves citizens with a ${serviceScore}/100 service quality score. With ${formatNumber(monthlyUsers)} citizens helped monthly, it's performing above government standards and providing valuable information access.`;
+    } else if (serviceScore >= 50) {
+        return `This page adequately serves ${formatNumber(monthlyUsers)} citizens monthly with room for improvement. The ${serviceScore}/100 service score indicates moderate effectiveness in helping citizens find needed information.`;
+    } else {
+        return `This page currently serves ${formatNumber(monthlyUsers)} citizens monthly but falls below government service standards with a ${serviceScore}/100 score. Immediate improvements needed to better serve citizen information needs.`;
+    }
+}
+
+function addCitizenSurgeDetectionSection(surgeAnalysis, emergencyLevel, contentRecommendations, url) {
+    // Only show this section if there's something actionable
+    if (surgeAnalysis.totalSurges === 0 && emergencyLevel.level === 'normal') {
+        return ''; // Don't show section if no surges detected
+    }
+
+    return `
+        <!-- Citizen Need Surge Detection Section -->
+        <div class="section surge-detection ${emergencyLevel.level}">
+            <div class="surge-header">
+                <h2 class="section-title">
+                    ${emergencyLevel.icon} Citizen Information Need Analysis
+                </h2>
+                <div class="surge-alert-level ${emergencyLevel.level}">
+                    ${emergencyLevel.label}
+                </div>
+            </div>
+            
+            ${emergencyLevel.level !== 'normal' ? `
+                <div class="surge-alert-banner ${emergencyLevel.level}">
+                    <div class="surge-alert-content">
+                        <div class="surge-alert-title">${emergencyLevel.alertTitle}</div>
+                        <div class="surge-alert-message">${emergencyLevel.message}</div>
+                    </div>
+                    <div class="surge-alert-action">
+                        <button class="surge-action-btn" onclick="handleSurgeAlert('${escapeHtml(url)}', '${emergencyLevel.level}')">
+                            ${emergencyLevel.actionButton}
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
+
+            <div class="surge-analysis-grid">
+                
+                <!-- Query Volume Surges -->
+                ${surgeAnalysis.volumeSurges.length > 0 ? `
+                    <div class="surge-card volume-surge">
+                        <div class="surge-card-header">
+                            <h3>📈 Search Volume Spikes</h3>
+                            <span class="surge-count">${surgeAnalysis.volumeSurges.length}</span>
+                        </div>
+                        <div class="surge-card-description">
+                            Queries showing unusual citizen interest (${surgeAnalysis.avgVolumeIncrease}% average increase)
+                        </div>
+                        <div class="surge-items">
+                            ${surgeAnalysis.volumeSurges.slice(0, 3).map(surge => `
+                                <div class="surge-item ${surge.severity}">
+                                    <div class="surge-query">"${escapeHtml(surge.query)}"</div>
+                                    <div class="surge-metrics">
+                                        <span class="surge-increase">+${surge.percentIncrease}%</span>
+                                        <span class="surge-volume">${formatNumber(surge.currentImpressions)} searches</span>
+                                    </div>
+                                    <div class="surge-recommendation">${surge.recommendation}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Emerging Queries -->
+                ${surgeAnalysis.emergingQueries.length > 0 ? `
+                    <div class="surge-card emerging-queries">
+                        <div class="surge-card-header">
+                            <h3>🆕 Emerging Information Needs</h3>
+                            <span class="surge-count">${surgeAnalysis.emergingQueries.length}</span>
+                        </div>
+                        <div class="surge-card-description">
+                            New queries that didn't exist in previous periods
+                        </div>
+                        <div class="surge-items">
+                            ${surgeAnalysis.emergingQueries.slice(0, 3).map(query => `
+                                <div class="surge-item new">
+                                    <div class="surge-query">"${escapeHtml(query.query)}"</div>
+                                    <div class="surge-metrics">
+                                        <span class="surge-volume">${formatNumber(query.impressions)} searches</span>
+                                        <span class="surge-new-badge">BRAND NEW</span>
+                                    </div>
+                                    <div class="surge-recommendation">${query.recommendation}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Unmet Needs -->
+                ${surgeAnalysis.unmetNeeds.length > 0 ? `
+                    <div class="surge-card unmet-needs">
+                        <div class="surge-card-header">
+                            <h3>🚨 Unmet Citizen Needs</h3>
+                            <span class="surge-count priority">${surgeAnalysis.unmetNeeds.length}</span>
+                        </div>
+                        <div class="surge-card-description">
+                            High search volume but poor results - citizens need help
+                        </div>
+                        <div class="surge-items">
+                            ${surgeAnalysis.unmetNeeds.slice(0, 3).map(need => `
+                                <div class="surge-item critical">
+                                    <div class="surge-query">"${escapeHtml(need.query)}"</div>
+                                    <div class="surge-metrics">
+                                        <span class="surge-volume">${formatNumber(need.impressions)} searches</span>
+                                        <span class="surge-ctr">${(need.ctr * 100).toFixed(1)}% CTR</span>
+                                        <span class="surge-position">Pos. ${need.position.toFixed(0)}</span>
+                                    </div>
+                                    <div class="surge-recommendation urgent">${need.recommendation}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- Action Timeline -->
+            ${contentRecommendations.immediateActions.length > 0 ? `
+                <div class="surge-timeline">
+                    <h3>⏰ Recommended Response Timeline</h3>
+                    
+                    <div class="timeline-grid">
+                        <div class="timeline-item immediate">
+                            <div class="timeline-marker">🚨</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Immediate (Today)</div>
+                                <div class="timeline-actions">
+                                    ${contentRecommendations.immediateActions.map(action => `
+                                        <div class="timeline-action">${action}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item short-term">
+                            <div class="timeline-marker">📅</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">This Week</div>
+                                <div class="timeline-actions">
+                                    ${contentRecommendations.shortTermActions.map(action => `
+                                        <div class="timeline-action">${action}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item monitoring">
+                            <div class="timeline-marker">🔍</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Ongoing Monitoring</div>
+                                <div class="timeline-actions">
+                                    ${contentRecommendations.monitoringActions.map(action => `
+                                        <div class="timeline-action">${action}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// UI Component creators
+function createCriticalAlert(priorityScore) {
+    return `
+        <div class="critical-alert">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+                <div class="alert-title">Critical Priority Content</div>
+                <div class="alert-message">${priorityScore.recommendation}</div>
+            </div>
+        </div>
+    `;
+}
+
+function createBenchmarkCard(label, current, benchmark, status, message) {
+    const statusColors = {
+        excellent: '#10b981',
+        good: '#3b82f6',
+        fair: '#f59e0b',
+        poor: '#ef4444'
+    };
+    
+    return `
+        <div class="benchmark-card ${status}">
+            <div class="benchmark-header">
+                <div class="benchmark-label">${label}</div>
+                <div class="benchmark-status" style="color: ${statusColors[status]}">
+                    ${status.toUpperCase()}
+                </div>
+            </div>
+            <div class="benchmark-values">
+                <div class="current-value">${current}</div>
+                <div class="benchmark-comparison">vs ${benchmark} benchmark</div>
+            </div>
+            <div class="benchmark-message">${message}</div>
+        </div>
+    `;
+}
+
+function createProblemQueryCard(query) {
+    return `
+        <div class="problem-query-card ${query.severity}">
+            <div class="problem-header">
+                <div class="problem-severity">${query.severity.toUpperCase()}</div>
+                <div class="problem-position">Position #${query.position?.toFixed(0) || 'N/A'}</div>
+            </div>
+            <div class="problem-query">"${escapeHtml(query.query)}"</div>
+            <div class="problem-issue">${query.issue}</div>
+            <div class="problem-metrics">
+                ${query.clicks ? `${query.clicks} clicks` : ''}
+                ${query.impressions ? `• ${formatNumber(query.impressions)} impressions` : ''}
+                ${query.ctr ? `• ${(query.ctr * 100).toFixed(1)}% CTR` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function createActionableInsightCard(insight) {
+    const typeColors = {
+        critical: '#ef4444',
+        high: '#f59e0b',
+        medium: '#3b82f6',
+        low: '#10b981'
+    };
+    
+    return `
+        <div class="insight-card ${insight.type}">
+            <div class="insight-header">
+                <div class="insight-type" style="background: ${typeColors[insight.type]}20; color: ${typeColors[insight.type]}">
+                    ${insight.type.toUpperCase()}
+                </div>
+                <div class="insight-impact">${insight.impact} Impact</div>
+            </div>
+            <div class="insight-title">${insight.title}</div>
+            <div class="insight-description">${insight.description}</div>
+            <div class="insight-action">
+                <strong>Action:</strong> ${insight.action}
+            </div>
+            <div class="insight-timeframe">
+                <strong>Timeframe:</strong> ${insight.timeframe}
+            </div>
+        </div>
+    `;
+}
+
+// Export functions for government reports
+function exportGovernmentReport(url) {
+    console.log('Exporting government action plan for:', url);
+    alert('Export feature - add your preferred export logic here');
+}
+
+function scheduleReview(url) {
+    console.log('Scheduling review for:', url);
+    alert('Schedule feature - add your calendar integration here');
+}
+
+function extractPageTitle(url) {
+    const segments = url.split('/').filter(s => s.length > 0);
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment ? lastSegment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Page Analysis';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Enhanced styles for government framework
+function createEnhancedDashboardStyles() {
+    return `
+        <style>
+            /* Government Framework Specific Styles */
+            .executive-summary {
+                background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+                color: white;
+                margin: 0 0 30px 0;
+                border-radius: 20px 20px 0 0;
+                overflow: hidden;
+            }
+            
+            .summary-content {
+                padding: 35px;
+                position: relative;
+                z-index: 2;
+            }
+            
+            .executive-title {
+                font-size: 2.2rem;
+                font-weight: 800;
+                margin: 0 0 8px 0;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .page-subtitle {
+                font-size: 1.3rem;
+                font-weight: 600;
+                margin: 0 0 20px 0;
+                opacity: 0.9;
+            }
+            
+            .metrics-overview {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }
+            
+            .metric-highlight {
+                background: rgba(255,255,255,0.15);
+                padding: 20px;
+                border-radius: 16px;
+                text-align: center;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.25);
+            }
+            
+            .metric-highlight.excellent { border-color: rgba(16,185,129,0.5); }
+            .metric-highlight.good { border-color: rgba(59,130,246,0.5); }
+            .metric-highlight.fair { border-color: rgba(245,158,11,0.5); }
+            .metric-highlight.poor, .metric-highlight.critical { border-color: rgba(239,68,68,0.5); }
+            
+            .critical-alert {
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                border: 2px solid #ef4444;
+                border-radius: 12px;
+                padding: 16px;
+                margin: 20px 0;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: #dc2626;
+            }
+            
+            .benchmarks-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+            }
+            
+            .benchmark-card {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                border-left: 4px solid #e5e7eb;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            
+            .benchmark-card.excellent { border-left-color: #10b981; }
+            .benchmark-card.good { border-left-color: #3b82f6; }
+            .benchmark-card.fair { border-left-color: #f59e0b; }
+            .benchmark-card.poor { border-left-color: #ef4444; }
+            
+            .surge-detection {
+                position: relative;
+                border-left: 4px solid #e5e7eb;
+                transition: all 0.3s ease;
+            }
+            
+            .surge-detection.critical { 
+                border-left-color: #ef4444; 
+                background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+            }
+            .surge-detection.high { 
+                border-left-color: #f59e0b; 
+                background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+            }
+            .surge-detection.medium { 
+                border-left-color: #3b82f6; 
+                background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+            }
+
+            .surge-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 24px;
+            }
+
+            .surge-alert-level {
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .surge-alert-level.critical { background: #fee2e2; color: #dc2626; }
+            .surge-alert-level.high { background: #fef3c7; color: #d97706; }
+            .surge-alert-level.medium { background: #dbeafe; color: #1d4ed8; }
+
+            .surge-alert-banner {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px;
+                border-radius: 12px;
+                margin-bottom: 24px;
+                border: 2px solid;
+            }
+            .surge-alert-banner.critical { border-color: #ef4444; background: #fef2f2; }
+            .surge-alert-banner.high { border-color: #f59e0b; background: #fffbeb; }
+
+            .surge-action-btn {
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .surge-action-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(239,68,68,0.3);
+            }
+
+            .surge-analysis-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 24px;
+                margin-bottom: 32px;
+            }
+
+            .surge-card {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                border: 2px solid #f1f5f9;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                transition: all 0.2s ease;
+            }
+
+            .surge-count {
+                background: #3b82f6;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 16px;
+                font-size: 0.8rem;
+                font-weight: 600;
+            }
+            .surge-count.priority {
+                background: #ef4444;
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+
+            .section {
+                padding: 30px;
+                border-bottom: 1px solid #f3f4f6;
+            }
+            
+            .section-title {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #1f2937;
+                margin: 0 0 20px 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .action-center {
+                padding: 30px;
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                text-align: center;
+                border-radius: 0 0 20px 20px;
+            }
+            
+            .action-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                flex-wrap: wrap;
+                margin-top: 20px;
+            }
+            
+            .action-btn {
+                padding: 14px 28px;
+                border: none;
+                border-radius: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.95rem;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .action-btn.primary {
+                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                color: white;
+                box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+            }
+            
+            .action-btn.primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(59,130,246,0.4);
+            }
+            
+            .action-btn.secondary {
+                background: white;
+                color: #64748b;
+                border: 2px solid #e2e8f0;
+            }
+            
+            .action-btn.secondary:hover {
+                background: #f8fafc;
+                border-color: #3b82f6;
+                color: #3b82f6;
+                transform: translateY(-1px);
+            }
+
+            /* Additional styles for all sections */
+            .gap-analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
+            .gap-card { background: white; border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
+            .priority-matrix { background: white; border-radius: 16px; padding: 24px; border: 1px solid #e5e7eb; }
+            .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+            .insight-card { background: white; border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
+            .citizens-impact { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #0ea5e9; }
+            .workflow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
+            .workflow-card { background: white; border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
+            
+            @media (max-width: 768px) {
+                .executive-summary .summary-content { padding: 25px; }
+                .executive-title { font-size: 1.8rem; }
+                .page-subtitle { font-size: 1.1rem; }
+                .metrics-overview { grid-template-columns: 1fr; }
+                .benchmarks-grid, .gap-analysis-grid, .insights-grid, .workflow-grid, .surge-analysis-grid { grid-template-columns: 1fr; }
+                .action-buttons { flex-direction: column; align-items: center; }
+                .action-btn { width: 200px; justify-content: center; }
+                .surge-header { flex-direction: column; gap: 12px; text-align: center; }
+                .surge-alert-banner { flex-direction: column; gap: 16px; text-align: center; }
+            }
+        </style>
+    `;
+}
 
 
     
 
 window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
+    
 
 })();
