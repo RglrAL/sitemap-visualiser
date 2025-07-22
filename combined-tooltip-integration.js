@@ -482,9 +482,667 @@
         }
     }
 
-    // Keep your existing loading functions but update for the new layout...
-    // [The rest of your loading functions would go here with minimal changes]
-    
+    async function loadEnhancedGSCTrends(tooltip, nodeData) {
+        const metricsContainer = tooltip.querySelector('#gsc-metrics-container');
+        const queriesContainer = tooltip.querySelector('#gsc-queries-list');
+        
+        try {
+            // Fetch current data with enhanced details
+            const currentData = await window.GSCIntegration.fetchNodeData(nodeData);
+            
+            if (!currentData || currentData.noDataFound) {
+                metricsContainer.innerHTML = createNoDataMessage('No search data available');
+                queriesContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">📭 No query data available</div>';
+                return;
+            }
+            
+            // Fetch previous period data
+            const previousData = await window.GSCIntegration.fetchPreviousPeriodData(nodeData);
+            
+            // Update metrics
+            metricsContainer.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                    ${createTrendCard('Clicks', currentData.clicks, previousData?.clicks || 0, '#3b82f6', '🎯')}
+                    ${createTrendCard('Impressions', currentData.impressions, previousData?.impressions || 0, '#06b6d4', '👁️')}
+                    ${createTrendCard('CTR', `${(currentData.ctr * 100).toFixed(1)}%`, `${((previousData?.ctr || 0) * 100).toFixed(1)}%`, '#10b981', '⚡')}
+                    ${createTrendCard('Position', currentData.position.toFixed(1), (previousData?.position || 0).toFixed(1), '#f59e0b', '📍')}
+                </div>
+            `;
+            
+            // Update top queries
+            if (currentData.topQueries && currentData.topQueries.length > 0) {
+                queriesContainer.innerHTML = currentData.topQueries.slice(0, 3)
+                    .map((query, index) => createTopQueryCard(query, index))
+                    .join('');
+            } else {
+                queriesContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">📭 No top queries data available</div>';
+            }
+            
+        } catch (error) {
+            console.error('Enhanced GSC trend error:', error);
+            metricsContainer.innerHTML = createNoDataMessage('Failed to load search data');
+            queriesContainer.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 20px;">❌ Failed to load queries</div>';
+        }
+    }
+
+    async function loadEnhancedGA4Trends(tooltip, nodeData) {
+        const metricsContainer = tooltip.querySelector('#ga4-metrics-container');
+        const insightsContainer = tooltip.querySelector('#ga4-insights');
+        
+        try {
+            const currentData = await window.GA4Integration.fetchData(nodeData.url);
+            
+            if (!currentData || currentData.noDataFound) {
+                metricsContainer.innerHTML = createNoDataMessage('No analytics data available');
+                if (insightsContainer) {
+                    insightsContainer.innerHTML = 'No performance insights available';
+                }
+                return;
+            }
+            
+            const previousData = await window.GA4Integration.fetchPreviousPeriodData(nodeData.url);
+            
+            metricsContainer.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                    ${createTrendCard('Users', currentData.users || 0, previousData?.users || 0, '#f59e0b', '👥')}
+                    ${createTrendCard('Page Views', currentData.pageViews || 0, previousData?.pageViews || 0, '#ef4444', '📄')}
+                    ${createTrendCard('Sessions', currentData.sessions || 0, previousData?.sessions || 0, '#8b5cf6', '🔄')}
+                    ${createTrendCard('Bounce Rate', `${((currentData.bounceRate || 0) * 100).toFixed(0)}%`, `${((previousData?.bounceRate || 0) * 100).toFixed(0)}%`, '#06b6d4', '⚽')}
+                </div>
+            `;
+            
+            // Generate insights
+            if (insightsContainer) {
+                const insights = generateInsights(currentData, previousData);
+                insightsContainer.innerHTML = insights;
+            }
+            
+        } catch (error) {
+            console.error('Enhanced GA4 trend error:', error);
+            metricsContainer.innerHTML = createNoDataMessage('Failed to load analytics data');
+            if (insightsContainer) {
+                insightsContainer.innerHTML = 'Failed to generate insights';
+            }
+        }
+    }
+
+    function createTrendCard(label, currentValue, previousValue, color = '#64748b', icon = '') {
+        const current = parseFloat(currentValue) || 0;
+        const previous = parseFloat(previousValue) || 0;
+        
+        let percentChange = 0;
+        let changeDirection = '→';
+        let changeColor = '#64748b';
+        let changeBg = '#f1f5f9';
+        
+        if (previous > 0) {
+            percentChange = ((current - previous) / previous) * 100;
+            
+            if (Math.abs(percentChange) < 2) {
+                changeDirection = '→';
+                changeColor = '#64748b';
+                changeBg = '#f1f5f9';
+            } else if (percentChange > 0) {
+                changeDirection = '↗';
+                changeColor = '#ffffff';
+                changeBg = '#10b981';
+            } else {
+                changeDirection = '↘';
+                changeBg = '#ef4444';
+                changeColor = '#ffffff';
+            }
+        }
+
+        return `
+            <div style="
+                background: linear-gradient(135deg, ${color}15 0%, ${color}08 100%); 
+                border-radius: 12px; 
+                padding: 16px; 
+                text-align: center;
+                border: 1px solid ${color}20;
+                position: relative;
+                overflow: hidden;
+            ">
+                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px; font-weight: 500;">
+                    ${icon} ${label}
+                </div>
+                
+                <div style="font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+                    ${formatDisplayValue(current)}
+                </div>
+                
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div style="
+                        font-size: 0.7rem; 
+                        color: ${changeColor}; 
+                        font-weight: 700;
+                        padding: 3px 8px;
+                        background: ${changeBg};
+                        border-radius: 20px;
+                        display: flex;
+                        align-items: center;
+                        gap: 2px;
+                    ">
+                        <span>${changeDirection}</span>
+                        <span>${Math.abs(percentChange).toFixed(0)}%</span>
+                    </div>
+                </div>
+                
+                <div style="font-size: 0.65rem; color: #64748b; margin-top: 4px;">
+                    was ${formatDisplayValue(previous)}
+                </div>
+            </div>
+        `;
+    }
+
+    function createTopQueryCard(query, index) {
+        const opportunityColors = {
+            'HIGH POTENTIAL': '#ef4444',
+            'CTR BOOST': '#f59e0b',
+            'PERFORMING': '#10b981',
+            'MONITOR': '#6b7280'
+        };
+        
+        const opportunity = getQueryOpportunity(query);
+        const oppColor = opportunityColors[opportunity.label] || '#6b7280';
+        
+        return `
+            <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 12px; 
+                padding: 12px 0; 
+                ${index < 2 ? 'border-bottom: 1px solid #e2e8f0;' : ''}
+            ">
+                <div style="
+                    width: 24px; 
+                    height: 24px; 
+                    background: #f1f5f9; 
+                    border-radius: 50%; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                    font-weight: 700;
+                    color: #475569;
+                    font-size: 0.75rem;
+                    flex-shrink: 0;
+                ">${index + 1}</div>
+                
+                <div style="flex: 1; min-width: 0;">
+                    <div style="
+                        font-size: 0.85rem; 
+                        font-weight: 600; 
+                        color: #1e293b; 
+                        margin-bottom: 4px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    ">"${query.query}"</div>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: #64748b;">
+                        <span>${query.clicks} clicks</span>
+                        <span>•</span>
+                        <span>#${query.position.toFixed(0)} avg</span>
+                        <span>•</span>
+                        <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
+                    </div>
+                </div>
+                
+                <div style="
+                    padding: 4px 8px;
+                    background: ${oppColor};
+                    color: white;
+                    border-radius: 12px;
+                    font-size: 0.65rem;
+                    font-weight: 600;
+                    flex-shrink: 0;
+                ">${opportunity.label}</div>
+            </div>
+        `;
+    }
+
+    function getQueryOpportunity(query) {
+        if (query.position > 10 && query.impressions > 100) {
+            return { label: 'HIGH POTENTIAL', color: '#ef4444' };
+        }
+        if (query.position > 5 && query.ctr < 0.05) {
+            return { label: 'CTR BOOST', color: '#f59e0b' };
+        }
+        if (query.position <= 3 && query.ctr > 0.15) {
+            return { label: 'PERFORMING', color: '#10b981' };
+        }
+        return { label: 'MONITOR', color: '#6b7280' };
+    }
+
+    function generateInsights(currentData, previousData) {
+        const insights = [];
+        
+        if (previousData) {
+            const userChange = ((currentData.users - previousData.users) / previousData.users * 100);
+            if (userChange > 20) {
+                insights.push('📈 Strong user growth this period');
+            } else if (userChange < -20) {
+                insights.push('📉 User traffic declining');
+            }
+            
+            if (currentData.bounceRate < 0.3) {
+                insights.push('✨ Excellent user engagement');
+            } else if (currentData.bounceRate > 0.7) {
+                insights.push('⚠️ High bounce rate - check content relevance');
+            }
+        }
+        
+        if (insights.length === 0) {
+            insights.push('📊 Monitor performance trends over time');
+        }
+        
+        return insights.join(' • ');
+    }
+
+    function createAdvancedLoadingGrid() {
+        return `
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                ${Array.from({length: 4}, () => `
+                    <div style="
+                        background: #f8fafc; 
+                        border-radius: 12px; 
+                        padding: 16px; 
+                        text-align: center;
+                        border: 1px solid #e2e8f0;
+                        position: relative;
+                        overflow: hidden;
+                    ">
+                        <div style="height: 16px; width: 60%; margin: 0 auto 8px; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
+                        <div style="height: 20px; width: 80%; margin: 0 auto 6px; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
+                        <div style="height: 12px; width: 40%; margin: 0 auto; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function createQueryLoadingState() {
+        return Array.from({length: 3}, (_, i) => `
+            <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 12px; 
+                padding: 12px 0; 
+                ${i < 2 ? 'border-bottom: 1px solid #e2e8f0;' : ''}
+            ">
+                <div style="
+                    width: 24px; 
+                    height: 24px; 
+                    background: #e2e8f0; 
+                    border-radius: 50%; 
+                    flex-shrink: 0;
+                " class="loading-skeleton"></div>
+                <div style="flex: 1;">
+                    <div style="height: 14px; width: 70%; margin-bottom: 6px; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
+                    <div style="height: 10px; width: 40%; background: #f1f5f9; border-radius: 4px;" class="loading-skeleton"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function createNoDataMessage(message) {
+        return `
+            <div style="
+                text-align: center; 
+                color: #64748b; 
+                padding: 32px 20px;
+                font-size: 0.9rem;
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+            ">
+                <div style="font-size: 2rem; margin-bottom: 12px; opacity: 0.6;">📭</div>
+                <div style="font-weight: 500; margin-bottom: 6px;">${message}</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">
+                    This page may not have data for the selected period
+                </div>
+            </div>
+        `;
+    }
+
+    function showGSCDisconnected(tooltip) {
+        const metricsContainer = tooltip.querySelector('#gsc-metrics-container');
+        const queriesContainer = tooltip.querySelector('#gsc-queries-list');
+        
+        const disconnectedMessage = `
+            <div style="
+                text-align: center; 
+                color: #64748b; 
+                padding: 32px 20px;
+                font-size: 0.9rem;
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+            ">
+                <div style="font-size: 2rem; margin-bottom: 12px;">🔌</div>
+                <div style="font-weight: 600; margin-bottom: 8px;">Connect Search Console</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">
+                    Click the GSC button in the toolbar to see search performance trends
+                </div>
+            </div>
+        `;
+        
+        metricsContainer.innerHTML = disconnectedMessage;
+        queriesContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 16px; font-size: 0.8rem;">Connect GSC to see top queries</div>';
+    }
+
+    function showGA4Disconnected(tooltip) {
+        const metricsContainer = tooltip.querySelector('#ga4-metrics-container');
+        
+        metricsContainer.innerHTML = `
+            <div style="
+                text-align: center; 
+                color: #64748b; 
+                padding: 32px 20px;
+                font-size: 0.9rem;
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+            ">
+                <div style="font-size: 2rem; margin-bottom: 12px;">🔌</div>
+                <div style="font-weight: 600; margin-bottom: 8px;">Connect Google Analytics</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">
+                    Click the GA4 button in the toolbar to see user behavior trends
+                </div>
+            </div>
+        `;
+    }
+
+    function formatDisplayValue(value) {
+        if (typeof value === 'string') return value;
+        const num = parseFloat(value) || 0;
+        
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        if (num < 1 && num > 0) return num.toFixed(2);
+        return Math.round(num).toLocaleString();
+    }
+
+    // Core tooltip behavior functions
+    function clearTooltipTimers() {
+        if (window.enhancedHideTimer) {
+            clearTimeout(window.enhancedHideTimer);
+            window.enhancedHideTimer = null;
+        }
+    }
+
+    function hideExistingTooltip(currentData) {
+        if (window.currentEnhancedTooltip) {
+            const existingNodeName = window.currentEnhancedTooltip._nodeData?.name;
+            if (existingNodeName !== currentData.name) {
+                window.currentEnhancedTooltip.style.opacity = '0';
+                window.currentEnhancedTooltip.style.transform = 'translateY(12px) scale(0.94)';
+                setTimeout(() => {
+                    if (window.currentEnhancedTooltip) {
+                        window.currentEnhancedTooltip.remove();
+                        window.currentEnhancedTooltip = null;
+                    }
+                }, 300);
+            }
+        }
+    }
+
+    function positionTooltip(tooltip, event) {
+        let left = event.pageX + 20;
+        let top = event.pageY - 60;
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+        
+        setTimeout(() => {
+            const rect = tooltip.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            if (rect.right > windowWidth - 20) {
+                tooltip.style.left = (event.pageX - rect.width - 20) + 'px';
+            }
+            
+            if (rect.top < 10) {
+                tooltip.style.top = (event.pageY + 20) + 'px';
+            }
+            
+            if (rect.bottom > windowHeight - 20) {
+                tooltip.style.top = Math.max(10, windowHeight - rect.height - 20) + 'px';
+            }
+        }, 10);
+    }
+
+    function addModernHoverBehavior(tooltip) {
+        let isHovering = false;
+        
+        tooltip.addEventListener('mouseenter', () => {
+            isHovering = true;
+            clearTooltipTimers();
+        });
+        
+        tooltip.addEventListener('mouseleave', () => {
+            isHovering = false;
+            hideEnhancedTooltip();
+        });
+        
+        tooltip.addEventListener('click', (e) => {
+            const button = e.target.closest('.fab-btn');
+            if (!button) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const action = button.dataset.action;
+            const url = button.dataset.url;
+            
+            handleEnhancedAction(action, url, tooltip);
+        });
+    }
+
+    function hideEnhancedTooltip(immediate = false) {
+        const delay = immediate ? 0 : 200;
+        
+        window.enhancedHideTimer = setTimeout(() => {
+            if (window.currentEnhancedTooltip) {
+                window.currentEnhancedTooltip.style.opacity = '0';
+                window.currentEnhancedTooltip.style.transform = 'translateY(12px) scale(0.94)';
+                setTimeout(() => {
+                    if (window.currentEnhancedTooltip) {
+                        window.currentEnhancedTooltip.remove();
+                        window.currentEnhancedTooltip = null;
+                    }
+                }, 300);
+            }
+        }, delay);
+    }
+
+    function handleEnhancedAction(action, url, tooltip) {
+        console.log('🎯 Enhanced action:', action);
+        
+        switch (action) {
+            case 'visit':
+                if (url && url !== 'undefined') {
+                    window.open(url, '_blank');
+                }
+                break;
+            case 'refresh':
+                if (tooltip && tooltip._nodeData) {
+                    loadEnhancedAnalytics(tooltip, tooltip._nodeData);
+                }
+                break;
+            case 'detailed':
+                if (window.showDetailedGSCAnalysis && url && url !== 'undefined') {
+                    window.showDetailedGSCAnalysis(url);
+                }
+                break;
+        }
+    }
+
+    // Safe fallback functions from your original code
+    function getPageInfoSafe(data) {
+        try {
+            if (typeof getPageInfo === 'function') {
+                const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+                const result = getPageInfo(data, treeContext);
+                if (result && typeof result === 'object') {
+                    return result;
+                }
+            }
+            
+            const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+            if (treeContext && data.url) {
+                const nodeInfo = findNodeInTreeStructure(treeContext, data.url);
+                if (nodeInfo.found) {
+                    return {
+                        type: determinePageType(nodeInfo.node, nodeInfo.depth, nodeInfo.hasChildren),
+                        depth: nodeInfo.depth,
+                        children: nodeInfo.children,
+                        siblings: nodeInfo.siblings
+                    };
+                }
+            }
+            
+            return {
+                type: data.children?.length > 0 ? 'Category' : 'Content Page',
+                depth: calculateDepthFromUrl(data.url),
+                children: data.children?.length || 0,
+                siblings: 0
+            };
+            
+        } catch (error) {
+            console.warn('Error getting page info:', error);
+            return {
+                type: 'Content Page',
+                depth: 1,
+                children: 0,
+                siblings: 0
+            };
+        }
+    }
+
+    function getFreshnessInfoSafe(data) {
+        try {
+            if (typeof getFreshnessInfo === 'function' && data.lastModified) {
+                const freshnessData = getFreshnessInfo(data.lastModified);
+                if (freshnessData && freshnessData.freshnessLabel) {
+                    return {
+                        badge: `<span style="background: ${freshnessData.freshnessColor}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${freshnessData.freshnessLabel}</span>`
+                    };
+                }
+            }
+            
+            if (data.lastModified) {
+                let lastMod;
+                if (typeof data.lastModified === 'string') {
+                    lastMod = new Date(data.lastModified);
+                } else if (data.lastModified instanceof Date) {
+                    lastMod = data.lastModified;
+                }
+                
+                if (lastMod && !isNaN(lastMod.getTime())) {
+                    const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+                    
+                    let color, label;
+                    if (daysSince < 30) {
+                        color = '#10b981'; label = 'New';
+                    } else if (daysSince < 90) {
+                        color = '#10b981'; label = 'Fresh';
+                    } else if (daysSince < 180) {
+                        color = '#f59e0b'; label = 'Recent';
+                    } else if (daysSince < 365) {
+                        color = '#f97316'; label = 'Aging';
+                    } else if (daysSince < 730) {
+                        color = '#ef4444'; label = 'Old';
+                    } else {
+                        color = '#dc2626'; label = 'Stale';
+                    }
+                    
+                    return {
+                        badge: `<span style="background: ${color}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${label}</span>`
+                    };
+                }
+            }
+            
+            return {
+                badge: '<span style="background: #64748b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">No Date</span>'
+            };
+            
+        } catch (error) {
+            console.warn('Error getting freshness info:', error);
+            return {
+                badge: '<span style="background: #64748b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">No Date</span>'
+            };
+        }
+    }
+
+    function getLastEditedInfo(data) {
+        // This is now integrated into the header, so return empty
+        return '';
+    }
+
+    function findNodeInTreeStructure(treeData, targetUrl) {
+        const result = { found: false, node: null, depth: 0, children: 0, siblings: 0, hasChildren: false };
+
+        function traverse(node, depth = 0, parent = null, siblingNodes = []) {
+            if (node.url === targetUrl) {
+                result.found = true;
+                result.node = node;
+                result.depth = depth;
+                result.children = node.children ? node.children.length : 0;
+                result.hasChildren = result.children > 0;
+                result.siblings = Math.max(0, siblingNodes.length - 1);
+                return true;
+            }
+
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    if (traverse(child, depth + 1, node, node.children)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        if (treeData.url === targetUrl) {
+            result.found = true;
+            result.node = treeData;
+            result.depth = 0;
+            result.children = treeData.children ? treeData.children.length : 0;
+            result.siblings = 0;
+            result.hasChildren = result.children > 0;
+        } else {
+            traverse(treeData, 0, null, [treeData]);
+        }
+
+        return result;
+    }
+
+    function determinePageType(node, depth, hasChildren) {
+        if (depth === 0) return 'Homepage';
+        if (node.url && node.url.match(/\/(en|ga|ie)\/?$/)) return 'Language Root';
+        
+        if (hasChildren) {
+            if (depth === 1) return 'Main Category';
+            if (depth === 2) return 'Sub-Category';
+            return 'Category';
+        } else {
+            if (depth === 1) return 'Root Page';
+            return 'Content Page';
+        }
+    }
+
+    function calculateDepthFromUrl(url) {
+        if (!url) return 0;
+        try {
+            const urlObj = new URL(url);
+            return urlObj.pathname.split('/').filter(segment => segment.length > 0).length;
+        } catch {
+            return url.split('/').filter(segment => segment.length > 0).length;
+        }
+    }
+
     // Installation and initialization
     function installEnhancedTooltipSystem() {
         console.log('✅ Installing enhanced tabbed tooltip system...');
