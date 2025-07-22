@@ -1230,9 +1230,10 @@ function calculateGA4Trends(currentData, previousData) {
 
 
 // Add these to standalone-ga4-integration.js
+// Add these to the END of standalone-ga4-integration.js
+
 window.GA4Integration.fetchTrafficSources = async function(pageUrl) {
     if (!window.GA4Integration.isConnected()) return null;
-    console.log('[GA4] Fetching traffic sources for:', pageUrl);
     
     const propertyId = window.GA4Integration.getPropertyId();
     const pagePath = window.GA4Integration.urlToPath(pageUrl);
@@ -1241,42 +1242,38 @@ window.GA4Integration.fetchTrafficSources = async function(pageUrl) {
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
         
-        const requestBody = {
-            dateRanges: [{
-                startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                endDate: today.toISOString().split('T')[0]
-            }],
-            dimensions: [
-                { name: 'pagePath' },
-                { name: 'sessionDefaultChannelGrouping' }
-            ],
-            metrics: [{ name: 'sessions' }],
-            dimensionFilter: {
-                filter: {
-                    fieldName: 'pagePath',
-                    stringFilter: {
-                        matchType: 'EXACT',
-                        value: pagePath
-                    }
-                }
-            },
-            limit: 10
-        };
-        
         const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+                dateRanges: [{
+                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0]
+                }],
+                dimensions: [
+                    { name: 'pagePath' },
+                    { name: 'sessionDefaultChannelGrouping' }
+                ],
+                metrics: [{ name: 'sessions' }],
+                dimensionFilter: {
+                    filter: {
+                        fieldName: 'pagePath',
+                        stringFilter: {
+                            matchType: 'EXACT',
+                            value: pagePath
+                        }
+                    }
+                },
+                limit: 10
+            })
         });
         
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const data = await response.json();
-        console.log('[GA4] Traffic sources raw data:', data);
-        
         const sources = {};
         let totalSessions = 0;
         
@@ -1289,14 +1286,13 @@ window.GA4Integration.fetchTrafficSources = async function(pageUrl) {
             });
         }
         
-        const sourceBreakdown = Object.entries(sources).map(([source, sessions]) => ({
-            source: source,
-            sessions: sessions,
-            percentage: totalSessions > 0 ? (sessions / totalSessions) * 100 : 0
-        })).sort((a, b) => b.percentage - a.percentage);
-        
-        console.log('[GA4] Traffic sources processed:', { sources: sourceBreakdown, totalSessions });
-        return { sources: sourceBreakdown, totalSessions };
+        return {
+            sources: Object.entries(sources).map(([source, sessions]) => ({
+                source, sessions,
+                percentage: totalSessions > 0 ? (sessions / totalSessions) * 100 : 0
+            })).sort((a, b) => b.percentage - a.percentage),
+            totalSessions
+        };
         
     } catch (error) {
         console.error('[GA4] Error fetching traffic sources:', error);
@@ -1306,7 +1302,6 @@ window.GA4Integration.fetchTrafficSources = async function(pageUrl) {
 
 window.GA4Integration.fetchDeviceData = async function(pageUrl) {
     if (!window.GA4Integration.isConnected()) return null;
-    console.log('[GA4] Fetching device data for:', pageUrl);
     
     const propertyId = window.GA4Integration.getPropertyId();
     const pagePath = window.GA4Integration.urlToPath(pageUrl);
@@ -1315,46 +1310,42 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
         
-        const requestBody = {
-            dateRanges: [{
-                startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                endDate: today.toISOString().split('T')[0]
-            }],
-            dimensions: [
-                { name: 'pagePath' },
-                { name: 'deviceCategory' }
-            ],
-            metrics: [
-                { name: 'sessions' },
-                { name: 'bounceRate' },
-                { name: 'averageSessionDuration' }
-            ],
-            dimensionFilter: {
-                filter: {
-                    fieldName: 'pagePath',
-                    stringFilter: {
-                        matchType: 'EXACT',
-                        value: pagePath
-                    }
-                }
-            },
-            limit: 10
-        };
-        
         const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+                dateRanges: [{
+                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0]
+                }],
+                dimensions: [
+                    { name: 'pagePath' },
+                    { name: 'deviceCategory' }
+                ],
+                metrics: [
+                    { name: 'sessions' },
+                    { name: 'bounceRate' },
+                    { name: 'averageSessionDuration' }
+                ],
+                dimensionFilter: {
+                    filter: {
+                        fieldName: 'pagePath',
+                        stringFilter: {
+                            matchType: 'EXACT',
+                            value: pagePath
+                        }
+                    }
+                },
+                limit: 10
+            })
         });
         
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const data = await response.json();
-        console.log('[GA4] Device data raw data:', data);
-        
         const devices = {};
         
         if (data.rows) {
@@ -1368,7 +1359,6 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
             });
         }
         
-        console.log('[GA4] Device data processed:', devices);
         return devices;
         
     } catch (error) {
