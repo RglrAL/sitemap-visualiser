@@ -42,8 +42,8 @@
                 0 25px 50px -12px rgba(0, 0, 0, 0.25),
                 0 0 0 1px rgba(0, 0, 0, 0.05);
             z-index: 10000;
-            max-width: 420px;
-            width: 420px;
+            max-width: 450px;
+            width: 450px;
             opacity: 0;
             transform: translateY(12px) scale(0.94);
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -89,63 +89,110 @@
                 "></div>
                 
                 <div style="position: relative; z-index: 2;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
-                        <div style="flex: 1; min-width: 0;">
-                            <h3 style="
-                                margin: 0 0 8px 0; 
-                                font-size: 1.1rem; 
-                                font-weight: 600; 
-                                color: white;
-                                line-height: 1.3;
-                                display: -webkit-box;
-                                -webkit-line-clamp: 2;
-                                -webkit-box-orient: vertical;
-                                overflow: hidden;
-                                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                            ">
-                                ${data.name || 'Page'}
-                            </h3>
-                            
-                            ${data.url ? `
-                                <a href="${data.url}" target="_blank" 
-                                   style="
-                                       font-size: 0.75rem; 
-                                       color: rgba(255,255,255,0.9); 
-                                       text-decoration: none;
-                                       display: block;
-                                       white-space: nowrap;
-                                       overflow: hidden;
-                                       text-overflow: ellipsis;
-                                       padding: 3px 8px;
-                                       background: rgba(255,255,255,0.15);
-                                       border-radius: 6px;
-                                       backdrop-filter: blur(10px);
-                                       transition: all 0.2s ease;
-                                   " 
-                                   onmouseover="this.style.background='rgba(255,255,255,0.25)'" 
-                                   onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-                                    🔗 ${data.url}
-                                </a>
-                            ` : ''}
-                        </div>
+                    <!-- Page Title and URL -->
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="
+                            margin: 0 0 8px 0; 
+                            font-size: 1.1rem; 
+                            font-weight: 600; 
+                            color: white;
+                            line-height: 1.3;
+                            display: -webkit-box;
+                            -webkit-line-clamp: 2;
+                            -webkit-box-orient: vertical;
+                            overflow: hidden;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        ">
+                            ${data.name || 'Page'}
+                        </h3>
                         
-                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-                            ${freshnessInfo.badge}
-                            ${lastEditedInfo ? `<div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">📅 ${getShortDate(data.lastModified)}</div>` : ''}
-                        </div>
+                        ${data.url ? `
+                            <a href="${data.url}" target="_blank" 
+                               style="
+                                   font-size: 0.75rem; 
+                                   color: rgba(255,255,255,0.9); 
+                                   text-decoration: none;
+                                   display: block;
+                                   white-space: nowrap;
+                                   overflow: hidden;
+                                   text-overflow: ellipsis;
+                                   padding: 3px 8px;
+                                   background: rgba(255,255,255,0.15);
+                                   border-radius: 6px;
+                                   backdrop-filter: blur(10px);
+                                   transition: all 0.2s ease;
+                               " 
+                               onmouseover="this.style.background='rgba(255,255,255,0.25)'" 
+                               onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                                ${data.url}
+                            </a>
+                        ` : ''}
                     </div>
                     
-                    <!-- Compact Page Metrics -->
+                    <!-- Page Information Grid -->
                     <div style="
                         display: grid; 
-                        grid-template-columns: repeat(4, 1fr); 
-                        gap: 8px; 
-                        margin-top: 12px;
+                        grid-template-columns: 1fr 1fr 1fr auto; 
+                        gap: 16px; 
+                        align-items: center;
+                        padding: 12px 0;
                     ">
-                        ${createCompactMetricPill('Type', pageInfo.type, '📄')}
-                        ${createCompactMetricPill('Level', `L${pageInfo.depth}`, '🏗️')}
-                        ${createCompactMetricPill('Children', pageInfo.children.toString(), '👶', pageInfo.children > 0)}
-                        ${createCompactMetricPill('Siblings', pageInfo.siblings.toString(), '👫', pageInfo.siblings > 0)}
+                        <!-- Page Type & Level -->
+                        <div style="
+                            background: rgba(255,255,255,0.15);
+                            padding: 8px 12px;
+                            border-radius: 8px;
+                            backdrop-filter: blur(10px);
+                            border: 1px solid rgba(255,255,255,0.2);
+                        ">
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 2px;">Type</div>
+                            <div style="font-size: 0.85rem; font-weight: 600; color: white;">${pageInfo.type}</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">Level ${pageInfo.depth}</div>
+                        </div>
+                        
+                        <!-- Relationships -->
+                        <div style="
+                            background: rgba(255,255,255,0.15);
+                            padding: 8px 12px;
+                            border-radius: 8px;
+                            backdrop-filter: blur(10px);
+                            border: 1px solid rgba(255,255,255,0.2);
+                        ">
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 2px;">Structure</div>
+                            <div style="font-size: 0.85rem; font-weight: 600; color: white;">${pageInfo.children} Children</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">${pageInfo.siblings} Siblings</div>
+                        </div>
+                        
+                        <!-- Last Edited -->
+                        ${lastEditedInfo ? `
+                            <div style="
+                                background: rgba(255,255,255,0.15);
+                                padding: 8px 12px;
+                                border-radius: 8px;
+                                backdrop-filter: blur(10px);
+                                border: 1px solid rgba(255,255,255,0.2);
+                            ">
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 2px;">Last Updated</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: white;">${getFormattedDate(data.lastModified)}</div>
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">${getRelativeTime(data.lastModified)}</div>
+                            </div>
+                        ` : `
+                            <div style="
+                                background: rgba(255,255,255,0.1);
+                                padding: 8px 12px;
+                                border-radius: 8px;
+                                backdrop-filter: blur(10px);
+                                border: 1px solid rgba(255,255,255,0.15);
+                            ">
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 2px;">Last Updated</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7);">Unknown</div>
+                            </div>
+                        `}
+                        
+                        <!-- Freshness Badge -->
+                        <div style="flex-shrink: 0;">
+                            ${freshnessInfo.badge}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -155,7 +202,23 @@
                 padding: 0 24px;
                 background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
                 border-bottom: 1px solid rgba(0,0,0,0.05);
+                position: relative;
             ">
+                <!-- Loading Progress Bar -->
+                <div id="loading-progress" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    height: 3px;
+                    background: linear-gradient(90deg, #3b82f6, #06b6d4, #10b981);
+                    background-size: 200% 100%;
+                    animation: loading-sweep 2s ease-in-out infinite;
+                    border-radius: 0 0 2px 2px;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    z-index: 10;
+                "></div>
+                
                 <div class="tab-nav" style="
                     display: flex;
                     gap: 0;
@@ -217,16 +280,28 @@
                 </div>
             </div>
 
+            <!-- Time Period Info -->
+            <div style="
+                padding: 12px 24px;
+                background: #f1f5f9;
+                border-bottom: 1px solid #e2e8f0;
+                font-size: 0.8rem;
+                color: #64748b;
+                text-align: center;
+            ">
+                📅 Comparing <strong>Last 30 days</strong> vs <strong>Previous 30 days</strong>
+            </div>
+
             <!-- Tab Content -->
             <div class="tab-content" style="
-                padding: 20px 24px;
-                min-height: 200px;
-                max-height: 300px;
+                padding: 24px;
+                min-height: 320px;
+                max-height: 400px;
                 overflow-y: auto;
             ">
                 <!-- Search Console Tab -->
                 <div class="tab-panel active" data-panel="search">
-                    <div id="gsc-metrics-container" style="margin-bottom: 16px;">
+                    <div id="gsc-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
                     </div>
                     
@@ -248,7 +323,7 @@
                 
                 <!-- Analytics Tab -->
                 <div class="tab-panel" data-panel="analytics" style="display: none;">
-                    <div id="ga4-metrics-container">
+                    <div id="ga4-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
                     </div>
                     
@@ -258,7 +333,6 @@
                         border-radius: 12px;
                         padding: 16px;
                         border: 1px solid #fed7aa;
-                        margin-top: 16px;
                     ">
                         <div style="font-size: 0.9rem; font-weight: 600; color: #9a3412; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                             <span>💡</span> Performance Insights
@@ -270,56 +344,46 @@
                 </div>
             </div>
             
-            <!-- Floating Action Button -->
-            <div class="floating-actions" style="
-                position: absolute;
-                bottom: -20px;
-                right: 20px;
+            <!-- Action Buttons -->
+            <div style="
+                padding: 16px 24px;
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                border-top: 1px solid #e2e8f0;
                 display: flex;
-                gap: 8px;
-                opacity: 0;
-                transform: translateY(10px);
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                z-index: 10001;
+                gap: 10px;
             ">
-                <button class="fab-btn" data-action="visit" data-url="${data.url}" style="
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 50%;
-                    border: none;
-                    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-                    color: white;
-                    font-size: 1.2rem;
-                    cursor: pointer;
-                    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
-                    transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                ">🚀</button>
-                
-                <button class="fab-btn" data-action="refresh" style="
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 50%;
-                    border: none;
-                    background: white;
-                    color: #64748b;
-                    font-size: 1.1rem;
-                    cursor: pointer;
-                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-                    border: 1px solid #e2e8f0;
-                    transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                ">🔄</button>
+                <button class="action-btn primary" data-action="visit" data-url="${data.url}">
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">Visit Page</span>
+                </button>
+                <button class="action-btn secondary" data-action="refresh">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Refresh</span>
+                </button>
+                <button class="action-btn secondary" data-action="detailed" data-url="${data.url}">
+                    <span class="btn-icon">📈</span>
+                    <span class="btn-text">Full Report</span>
+                </button>
             </div>
 
             <style>
-                .enhanced-tabbed-tooltip:hover .floating-actions {
-                    opacity: 1;
-                    transform: translateY(0);
+                @keyframes loading-sweep {
+                    0% { 
+                        width: 0%; 
+                        background-position: -200% 0;
+                    }
+                    50% { 
+                        width: 100%; 
+                        background-position: 0% 0;
+                    }
+                    100% { 
+                        width: 100%; 
+                        background-position: 200% 0;
+                    }
+                }
+                
+                .loading-active #loading-progress {
+                    opacity: 1 !important;
                 }
                 
                 .tab-btn.active {
@@ -333,9 +397,62 @@
                     background: rgba(0,0,0,0.02);
                 }
                 
-                .fab-btn:hover {
+                .action-btn {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 12px 16px;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+                    font-family: inherit;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .action-btn::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                    transition: left 0.5s ease;
+                }
+                
+                .action-btn:hover::before {
+                    left: 100%;
+                }
+                
+                .action-btn.primary {
+                    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                    color: white;
+                    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+                }
+                
+                .action-btn.primary:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+                    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+                }
+                
+                .action-btn.secondary {
+                    background: white;
+                    color: #64748b;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                }
+                
+                .action-btn.secondary:hover {
+                    background: #f8fafc;
+                    color: #334155;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 }
                 
                 .loading-skeleton {
@@ -369,25 +486,6 @@
                     background: #94a3b8;
                 }
             </style>
-        `;
-    }
-
-    function createCompactMetricPill(label, value, icon, isActive = false) {
-        return `
-            <div style="
-                text-align: center;
-                background: rgba(255,255,255,0.2);
-                border-radius: 10px;
-                padding: 8px 6px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255,255,255,0.3);
-                transition: all 0.2s ease;
-                ${isActive ? 'box-shadow: 0 0 0 2px rgba(255,255,255,0.5);' : ''}
-            ">
-                <div style="font-size: 0.8rem; margin-bottom: 1px;">${icon}</div>
-                <div style="font-size: 0.8rem; font-weight: 700; color: white; margin-bottom: 1px;">${value}</div>
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.8);">${label}</div>
-            </div>
         `;
     }
 
@@ -425,6 +523,60 @@
                 });
             });
         });
+    }
+
+    function getFormattedDate(lastModified) {
+        if (!lastModified) return '';
+        
+        let lastMod;
+        if (typeof lastModified === 'string') {
+            lastMod = new Date(lastModified);
+        } else if (lastModified instanceof Date) {
+            lastMod = lastModified;
+        }
+        
+        if (!lastMod || isNaN(lastMod.getTime())) return '';
+        
+        return lastMod.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    function getRelativeTime(lastModified) {
+        if (!lastModified) return '';
+        
+        let lastMod;
+        if (typeof lastModified === 'string') {
+            lastMod = new Date(lastModified);
+        } else if (lastModified instanceof Date) {
+            lastMod = lastModified;
+        }
+        
+        if (!lastMod || isNaN(lastMod.getTime())) return '';
+        
+        const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+        if (daysSince === 0) return 'today';
+        if (daysSince === 1) return 'yesterday';
+        if (daysSince < 7) return `${daysSince}d ago`;
+        if (daysSince < 30) return `${Math.floor(daysSince / 7)}w ago`;
+        if (daysSince < 365) return `${Math.floor(daysSince / 30)}mo ago`;
+        return `${Math.floor(daysSince / 365)}y ago`;
+    }
+
+    function showLoadingProgress(tooltip) {
+        const progressBar = tooltip.querySelector('#loading-progress');
+        if (progressBar) {
+            tooltip.classList.add('loading-active');
+        }
+    }
+
+    function hideLoadingProgress(tooltip) {
+        const progressBar = tooltip.querySelector('#loading-progress');
+        if (progressBar) {
+            tooltip.classList.remove('loading-active');
+        }
     }
 
     function getShortDate(lastModified) {
@@ -466,19 +618,30 @@
         console.log('📈 Loading tabbed analytics for:', nodeData.name);
         
         updateConnectionStatus();
+        showLoadingProgress(tooltip);
         
-        // Load GSC trends with queries
-        if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
-            await loadEnhancedGSCTrends(tooltip, nodeData);
-        } else {
-            showGSCDisconnected(tooltip);
-        }
-        
-        // Load GA4 trends  
-        if (window.GA4Integration && window.GA4Integration.isConnected()) {
-            await loadEnhancedGA4Trends(tooltip, nodeData);
-        } else {
-            showGA4Disconnected(tooltip);
+        try {
+            // Load GSC and GA4 data in parallel
+            const promises = [];
+            
+            if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
+                promises.push(loadEnhancedGSCTrends(tooltip, nodeData));
+            } else {
+                showGSCDisconnected(tooltip);
+            }
+            
+            if (window.GA4Integration && window.GA4Integration.isConnected()) {
+                promises.push(loadEnhancedGA4Trends(tooltip, nodeData));
+            } else {
+                showGA4Disconnected(tooltip);
+            }
+            
+            // Wait for all data to load
+            await Promise.allSettled(promises);
+            
+        } finally {
+            // Hide loading progress after a short delay to show completion
+            setTimeout(() => hideLoadingProgress(tooltip), 500);
         }
     }
 
@@ -927,7 +1090,7 @@
         });
         
         tooltip.addEventListener('click', (e) => {
-            const button = e.target.closest('.fab-btn');
+            const button = e.target.closest('.action-btn');
             if (!button) return;
             
             e.preventDefault();
@@ -1077,8 +1240,8 @@
     }
 
     function getLastEditedInfo(data) {
-        // This is now integrated into the header, so return empty
-        return '';
+        // Last edited info is now handled directly in the header layout
+        return data.lastModified ? true : false;
     }
 
     function findNodeInTreeStructure(treeData, targetUrl) {
