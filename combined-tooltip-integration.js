@@ -1211,10 +1211,10 @@
                 }
                 break;
             case 'detailed':
-                if (window.showDetailedGSCAnalysis && url && url !== 'undefined') {
-                    window.showDetailedGSCAnalysis(url);
-                }
-                break;
+    if (window.showEnhancedDashboardReport && url && url !== 'undefined') {
+        window.showEnhancedDashboardReport(url);  // <- Updated
+    }
+    break;
         }
     }
 
