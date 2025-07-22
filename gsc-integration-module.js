@@ -3277,11 +3277,19 @@ window.showDetailedGSCAnalysis = async function(url) {
     // Create modal
     const modal = document.createElement('div');
     modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px);`;
-    modal.onclick = () => modal.remove();
+    modal.onclick = (e) => {
+    // Only close if clicking the backdrop, not the content
+    if (e.target === modal) {
+        modal.remove();
+    }
+};
 
     const dashboard = document.createElement('div');
     dashboard.style.cssText = `background: white; border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
-    dashboard.onclick = e => e.stopPropagation();
+    dashboard.onclick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+};
 
     // BEAUTIFUL ENHANCED HTML
     dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
