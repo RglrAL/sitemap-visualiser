@@ -4747,4 +4747,6 @@ function hexToRgb(hex) {
 }
 
 
+window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
+
 })();
