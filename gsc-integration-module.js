@@ -491,6 +491,19 @@
         return wins.slice(0, 3); // Limit to 3 quick wins
     }
 
+
+
+    // Add this to gsc-integration-module.js (around line 1000, before the dashboard functions)
+function formatDuration(seconds) {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    return `${minutes}m ${remainingSeconds}s`;
+}
+
+
+    
+
     function generateActionPlan(gscData, avgPosition, ctrPerformance) {
         const actions = [];
         
