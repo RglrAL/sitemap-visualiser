@@ -70,8 +70,8 @@
         return `
             <!-- Enhanced Header with Gradient -->
             <div style="
-                padding: 20px 24px 16px 24px; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 20px 24px 20px 24px; 
+                background: linear-gradient(135deg, #5a8200 0%, #72A300 100%);
                 color: white;
                 position: relative;
                 overflow: hidden;
@@ -132,67 +132,79 @@
                     <!-- Page Information Grid -->
                     <div style="
                         display: grid; 
-                        grid-template-columns: 1fr 1fr 1fr auto; 
-                        gap: 16px; 
-                        align-items: center;
-                        padding: 12px 0;
+                        grid-template-columns: 1fr 1fr 1fr; 
+                        gap: 12px; 
+                        margin-top: 16px;
                     ">
-                        <!-- Page Type & Level -->
+                        <!-- Page Type & Hierarchy -->
                         <div style="
                             background: rgba(255,255,255,0.15);
-                            padding: 8px 12px;
-                            border-radius: 8px;
+                            padding: 12px 14px;
+                            border-radius: 10px;
                             backdrop-filter: blur(10px);
-                            border: 1px solid rgba(255,255,255,0.2);
+                            border: 1px solid rgba(255,255,255,0.25);
+                            text-align: center;
                         ">
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 2px;">Type</div>
-                            <div style="font-size: 0.85rem; font-weight: 600; color: white;">${pageInfo.type}</div>
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">Level ${pageInfo.depth}</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Page Info</div>
+                            <div style="font-size: 0.9rem; font-weight: 700; color: white; margin-bottom: 2px; line-height: 1.2;">${pageInfo.type}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">Level ${pageInfo.depth}</div>
                         </div>
                         
-                        <!-- Relationships -->
+                        <!-- Site Structure -->
                         <div style="
                             background: rgba(255,255,255,0.15);
-                            padding: 8px 12px;
-                            border-radius: 8px;
+                            padding: 12px 14px;
+                            border-radius: 10px;
                             backdrop-filter: blur(10px);
-                            border: 1px solid rgba(255,255,255,0.2);
+                            border: 1px solid rgba(255,255,255,0.25);
+                            text-align: center;
                         ">
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 2px;">Structure</div>
-                            <div style="font-size: 0.85rem; font-weight: 600; color: white;">${pageInfo.children} Children</div>
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">${pageInfo.siblings} Siblings</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Structure</div>
+                            <div style="font-size: 0.85rem; color: white; font-weight: 600; margin-bottom: 2px;">
+                                <span style="font-size: 0.9rem; font-weight: 700;">${pageInfo.children}</span> Children
+                            </div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">
+                                <span style="font-weight: 600;">${pageInfo.siblings}</span> Siblings
+                            </div>
                         </div>
                         
-                        <!-- Last Edited -->
+                        <!-- Last Updated -->
                         ${lastEditedInfo ? `
                             <div style="
                                 background: rgba(255,255,255,0.15);
-                                padding: 8px 12px;
-                                border-radius: 8px;
+                                padding: 12px 14px;
+                                border-radius: 10px;
                                 backdrop-filter: blur(10px);
-                                border: 1px solid rgba(255,255,255,0.2);
+                                border: 1px solid rgba(255,255,255,0.25);
+                                text-align: center;
                             ">
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 2px;">Last Updated</div>
-                                <div style="font-size: 0.85rem; font-weight: 600; color: white;">${getFormattedDate(data.lastModified)}</div>
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">${getRelativeTime(data.lastModified)}</div>
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Updated</div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: white; margin-bottom: 2px; line-height: 1.2;">${getFormattedDate(data.lastModified)}</div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">${getRelativeTime(data.lastModified)}</div>
                             </div>
                         ` : `
                             <div style="
                                 background: rgba(255,255,255,0.1);
-                                padding: 8px 12px;
-                                border-radius: 8px;
+                                padding: 12px 14px;
+                                border-radius: 10px;
                                 backdrop-filter: blur(10px);
                                 border: 1px solid rgba(255,255,255,0.15);
+                                text-align: center;
                             ">
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 2px;">Last Updated</div>
-                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7);">Unknown</div>
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Updated</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 2px;">Unknown</div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">No date</div>
                             </div>
                         `}
-                        
-                        <!-- Freshness Badge -->
-                        <div style="flex-shrink: 0;">
-                            ${freshnessInfo.badge}
-                        </div>
+                    </div>
+                    
+                    <!-- Freshness Badge Row -->
+                    <div style="
+                        display: flex;
+                        justify-content: center;
+                        margin-top: 12px;
+                    ">
+                        ${freshnessInfo.badge}
                     </div>
                 </div>
             </div>
@@ -209,14 +221,30 @@
                     position: absolute;
                     top: 0;
                     left: 0;
-                    height: 3px;
-                    background: linear-gradient(90deg, #3b82f6, #06b6d4, #10b981);
-                    background-size: 200% 100%;
-                    animation: loading-sweep 2s ease-in-out infinite;
+                    height: 4px;
+                    background: linear-gradient(90deg, #5a8200, #72A300, #84cc16, #a3e635);
+                    background-size: 300% 100%;
+                    animation: loading-sweep 1.8s ease-in-out infinite;
                     border-radius: 0 0 2px 2px;
                     opacity: 0;
                     transition: opacity 0.3s ease;
                     z-index: 10;
+                    box-shadow: 0 2px 8px rgba(90, 130, 0, 0.3);
+                "></div>
+                
+                <!-- Subtle loading pulse overlay -->
+                <div id="loading-overlay" style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%);
+                    background-size: 200% 200%;
+                    animation: shimmer-slow 3s ease-in-out infinite;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                    pointer-events: none;
                 "></div>
                 
                 <div class="tab-nav" style="
@@ -391,7 +419,7 @@
                 @keyframes loading-sweep {
                     0% { 
                         width: 0%; 
-                        background-position: -200% 0;
+                        background-position: -300% 0;
                     }
                     50% { 
                         width: 100%; 
@@ -399,11 +427,17 @@
                     }
                     100% { 
                         width: 100%; 
-                        background-position: 200% 0;
+                        background-position: 300% 0;
                     }
                 }
                 
-                .loading-active #loading-progress {
+                @keyframes shimmer-slow {
+                    0% { background-position: -200% -200%; }
+                    100% { background-position: 200% 200%; }
+                }
+                
+                .loading-active #loading-progress,
+                .loading-active #loading-overlay {
                     opacity: 1 !important;
                 }
                 
