@@ -105,11 +105,11 @@
                 
                 <!-- Enhanced Page Info with Siblings -->
                 <div style="display: flex; gap: 12px; font-size: 0.7rem; color: #666; margin-top: 8px; flex-wrap: wrap;">
-                    <span title="Page type based on content and hierarchy">📁 ${pageInfo.type}</span>
-                    <span title="Depth in site hierarchy">📏 Level ${pageInfo.depth}</span>
-                    <span title="Number of child pages" style="color: ${pageInfo.children > 0 ? '#4caf50' : '#999'};">👶 ${pageInfo.children} children</span>
-                    <span title="Pages at the same level with same parent" style="color: ${pageInfo.siblings > 0 ? '#2196f3' : '#999'};">👫 ${pageInfo.siblings} ${pageInfo.siblings === 1 ? 'sibling' : 'siblings'}</span>
-                    ${freshnessInfo.text ? `<span title="Last modified date">📅 ${freshnessInfo.text}</span>` : ''}
+                    <span title="Page type based on content and hierarchy">Type: ${pageInfo.type}</span>
+                    <span title="Depth in site hierarchy">Level: ${pageInfo.depth}</span>
+                    <span title="Number of child pages" style="color: ${pageInfo.children > 0 ? '#4caf50' : '#999'};">Children: ${pageInfo.children} </span>
+                    <span title="Pages at the same level with same parent" style="color: ${pageInfo.siblings > 0 ? '#2196f3' : '#999'};">Siblings: ${pageInfo.siblings} </span>
+                    ${freshnessInfo.text ? `<span title="Last modified date">Last Edited: ${freshnessInfo.text}</span>` : ''}
                 </div>
                 
                 ${freshnessInfo.daysSince !== null ? `
@@ -120,12 +120,7 @@
                     </div>
                 ` : ''}
                 
-                ${pageInfo.siblings > 5 ? `
-                    <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 6px; padding: 6px 8px; margin-top: 6px; font-size: 0.7rem;">
-                        <span style="color: #1565c0; font-weight: 600;">Structure Note:</span>
-                        <span style="color: #333; margin-left: 4px;">This section has many related pages (${pageInfo.siblings} siblings)</span>
-                    </div>
-                ` : ''}
+                
             </div>
 
             <!-- Compact Analytics Section -->
