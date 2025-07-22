@@ -1,4 +1,4 @@
-// enhanced-modern-tooltip-with-trends.js
+// modern-tooltip-with-trends.js
 // Modern, minimal tooltip with period-over-period trend analysis
 
 (function() {
@@ -72,7 +72,7 @@
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 border-bottom: 1px solid rgba(0,0,0,0.06);
             ">
-                <div style="display: flex; justify-content: between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
                     <div style="flex: 1; min-width: 0;">
                         <h3 style="
                             margin: 0 0 6px 0; 
@@ -505,8 +505,8 @@
                 return;
             }
             
-            // Simulate previous period data (you'll need to implement this in your GSC integration)
-            const previousData = await fetchPreviousPeriodGSC(nodeData);
+            // Fetch previous period data using the new functions
+            const previousData = await window.GSCIntegration.fetchPreviousPeriodData(nodeData);
             
             grid.innerHTML = `
                 ${createTrendMetricCard('Clicks', currentData.clicks, previousData?.clicks || 0)}
@@ -538,8 +538,8 @@
                 return;
             }
             
-            // Simulate previous period data (you'll need to implement this in your GA4 integration)
-            const previousData = await fetchPreviousPeriodGA4(nodeData.url);
+            // Fetch previous period data using the new functions
+            const previousData = await window.GA4Integration.fetchPreviousPeriodData(nodeData.url);
             
             grid.innerHTML = `
                 ${createTrendMetricCard('Users', currentData.users || 0, previousData?.users || 0)}
@@ -617,35 +617,6 @@
                 </div>
             </div>
         `;
-    }
-
-    // Utility functions for period comparison (you'll need to implement these)
-    async function fetchPreviousPeriodGSC(nodeData) {
-        // This should fetch data from 60-30 days ago
-        // You'll need to modify your GSC integration to support date ranges
-        if (window.GSCIntegration.fetchNodeDataForPeriod) {
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() - 30);
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 60);
-            
-            return await window.GSCIntegration.fetchNodeDataForPeriod(nodeData, startDate, endDate);
-        }
-        return null;
-    }
-
-    async function fetchPreviousPeriodGA4(url) {
-        // This should fetch data from 60-30 days ago  
-        // You'll need to modify your GA4 integration to support date ranges
-        if (window.GA4Integration.fetchDataForPeriod) {
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() - 30);
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 60);
-            
-            return await window.GA4Integration.fetchDataForPeriod(url, startDate, endDate);
-        }
-        return null;
     }
 
     function formatDisplayValue(value) {
