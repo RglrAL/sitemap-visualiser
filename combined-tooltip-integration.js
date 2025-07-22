@@ -169,10 +169,10 @@
                         🔗 Visit
                     </button>
                     <button class="refined-btn refined-btn-secondary" data-action="refresh">
-                        🔄
+                        🔄 Refresh
                     </button>
                     <button class="refined-btn refined-btn-secondary" data-action="detailed" data-url="${data.url}">
-                        📊
+                        📊 Detailed Report
                     </button>
                 </div>
             </div>
