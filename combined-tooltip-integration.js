@@ -747,7 +747,40 @@
 
     // Safe fallback functions (keeping your existing logic)
     function getPageInfoSafe(data) {
-        // Use your existing getPageInfo logic or fallback
+    try {
+        // Try to use your existing getPageInfo function first
+        if (typeof getPageInfo === 'function') {
+            const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+            const result = getPageInfo(data, treeContext);
+            if (result && typeof result === 'object') {
+                return result;
+            }
+        }
+        
+        // Enhanced fallback with tree traversal
+        const treeContext = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+        if (treeContext && data.url) {
+            const nodeInfo = findNodeInTreeStructure(treeContext, data.url);
+            if (nodeInfo.found) {
+                return {
+                    type: determinePageType(nodeInfo.node, nodeInfo.depth, nodeInfo.hasChildren),
+                    depth: nodeInfo.depth,
+                    children: nodeInfo.children,
+                    siblings: nodeInfo.siblings
+                };
+            }
+        }
+        
+        // Basic fallback
+        return {
+            type: data.children?.length > 0 ? 'Category' : 'Content Page',
+            depth: calculateDepthFromUrl(data.url),
+            children: data.children?.length || 0,
+            siblings: 0
+        };
+        
+    } catch (error) {
+        console.warn('Error getting page info:', error);
         return {
             type: 'Content Page',
             depth: 1,
@@ -755,13 +788,64 @@
             siblings: 0
         };
     }
+}
 
     function getFreshnessInfoSafe(data) {
-        // Use your existing getFreshnessInfo logic or fallback
+    try {
+        // Try to use your existing getFreshnessInfo function first
+        if (typeof getFreshnessInfo === 'function' && data.lastModified) {
+            const freshnessData = getFreshnessInfo(data.lastModified);
+            if (freshnessData && freshnessData.freshnessLabel) {
+                return {
+                    badge: `<span style="background: ${freshnessData.freshnessColor}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">${freshnessData.freshnessLabel}</span>`
+                };
+            }
+        }
+        
+        // Enhanced fallback with proper color logic
+        if (data.lastModified) {
+            let lastMod;
+            if (typeof data.lastModified === 'string') {
+                lastMod = new Date(data.lastModified);
+            } else if (data.lastModified instanceof Date) {
+                lastMod = data.lastModified;
+            }
+            
+            if (lastMod && !isNaN(lastMod.getTime())) {
+                const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+                
+                let color, label;
+                if (daysSince < 30) {
+                    color = '#4caf50'; label = 'New';
+                } else if (daysSince < 90) {
+                    color = '#4caf50'; label = 'Fresh';
+                } else if (daysSince < 180) {
+                    color = '#ffc107'; label = 'Recent';
+                } else if (daysSince < 365) {
+                    color = '#ff9800'; label = 'Aging';
+                } else if (daysSince < 730) {
+                    color = '#f44336'; label = 'Old';
+                } else {
+                    color = '#d32f2f'; label = 'Stale';
+                }
+                
+                return {
+                    badge: `<span style="background: ${color}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">${label}</span>`
+                };
+            }
+        }
+        
+        return {
+            badge: '<span style="background: #64748b; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">No Date</span>'
+        };
+        
+    } catch (error) {
+        console.warn('Error getting freshness info:', error);
         return {
             badge: '<span style="background: #64748b; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">No Date</span>'
         };
     }
+}
 
     // Install the modern tooltip system
     function installModernTooltipSystem() {
@@ -797,5 +881,68 @@
     }
 
     console.log('🚀 Modern tooltip with trend analysis loaded!');
+
+
+    function findNodeInTreeStructure(treeData, targetUrl) {
+    const result = { found: false, node: null, depth: 0, children: 0, siblings: 0, hasChildren: false };
+
+    function traverse(node, depth = 0, parent = null, siblingNodes = []) {
+        if (node.url === targetUrl) {
+            result.found = true;
+            result.node = node;
+            result.depth = depth;
+            result.children = node.children ? node.children.length : 0;
+            result.hasChildren = result.children > 0;
+            result.siblings = Math.max(0, siblingNodes.length - 1);
+            return true;
+        }
+
+        if (node.children && node.children.length > 0) {
+            for (const child of node.children) {
+                if (traverse(child, depth + 1, node, node.children)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    if (treeData.url === targetUrl) {
+        result.found = true;
+        result.node = treeData;
+        result.depth = 0;
+        result.children = treeData.children ? treeData.children.length : 0;
+        result.siblings = 0;
+        result.hasChildren = result.children > 0;
+    } else {
+        traverse(treeData, 0, null, [treeData]);
+    }
+
+    return result;
+}
+
+function determinePageType(node, depth, hasChildren) {
+    if (depth === 0) return 'Homepage';
+    if (node.url && node.url.match(/\/(en|ga|ie)\/?$/)) return 'Language Root';
+    
+    if (hasChildren) {
+        if (depth === 1) return 'Main Category';
+        if (depth === 2) return 'Sub-Category';
+        return 'Category';
+    } else {
+        if (depth === 1) return 'Root Page';
+        return 'Content Page';
+    }
+}
+
+function calculateDepthFromUrl(url) {
+    if (!url) return 0;
+    try {
+        const urlObj = new URL(url);
+        return urlObj.pathname.split('/').filter(segment => segment.length > 0).length;
+    } catch {
+        return url.split('/').filter(segment => segment.length > 0).length;
+    }
+}
 
 })();
