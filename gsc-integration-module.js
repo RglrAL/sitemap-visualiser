@@ -2872,29 +2872,10 @@ function formatDuration(seconds) {
     window.showDetailedGSCAnalysis = async function(url) {
     console.log('🚀 Loading Enhanced Dashboard for:', url);
     
-    // Get GSC data (existing)
-    const gscData = gscDataMap.get(url);
-    // Replace the above with this in gsc-integration-module.js:
-if ((!gscData || gscData.noDataFound) && (!ga4Data || ga4Data.noDataFound)) {
-    alert('No performance data available from either GSC or GA4. Please ensure at least one service is connected and has data for this page.');
-    return;
-}
-
-// If no GSC data but we have GA4 data, create minimal GSC data so dashboard doesn't break
-if (!gscData || gscData.noDataFound) {
-    console.log('⚠️ No GSC data available, using minimal data for dashboard compatibility');
-    gscData = {
-        clicks: 0,
-        impressions: 0,
-        ctr: 0,
-        position: 0,
-        noDataFound: true,
-        isMinimalForGA4Only: true,
-        topQueries: []
-    };
-}
+    // STEP 1: Get GSC data first
+    const gscData = window.GSCIntegration?.getData?.(url);
     
-    // Get GA4 data (if available)
+    // STEP 2: Get GA4 data 
     let ga4Data = null;
     if (window.GA4Integration?.fetchData) {
         try {
@@ -2904,7 +2885,7 @@ if (!gscData || gscData.noDataFound) {
         }
     }
     
-    // Get trend comparisons
+    // STEP 3: Get trend comparisons
     let gscTrends = null;
     if (window.GSCIntegration?.fetchTrendComparison) {
         try {
@@ -2923,37 +2904,58 @@ if (!gscData || gscData.noDataFound) {
         }
     }
 
-    // Get enhanced GA4 data (traffic sources, device data)
-let trafficSources = null;
-let deviceData = null;
+    // STEP 4: Get enhanced GA4 data (traffic sources, device data)
+    let trafficSources = null;
+    let deviceData = null;
 
-console.log('🔍 Fetching enhanced GA4 data for:', url);
+    console.log('🔍 Fetching enhanced GA4 data for:', url);
 
-if (window.GA4Integration?.fetchTrafficSources) {
-    try {
-        console.log('📡 Calling fetchTrafficSources...');
-        trafficSources = await window.GA4Integration.fetchTrafficSources(url);
-        console.log('✅ Traffic sources fetched:', trafficSources);
-    } catch (error) {
-        console.warn('❌ Failed to fetch traffic sources:', error);
+    if (window.GA4Integration?.fetchTrafficSources) {
+        try {
+            console.log('📡 Calling fetchTrafficSources...');
+            trafficSources = await window.GA4Integration.fetchTrafficSources(url);
+            console.log('✅ Traffic sources fetched:', trafficSources);
+        } catch (error) {
+            console.warn('❌ Failed to fetch traffic sources:', error);
+        }
+    } else {
+        console.log('❌ fetchTrafficSources function not available');
     }
-} else {
-    console.log('❌ fetchTrafficSources function not available');
-}
 
-if (window.GA4Integration?.fetchDeviceData) {
-    try {
-        console.log('📡 Calling fetchDeviceData...');
-        deviceData = await window.GA4Integration.fetchDeviceData(url);
-        console.log('✅ Device data fetched:', deviceData);
-    } catch (error) {
-        console.warn('❌ Failed to fetch device data:', error);
+    if (window.GA4Integration?.fetchDeviceData) {
+        try {
+            console.log('📡 Calling fetchDeviceData...');
+            deviceData = await window.GA4Integration.fetchDeviceData(url);
+            console.log('✅ Device data fetched:', deviceData);
+        } catch (error) {
+            console.warn('❌ Failed to fetch device data:', error);
+        }
+    } else {
+        console.log('❌ fetchDeviceData function not available');
     }
-} else {
-    console.log('❌ fetchDeviceData function not available');
-}
 
-    // Create and show the enhanced dashboard
+    // STEP 5: NOW check if we have ANY data (after everything is fetched)
+    if ((!gscData || gscData.noDataFound) && (!ga4Data || ga4Data.noDataFound)) {
+        alert('No performance data available from either GSC or GA4. Please ensure at least one service is connected and has data for this page.');
+        return;
+    }
+
+    // STEP 6: Handle missing GSC data gracefully  
+    let finalGscData = gscData;
+    if (!gscData || gscData.noDataFound) {
+        console.log('⚠️ No GSC data available, using minimal data for dashboard compatibility');
+        finalGscData = {
+            clicks: 0,
+            impressions: 0,
+            ctr: 0,
+            position: 0,
+            noDataFound: true,
+            isMinimalForGA4Only: true,
+            topQueries: []
+        };
+    }
+
+    // STEP 7: Create and show the dashboard
     const modal = document.createElement('div');
     modal.className = 'enhanced-dashboard-modal';
     modal.style.cssText = `
@@ -2962,6 +2964,7 @@ if (window.GA4Integration?.fetchDeviceData) {
         align-items: center; justify-content: center; padding: 20px;
         animation: fadeIn 0.3s ease;
     `;
+
     modal.onclick = () => modal.remove();
 
     const dashboard = document.createElement('div');
@@ -2973,8 +2976,8 @@ if (window.GA4Integration?.fetchDeviceData) {
     `;
     dashboard.onclick = e => e.stopPropagation();
 
-    // Generate dashboard HTML
-    dashboard.innerHTML = createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
+    // Generate dashboard HTML with ALL the enhanced data
+    dashboard.innerHTML = createEnhancedDashboardHTML(url, finalGscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
 
     // Add close button
     const closeBtn = document.createElement('button');
@@ -3000,9 +3003,11 @@ if (window.GA4Integration?.fetchDeviceData) {
     modal.appendChild(dashboard);
     document.body.appendChild(modal);
 
-    // Initialize interactions
-    initializeEnhancedDashboardInteractions(dashboard);
+    console.log('✅ Enhanced dashboard created with all data!');
 };
+
+// Keep the reference
+window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
 
 
     
