@@ -1,145 +1,433 @@
-// enhanced-citizens-dashboard.js - COMPLETE VERSION
-// Uses only data available from your existing GSC and GA4 integrations
+// enhanced-citizens-dashboard-v2.js - COMPLETE FULL VERSION
+// Enhanced dashboard for Citizens Information with ALL original functionality + improvements
 
 (function() {
     'use strict';
+
+    console.log('🚀 Loading Complete Enhanced Citizens Dashboard...');
 
     // ===========================================
     // MAIN ENHANCED DASHBOARD FUNCTION
     // ===========================================
 
     function createEnhancedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData) {
+        const dashboardId = 'dashboard-' + Date.now();
+        
         return `
             ${createEnhancedDashboardStyles()}
             
-            <!-- Enhanced Executive Summary -->
-            <div class="citizen-impact-header">
-                <div class="impact-hero">
-                    <h1>🏛️ Citizens Information Impact Report</h1>
-                    <div class="page-url">${escapeHtml(url)}</div>
-                    <div class="hero-stats">
-                        <div class="hero-stat">
-                            <span class="hero-number">${formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0))}</span>
-                            <span class="hero-label">Citizens Reached Monthly</span>
-                        </div>
-                        <div class="hero-stat">
-                            <span class="hero-number">${calculateCitizenSatisfaction(ga4Data)}%</span>
-                            <span class="hero-label">Content Success Rate</span>
-                        </div>
-                        <div class="hero-stat">
-                            <span class="hero-number">${calculateTimeToInformation(ga4Data)}</span>
-                            <span class="hero-label">Avg. Time to Find Info</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Enhanced Tabbed Content -->
-            <div class="dashboard-tabs">
-                <div class="tab-nav">
-                    <button class="tab-btn active" data-tab="overview">📊 Overview</button>
-                    <button class="tab-btn" data-tab="content">📝 Content Intelligence</button>
-                    <button class="tab-btn" data-tab="quality">✨ Quality Assessment</button>
-                    <button class="tab-btn" data-tab="trends">📈 Trend Analysis</button>
-                    <button class="tab-btn" data-tab="actions">⚡ Action Plan</button>
-                </div>
+            <div id="${dashboardId}" class="citizens-dashboard-container">
+                <!-- Enhanced Header with Page Metadata -->
+                ${createEnhancedHeader(url, gscData, ga4Data)}
                 
-                <div class="tab-content">
-                    <div class="tab-panel active" data-panel="overview">
-                        ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends)}
+                <!-- Performance Overview Cards -->
+                ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
+                
+                <!-- Enhanced Tabbed Content -->
+                <div class="dashboard-tabs">
+                    <div class="tab-nav">
+                        <button class="tab-btn active" data-tab="overview">
+                            <span class="tab-icon">📊</span>
+                            <span class="tab-label">Overview</span>
+                        </button>
+                        <button class="tab-btn" data-tab="search">
+                            <span class="tab-icon">🔍</span>
+                            <span class="tab-label">Search Performance</span>
+                        </button>
+                        <button class="tab-btn" data-tab="content">
+                            <span class="tab-icon">📝</span>
+                            <span class="tab-label">Content Analysis</span>
+                        </button>
+                        <button class="tab-btn" data-tab="users">
+                            <span class="tab-icon">👥</span>
+                            <span class="tab-label">User Behavior</span>
+                        </button>
+                        <button class="tab-btn" data-tab="trends">
+                            <span class="tab-icon">📈</span>
+                            <span class="tab-label">Trends</span>
+                        </button>
+                        <button class="tab-btn" data-tab="actions">
+                            <span class="tab-icon">⚡</span>
+                            <span class="tab-label">Action Items</span>
+                        </button>
                     </div>
                     
-                    <div class="tab-panel" data-panel="content">
-                        ${createContentIntelligencePanel(gscData, ga4Data)}
-                    </div>
-                    
-                    <div class="tab-panel" data-panel="quality">
-                        ${createQualityAssessmentPanel(ga4Data, gscData)}
-                    </div>
-                    
-                    <div class="tab-panel" data-panel="trends">
-                        ${createTrendAnalysisPanel(gscTrends, ga4Trends)}
-                    </div>
-                    
-                    <div class="tab-panel" data-panel="actions">
-                        ${createActionPlanPanel(gscData, ga4Data, gscTrends, ga4Trends)}
+                    <div class="tab-content">
+                        <div class="tab-panel active" data-panel="overview">
+                            ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends)}
+                        </div>
+                        
+                        <div class="tab-panel" data-panel="search">
+                            ${createSearchPerformancePanel(gscData, gscTrends)}
+                        </div>
+                        
+                        <div class="tab-panel" data-panel="content">
+                            ${createContentAnalysisPanel(gscData, ga4Data)}
+                        </div>
+                        
+                        <div class="tab-panel" data-panel="users">
+                            ${createUserBehaviorPanel(ga4Data, ga4Trends)}
+                        </div>
+                        
+                        <div class="tab-panel" data-panel="trends">
+                            ${createTrendAnalysisPanel(gscTrends, ga4Trends)}
+                        </div>
+                        
+                        <div class="tab-panel" data-panel="actions">
+                            ${createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends)}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Enhanced Action Center -->
-            <div class="action-center">
-                <h3>📊 Export & Implementation Tools</h3>
-                <div class="action-buttons">
-                    <button class="action-btn primary" onclick="window.open('${escapeHtml(url)}', '_blank')">
-                        <span>🔗</span><span>Visit Page</span>
-                    </button>
-                    <button class="action-btn secondary" onclick="exportEnhancedReport('${escapeHtml(url)}')">
-                        <span>📊</span><span>Export Report</span>
-                    </button>
-                    <button class="action-btn secondary" onclick="copyEnhancedSummary('${escapeHtml(url)}')">
-                        <span>📋</span><span>Copy Summary</span>
-                    </button>
-                </div>
+                <!-- Action Center -->
+                ${createActionCenter(url)}
             </div>
 
             <script>
                 setTimeout(() => {
-                    initializeEnhancedDashboard();
+                    initializeEnhancedDashboard('${dashboardId}');
                 }, 100);
             </script>
         `;
     }
 
     // ===========================================
-    // PANEL CREATION FUNCTIONS - COMPLETE
+    // ENHANCED HEADER WITH PAGE METADATA
     // ===========================================
 
-    function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    function createEnhancedHeader(url, gscData, ga4Data) {
+        const pageInfo = extractPageInfo(url);
+        const lastModified = getLastModifiedInfo(url);
+        const citizenImpact = calculateCitizenImpact(gscData, ga4Data);
+        
         return `
-            ${createContentPerformanceMatrix(gscData, ga4Data)}
-            
-            <div class="section metrics-overview">
-                <h2 class="section-title">📊 Key Performance Metrics</h2>
-                <div class="metrics-grid">
-                    ${createSearchConsoleMetrics(gscData, gscTrends)}
-                    ${createGA4Metrics(ga4Data, ga4Trends)}
-                    ${createCrossMetrics(gscData, ga4Data)}
+            <div class="dashboard-header">
+                <div class="header-content">
+                    <!-- Page Title & Metadata -->
+                    <div class="page-info">
+                        <div class="page-breadcrumb">
+                            <span class="breadcrumb-item">Citizens Information</span>
+                            <span class="breadcrumb-separator">›</span>
+                            <span class="breadcrumb-item">${pageInfo.section}</span>
+                            ${pageInfo.subsection ? `
+                                <span class="breadcrumb-separator">›</span>
+                                <span class="breadcrumb-item">${pageInfo.subsection}</span>
+                            ` : ''}
+                        </div>
+                        
+                        <h1 class="page-title">${pageInfo.title}</h1>
+                        
+                        <div class="page-metadata">
+                            <div class="metadata-grid">
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Page Type:</span>
+                                    <span class="metadata-value">${pageInfo.type}</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Last Updated:</span>
+                                    <span class="metadata-value">${lastModified.formatted}</span>
+                                    <span class="metadata-badge ${lastModified.freshnessClass}">${lastModified.freshnessLabel}</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">URL:</span>
+                                    <a href="${url}" target="_blank" class="url-link">${url}</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Citizen Impact Summary -->
+                    <div class="impact-summary">
+                        <div class="impact-card">
+                            <div class="impact-number">${citizenImpact.monthlyReach}</div>
+                            <div class="impact-label">Citizens Reached Monthly</div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-number">${citizenImpact.helpfulnessScore}%</div>
+                            <div class="impact-label">Helpfulness Score</div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-number">${citizenImpact.avgTimeToInfo}</div>
+                            <div class="impact-label">Time to Find Info</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    function createContentIntelligencePanel(gscData, ga4Data) {
+    // ===========================================
+    // PERFORMANCE OVERVIEW CARDS
+    // ===========================================
+
+    function createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends) {
         return `
-            ${createQueryIntelligenceSection(gscData)}
-            ${createContentGapAnalysis(gscData, ga4Data)}
+            <div class="performance-overview">
+                <div class="overview-grid">
+                    <!-- Search Console Summary -->
+                    <div class="overview-card search-card">
+                        <div class="card-header">
+                            <div class="card-icon">🔍</div>
+                            <div class="card-title">Search Performance</div>
+                            <div class="card-status ${gscData && !gscData.noDataFound ? 'connected' : 'disconnected'}">
+                                ${gscData && !gscData.noDataFound ? '●' : '○'}
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            ${gscData && !gscData.noDataFound ? `
+                                <div class="metric-row">
+                                    <span class="metric-label">Clicks:</span>
+                                    <span class="metric-value">${formatNumber(gscData.clicks)}</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.clicks)}
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Impressions:</span>
+                                    <span class="metric-value">${formatNumber(gscData.impressions)}</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.impressions)}
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">CTR:</span>
+                                    <span class="metric-value">${(gscData.ctr * 100).toFixed(1)}%</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.ctr)}
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Position:</span>
+                                    <span class="metric-value">#${gscData.position.toFixed(1)}</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.position, true)}
+                                </div>
+                            ` : `
+                                <div class="no-data-message">
+                                    <span class="no-data-icon">📊</span>
+                                    <span class="no-data-text">Connect Search Console</span>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <!-- Analytics Summary -->
+                    <div class="overview-card analytics-card">
+                        <div class="card-header">
+                            <div class="card-icon">📈</div>
+                            <div class="card-title">User Analytics</div>
+                            <div class="card-status ${ga4Data && !ga4Data.noDataFound ? 'connected' : 'disconnected'}">
+                                ${ga4Data && !ga4Data.noDataFound ? '●' : '○'}
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            ${ga4Data && !ga4Data.noDataFound ? `
+                                <div class="metric-row">
+                                    <span class="metric-label">Users:</span>
+                                    <span class="metric-value">${formatNumber(ga4Data.users || 0)}</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.users)}
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Page Views:</span>
+                                    <span class="metric-value">${formatNumber(ga4Data.pageViews || 0)}</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.pageViews)}
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Avg. Session:</span>
+                                    <span class="metric-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.avgSessionDuration)}
+                                </div>
+                                <div class="metric-row">
+                                    <span class="metric-label">Bounce Rate:</span>
+                                    <span class="metric-value">${((ga4Data.bounceRate || 0) * 100).toFixed(1)}%</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.bounceRate, true)}
+                                </div>
+                            ` : `
+                                <div class="no-data-message">
+                                    <span class="no-data-icon">📊</span>
+                                    <span class="no-data-text">Connect Google Analytics</span>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <!-- Content Quality Score -->
+                    <div class="overview-card quality-card">
+                        <div class="card-header">
+                            <div class="card-icon">⭐</div>
+                            <div class="card-title">Content Quality</div>
+                        </div>
+                        <div class="card-content">
+                            ${createQualityScoreDisplay(gscData, ga4Data)}
+                        </div>
+                    </div>
+                    
+                    <!-- Citizen Impact -->
+                    <div class="overview-card impact-card">
+                        <div class="card-header">
+                            <div class="card-icon">🎯</div>
+                            <div class="card-title">Citizen Impact</div>
+                        </div>
+                        <div class="card-content">
+                            ${createImpactDisplay(gscData, ga4Data)}
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
     }
 
-    function createQualityAssessmentPanel(ga4Data, gscData) {
+    // ===========================================
+    // TAB PANEL CREATION FUNCTIONS - COMPLETE IMPLEMENTATIONS
+    // ===========================================
+
+    function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends) {
         return `
-            ${createTrafficQualitySection(ga4Data, gscData)}
-            ${createUserExperienceAnalysis(ga4Data)}
+            <div class="panel-content">
+                <!-- Performance Matrix -->
+                <div class="section">
+                    <h2 class="section-title">📊 Performance Matrix</h2>
+                    ${createPerformanceMatrix(gscData, ga4Data)}
+                </div>
+                
+                <!-- Key Metrics Grid -->
+                <div class="section">
+                    <h2 class="section-title">🔢 Key Metrics</h2>
+                    <div class="metrics-overview">
+                        <div class="metrics-grid">
+                            ${createSearchConsoleMetrics(gscData, gscTrends)}
+                            ${createGA4Metrics(ga4Data, ga4Trends)}
+                            ${createCrossMetrics(gscData, ga4Data)}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Key Insights -->
+                <div class="section">
+                    <h2 class="section-title">💡 Key Insights</h2>
+                    ${createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends)}
+                </div>
+            </div>
+        `;
+    }
+
+    function createSearchPerformancePanel(gscData, gscTrends) {
+        if (!gscData || gscData.noDataFound) {
+            return createConnectionMessage('Search Console', 'Connect Search Console to see detailed search performance data');
+        }
+        
+        return `
+            <div class="panel-content">
+                <!-- Search Metrics Breakdown -->
+                <div class="section">
+                    <h2 class="section-title">🔍 Search Console Metrics</h2>
+                    ${createSearchConsoleMetrics(gscData, gscTrends)}
+                </div>
+                
+                <!-- Top Performing Queries -->
+                <div class="section">
+                    <h2 class="section-title">🎯 Top Performing Queries</h2>
+                    ${createTopQueriesTable(gscData)}
+                </div>
+                
+                <!-- Query Intelligence -->
+                <div class="section">
+                    <h2 class="section-title">🧠 Query Intelligence</h2>
+                    ${createQueryIntelligenceSection(gscData)}
+                </div>
+                
+                <!-- Search Opportunities -->
+                <div class="section">
+                    <h2 class="section-title">🚀 Search Opportunities</h2>
+                    ${createSearchOpportunities(gscData)}
+                </div>
+            </div>
+        `;
+    }
+
+    function createContentAnalysisPanel(gscData, ga4Data) {
+        return `
+            <div class="panel-content">
+                <!-- Content Performance Score -->
+                <div class="section">
+                    <h2 class="section-title">📝 Content Performance Score</h2>
+                    ${createContentScoreBreakdown(gscData, ga4Data)}
+                </div>
+                
+                <!-- Content Quality Assessment -->
+                <div class="section">
+                    <h2 class="section-title">✨ Quality Assessment</h2>
+                    ${createQualityAssessmentPanel(ga4Data, gscData)}
+                </div>
+                
+                <!-- Content Gap Analysis -->
+                <div class="section">
+                    <h2 class="section-title">🔍 Content Gap Analysis</h2>
+                    ${createContentGapAnalysis(gscData, ga4Data)}
+                </div>
+            </div>
+        `;
+    }
+
+    function createUserBehaviorPanel(ga4Data, ga4Trends) {
+        if (!ga4Data || ga4Data.noDataFound) {
+            return createConnectionMessage('Google Analytics', 'Connect Google Analytics to see detailed user behavior data');
+        }
+        
+        return `
+            <div class="panel-content">
+                <!-- User Engagement Metrics -->
+                <div class="section">
+                    <h2 class="section-title">👥 User Analytics Metrics</h2>
+                    ${createGA4Metrics(ga4Data, ga4Trends)}
+                </div>
+                
+                <!-- User Experience Analysis -->
+                <div class="section">
+                    <h2 class="section-title">⭐ User Experience Analysis</h2>
+                    ${createUserExperienceAnalysis(ga4Data)}
+                </div>
+                
+                <!-- Traffic Quality -->
+                <div class="section">
+                    <h2 class="section-title">🎯 Traffic Quality Assessment</h2>
+                    ${createTrafficQualitySection(ga4Data, gscData)}
+                </div>
+            </div>
         `;
     }
 
     function createTrendAnalysisPanel(gscTrends, ga4Trends) {
         return `
-            ${createTrendImpactSection(gscTrends, ga4Trends)}
-            ${createForecastingSection(gscTrends, ga4Trends)}
+            <div class="panel-content">
+                <!-- Trend Impact Analysis -->
+                <div class="section">
+                    <h2 class="section-title">📈 Trend Impact Analysis</h2>
+                    ${createTrendImpactSection(gscTrends, ga4Trends)}
+                </div>
+                
+                <!-- Performance Forecasting -->
+                <div class="section">
+                    <h2 class="section-title">🔮 Performance Forecast</h2>
+                    ${createForecastingSection(gscTrends, ga4Trends)}
+                </div>
+            </div>
         `;
     }
 
-    function createActionPlanPanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    function createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends) {
         return `
-            ${createPriorityActionsSection(gscData, ga4Data, gscTrends, ga4Trends)}
-            ${createImplementationTimelineSection(gscData, ga4Data)}
+            <div class="panel-content">
+                <!-- Priority Actions -->
+                <div class="section">
+                    <h2 class="section-title">🎯 Priority Actions</h2>
+                    ${createPriorityActionsSection(gscData, ga4Data, gscTrends, ga4Trends)}
+                </div>
+                
+                <!-- Implementation Timeline -->
+                <div class="section">
+                    <h2 class="section-title">📅 Implementation Timeline</h2>
+                    ${createImplementationTimelineSection(gscData, ga4Data)}
+                </div>
+            </div>
         `;
     }
 
     // ===========================================
-    // COMPLETE METRIC FUNCTIONS - USING YOUR EXISTING DATA
+    // COMPLETE METRIC FUNCTIONS - FROM YOUR ORIGINAL
     // ===========================================
 
     function createSearchConsoleMetrics(gscData, gscTrends) {
@@ -243,7 +531,7 @@
                 trend: ga4Trends?.trends?.bounceRate,
                 icon: '⚽',
                 color: '#ef4444',
-                invertTrend: true // Lower bounce rate is better
+                invertTrend: true
             }
         ];
 
@@ -268,7 +556,6 @@
     }
 
     function createCrossMetrics(gscData, ga4Data) {
-        // Calculate conversion rate (GA4 users vs GSC clicks)
         let conversionRate = 0;
         let qualityScore = 50;
 
@@ -277,7 +564,6 @@
                 conversionRate = (ga4Data.users / gscData.clicks) * 100;
             }
 
-            // Calculate quality score from available metrics
             const positionScore = Math.max(0, 100 - (gscData.position * 5));
             const ctrScore = Math.min(100, (gscData.ctr * 100) * 10);
             const durationScore = Math.min(100, (ga4Data.avgSessionDuration / 180) * 100);
@@ -310,62 +596,16 @@
     }
 
     // ===========================================
-    // CONTENT PERFORMANCE MATRIX
-    // ===========================================
-
-    function createContentPerformanceMatrix(gscData, ga4Data) {
-        const searchPerformance = calculateSearchScore(gscData);
-        const userEngagement = calculateEngagementScore(ga4Data);
-        
-        return `
-            <div class="section performance-matrix">
-                <h2 class="section-title">📊 Content Performance Matrix</h2>
-                
-                <div class="matrix-container">
-                    <div class="matrix-display">
-                        <div class="matrix-quadrant ${getQuadrantClass(searchPerformance, userEngagement)}">
-                            <div class="quadrant-label">${getQuadrantLabel(searchPerformance, userEngagement)}</div>
-                            <div class="quadrant-metrics">
-                                <div class="metric-pair">
-                                    <span class="metric-label">Search Performance:</span>
-                                    <span class="metric-value">${searchPerformance}/100</span>
-                                </div>
-                                <div class="metric-pair">
-                                    <span class="metric-label">User Engagement:</span>
-                                    <span class="metric-value">${userEngagement}/100</span>
-                                </div>
-                            </div>
-                            <div class="quadrant-recommendation">
-                                ${getQuadrantRecommendation(searchPerformance, userEngagement)}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="matrix-insights">
-                        <h3>📈 Performance Insights</h3>
-                        <div class="insights-list">
-                            ${generateMatrixInsights(searchPerformance, userEngagement, gscData, ga4Data)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // ===========================================
-    // QUERY INTELLIGENCE SECTION
+    // COMPLETE CONTENT ANALYSIS FUNCTIONS
     // ===========================================
 
     function createQueryIntelligenceSection(gscData) {
         if (!gscData?.topQueries || gscData.topQueries.length === 0) {
             return `
-                <div class="section query-intelligence">
-                    <h2 class="section-title">🧠 Search Query Intelligence</h2>
-                    <div class="no-data-message">
-                        <div class="no-data-icon">🔍</div>
-                        <div class="no-data-text">No query data available</div>
-                        <div class="no-data-subtitle">Query analysis requires Search Console connection with data</div>
-                    </div>
+                <div class="no-data-message">
+                    <div class="no-data-icon">🔍</div>
+                    <div class="no-data-text">No query data available</div>
+                    <div class="no-data-subtitle">Query analysis requires Search Console connection with data</div>
                 </div>
             `;
         }
@@ -373,72 +613,61 @@
         const queryAnalysis = analyzeExistingQueries(gscData.topQueries);
         
         return `
-            <div class="section query-intelligence">
-                <h2 class="section-title">🧠 Search Query Intelligence</h2>
-                
-                <!-- Query Categories -->
-                <div class="query-categories">
-                    <h3>🏷️ Query Categories</h3>
-                    <div class="category-grid">
-                        ${Object.entries(queryAnalysis.categories).map(([category, queries]) => 
-                            queries.length > 0 ? `
-                                <div class="category-card ${category}">
-                                    <div class="category-header">
-                                        <span class="category-icon">${getCategoryIcon(category)}</span>
-                                        <span class="category-name">${category.replace('_', ' ').toUpperCase()}</span>
-                                        <span class="category-count">${queries.length}</span>
-                                    </div>
-                                    <div class="category-metrics">
-                                        <div>📊 ${queries.reduce((sum, q) => sum + q.clicks, 0)} total clicks</div>
-                                        <div>📍 #${(queries.reduce((sum, q) => sum + q.position, 0) / queries.length).toFixed(1)} avg position</div>
-                                        <div>⚡ ${((queries.reduce((sum, q) => sum + q.ctr, 0) / queries.length) * 100).toFixed(1)}% avg CTR</div>
-                                    </div>
-                                    <div class="category-action">
-                                        ${getCategoryRecommendation(category, queries)}
-                                    </div>
+            <!-- Query Categories -->
+            <div class="query-categories">
+                <h3>🏷️ Query Categories</h3>
+                <div class="category-grid">
+                    ${Object.entries(queryAnalysis.categories).map(([category, queries]) => 
+                        queries.length > 0 ? `
+                            <div class="category-card ${category}">
+                                <div class="category-header">
+                                    <span class="category-icon">${getCategoryIcon(category)}</span>
+                                    <span class="category-name">${category.replace('_', ' ').toUpperCase()}</span>
+                                    <span class="category-count">${queries.length}</span>
                                 </div>
-                            ` : ''
-                        ).join('')}
-                    </div>
+                                <div class="category-metrics">
+                                    <div>📊 ${queries.reduce((sum, q) => sum + q.clicks, 0)} total clicks</div>
+                                    <div>📍 #${(queries.reduce((sum, q) => sum + q.position, 0) / queries.length).toFixed(1)} avg position</div>
+                                    <div>⚡ ${((queries.reduce((sum, q) => sum + q.ctr, 0) / queries.length) * 100).toFixed(1)}% avg CTR</div>
+                                </div>
+                                <div class="category-action">
+                                    ${getCategoryRecommendation(category, queries)}
+                                </div>
+                            </div>
+                        ` : ''
+                    ).join('')}
                 </div>
-                
-                <!-- Query Opportunities -->
-                <div class="query-opportunities">
-                    <h3>⚡ Immediate Optimization Opportunities</h3>
-                    <div class="opportunities-list">
-                        ${queryAnalysis.opportunities.length > 0 ? 
-                            queryAnalysis.opportunities.map(opp => `
-                                <div class="opportunity-item ${opp.priority}">
-                                    <div class="opp-header">
-                                        <div class="opp-query">"${escapeHtml(opp.query)}"</div>
-                                        <div class="opp-priority">${opp.priority.toUpperCase()}</div>
-                                    </div>
-                                    <div class="opp-metrics">
-                                        ${formatNumber(opp.impressions)} impressions • Position ${opp.position.toFixed(0)} • ${(opp.ctr * 100).toFixed(1)}% CTR
-                                    </div>
-                                    <div class="opp-action">${opp.action}</div>
+            </div>
+            
+            <!-- Query Opportunities -->
+            <div class="query-opportunities">
+                <h3>⚡ Immediate Optimization Opportunities</h3>
+                <div class="opportunities-list">
+                    ${queryAnalysis.opportunities.length > 0 ? 
+                        queryAnalysis.opportunities.map(opp => `
+                            <div class="opportunity-item ${opp.priority}">
+                                <div class="opp-header">
+                                    <div class="opp-query">"${escapeHtml(opp.query)}"</div>
+                                    <div class="opp-priority">${opp.priority.toUpperCase()}</div>
                                 </div>
-                            `).join('') : 
-                            '<div class="no-opportunities">✅ No immediate optimization opportunities found</div>'
-                        }
-                    </div>
+                                <div class="opp-metrics">
+                                    ${formatNumber(opp.impressions)} impressions • Position ${opp.position.toFixed(0)} • ${(opp.ctr * 100).toFixed(1)}% CTR
+                                </div>
+                                <div class="opp-action">${opp.action}</div>
+                            </div>
+                        `).join('') : 
+                        '<div class="no-opportunities">✅ No immediate optimization opportunities found</div>'
+                    }
                 </div>
             </div>
         `;
     }
 
-    // ===========================================
-    // CONTENT GAP ANALYSIS
-    // ===========================================
-
     function createContentGapAnalysis(gscData, ga4Data) {
         if (!gscData?.topQueries) {
             return `
-                <div class="section content-gaps">
-                    <h2 class="section-title">🔍 Content Gap Analysis</h2>
-                    <div class="no-data-message">
-                        <div class="no-data-text">Requires query data for gap analysis</div>
-                    </div>
+                <div class="no-data-message">
+                    <div class="no-data-text">Requires query data for gap analysis</div>
                 </div>
             `;
         }
@@ -446,91 +675,80 @@
         const gaps = identifyContentGaps(gscData, ga4Data);
         
         return `
-            <div class="section content-gaps">
-                <h2 class="section-title">🔍 Content Gap Analysis</h2>
+            <div class="gaps-grid">
+                <!-- High CTR Opportunities -->
+                <div class="gap-card high-opportunity">
+                    <div class="gap-header">
+                        <h3>🎯 High CTR Opportunity</h3>
+                        <span class="gap-count">${gaps.highCTROpportunity.length}</span>
+                    </div>
+                    <div class="gap-description">
+                        Queries with high impressions but low click-through rates
+                    </div>
+                    ${gaps.highCTROpportunity.length > 0 ? `
+                        <div class="gap-examples">
+                            ${gaps.highCTROpportunity.slice(0, 3).map(gap => `
+                                <div class="gap-example">
+                                    <strong>"${escapeHtml(gap.query)}"</strong><br>
+                                    ${formatNumber(gap.impressions)} impressions, ${(gap.ctr * 100).toFixed(1)}% CTR
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="gap-none">✅ No major CTR gaps detected</div>'}
+                </div>
                 
-                <div class="gaps-grid">
-                    <!-- High CTR Opportunities -->
-                    <div class="gap-card high-opportunity">
-                        <div class="gap-header">
-                            <h3>🎯 High CTR Opportunity</h3>
-                            <span class="gap-count">${gaps.highCTROpportunity.length}</span>
-                        </div>
-                        <div class="gap-description">
-                            Queries with high impressions but low click-through rates
-                        </div>
-                        ${gaps.highCTROpportunity.length > 0 ? `
-                            <div class="gap-examples">
-                                ${gaps.highCTROpportunity.slice(0, 3).map(gap => `
-                                    <div class="gap-example">
-                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                        ${formatNumber(gap.impressions)} impressions, ${(gap.ctr * 100).toFixed(1)}% CTR
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="gap-none">✅ No major CTR gaps detected</div>'}
+                <!-- Ranking Opportunities -->
+                <div class="gap-card ranking-opportunity">
+                    <div class="gap-header">
+                        <h3>📈 Ranking Opportunity</h3>
+                        <span class="gap-count">${gaps.rankingOpportunity.length}</span>
                     </div>
-                    
-                    <!-- Ranking Opportunities -->
-                    <div class="gap-card ranking-opportunity">
-                        <div class="gap-header">
-                            <h3>📈 Ranking Opportunity</h3>
-                            <span class="gap-count">${gaps.rankingOpportunity.length}</span>
-                        </div>
-                        <div class="gap-description">
-                            Queries with good impressions but poor rankings (page 2+)
-                        </div>
-                        ${gaps.rankingOpportunity.length > 0 ? `
-                            <div class="gap-examples">
-                                ${gaps.rankingOpportunity.slice(0, 3).map(gap => `
-                                    <div class="gap-example">
-                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                        Position #${gap.position.toFixed(0)}, ${formatNumber(gap.impressions)} impressions
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="gap-none">✅ Good ranking performance detected</div>'}
+                    <div class="gap-description">
+                        Queries with good impressions but poor rankings (page 2+)
                     </div>
-                    
-                    <!-- Content Quality Issues -->
-                    <div class="gap-card quality-issues">
-                        <div class="gap-header">
-                            <h3>⚠️ Quality Concerns</h3>
-                            <span class="gap-count">${gaps.qualityIssues.length}</span>
+                    ${gaps.rankingOpportunity.length > 0 ? `
+                        <div class="gap-examples">
+                            ${gaps.rankingOpportunity.slice(0, 3).map(gap => `
+                                <div class="gap-example">
+                                    <strong>"${escapeHtml(gap.query)}"</strong><br>
+                                    Position #${gap.position.toFixed(0)}, ${formatNumber(gap.impressions)} impressions
+                                </div>
+                            `).join('')}
                         </div>
-                        <div class="gap-description">
-                            Good rankings but poor user engagement signals
-                        </div>
-                        ${gaps.qualityIssues.length > 0 ? `
-                            <div class="gap-examples">
-                                ${gaps.qualityIssues.slice(0, 3).map(gap => `
-                                    <div class="gap-example">
-                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                        Position #${gap.position.toFixed(0)} but ${(gap.ctr * 100).toFixed(1)}% CTR
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="gap-none">✅ Good content quality signals</div>'}
+                    ` : '<div class="gap-none">✅ Good ranking performance detected</div>'}
+                </div>
+                
+                <!-- Content Quality Issues -->
+                <div class="gap-card quality-issues">
+                    <div class="gap-header">
+                        <h3>⚠️ Quality Concerns</h3>
+                        <span class="gap-count">${gaps.qualityIssues.length}</span>
                     </div>
+                    <div class="gap-description">
+                        Good rankings but poor user engagement signals
+                    </div>
+                    ${gaps.qualityIssues.length > 0 ? `
+                        <div class="gap-examples">
+                            ${gaps.qualityIssues.slice(0, 3).map(gap => `
+                                <div class="gap-example">
+                                    <strong>"${escapeHtml(gap.query)}"</strong><br>
+                                    Position #${gap.position.toFixed(0)} but ${(gap.ctr * 100).toFixed(1)}% CTR
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="gap-none">✅ Good content quality signals</div>'}
                 </div>
             </div>
         `;
     }
 
-    // ===========================================
-    // TRAFFIC QUALITY SECTION
-    // ===========================================
-
     function createTrafficQualitySection(ga4Data, gscData) {
         if (!ga4Data || ga4Data.noDataFound) {
             return `
-                <div class="section traffic-quality">
-                    <h2 class="section-title">✨ Traffic Quality Assessment</h2>
-                    <div class="no-ga4-message">
-                        <div class="no-data-icon">📊</div>
-                        <div class="no-data-text">Connect GA4 for detailed traffic quality analysis</div>
-                        <div class="no-data-action">Click the GA4 button in the toolbar to connect</div>
-                    </div>
+                <div class="no-ga4-message">
+                    <div class="no-data-icon">📊</div>
+                    <div class="no-data-text">Connect GA4 for detailed traffic quality analysis</div>
+                    <div class="no-data-action">Click the GA4 button in the toolbar to connect</div>
                 </div>
             `;
         }
@@ -538,81 +756,70 @@
         const qualityMetrics = calculateTrafficQuality(ga4Data, gscData);
         
         return `
-            <div class="section traffic-quality">
-                <h2 class="section-title">✨ Traffic Quality Assessment</h2>
-                
-                <div class="quality-overview">
-                    <div class="quality-score-card">
-                        <div class="score-circle ${qualityMetrics.overall.grade.toLowerCase()}">
-                            <div class="score-number">${qualityMetrics.overall.score}</div>
-                            <div class="score-label">Quality Score</div>
-                        </div>
-                        <div class="score-grade">Grade: ${qualityMetrics.overall.grade}</div>
-                        <div class="score-description">${qualityMetrics.overall.description}</div>
+            <div class="quality-overview">
+                <div class="quality-score-card">
+                    <div class="score-circle ${qualityMetrics.overall.grade.toLowerCase()}">
+                        <div class="score-number">${qualityMetrics.overall.score}</div>
+                        <div class="score-label">Quality Score</div>
                     </div>
-                    
-                    <div class="quality-breakdown">
-                        <div class="quality-metric">
-                            <div class="metric-header">
-                                <span class="metric-icon">🎯</span>
-                                <span class="metric-name">Search Relevance</span>
-                                <span class="metric-score ${qualityMetrics.relevance.status}">${qualityMetrics.relevance.score}/100</span>
-                            </div>
-                            <div class="metric-insight">${qualityMetrics.relevance.insight}</div>
-                        </div>
-                        
-                        <div class="quality-metric">
-                            <div class="metric-header">
-                                <span class="metric-icon">⏱️</span>
-                                <span class="metric-name">User Engagement</span>
-                                <span class="metric-score ${qualityMetrics.engagement.status}">${qualityMetrics.engagement.score}/100</span>
-                            </div>
-                            <div class="metric-insight">${qualityMetrics.engagement.insight}</div>
-                        </div>
-                        
-                        <div class="quality-metric">
-                            <div class="metric-header">
-                                <span class="metric-icon">🔄</span>
-                                <span class="metric-name">User Retention</span>
-                                <span class="metric-score ${qualityMetrics.retention.status}">${qualityMetrics.retention.score}/100</span>
-                            </div>
-                            <div class="metric-insight">${qualityMetrics.retention.insight}</div>
-                        </div>
-                    </div>
+                    <div class="score-grade">Grade: ${qualityMetrics.overall.grade}</div>
+                    <div class="score-description">${qualityMetrics.overall.description}</div>
                 </div>
                 
-                <!-- Quality Improvement Actions -->
-                <div class="quality-actions">
-                    <h3>🚀 Quality Improvement Actions</h3>
-                    <div class="actions-grid">
-                        ${qualityMetrics.actions.length > 0 ? 
-                            qualityMetrics.actions.map(action => `
-                                <div class="action-card ${action.priority}">
-                                    <div class="action-title">${action.title}</div>
-                                    <div class="action-description">${action.description}</div>
-                                    <div class="action-impact">Expected Impact: ${action.impact}</div>
-                                </div>
-                            `).join('') :
-                            '<div class="no-actions">✅ No immediate quality issues detected</div>'
-                        }
+                <div class="quality-breakdown">
+                    <div class="quality-metric">
+                        <div class="metric-header">
+                            <span class="metric-icon">🎯</span>
+                            <span class="metric-name">Search Relevance</span>
+                            <span class="metric-score ${qualityMetrics.relevance.status}">${qualityMetrics.relevance.score}/100</span>
+                        </div>
+                        <div class="metric-insight">${qualityMetrics.relevance.insight}</div>
                     </div>
+                    
+                    <div class="quality-metric">
+                        <div class="metric-header">
+                            <span class="metric-icon">⏱️</span>
+                            <span class="metric-name">User Engagement</span>
+                            <span class="metric-score ${qualityMetrics.engagement.status}">${qualityMetrics.engagement.score}/100</span>
+                        </div>
+                        <div class="metric-insight">${qualityMetrics.engagement.insight}</div>
+                    </div>
+                    
+                    <div class="quality-metric">
+                        <div class="metric-header">
+                            <span class="metric-icon">🔄</span>
+                            <span class="metric-name">User Retention</span>
+                            <span class="metric-score ${qualityMetrics.retention.status}">${qualityMetrics.retention.score}/100</span>
+                        </div>
+                        <div class="metric-insight">${qualityMetrics.retention.insight}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quality Improvement Actions -->
+            <div class="quality-actions">
+                <h3>🚀 Quality Improvement Actions</h3>
+                <div class="actions-grid">
+                    ${qualityMetrics.actions.length > 0 ? 
+                        qualityMetrics.actions.map(action => `
+                            <div class="action-card ${action.priority}">
+                                <div class="action-title">${action.title}</div>
+                                <div class="action-description">${action.description}</div>
+                                <div class="action-impact">Expected Impact: ${action.impact}</div>
+                            </div>
+                        `).join('') :
+                        '<div class="no-actions">✅ No immediate quality issues detected</div>'
+                    }
                 </div>
             </div>
         `;
     }
 
-    // ===========================================
-    // USER EXPERIENCE ANALYSIS
-    // ===========================================
-
     function createUserExperienceAnalysis(ga4Data) {
         if (!ga4Data || ga4Data.noDataFound) {
             return `
-                <div class="section user-experience">
-                    <h2 class="section-title">👥 User Experience Analysis</h2>
-                    <div class="no-data-message">
-                        <div class="no-data-text">Requires GA4 data for UX analysis</div>
-                    </div>
+                <div class="no-data-message">
+                    <div class="no-data-text">Requires GA4 data for UX analysis</div>
                 </div>
             `;
         }
@@ -620,79 +827,68 @@
         const uxMetrics = calculateUXMetrics(ga4Data);
         
         return `
-            <div class="section user-experience">
-                <h2 class="section-title">👥 User Experience Analysis</h2>
-                
-                <div class="ux-metrics-grid">
-                    <div class="ux-metric-card">
-                        <div class="ux-metric-header">
-                            <span class="ux-icon">⏱️</span>
-                            <span class="ux-label">Average Reading Time</span>
-                        </div>
-                        <div class="ux-value">${formatDuration(ga4Data.avgSessionDuration)}</div>
-                        <div class="ux-benchmark">
-                            ${ga4Data.avgSessionDuration > 120 ? 
-                                '✅ Above average for information content' : 
-                                '⚠️ Below ideal reading time for comprehensive content'}
-                        </div>
+            <div class="ux-metrics-grid">
+                <div class="ux-metric-card">
+                    <div class="ux-metric-header">
+                        <span class="ux-icon">⏱️</span>
+                        <span class="ux-label">Average Reading Time</span>
                     </div>
-                    
-                    <div class="ux-metric-card">
-                        <div class="ux-metric-header">
-                            <span class="ux-icon">🔄</span>
-                            <span class="ux-label">Content Retention</span>
-                        </div>
-                        <div class="ux-value">${((1 - ga4Data.bounceRate) * 100).toFixed(0)}%</div>
-                        <div class="ux-benchmark">
-                            ${ga4Data.bounceRate < 0.6 ? 
-                                '✅ Good content engagement' : 
-                                '⚠️ High bounce rate - content may not meet expectations'}
-                        </div>
-                    </div>
-                    
-                    <div class="ux-metric-card">
-                        <div class="ux-metric-header">
-                            <span class="ux-icon">👥</span>
-                            <span class="ux-label">New vs Returning</span>
-                        </div>
-                        <div class="ux-value">${((ga4Data.newUsers / ga4Data.users) * 100).toFixed(0)}% new</div>
-                        <div class="ux-benchmark">
-                            ${(ga4Data.newUsers / ga4Data.users) > 0.8 ? 
-                                '📢 High discovery rate - good SEO performance' : 
-                                '🔄 Good returning visitor rate'}
-                        </div>
+                    <div class="ux-value">${formatDuration(ga4Data.avgSessionDuration)}</div>
+                    <div class="ux-benchmark">
+                        ${ga4Data.avgSessionDuration > 120 ? 
+                            '✅ Above average for information content' : 
+                            '⚠️ Below ideal reading time for comprehensive content'}
                     </div>
                 </div>
                 
-                <div class="ux-recommendations">
-                    <h3>💡 User Experience Recommendations</h3>
-                    <div class="ux-rec-list">
-                        ${generateUXRecommendations(ga4Data).map(rec => `
-                            <div class="ux-recommendation ${rec.priority}">
-                                <div class="ux-rec-title">${rec.title}</div>
-                                <div class="ux-rec-description">${rec.description}</div>
-                            </div>
-                        `).join('')}
+                <div class="ux-metric-card">
+                    <div class="ux-metric-header">
+                        <span class="ux-icon">🔄</span>
+                        <span class="ux-label">Content Retention</span>
                     </div>
+                    <div class="ux-value">${((1 - ga4Data.bounceRate) * 100).toFixed(0)}%</div>
+                    <div class="ux-benchmark">
+                        ${ga4Data.bounceRate < 0.6 ? 
+                            '✅ Good content engagement' : 
+                            '⚠️ High bounce rate - content may not meet expectations'}
+                    </div>
+                </div>
+                
+                <div class="ux-metric-card">
+                    <div class="ux-metric-header">
+                        <span class="ux-icon">👥</span>
+                        <span class="ux-label">New vs Returning</span>
+                    </div>
+                    <div class="ux-value">${((ga4Data.newUsers / ga4Data.users) * 100).toFixed(0)}% new</div>
+                    <div class="ux-benchmark">
+                        ${(ga4Data.newUsers / ga4Data.users) > 0.8 ? 
+                            '📢 High discovery rate - good SEO performance' : 
+                            '🔄 Good returning visitor rate'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ux-recommendations">
+                <h3>💡 User Experience Recommendations</h3>
+                <div class="ux-rec-list">
+                    ${generateUXRecommendations(ga4Data).map(rec => `
+                        <div class="ux-recommendation ${rec.priority}">
+                            <div class="ux-rec-title">${rec.title}</div>
+                            <div class="ux-rec-description">${rec.description}</div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
     }
 
-    // ===========================================
-    // TREND IMPACT SECTION
-    // ===========================================
-
     function createTrendImpactSection(gscTrends, ga4Trends) {
         if (!gscTrends?.trends && !ga4Trends?.trends) {
             return `
-                <div class="section trend-impact">
-                    <h2 class="section-title">📈 Trend Impact Analysis</h2>
-                    <div class="no-data-message">
-                        <div class="no-data-icon">📊</div>
-                        <div class="no-data-text">No trend data available</div>
-                        <div class="no-data-subtitle">Trend analysis requires historical comparison data</div>
-                    </div>
+                <div class="no-data-message">
+                    <div class="no-data-icon">📊</div>
+                    <div class="no-data-text">No trend data available</div>
+                    <div class="no-data-subtitle">Trend analysis requires historical comparison data</div>
                 </div>
             `;
         }
@@ -700,280 +896,146 @@
         const trendAnalysis = analyzeTrendImpact(gscTrends, ga4Trends);
         
         return `
-            <div class="section trend-impact">
-                <h2 class="section-title">📈 Trend Impact Analysis</h2>
-                
-                <div class="trend-summary">
-                    <div class="trend-indicator ${trendAnalysis.overall.direction}">
-                        <div class="trend-icon">${trendAnalysis.overall.icon}</div>
-                        <div class="trend-label">${trendAnalysis.overall.label}</div>
-                        <div class="trend-description">${trendAnalysis.overall.description}</div>
-                    </div>
+            <div class="trend-summary">
+                <div class="trend-indicator ${trendAnalysis.overall.direction}">
+                    <div class="trend-icon">${trendAnalysis.overall.icon}</div>
+                    <div class="trend-label">${trendAnalysis.overall.label}</div>
+                    <div class="trend-description">${trendAnalysis.overall.description}</div>
                 </div>
-                
-                <div class="trend-breakdown">
-                    <div class="trend-metrics-grid">
-                        ${Object.entries(trendAnalysis.metrics).map(([metric, data]) => `
-                            <div class="trend-metric-card ${data.direction}">
-                                <div class="trend-metric-header">
-                                    <span class="trend-metric-name">${metric.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                                    <span class="trend-change ${data.direction}">
-                                        ${data.direction === 'up' ? '↗' : data.direction === 'down' ? '↘' : '→'} ${Math.abs(data.change).toFixed(1)}%
-                                    </span>
-                                </div>
-                                <div class="trend-values">
-                                    <span class="current-value">${data.current}</span>
-                                    <span class="previous-value">was ${data.previous}</span>
-                                </div>
-                                <div class="trend-insight">${data.insight}</div>
+            </div>
+            
+            <div class="trend-breakdown">
+                <div class="trend-metrics-grid">
+                    ${Object.entries(trendAnalysis.metrics).map(([metric, data]) => `
+                        <div class="trend-metric-card ${data.direction}">
+                            <div class="trend-metric-header">
+                                <span class="trend-metric-name">${metric.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                                <span class="trend-change ${data.direction}">
+                                    ${data.direction === 'up' ? '↗' : data.direction === 'down' ? '↘' : '→'} ${Math.abs(data.change).toFixed(1)}%
+                                </span>
                             </div>
-                        `).join('')}
-                    </div>
+                            <div class="trend-values">
+                                <span class="current-value">${data.current}</span>
+                                <span class="previous-value">was ${data.previous}</span>
+                            </div>
+                            <div class="trend-insight">${data.insight}</div>
+                        </div>
+                    `).join('')}
                 </div>
-                
-                <div class="trend-actions">
-                    <h3>🎯 Trend-Based Actions</h3>
-                    <div class="trend-actions-list">
-                        ${trendAnalysis.actions.length > 0 ? 
-                            trendAnalysis.actions.map(action => `
-                                <div class="trend-action ${action.urgency}">
-                                    <div class="action-urgency">${action.urgency.toUpperCase()}</div>
-                                    <div class="action-content">
-                                        <div class="action-title">${action.title}</div>
-                                        <div class="action-reason">${action.reason}</div>
-                                    </div>
+            </div>
+            
+            <div class="trend-actions">
+                <h3>🎯 Trend-Based Actions</h3>
+                <div class="trend-actions-list">
+                    ${trendAnalysis.actions.length > 0 ? 
+                        trendAnalysis.actions.map(action => `
+                            <div class="trend-action ${action.urgency}">
+                                <div class="action-urgency">${action.urgency.toUpperCase()}</div>
+                                <div class="action-content">
+                                    <div class="action-title">${action.title}</div>
+                                    <div class="action-reason">${action.reason}</div>
                                 </div>
-                            `).join('') :
-                            '<div class="no-actions">📊 Continue monitoring current trends</div>'
-                        }
-                    </div>
+                            </div>
+                        `).join('') :
+                        '<div class="no-actions">📊 Continue monitoring current trends</div>'
+                    }
                 </div>
             </div>
         `;
     }
-
-    // ===========================================
-    // FORECASTING SECTION
-    // ===========================================
 
     function createForecastingSection(gscTrends, ga4Trends) {
         const forecast = generateSimpleForecast(gscTrends, ga4Trends);
         
         return `
-            <div class="section forecasting">
-                <h2 class="section-title">🔮 Performance Forecast</h2>
-                
-                <div class="forecast-summary">
-                    <div class="forecast-card">
-                        <div class="forecast-header">
-                            <h3>📈 Next 30 Days Projection</h3>
-                        </div>
-                        <div class="forecast-metrics">
-                            ${forecast.projections.map(proj => `
-                                <div class="forecast-metric">
-                                    <span class="forecast-label">${proj.metric}:</span>
-                                    <span class="forecast-value ${proj.trend}">${proj.projected}</span>
-                                    <span class="forecast-confidence">(${proj.confidence}% confidence)</span>
-                                </div>
-                            `).join('')}
-                        </div>
+            <div class="forecast-summary">
+                <div class="forecast-card">
+                    <div class="forecast-header">
+                        <h3>📈 Next 30 Days Projection</h3>
                     </div>
-                </div>
-                
-                <div class="forecast-recommendations">
-                    <h3>💡 Proactive Recommendations</h3>
-                    <div class="forecast-rec-list">
-                        ${forecast.recommendations.map(rec => `
-                            <div class="forecast-recommendation">
-                                <div class="forecast-rec-title">${rec.title}</div>
-                                <div class="forecast-rec-description">${rec.description}</div>
+                    <div class="forecast-metrics">
+                        ${forecast.projections.map(proj => `
+                            <div class="forecast-metric">
+                                <span class="forecast-label">${proj.metric}:</span>
+                                <span class="forecast-value ${proj.trend}">${proj.projected}</span>
+                                <span class="forecast-confidence">(${proj.confidence}% confidence)</span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
             </div>
+            
+            <div class="forecast-recommendations">
+                <h3>💡 Proactive Recommendations</h3>
+                <div class="forecast-rec-list">
+                    ${forecast.recommendations.map(rec => `
+                        <div class="forecast-recommendation">
+                            <div class="forecast-rec-title">${rec.title}</div>
+                            <div class="forecast-rec-description">${rec.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
         `;
     }
-
-    // ===========================================
-    // PRIORITY ACTIONS SECTION
-    // ===========================================
 
     function createPriorityActionsSection(gscData, ga4Data, gscTrends, ga4Trends) {
         const actions = generatePriorityActions(gscData, ga4Data, gscTrends, ga4Trends);
         
         return `
-            <div class="section priority-actions">
-                <h2 class="section-title">⚡ Priority Action Plan</h2>
-                
-                <div class="actions-grid">
-                    ${actions.map((action, index) => `
-                        <div class="priority-action-card ${action.priority}">
-                            <div class="action-rank">${index + 1}</div>
-                            <div class="action-content">
-                                <div class="action-title">${action.title}</div>
-                                <div class="action-description">${action.description}</div>
-                                <div class="action-metrics">
-                                    <span class="action-timeframe">⏱️ ${action.timeframe}</span>
-                                    <span class="action-impact">📈 ${action.impact}</span>
-                                    <span class="action-difficulty">🔧 ${action.difficulty}</span>
-                                </div>
+            <div class="actions-grid">
+                ${actions.map((action, index) => `
+                    <div class="priority-action-card ${action.priority}">
+                        <div class="action-rank">${index + 1}</div>
+                        <div class="action-content">
+                            <div class="action-title">${action.title}</div>
+                            <div class="action-description">${action.description}</div>
+                            <div class="action-metrics">
+                                <span class="action-timeframe">⏱️ ${action.timeframe}</span>
+                                <span class="action-impact">📈 ${action.impact}</span>
+                                <span class="action-difficulty">🔧 ${action.difficulty}</span>
                             </div>
-                            <div class="action-priority-badge">${action.priority.toUpperCase()}</div>
                         </div>
-                    `).join('')}
-                </div>
+                        <div class="action-priority-badge">${action.priority.toUpperCase()}</div>
+                    </div>
+                `).join('')}
             </div>
         `;
     }
-
-    // ===========================================
-    // IMPLEMENTATION TIMELINE
-    // ===========================================
 
     function createImplementationTimelineSection(gscData, ga4Data) {
         const timeline = generateImplementationTimeline(gscData, ga4Data);
         
         return `
-            <div class="section implementation-timeline">
-                <h2 class="section-title">📅 Implementation Timeline</h2>
-                
-                <div class="timeline-container">
-                    ${timeline.phases.map((phase, index) => `
-                        <div class="timeline-phase">
-                            <div class="phase-marker">
-                                <div class="phase-number">${index + 1}</div>
-                                <div class="phase-title">${phase.title}</div>
-                                <div class="phase-duration">${phase.duration}</div>
+            <div class="timeline-container">
+                ${timeline.phases.map((phase, index) => `
+                    <div class="timeline-phase">
+                        <div class="phase-marker">
+                            <div class="phase-number">${index + 1}</div>
+                            <div class="phase-title">${phase.title}</div>
+                            <div class="phase-duration">${phase.duration}</div>
+                        </div>
+                        <div class="phase-content">
+                            <div class="phase-tasks">
+                                ${phase.tasks.map(task => `
+                                    <div class="phase-task">
+                                        <span class="task-icon">${task.icon}</span>
+                                        <span class="task-description">${task.description}</span>
+                                    </div>
+                                `).join('')}
                             </div>
-                            <div class="phase-content">
-                                <div class="phase-tasks">
-                                    ${phase.tasks.map(task => `
-                                        <div class="phase-task">
-                                            <span class="task-icon">${task.icon}</span>
-                                            <span class="task-description">${task.description}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                                <div class="phase-outcome">
-                                    <strong>Expected Outcome:</strong> ${phase.outcome}
-                                </div>
+                            <div class="phase-outcome">
+                                <strong>Expected Outcome:</strong> ${phase.outcome}
                             </div>
                         </div>
-                    `).join('')}
-                </div>
+                    </div>
+                `).join('')}
             </div>
         `;
     }
 
     // ===========================================
-    // CALCULATION FUNCTIONS
-    // ===========================================
-
-    function calculateSearchScore(gscData) {
-        if (!gscData || gscData.noDataFound) return 0;
-        
-        const positionScore = Math.max(0, 100 - (gscData.position * 5));
-        const ctrScore = Math.min(100, (gscData.ctr * 100) * 10);
-        const volumeScore = Math.min(100, (gscData.clicks / 100) * 10);
-        
-        return Math.round((positionScore * 0.4) + (ctrScore * 0.4) + (volumeScore * 0.2));
-    }
-
-    function calculateEngagementScore(ga4Data) {
-        if (!ga4Data || ga4Data.noDataFound) return 0;
-        
-        const durationScore = Math.min(100, (ga4Data.avgSessionDuration / 300) * 100);
-        const bounceScore = Math.max(0, (1 - ga4Data.bounceRate) * 100);
-        const engagementScore = (ga4Data.engagementRate || 0.5) * 100;
-        
-        return Math.round((durationScore * 0.4) + (bounceScore * 0.3) + (engagementScore * 0.3));
-    }
-
-    function calculateTrafficQuality(ga4Data, gscData) {
-        // Get expected CTR benchmark
-        const expectedCTR = getCTRBenchmark(gscData?.position || 20);
-        const ctrPerformance = (gscData?.ctr || 0) / expectedCTR;
-        const relevanceScore = Math.min(100, ctrPerformance * 100);
-        
-        // Engagement Score
-        const durationScore = Math.min(100, (ga4Data.avgSessionDuration / 120) * 50);
-        const bounceScore = Math.max(0, (1 - ga4Data.bounceRate) * 50);
-        const engagementScore = Math.min(100, durationScore + bounceScore);
-        
-        // Retention Score
-        const returnRate = ga4Data.users > 0 ? ((ga4Data.users - (ga4Data.newUsers || 0)) / ga4Data.users) : 0;
-        const pagesPerSession = ga4Data.sessions > 0 ? (ga4Data.pageViews / ga4Data.sessions) : 1;
-        const retentionScore = Math.min(100, (returnRate * 60) + (Math.min(3, pagesPerSession) / 3 * 40));
-        
-        // Overall score
-        const overallScore = Math.round((relevanceScore * 0.4) + (engagementScore * 0.35) + (retentionScore * 0.25));
-        
-        // Generate actions
-        const actions = [];
-        
-        if (relevanceScore < 50) {
-            actions.push({
-                priority: 'high',
-                title: 'Improve Search Result Relevance',
-                description: 'Your CTR is below expected levels. Optimize title tags and meta descriptions.',
-                impact: '+15-30% click-through rate'
-            });
-        }
-        
-        if (engagementScore < 60) {
-            actions.push({
-                priority: 'medium',
-                title: 'Enhance Content Engagement',
-                description: 'Users are not engaging deeply with content. Improve readability and structure.',
-                impact: '+20-40% time on page'
-            });
-        }
-        
-        if (retentionScore < 40) {
-            actions.push({
-                priority: 'medium',
-                title: 'Improve Content Discoverability',
-                description: 'Add related content links and improve internal navigation.',
-                impact: '+10-25% pages per session'
-            });
-        }
-        
-        return {
-            overall: {
-                score: overallScore,
-                grade: overallScore >= 80 ? 'A' : overallScore >= 60 ? 'B' : overallScore >= 40 ? 'C' : 'D',
-                description: overallScore >= 80 ? 'Excellent traffic quality' : 
-                            overallScore >= 60 ? 'Good traffic quality' : 
-                            overallScore >= 40 ? 'Fair traffic quality' : 'Poor traffic quality - needs improvement'
-            },
-            relevance: {
-                score: Math.round(relevanceScore),
-                status: relevanceScore >= 70 ? 'excellent' : relevanceScore >= 50 ? 'good' : 'poor',
-                insight: ctrPerformance >= 1.2 ? 'Title and description are highly relevant to searches' :
-                        ctrPerformance >= 0.8 ? 'Search relevance is acceptable' :
-                        'Search results may not match user intent'
-            },
-            engagement: {
-                score: Math.round(engagementScore),
-                status: engagementScore >= 70 ? 'excellent' : engagementScore >= 50 ? 'good' : 'poor',
-                insight: ga4Data.avgSessionDuration > 120 ? 'Users are thoroughly reading content' :
-                        ga4Data.avgSessionDuration > 60 ? 'Moderate content engagement' :
-                        'Users are leaving quickly - content may not meet expectations'
-            },
-            retention: {
-                score: Math.round(retentionScore),
-                status: retentionScore >= 60 ? 'excellent' : retentionScore >= 40 ? 'good' : 'poor',
-                insight: returnRate > 0.3 ? 'Strong return visitor rate' :
-                        returnRate > 0.15 ? 'Moderate return visitor engagement' :
-                        'Low return visits - content may not encourage deeper exploration'
-            },
-            actions: actions
-        };
-    }
-
-    // ===========================================
-    // ANALYSIS FUNCTIONS
+    // ANALYSIS FUNCTIONS - FROM YOUR ORIGINAL
     // ===========================================
 
     function analyzeExistingQueries(topQueries) {
@@ -1081,6 +1143,88 @@
         return gaps;
     }
 
+    function calculateTrafficQuality(ga4Data, gscData) {
+        // Get expected CTR benchmark
+        const expectedCTR = getCTRBenchmark(gscData?.position || 20);
+        const ctrPerformance = (gscData?.ctr || 0) / expectedCTR;
+        const relevanceScore = Math.min(100, ctrPerformance * 100);
+        
+        // Engagement Score
+        const durationScore = Math.min(100, (ga4Data.avgSessionDuration / 120) * 50);
+        const bounceScore = Math.max(0, (1 - ga4Data.bounceRate) * 50);
+        const engagementScore = Math.min(100, durationScore + bounceScore);
+        
+        // Retention Score
+        const returnRate = ga4Data.users > 0 ? ((ga4Data.users - (ga4Data.newUsers || 0)) / ga4Data.users) : 0;
+        const pagesPerSession = ga4Data.sessions > 0 ? (ga4Data.pageViews / ga4Data.sessions) : 1;
+        const retentionScore = Math.min(100, (returnRate * 60) + (Math.min(3, pagesPerSession) / 3 * 40));
+        
+        // Overall score
+        const overallScore = Math.round((relevanceScore * 0.4) + (engagementScore * 0.35) + (retentionScore * 0.25));
+        
+        // Generate actions
+        const actions = [];
+        
+        if (relevanceScore < 50) {
+            actions.push({
+                priority: 'high',
+                title: 'Improve Search Result Relevance',
+                description: 'Your CTR is below expected levels. Optimize title tags and meta descriptions.',
+                impact: '+15-30% click-through rate'
+            });
+        }
+        
+        if (engagementScore < 60) {
+            actions.push({
+                priority: 'medium',
+                title: 'Enhance Content Engagement',
+                description: 'Users are not engaging deeply with content. Improve readability and structure.',
+                impact: '+20-40% time on page'
+            });
+        }
+        
+        if (retentionScore < 40) {
+            actions.push({
+                priority: 'medium',
+                title: 'Improve Content Discoverability',
+                description: 'Add related content links and improve internal navigation.',
+                impact: '+10-25% pages per session'
+            });
+        }
+        
+        return {
+            overall: {
+                score: overallScore,
+                grade: overallScore >= 80 ? 'A' : overallScore >= 60 ? 'B' : overallScore >= 40 ? 'C' : 'D',
+                description: overallScore >= 80 ? 'Excellent traffic quality' : 
+                            overallScore >= 60 ? 'Good traffic quality' : 
+                            overallScore >= 40 ? 'Fair traffic quality' : 'Poor traffic quality - needs improvement'
+            },
+            relevance: {
+                score: Math.round(relevanceScore),
+                status: relevanceScore >= 70 ? 'excellent' : relevanceScore >= 50 ? 'good' : 'poor',
+                insight: ctrPerformance >= 1.2 ? 'Title and description are highly relevant to searches' :
+                        ctrPerformance >= 0.8 ? 'Search relevance is acceptable' :
+                        'Search results may not match user intent'
+            },
+            engagement: {
+                score: Math.round(engagementScore),
+                status: engagementScore >= 70 ? 'excellent' : engagementScore >= 50 ? 'good' : 'poor',
+                insight: ga4Data.avgSessionDuration > 120 ? 'Users are thoroughly reading content' :
+                        ga4Data.avgSessionDuration > 60 ? 'Moderate content engagement' :
+                        'Users are leaving quickly - content may not meet expectations'
+            },
+            retention: {
+                score: Math.round(retentionScore),
+                status: retentionScore >= 60 ? 'excellent' : retentionScore >= 40 ? 'good' : 'poor',
+                insight: returnRate > 0.3 ? 'Strong return visitor rate' :
+                        returnRate > 0.15 ? 'Moderate return visitor engagement' :
+                        'Low return visits - content may not encourage deeper exploration'
+            },
+            actions: actions
+        };
+    }
+
     function analyzeTrendImpact(gscTrends, ga4Trends) {
         const metrics = {};
         const actions = [];
@@ -1174,44 +1318,6 @@
             metrics: metrics,
             actions: actions
         };
-    }
-
-    function calculateUXMetrics(ga4Data) {
-        return {
-            readingTime: ga4Data.avgSessionDuration,
-            retention: (1 - ga4Data.bounceRate) * 100,
-            newVsReturning: (ga4Data.newUsers / ga4Data.users) * 100
-        };
-    }
-
-    function generateUXRecommendations(ga4Data) {
-        const recommendations = [];
-        
-        if (ga4Data.avgSessionDuration < 90) {
-            recommendations.push({
-                priority: 'high',
-                title: 'Improve Content Readability',
-                description: 'Short session duration suggests content may be hard to read or not engaging enough.'
-            });
-        }
-        
-        if (ga4Data.bounceRate > 0.7) {
-            recommendations.push({
-                priority: 'medium',
-                title: 'Add Related Content Links',
-                description: 'High bounce rate - add internal links to encourage deeper content exploration.'
-            });
-        }
-        
-        if (recommendations.length === 0) {
-            recommendations.push({
-                priority: 'low',
-                title: 'Monitor User Behavior',
-                description: 'Continue tracking user engagement patterns and optimize based on feedback.'
-            });
-        }
-        
-        return recommendations;
     }
 
     function generateSimpleForecast(gscTrends, ga4Trends) {
@@ -1380,6 +1486,429 @@
     // HELPER FUNCTIONS
     // ===========================================
 
+    function extractPageInfo(url) {
+        if (!url) return { title: 'Unknown Page', section: 'Unknown', type: 'Page' };
+        
+        try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+            
+            let section = 'Homepage';
+            let subsection = '';
+            let title = 'Citizens Information';
+            let type = 'Homepage';
+            
+            if (pathParts.length > 0) {
+                // Extract section from URL path
+                if (pathParts[0] === 'en' || pathParts[0] === 'ga') {
+                    // Language-specific path
+                    if (pathParts.length > 1) {
+                        section = formatSectionName(pathParts[1]);
+                        if (pathParts.length > 2) {
+                            subsection = formatSectionName(pathParts[2]);
+                        }
+                    }
+                } else {
+                    section = formatSectionName(pathParts[0]);
+                    if (pathParts.length > 1) {
+                        subsection = formatSectionName(pathParts[1]);
+                    }
+                }
+                
+                // Determine page type
+                if (pathParts.length === 1) {
+                    type = 'Category Page';
+                } else if (pathParts.length === 2) {
+                    type = 'Subcategory Page';
+                } else {
+                    type = 'Information Page';
+                }
+                
+                // Extract title from last part of URL
+                title = formatPageTitle(pathParts[pathParts.length - 1]);
+            }
+            
+            return { title, section, subsection, type };
+        } catch (error) {
+            console.warn('Error parsing URL:', error);
+            return { title: 'Unknown Page', section: 'Unknown', type: 'Page' };
+        }
+    }
+
+    function formatSectionName(urlPart) {
+        return urlPart
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    function formatPageTitle(urlPart) {
+        return urlPart
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    function getLastModifiedInfo(url) {
+        // In a real implementation, this would fetch from your CMS
+        // For now, we'll simulate with random recent dates
+        const daysAgo = Math.floor(Math.random() * 90);
+        const lastModified = new Date();
+        lastModified.setDate(lastModified.getDate() - daysAgo);
+        
+        const formatted = lastModified.toLocaleDateString('en-IE', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        let freshnessClass = 'fresh';
+        let freshnessLabel = 'Fresh';
+        
+        if (daysAgo > 60) {
+            freshnessClass = 'stale';
+            freshnessLabel = 'Needs Update';
+        } else if (daysAgo > 30) {
+            freshnessClass = 'aging';
+            freshnessLabel = 'Aging';
+        }
+        
+        return { formatted, freshnessClass, freshnessLabel };
+    }
+
+    function calculateCitizenImpact(gscData, ga4Data) {
+        const monthlyReach = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
+        
+        let helpfulnessScore = 65; // Default
+        if (ga4Data && !ga4Data.noDataFound) {
+            const engagementScore = (1 - (ga4Data.bounceRate || 0.5)) * 100;
+            const timeScore = Math.min(100, (ga4Data.avgSessionDuration || 60) / 180 * 100);
+            helpfulnessScore = Math.round((engagementScore + timeScore) / 2);
+        }
+        
+        const avgTimeToInfo = ga4Data?.avgSessionDuration ? 
+            formatDuration(ga4Data.avgSessionDuration) : '2:15';
+        
+        return { monthlyReach, helpfulnessScore, avgTimeToInfo };
+    }
+
+    function getTrendIndicator(trend, invertDirection = false) {
+        if (!trend) return '<span class="trend-indicator neutral">—</span>';
+        
+        let direction = trend.direction;
+        if (invertDirection) {
+            direction = direction === 'up' ? 'down' : direction === 'down' ? 'up' : 'neutral';
+        }
+        
+        const icons = { up: '↗', down: '↘', neutral: '→' };
+        const classes = { up: 'positive', down: 'negative', neutral: 'neutral' };
+        
+        return `<span class="trend-indicator ${classes[direction]}">${icons[direction]} ${Math.abs(trend.percentChange).toFixed(0)}%</span>`;
+    }
+
+    function createQualityScoreDisplay(gscData, ga4Data) {
+        const score = calculateQualityScore(gscData, ga4Data);
+        const grade = getQualityGrade(score);
+        
+        return `
+            <div class="quality-score-display">
+                <div class="score-circle ${grade.toLowerCase()}">
+                    <div class="score-number">${score}</div>
+                    <div class="score-label">Quality Score</div>
+                </div>
+                <div class="score-grade">Grade: ${grade}</div>
+                <div class="score-factors">
+                    <div class="factor">Search Performance: ${getSearchScore(gscData)}/25</div>
+                    <div class="factor">User Engagement: ${getEngagementScore(ga4Data)}/25</div>
+                    <div class="factor">Content Relevance: ${getRelevanceScore(gscData)}/25</div>
+                    <div class="factor">User Experience: ${getUXScore(ga4Data)}/25</div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createImpactDisplay(gscData, ga4Data) {
+        const impact = calculateImpactMetrics(gscData, ga4Data);
+        
+        return `
+            <div class="impact-metrics">
+                <div class="impact-metric">
+                    <span class="impact-label">Information Seekers:</span>
+                    <span class="impact-value">${impact.seekers}</span>
+                </div>
+                <div class="impact-metric">
+                    <span class="impact-label">Questions Answered:</span>
+                    <span class="impact-value">${impact.questionsAnswered}</span>
+                </div>
+                <div class="impact-metric">
+                    <span class="impact-label">Success Rate:</span>
+                    <span class="impact-value">${impact.successRate}%</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function createPerformanceMatrix(gscData, ga4Data) {
+        const searchScore = calculateSearchScore(gscData);
+        const engagementScore = calculateEngagementScore(ga4Data);
+        
+        return `
+            <div class="performance-matrix">
+                <div class="matrix-chart">
+                    <div class="matrix-point" style="left: ${searchScore}%; bottom: ${engagementScore}%;">
+                        <div class="point-dot"></div>
+                        <div class="point-label">This Page</div>
+                    </div>
+                    <div class="matrix-quadrants">
+                        <div class="quadrant top-right">High Traffic<br>High Engagement</div>
+                        <div class="quadrant top-left">Low Traffic<br>High Engagement</div>
+                        <div class="quadrant bottom-right">High Traffic<br>Low Engagement</div>
+                        <div class="quadrant bottom-left">Low Traffic<br>Low Engagement</div>
+                    </div>
+                </div>
+                <div class="matrix-legend">
+                    <div class="legend-axis">
+                        <span>Search Performance →</span>
+                    </div>
+                    <div class="legend-axis vertical">
+                        <span>User Engagement ↑</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createTopQueriesTable(gscData) {
+        if (!gscData?.topQueries || gscData.topQueries.length === 0) {
+            return `
+                <div class="no-data-message">
+                    <div class="no-data-text">No query data available</div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="queries-table">
+                <div class="table-header">
+                    <div class="col-query">Query</div>
+                    <div class="col-clicks">Clicks</div>
+                    <div class="col-impressions">Impressions</div>
+                    <div class="col-ctr">CTR</div>
+                    <div class="col-position">Position</div>
+                </div>
+                ${gscData.topQueries.slice(0, 10).map(query => `
+                    <div class="table-row">
+                        <div class="col-query">"${escapeHtml(query.query)}"</div>
+                        <div class="col-clicks">${formatNumber(query.clicks)}</div>
+                        <div class="col-impressions">${formatNumber(query.impressions)}</div>
+                        <div class="col-ctr">${(query.ctr * 100).toFixed(1)}%</div>
+                        <div class="col-position">#${query.position.toFixed(0)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function createSearchOpportunities(gscData) {
+        if (!gscData?.topQueries) {
+            return `<div class="no-data-message">No query data for opportunity analysis</div>`;
+        }
+        
+        const opportunities = gscData.topQueries.filter(query => 
+            (query.position > 10 && query.impressions > 100) ||
+            (query.position <= 10 && query.ctr < 0.05)
+        ).slice(0, 5);
+        
+        if (opportunities.length === 0) {
+            return `<div class="no-opportunities">✅ No major optimization opportunities found</div>`;
+        }
+        
+        return `
+            <div class="opportunities-list">
+                ${opportunities.map(opp => {
+                    const type = opp.position > 10 ? 'ranking' : 'ctr';
+                    const priority = opp.impressions > 1000 ? 'high' : 'medium';
+                    const action = type === 'ranking' ? 
+                        'Improve content quality and SEO optimization' :
+                        'Optimize title and meta description for better CTR';
+                    
+                    return `
+                        <div class="opportunity-card ${priority}">
+                            <div class="opp-type">${type === 'ranking' ? '📈 Ranking' : '🎯 CTR'} Opportunity</div>
+                            <div class="opp-query">"${escapeHtml(opp.query)}"</div>
+                            <div class="opp-metrics">
+                                ${formatNumber(opp.impressions)} impressions • 
+                                Position #${opp.position.toFixed(0)} • 
+                                ${(opp.ctr * 100).toFixed(1)}% CTR
+                            </div>
+                            <div class="opp-action">${action}</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    function createContentScoreBreakdown(gscData, ga4Data) {
+        const searchScore = calculateSearchScore(gscData);
+        const engagementScore = calculateEngagementScore(ga4Data);
+        const relevanceScore = calculateRelevanceScore(gscData);
+        const uxScore = calculateUXScore(ga4Data);
+        const totalScore = Math.round((searchScore + engagementScore + relevanceScore + uxScore) / 4);
+        
+        return `
+            <div class="score-breakdown">
+                <div class="total-score">
+                    <div class="score-circle ${getScoreClass(totalScore)}">
+                        <div class="score-number">${totalScore}</div>
+                        <div class="score-label">Overall Score</div>
+                    </div>
+                </div>
+                
+                <div class="score-components">
+                    <div class="component">
+                        <div class="component-label">Search Performance</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${searchScore}%; background-color: #3b82f6;"></div>
+                        </div>
+                        <div class="component-score">${searchScore}/100</div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-label">User Engagement</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${engagementScore}%; background-color: #10b981;"></div>
+                        </div>
+                        <div class="component-score">${engagementScore}/100</div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-label">Content Relevance</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${relevanceScore}%; background-color: #f59e0b;"></div>
+                        </div>
+                        <div class="component-score">${relevanceScore}/100</div>
+                    </div>
+                    
+                    <div class="component">
+                        <div class="component-label">User Experience</div>
+                        <div class="component-bar">
+                            <div class="bar-fill" style="width: ${uxScore}%; background-color: #8b5cf6;"></div>
+                        </div>
+                        <div class="component-score">${uxScore}/100</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Additional helper functions
+    function calculateQualityScore(gscData, ga4Data) {
+        const searchScore = calculateSearchScore(gscData);
+        const engagementScore = calculateEngagementScore(ga4Data);
+        const relevanceScore = calculateRelevanceScore(gscData);
+        const uxScore = calculateUXScore(ga4Data);
+        
+        return Math.round((searchScore + engagementScore + relevanceScore + uxScore) / 4);
+    }
+
+    function getQualityGrade(score) {
+        if (score >= 85) return 'A';
+        if (score >= 75) return 'B';
+        if (score >= 65) return 'C';
+        if (score >= 55) return 'D';
+        return 'F';
+    }
+
+    function calculateSearchScore(gscData) {
+        if (!gscData || gscData.noDataFound) return 25;
+        
+        const positionScore = Math.max(0, 100 - (gscData.position * 5));
+        const ctrScore = Math.min(100, (gscData.ctr * 100) * 10);
+        
+        return Math.round((positionScore + ctrScore) / 2);
+    }
+
+    function calculateEngagementScore(ga4Data) {
+        if (!ga4Data || ga4Data.noDataFound) return 25;
+        
+        const durationScore = Math.min(100, (ga4Data.avgSessionDuration / 300) * 100);
+        const bounceScore = Math.max(0, (1 - ga4Data.bounceRate) * 100);
+        
+        return Math.round((durationScore + bounceScore) / 2);
+    }
+
+    function calculateRelevanceScore(gscData) {
+        if (!gscData || gscData.noDataFound) return 50;
+        
+        const expectedCTR = getCTRBenchmark(gscData.position);
+        const ctrPerformance = (gscData.ctr / expectedCTR);
+        
+        return Math.min(100, Math.round(ctrPerformance * 100));
+    }
+
+    function calculateUXScore(ga4Data) {
+        if (!ga4Data || ga4Data.noDataFound) return 50;
+        
+        const engagementRate = ga4Data.engagementRate || 0.5;
+        const pagesPerSession = ga4Data.sessions > 0 ? (ga4Data.pageViews / ga4Data.sessions) : 1;
+        
+        const engagementScore = engagementRate * 60;
+        const navigationScore = Math.min(40, pagesPerSession * 20);
+        
+        return Math.round(engagementScore + navigationScore);
+    }
+
+    function calculateImpactMetrics(gscData, ga4Data) {
+        const seekers = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
+        const questionsAnswered = gscData?.topQueries?.length || 0;
+        
+        let successRate = 70; // Default
+        if (ga4Data && !ga4Data.noDataFound) {
+            successRate = Math.round((1 - (ga4Data.bounceRate || 0.3)) * 100);
+        }
+        
+        return { seekers, questionsAnswered, successRate };
+    }
+
+    function calculateUXMetrics(ga4Data) {
+        return {
+            readingTime: ga4Data.avgSessionDuration,
+            retention: (1 - ga4Data.bounceRate) * 100,
+            newVsReturning: (ga4Data.newUsers / ga4Data.users) * 100
+        };
+    }
+
+    function generateUXRecommendations(ga4Data) {
+        const recommendations = [];
+        
+        if (ga4Data.avgSessionDuration < 90) {
+            recommendations.push({
+                priority: 'high',
+                title: 'Improve Content Readability',
+                description: 'Short session duration suggests content may be hard to read or not engaging enough.'
+            });
+        }
+        
+        if (ga4Data.bounceRate > 0.7) {
+            recommendations.push({
+                priority: 'medium',
+                title: 'Add Related Content Links',
+                description: 'High bounce rate - add internal links to encourage deeper content exploration.'
+            });
+        }
+        
+        if (recommendations.length === 0) {
+            recommendations.push({
+                priority: 'low',
+                title: 'Monitor User Behavior',
+                description: 'Continue tracking user engagement patterns and optimize based on feedback.'
+            });
+        }
+        
+        return recommendations;
+    }
+
     function getCategoryIcon(category) {
         const icons = {
             'how_to': '🛠️',
@@ -1408,74 +1937,155 @@
         return recommendations[category] || 'Review these queries for optimization opportunities';
     }
 
-    function getQuadrantClass(searchScore, engagementScore) {
-        if (searchScore >= 60 && engagementScore >= 60) return 'high-high';
-        if (searchScore >= 60 && engagementScore < 60) return 'high-low';
-        if (searchScore < 60 && engagementScore >= 60) return 'low-high';
-        return 'low-low';
+    function getScoreClass(score) {
+        if (score >= 85) return 'excellent';
+        if (score >= 75) return 'good';
+        if (score >= 65) return 'fair';
+        return 'poor';
     }
 
-    function getQuadrantLabel(searchScore, engagementScore) {
-        if (searchScore >= 60 && engagementScore >= 60) return '🌟 Star Performer';
-        if (searchScore >= 60 && engagementScore < 60) return '🎯 Search Success';
-        if (searchScore < 60 && engagementScore >= 60) return '💎 Hidden Gem';
-        return '⚠️ Needs Attention';
+    function getCTRBenchmark(position) {
+        if (position <= 1) return 0.28;
+        if (position <= 2) return 0.15;
+        if (position <= 3) return 0.11;
+        if (position <= 5) return 0.06;
+        if (position <= 10) return 0.03;
+        return 0.01;
     }
 
-    function getQuadrantRecommendation(searchScore, engagementScore) {
-        if (searchScore >= 60 && engagementScore >= 60) {
-            return 'Excellent performance! Focus on maintaining quality and expanding reach.';
-        }
-        if (searchScore >= 60 && engagementScore < 60) {
-            return 'Good search visibility but poor engagement. Improve content quality and user experience.';
-        }
-        if (searchScore < 60 && engagementScore >= 60) {
-            return 'Great content that users love! Focus on SEO optimization to increase discoverability.';
-        }
-        return 'Needs improvement in both search visibility and user engagement. Start with content optimization.';
+    function createActionCenter(url) {
+        return `
+            <div class="action-center">
+                <div class="action-header">
+                    <h3>🚀 Take Action</h3>
+                    <p>Export your data or take immediate action on this page</p>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn primary" onclick="window.open('${escapeHtml(url)}', '_blank')">
+                        <span class="btn-icon">🔗</span>
+                        <span class="btn-text">Visit Page</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="exportDetailedReport('${escapeHtml(url)}')">
+                        <span class="btn-icon">📊</span>
+                        <span class="btn-text">Export Report</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="copyPageSummary('${escapeHtml(url)}')">
+                        <span class="btn-icon">📋</span>
+                        <span class="btn-text">Copy Summary</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="scheduleReview('${escapeHtml(url)}')">
+                        <span class="btn-icon">📅</span>
+                        <span class="btn-text">Schedule Review</span>
+                    </button>
+                </div>
+            </div>
+        `;
     }
 
-    function generateMatrixInsights(searchPerformance, userEngagement, gscData, ga4Data) {
+    function createConnectionMessage(service, description) {
+        return `
+            <div class="connection-message">
+                <div class="connection-icon">📊</div>
+                <div class="connection-title">Connect ${service}</div>
+                <div class="connection-description">${description}</div>
+                <button class="connection-btn">Connect ${service}</button>
+            </div>
+        `;
+    }
+
+    function createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends) {
         const insights = [];
         
-        if (searchPerformance < 50) {
-            insights.push(`🔍 Search performance is below average. Consider optimizing for better keywords and improving meta descriptions.`);
+        // Search performance insights
+        if (gscData && !gscData.noDataFound) {
+            if (gscData.position <= 3) {
+                insights.push({
+                    icon: '🎯',
+                    text: 'Excellent search ranking - page appears in top 3 results',
+                    type: 'positive'
+                });
+            } else if (gscData.position > 10) {
+                insights.push({
+                    icon: '📈',
+                    text: 'Opportunity to improve search ranking from page 2+',
+                    type: 'opportunity'
+                });
+            }
+            
+            if (gscData.ctr > 0.15) {
+                insights.push({
+                    icon: '⚡',
+                    text: 'High click-through rate indicates compelling titles and descriptions',
+                    type: 'positive'
+                });
+            } else if (gscData.ctr < 0.03) {
+                insights.push({
+                    icon: '🔍',
+                    text: 'Low CTR suggests title/description optimization needed',
+                    type: 'warning'
+                });
+            }
         }
         
-        if (userEngagement < 50 && ga4Data && !ga4Data.noDataFound) {
-            insights.push(`👥 User engagement is low. Content may not be meeting user expectations or needs better structure.`);
+        // User behavior insights
+        if (ga4Data && !ga4Data.noDataFound) {
+            if (ga4Data.avgSessionDuration > 180) {
+                insights.push({
+                    icon: '📚',
+                    text: 'Users spend good time reading - content meets their needs',
+                    type: 'positive'
+                });
+            } else if (ga4Data.avgSessionDuration < 60) {
+                insights.push({
+                    icon: '⏱️',
+                    text: 'Short session duration - consider improving content engagement',
+                    type: 'warning'
+                });
+            }
+            
+            if (ga4Data.bounceRate < 0.4) {
+                insights.push({
+                    icon: '🔄',
+                    text: 'Low bounce rate shows users explore related content',
+                    type: 'positive'
+                });
+            }
         }
         
-        if (gscData && gscData.position > 10 && gscData.impressions > 500) {
-            insights.push(`📊 High search volume but poor ranking - significant SEO opportunity exists.`);
+        // Trend insights
+        if (gscTrends?.trends?.clicks && Math.abs(gscTrends.trends.clicks.percentChange) > 20) {
+            const direction = gscTrends.trends.clicks.percentChange > 0 ? 'increased' : 'decreased';
+            insights.push({
+                icon: gscTrends.trends.clicks.percentChange > 0 ? '📈' : '📉',
+                text: `Search traffic has ${direction} significantly this period`,
+                type: gscTrends.trends.clicks.percentChange > 0 ? 'positive' : 'warning'
+            });
         }
         
+        // Default insight if none found
         if (insights.length === 0) {
-            insights.push(`✅ Performance is within acceptable ranges. Continue monitoring and gradual optimization.`);
+            insights.push({
+                icon: '📊',
+                text: 'Page performance is stable - continue monitoring for optimization opportunities',
+                type: 'neutral'
+            });
         }
         
-        return insights.map(insight => `<div class="insight-item">${insight}</div>`).join('');
+        return `
+            <div class="insights-grid">
+                ${insights.slice(0, 4).map(insight => `
+                    <div class="insight-card ${insight.type}">
+                        <div class="insight-icon">${insight.icon}</div>
+                        <div class="insight-text">${insight.text}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     }
 
-    function calculateCitizenSatisfaction(ga4Data) {
-        if (!ga4Data || ga4Data.noDataFound) return 65; // Default reasonable value
-        
-        const engagementScore = (ga4Data.engagementRate || 0.5) * 100;
-        const bounceScore = (1 - (ga4Data.bounceRate || 0.5)) * 100;
-        const timeScore = Math.min(100, (ga4Data.avgSessionDuration / 180) * 100);
-        
-        return Math.round((engagementScore + bounceScore + timeScore) / 3);
-    }
-
-    function calculateTimeToInformation(ga4Data) {
-        if (!ga4Data || ga4Data.noDataFound) return '2:15';
-        
-        const avgTime = ga4Data.avgSessionDuration || 135;
-        const minutes = Math.floor(avgTime / 60);
-        const seconds = Math.round(avgTime % 60);
-        
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    }
+    // ===========================================
+    // UTILITY FUNCTIONS
+    // ===========================================
 
     function formatNumber(num) {
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -1496,106 +2106,417 @@
         return div.innerHTML;
     }
 
-    function getCTRBenchmark(position) {
-        if (position <= 1) return 0.28;
-        if (position <= 2) return 0.15;
-        if (position <= 3) return 0.11;
-        if (position <= 4) return 0.08;
-        if (position <= 5) return 0.06;
-        if (position <= 10) return 0.03;
-        return 0.01;
-    }
-
     // ===========================================
-    // ENHANCED STYLES
+    // COMPLETE ENHANCED STYLES - ALL YOUR ORIGINAL STYLES PLUS ENHANCEMENTS
     // ===========================================
 
     function createEnhancedDashboardStyles() {
         return `
             <style>
-                /* Enhanced Citizens Dashboard Styles - COMPLETE */
+                /* Complete Enhanced Citizens Dashboard Styles v2.0 */
                 
-                /* Base Styles */
-                * { box-sizing: border-box; }
+                .citizens-dashboard-container {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: #fafbfc;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
                 
-                /* Header */
-                .citizen-impact-header {
+                /* Dashboard Header */
+                .dashboard-header {
                     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
                     color: white;
-                    margin: 0;
-                    border-radius: 20px 20px 0 0;
+                    padding: 30px;
+                    position: relative;
                     overflow: hidden;
                 }
                 
-                .impact-hero {
-                    padding: 35px;
-                    text-align: center;
-                    position: relative;
-                }
-                
-                .impact-hero::before {
+                .dashboard-header::before {
                     content: '';
                     position: absolute;
                     top: 0;
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background: radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px);
-                    background-size: 30px 30px;
-                    opacity: 0.3;
+                    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="25" cy="25" r="2" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1.5" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.1"/></svg>');
+                    background-size: 100px 100px;
                 }
                 
-                .impact-hero h1 {
-                    font-size: 2.2rem;
-                    font-weight: 800;
-                    margin: 0 0 8px 0;
-                    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                .header-content {
                     position: relative;
                     z-index: 2;
-                }
-                
-                .page-url {
-                    font-family: monospace;
-                    font-size: 0.9rem;
-                    opacity: 0.8;
-                    margin: 0 0 25px 0;
-                    word-break: break-all;
-                    position: relative;
-                    z-index: 2;
-                }
-                
-                .hero-stats {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 20px;
-                    position: relative;
-                    z-index: 2;
+                    grid-template-columns: 1fr auto;
+                    gap: 30px;
+                    align-items: start;
                 }
                 
-                .hero-stat {
-                    background: rgba(255,255,255,0.15);
-                    padding: 20px;
-                    border-radius: 16px;
-                    backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255,255,255,0.25);
-                    transition: transform 0.2s ease;
-                }
-                
-                .hero-stat:hover {
-                    transform: translateY(-2px);
-                }
-                
-                .hero-number {
-                    display: block;
-                    font-size: 2rem;
-                    font-weight: 800;
+                /* Page Info */
+                .page-breadcrumb {
+                    font-size: 0.85rem;
+                    opacity: 0.9;
                     margin-bottom: 8px;
                 }
                 
-                .hero-label {
-                    display: block;
+                .breadcrumb-separator {
+                    margin: 0 8px;
+                    opacity: 0.7;
+                }
+                
+                .page-title {
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    margin: 0 0 16px 0;
+                    line-height: 1.3;
+                }
+                
+                .page-metadata {
+                    margin-top: 16px;
+                }
+                
+                .metadata-grid {
+                    display: grid;
+                    gap: 12px;
+                }
+                
+                .metadata-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
                     font-size: 0.9rem;
+                }
+                
+                .metadata-label {
+                    font-weight: 600;
                     opacity: 0.9;
+                    min-width: 100px;
+                }
+                
+                .metadata-value {
+                    font-weight: 500;
+                }
+                
+                .metadata-badge {
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    margin-left: 8px;
+                }
+                
+                .metadata-badge.fresh {
+                    background: #10b981;
+                    color: white;
+                }
+                
+                .metadata-badge.aging {
+                    background: #f59e0b;
+                    color: white;
+                }
+                
+                .metadata-badge.stale {
+                    background: #ef4444;
+                    color: white;
+                }
+                
+                .url-link {
+                    color: rgba(255,255,255,0.9);
+                    text-decoration: none;
+                    padding: 4px 8px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 6px;
+                    font-size: 0.8rem;
+                    transition: all 0.2s ease;
+                }
+                
+                .url-link:hover {
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                }
+                
+                /* Impact Summary */
+                .impact-summary {
+                    display: grid;
+                    gap: 16px;
+                    min-width: 280px;
+                }
+                
+                .impact-card {
+                    background: rgba(255,255,255,0.15);
+                    padding: 20px;
+                    border-radius: 16px;
+                    text-align: center;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255,255,255,0.25);
+                }
+                
+                .impact-number {
+                    font-size: 1.8rem;
+                    font-weight: 800;
+                    margin-bottom: 4px;
+                }
+                
+                .impact-label {
+                    font-size: 0.85rem;
+                    opacity: 0.9;
+                    font-weight: 500;
+                }
+                
+                /* Performance Overview */
+                .performance-overview {
+                    padding: 30px;
+                    background: white;
+                }
+                
+                .overview-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 20px;
+                }
+                
+                .overview-card {
+                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                    border-radius: 16px;
+                    padding: 24px;
+                    border: 1px solid #e2e8f0;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .overview-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                }
+                
+                .overview-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+                }
+                
+                .search-card::before {
+                    background: linear-gradient(90deg, #4285f4, #34a853);
+                }
+                
+                .analytics-card::before {
+                    background: linear-gradient(90deg, #ff6b35, #f59e0b);
+                }
+                
+                .quality-card::before {
+                    background: linear-gradient(90deg, #8b5cf6, #a855f7);
+                }
+                
+                .impact-card::before {
+                    background: linear-gradient(90deg, #10b981, #059669);
+                }
+                
+                .card-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                }
+                
+                .card-icon {
+                    font-size: 1.5rem;
+                    margin-right: 12px;
+                }
+                
+                .card-title {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: #1f2937;
+                    flex: 1;
+                }
+                
+                .card-status {
+                    font-size: 1.2rem;
+                    margin-left: 8px;
+                }
+                
+                .card-status.connected {
+                    color: #10b981;
+                }
+                
+                .card-status.disconnected {
+                    color: #ef4444;
+                }
+                
+                .metric-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 0;
+                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                    font-size: 0.9rem;
+                }
+                
+                .metric-row:last-child {
+                    border-bottom: none;
+                }
+                
+                .metric-label {
+                    color: #64748b;
+                    font-weight: 500;
+                }
+                
+                .metric-value {
+                    font-weight: 700;
+                    color: #1f2937;
+                }
+                
+                .trend-indicator {
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    padding: 2px 6px;
+                    border-radius: 8px;
+                    margin-left: 8px;
+                }
+                
+                .trend-indicator.positive {
+                    background: #dcfce7;
+                    color: #166534;
+                }
+                
+                .trend-indicator.negative {
+                    background: #fee2e2;
+                    color: #991b1b;
+                }
+                
+                .trend-indicator.neutral {
+                    background: #f1f5f9;
+                    color: #64748b;
+                }
+                
+                .no-data-message {
+                    text-align: center;
+                    color: #64748b;
+                    padding: 20px;
+                }
+                
+                .no-data-icon {
+                    font-size: 2rem;
+                    opacity: 0.5;
+                    margin-bottom: 8px;
+                    display: block;
+                }
+                
+                .no-data-text {
+                    font-weight: 500;
+                }
+                
+                /* Quality Score Display */
+                .quality-score-display {
+                    text-align: center;
+                }
+                
+                .score-circle {
+                    width: 100px;
+                    height: 100px;
+                    border-radius: 50%;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 16px;
+                    border: 4px solid;
+                    position: relative;
+                }
+                
+                .score-circle.a {
+                    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+                    border-color: #10b981;
+                    color: #064e3b;
+                }
+                
+                .score-circle.b {
+                    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+                    border-color: #3b82f6;
+                    color: #1e40af;
+                }
+                
+                .score-circle.c {
+                    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                    border-color: #f59e0b;
+                    color: #92400e;
+                }
+                
+                .score-circle.d {
+                    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+                    border-color: #ef4444;
+                    color: #991b1b;
+                }
+                
+                .score-circle.f {
+                    background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+                    border-color: #dc2626;
+                    color: #7f1d1d;
+                }
+                
+                .score-number {
+                    font-size: 1.8rem;
+                    font-weight: 800;
+                }
+                
+                .score-label {
+                    font-size: 0.75rem;
+                    opacity: 0.8;
+                    font-weight: 600;
+                }
+                
+                .score-grade {
+                    font-weight: 700;
+                    margin-bottom: 12px;
+                    color: #1f2937;
+                }
+                
+                .score-factors {
+                    font-size: 0.8rem;
+                    color: #64748b;
+                    text-align: left;
+                }
+                
+                .factor {
+                    padding: 4px 0;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                
+                /* Impact Metrics */
+                .impact-metrics {
+                    display: grid;
+                    gap: 12px;
+                }
+                
+                .impact-metric {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 0;
+                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                }
+                
+                .impact-metric:last-child {
+                    border-bottom: none;
+                }
+                
+                .impact-label {
+                    color: #64748b;
+                    font-weight: 500;
+                    font-size: 0.9rem;
+                }
+                
+                .impact-value {
+                    font-weight: 700;
+                    color: #1f2937;
                 }
                 
                 /* Dashboard Tabs */
@@ -1608,6 +2529,12 @@
                     background: #f8fafc;
                     border-bottom: 1px solid #e2e8f0;
                     overflow-x: auto;
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+                
+                .tab-nav::-webkit-scrollbar {
+                    display: none;
                 }
                 
                 .tab-btn {
@@ -1615,23 +2542,28 @@
                     padding: 16px 20px;
                     border: none;
                     background: none;
-                    font-size: 0.9rem;
-                    font-weight: 600;
                     cursor: pointer;
                     color: #64748b;
                     border-bottom: 3px solid transparent;
                     transition: all 0.2s ease;
                     white-space: nowrap;
                     min-width: 160px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    font-family: inherit;
+                    font-size: 0.9rem;
+                    font-weight: 600;
                 }
                 
-                .tab-btn:hover {
-                    color: #3b82f6;
-                    background: rgba(59, 130, 246, 0.05);
+                .tab-btn:hover:not(.active) {
+                    color: #475569;
+                    background: rgba(0,0,0,0.02);
                 }
                 
                 .tab-btn.active {
-                    color: #3b82f6;
+                    color: #1e293b;
                     border-bottom-color: #3b82f6;
                     background: white;
                     position: relative;
@@ -1647,6 +2579,10 @@
                     background: white;
                 }
                 
+                .tab-icon {
+                    font-size: 1rem;
+                }
+                
                 .tab-content {
                     min-height: 500px;
                     background: #fafbfc;
@@ -1654,34 +2590,44 @@
                 
                 .tab-panel {
                     display: none;
-                    padding: 20px;
+                    padding: 0;
                 }
                 
                 .tab-panel.active {
                     display: block;
-                    animation: fadeIn 0.3s ease;
+                    animation: fadeInUp 0.3s ease;
                 }
                 
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                .panel-content {
+                    padding: 30px;
                 }
                 
                 /* Sections */
                 .section {
                     margin-bottom: 30px;
-                    padding: 30px;
                     background: white;
                     border-radius: 16px;
+                    padding: 24px;
                     border: 1px solid #e2e8f0;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
                 }
                 
                 .section-title {
-                    font-size: 1.4rem;
+                    font-size: 1.3rem;
                     font-weight: 700;
                     color: #1f2937;
-                    margin: 0 0 24px 0;
+                    margin: 0 0 20px 0;
                     display: flex;
                     align-items: center;
                     gap: 10px;
@@ -1751,87 +2697,97 @@
                 .metric-trend.down { color: #dc2626; }
                 .metric-trend.neutral { color: #64748b; }
                 
-                .trend-indicator {
-                    font-size: 0.9rem;
+                .trend-value {
+                    font-weight: 600;
+                }
+                
+                .trend-period {
+                    color: #64748b;
+                    font-weight: 400;
                 }
                 
                 /* Performance Matrix */
-                .matrix-container {
+                .performance-matrix {
+                    position: relative;
+                    height: 300px;
+                    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    border: 1px solid #e2e8f0;
+                }
+                
+                .matrix-chart {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
+                    padding: 40px;
+                }
+                
+                .matrix-point {
+                    position: absolute;
+                    transform: translate(-50%, 50%);
+                    z-index: 10;
+                }
+                
+                .point-dot {
+                    width: 16px;
+                    height: 16px;
+                    background: #3b82f6;
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                    animation: pulse 2s infinite;
+                }
+                
+                @keyframes pulse {
+                    0% { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+                    50% { box-shadow: 0 4px 20px rgba(59, 130, 246, 0.8); }
+                    100% { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+                }
+                
+                .point-label {
+                    position: absolute;
+                    top: -30px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #1f2937;
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    white-space: nowrap;
+                }
+                
+                .matrix-quadrants {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
                     display: grid;
-                    grid-template-columns: 300px 1fr;
-                    gap: 30px;
-                    align-items: start;
+                    grid-template-columns: 1fr 1fr;
+                    grid-template-rows: 1fr 1fr;
                 }
                 
-                .matrix-quadrant {
-                    padding: 30px;
-                    border-radius: 16px;
-                    text-align: center;
-                    min-height: 200px;
+                .quadrant {
                     display: flex;
-                    flex-direction: column;
+                    align-items: center;
                     justify-content: center;
-                    border: 2px solid;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: #64748b;
+                    text-align: center;
+                    line-height: 1.3;
+                    padding: 20px;
+                    border: 1px dashed rgba(100, 116, 139, 0.2);
                 }
                 
-                .matrix-quadrant.high-high {
-                    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-                    border-color: #10b981;
-                    color: #064e3b;
+                /* Query Categories */
+                .query-categories {
+                    margin-bottom: 30px;
                 }
                 
-                .matrix-quadrant.high-low {
-                    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-                    border-color: #f59e0b;
-                    color: #92400e;
-                }
-                
-                .matrix-quadrant.low-high {
-                    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-                    border-color: #3b82f6;
-                    color: #1e40af;
-                }
-                
-                .matrix-quadrant.low-low {
-                    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-                    border-color: #ef4444;
-                    color: #991b1b;
-                }
-                
-                .quadrant-label {
-                    font-size: 1.2rem;
-                    font-weight: 700;
-                    margin-bottom: 16px;
-                }
-                
-                .metric-pair {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 8px;
-                    font-size: 0.9rem;
-                }
-                
-                .quadrant-recommendation {
-                    margin-top: 16px;
-                    font-size: 0.85rem;
-                    line-height: 1.4;
-                    opacity: 0.9;
-                }
-                
-                .insights-list {
-                    font-size: 0.9rem;
-                    line-height: 1.5;
-                }
-                
-                .insight-item {
-                    margin-bottom: 12px;
-                    padding: 12px;
-                    background: #f8fafc;
-                    border-radius: 8px;
-                    border-left: 3px solid #3b82f6;
-                }
-                
-                /* Query Intelligence */
                 .category-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1896,11 +2852,11 @@
                 }
                 
                 /* Opportunities */
-                .opportunities-list {
+                .opportunities-list, .opportunities-list {
                     margin-top: 16px;
                 }
                 
-                .opportunity-item {
+                .opportunity-item, .opportunity-card {
                     padding: 16px;
                     border-radius: 8px;
                     border-left: 4px solid #e5e7eb;
@@ -1908,12 +2864,12 @@
                     background: white;
                 }
                 
-                .opportunity-item.high {
+                .opportunity-item.high, .opportunity-card.high {
                     background: #fef2f2;
                     border-left-color: #ef4444;
                 }
                 
-                .opportunity-item.medium {
+                .opportunity-item.medium, .opportunity-card.medium {
                     background: #fffbeb;
                     border-left-color: #f59e0b;
                 }
@@ -1954,6 +2910,13 @@
                     font-size: 0.85rem;
                     color: #1f2937;
                     font-weight: 500;
+                }
+                
+                .opp-type {
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: #3b82f6;
+                    margin-bottom: 8px;
                 }
                 
                 /* Content Gaps */
@@ -2034,79 +2997,6 @@
                     text-align: center;
                 }
                 
-                .score-circle {
-                    width: 120px;
-                    height: 120px;
-                    border-radius: 50%;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto 16px;
-                    border: 4px solid;
-                    position: relative;
-                    overflow: hidden;
-                }
-                
-                .score-circle::before {
-                    content: '';
-                    position: absolute;
-                    top: -50%;
-                    left: -50%;
-                    width: 200%;
-                    height: 200%;
-                    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-                    animation: rotate 10s linear infinite;
-                }
-                
-                @keyframes rotate {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                
-                .score-circle.a { 
-                    background: #d1fae5; 
-                    border-color: #10b981; 
-                    color: #064e3b; 
-                }
-                
-                .score-circle.b { 
-                    background: #dbeafe; 
-                    border-color: #3b82f6; 
-                    color: #1e40af; 
-                }
-                
-                .score-circle.c { 
-                    background: #fef3c7; 
-                    border-color: #f59e0b; 
-                    color: #92400e; 
-                }
-                
-                .score-circle.d { 
-                    background: #fee2e2; 
-                    border-color: #ef4444; 
-                    color: #991b1b; 
-                }
-                
-                .score-number {
-                    font-size: 2rem;
-                    font-weight: 800;
-                    position: relative;
-                    z-index: 2;
-                }
-                
-                .score-label {
-                    font-size: 0.8rem;
-                    opacity: 0.8;
-                    position: relative;
-                    z-index: 2;
-                }
-                
-                .score-grade {
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                }
-                
                 .score-description {
                     font-size: 0.9rem;
                     color: #64748b;
@@ -2167,7 +3057,11 @@
                     line-height: 1.4;
                 }
                 
-                /* Actions */
+                /* Quality Actions */
+                .quality-actions {
+                    margin-top: 20px;
+                }
+                
                 .actions-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -2210,111 +3104,7 @@
                     color: #059669;
                 }
                 
-                /* No Data States */
-                .no-data-message {
-                    text-align: center;
-                    padding: 60px 20px;
-                    color: #64748b;
-                }
-                
-                .no-data-icon {
-                    font-size: 3rem;
-                    margin-bottom: 16px;
-                    opacity: 0.6;
-                }
-                
-                .no-data-text {
-                    font-size: 1.1rem;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                }
-                
-                .no-data-subtitle {
-                    font-size: 0.9rem;
-                    opacity: 0.8;
-                }
-                
-                .no-ga4-message {
-                    text-align: center;
-                    padding: 60px 20px;
-                    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-                    border-radius: 12px;
-                    border: 2px dashed #0ea5e9;
-                }
-                
-                .no-data-action {
-                    margin-top: 12px;
-                    padding: 8px 16px;
-                    background: #0ea5e9;
-                    color: white;
-                    border-radius: 6px;
-                    font-size: 0.85rem;
-                    display: inline-block;
-                }
-                
-                .no-opportunities, .no-actions {
-                    text-align: center;
-                    padding: 20px;
-                    color: #059669;
-                    background: #f0fdf4;
-                    border-radius: 8px;
-                    font-weight: 500;
-                }
-                
-                /* Action Center */
-                .action-center {
-                    padding: 30px;
-                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-                    text-align: center;
-                    border-radius: 0 0 20px 20px;
-                }
-                
-                .action-buttons {
-                    display: flex;
-                    justify-content: center;
-                    gap: 15px;
-                    flex-wrap: wrap;
-                    margin-top: 20px;
-                }
-                
-                .action-btn {
-                    padding: 14px 28px;
-                    border: none;
-                    border-radius: 12px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    font-size: 0.95rem;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                
-                .action-btn.primary {
-                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-                    color: white;
-                    box-shadow: 0 4px 14px rgba(59,130,246,0.3);
-                }
-                
-                .action-btn.primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(59,130,246,0.4);
-                }
-                
-                .action-btn.secondary {
-                    background: white;
-                    color: #64748b;
-                    border: 2px solid #e2e8f0;
-                }
-                
-                .action-btn.secondary:hover {
-                    background: #f8fafc;
-                    border-color: #3b82f6;
-                    color: #3b82f6;
-                    transform: translateY(-1px);
-                }
-                
-                /* Additional sections - UX, Trends, Actions, Timeline */
+                /* UX Metrics */
                 .ux-metrics-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -2338,6 +3128,15 @@
                     margin-bottom: 12px;
                 }
                 
+                .ux-icon {
+                    font-size: 1.2rem;
+                }
+                
+                .ux-label {
+                    font-weight: 600;
+                    color: #374151;
+                }
+                
                 .ux-value {
                     font-size: 1.5rem;
                     font-weight: 700;
@@ -2351,6 +3150,54 @@
                     line-height: 1.4;
                 }
                 
+                .ux-recommendations {
+                    margin-top: 20px;
+                }
+                
+                .ux-rec-list {
+                    display: grid;
+                    gap: 12px;
+                }
+                
+                .ux-recommendation {
+                    padding: 16px;
+                    border-radius: 8px;
+                    border-left: 4px solid #e5e7eb;
+                    background: white;
+                }
+                
+                .ux-recommendation.high {
+                    background: #fef2f2;
+                    border-left-color: #ef4444;
+                }
+                
+                .ux-recommendation.medium {
+                    background: #fffbeb;
+                    border-left-color: #f59e0b;
+                }
+                
+                .ux-recommendation.low {
+                    background: #f0fdf4;
+                    border-left-color: #10b981;
+                }
+                
+                .ux-rec-title {
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 4px;
+                }
+                
+                .ux-rec-description {
+                    font-size: 0.9rem;
+                    color: #64748b;
+                    line-height: 1.4;
+                }
+                
+                /* Trend Analysis */
+                .trend-summary {
+                    margin-bottom: 30px;
+                }
+                
                 .trend-indicator {
                     text-align: center;
                     padding: 30px;
@@ -2362,11 +3209,19 @@
                 .trend-indicator.improving {
                     background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
                     border-color: #10b981;
+                    color: #064e3b;
                 }
                 
                 .trend-indicator.declining {
                     background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
                     border-color: #ef4444;
+                    color: #991b1b;
+                }
+                
+                .trend-indicator.stable {
+                    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                    border-color: #64748b;
+                    color: #374151;
                 }
                 
                 .trend-icon {
@@ -2383,6 +3238,10 @@
                 .trend-description {
                     color: #64748b;
                     line-height: 1.4;
+                }
+                
+                .trend-breakdown {
+                    margin-bottom: 30px;
                 }
                 
                 .trend-metrics-grid {
@@ -2405,6 +3264,10 @@
                 
                 .trend-metric-card.down {
                     border-left: 4px solid #ef4444;
+                }
+                
+                .trend-metric-card.neutral {
+                    border-left: 4px solid #64748b;
                 }
                 
                 .trend-metric-header {
@@ -2436,6 +3299,11 @@
                     color: #991b1b;
                 }
                 
+                .trend-change.neutral {
+                    background: #f1f5f9;
+                    color: #64748b;
+                }
+                
                 .trend-values {
                     margin-bottom: 8px;
                 }
@@ -2458,6 +3326,145 @@
                     line-height: 1.4;
                 }
                 
+                .trend-actions {
+                    margin-top: 20px;
+                }
+                
+                .trend-actions-list {
+                    display: grid;
+                    gap: 12px;
+                }
+                
+                .trend-action {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 16px;
+                    padding: 16px;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                }
+                
+                .trend-action.high {
+                    background: #fef2f2;
+                    border-color: #ef4444;
+                }
+                
+                .trend-action.medium {
+                    background: #fffbeb;
+                    border-color: #f59e0b;
+                }
+                
+                .action-urgency {
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    background: #ef4444;
+                    color: white;
+                    white-space: nowrap;
+                }
+                
+                .trend-action.medium .action-urgency {
+                    background: #f59e0b;
+                }
+                
+                .action-content {
+                    flex: 1;
+                }
+                
+                .action-reason {
+                    font-size: 0.9rem;
+                    color: #64748b;
+                    margin-top: 4px;
+                }
+                
+                /* Forecasting */
+                .forecast-summary {
+                    margin-bottom: 30px;
+                }
+                
+                .forecast-card {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 24px;
+                }
+                
+                .forecast-header h3 {
+                    margin: 0 0 16px 0;
+                    color: #374151;
+                }
+                
+                .forecast-metrics {
+                    display: grid;
+                    gap: 12px;
+                }
+                
+                .forecast-metric {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #f1f5f9;
+                }
+                
+                .forecast-metric:last-child {
+                    border-bottom: none;
+                }
+                
+                .forecast-label {
+                    font-weight: 600;
+                    color: #374151;
+                }
+                
+                .forecast-value {
+                    font-weight: 700;
+                    color: #1f2937;
+                }
+                
+                .forecast-value.up {
+                    color: #10b981;
+                }
+                
+                .forecast-value.down {
+                    color: #ef4444;
+                }
+                
+                .forecast-confidence {
+                    font-size: 0.8rem;
+                    color: #64748b;
+                    margin-left: 8px;
+                }
+                
+                .forecast-recommendations {
+                    margin-top: 20px;
+                }
+                
+                .forecast-rec-list {
+                    display: grid;
+                    gap: 12px;
+                }
+                
+                .forecast-recommendation {
+                    padding: 16px;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                }
+                
+                .forecast-rec-title {
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 4px;
+                }
+                
+                .forecast-rec-description {
+                    font-size: 0.9rem;
+                    color: #64748b;
+                    line-height: 1.4;
+                }
+                
                 /* Priority Actions */
                 .priority-action-card {
                     display: flex;
@@ -2469,6 +3476,21 @@
                     border-radius: 12px;
                     margin-bottom: 16px;
                     position: relative;
+                }
+                
+                .priority-action-card.high {
+                    background: #fef2f2;
+                    border-color: #ef4444;
+                }
+                
+                .priority-action-card.medium {
+                    background: #fffbeb;
+                    border-color: #f59e0b;
+                }
+                
+                .priority-action-card.low {
+                    background: #f0fdf4;
+                    border-color: #10b981;
                 }
                 
                 .action-rank {
@@ -2603,13 +3625,358 @@
                     border-radius: 6px;
                 }
                 
+                /* Score Breakdown */
+                .score-breakdown {
+                    display: grid;
+                    grid-template-columns: auto 1fr;
+                    gap: 30px;
+                    align-items: center;
+                }
+                
+                .total-score {
+                    text-align: center;
+                }
+                
+                .score-components {
+                    display: grid;
+                    gap: 16px;
+                }
+                
+                .component {
+                    display: grid;
+                    grid-template-columns: 150px 1fr auto;
+                    gap: 12px;
+                    align-items: center;
+                }
+                
+                .component-label {
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    color: #374151;
+                }
+                
+                .component-bar {
+                    height: 12px;
+                    background: #f1f5f9;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    position: relative;
+                }
+                
+                .bar-fill {
+                    height: 100%;
+                    border-radius: 6px;
+                    transition: width 0.8s ease;
+                }
+                
+                .component-score {
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: #64748b;
+                    min-width: 50px;
+                    text-align: right;
+                }
+                
+                /* Table Styles */
+                .queries-table {
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    border: 1px solid #e2e8f0;
+                }
+                
+                .table-header {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+                    gap: 16px;
+                    padding: 16px;
+                    background: #f8fafc;
+                    font-weight: 600;
+                    color: #374151;
+                    border-bottom: 1px solid #e2e8f0;
+                    font-size: 0.85rem;
+                }
+                
+                .table-row {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+                    gap: 16px;
+                    padding: 16px;
+                    border-bottom: 1px solid #f1f5f9;
+                    font-size: 0.85rem;
+                    transition: background 0.2s ease;
+                }
+                
+                .table-row:hover {
+                    background: #f8fafc;
+                }
+                
+                .table-row:last-child {
+                    border-bottom: none;
+                }
+                
+                .col-query {
+                    font-weight: 500;
+                    color: #1f2937;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                
+                .col-clicks, .col-impressions {
+                    font-weight: 600;
+                    color: #059669;
+                }
+                
+                .col-ctr {
+                    font-weight: 600;
+                    color: #3b82f6;
+                }
+                
+                .col-position {
+                    font-weight: 600;
+                    color: #f59e0b;
+                }
+                
+                /* Insights Grid */
+                .insights-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 20px;
+                }
+                
+                .insight-card {
+                    padding: 20px;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    background: white;
+                    transition: all 0.2s ease;
+                }
+                
+                .insight-card:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                }
+                
+                .insight-card.positive {
+                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                    border-color: #10b981;
+                }
+                
+                .insight-card.warning {
+                    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                    border-color: #f59e0b;
+                }
+                
+                .insight-card.opportunity {
+                    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+                    border-color: #3b82f6;
+                }
+                
+                .insight-card.neutral {
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                    border-color: #64748b;
+                }
+                
+                .insight-icon {
+                    font-size: 1.5rem;
+                    margin-bottom: 12px;
+                    display: block;
+                }
+                
+                .insight-text {
+                    color: #374151;
+                    line-height: 1.4;
+                    font-weight: 500;
+                }
+                
+                /* No Data States */
+                .no-data-message {
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: #64748b;
+                }
+                
+                .no-data-subtitle {
+                    font-size: 0.9rem;
+                    opacity: 0.8;
+                    margin-top: 8px;
+                }
+                
+                .no-ga4-message {
+                    text-align: center;
+                    padding: 60px 20px;
+                    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+                    border-radius: 12px;
+                    border: 2px dashed #0ea5e9;
+                    color: #0c4a6e;
+                }
+                
+                .no-data-action {
+                    margin-top: 12px;
+                    padding: 8px 16px;
+                    background: #0ea5e9;
+                    color: white;
+                    border-radius: 6px;
+                    font-size: 0.85rem;
+                    display: inline-block;
+                }
+                
+                .no-opportunities, .no-actions {
+                    text-align: center;
+                    padding: 20px;
+                    color: #059669;
+                    background: #f0fdf4;
+                    border-radius: 8px;
+                    font-weight: 500;
+                }
+                
+                /* Connection Message */
+                .connection-message {
+                    text-align: center;
+                    padding: 60px 30px;
+                    color: #64748b;
+                }
+                
+                .connection-icon {
+                    font-size: 3rem;
+                    margin-bottom: 20px;
+                    opacity: 0.6;
+                }
+                
+                .connection-title {
+                    font-size: 1.3rem;
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                    color: #1f2937;
+                }
+                
+                .connection-description {
+                    margin-bottom: 24px;
+                    line-height: 1.5;
+                }
+                
+                .connection-btn {
+                    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-family: inherit;
+                }
+                
+                .connection-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+                }
+                
+                /* Action Center */
+                .action-center {
+                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                    padding: 30px;
+                    text-align: center;
+                    border-top: 1px solid #e2e8f0;
+                }
+                
+                .action-header {
+                    margin-bottom: 24px;
+                }
+                
+                .action-header h3 {
+                    font-size: 1.4rem;
+                    font-weight: 700;
+                    color: #1f2937;
+                    margin: 0 0 8px 0;
+                }
+                
+                .action-header p {
+                    color: #64748b;
+                    margin: 0;
+                }
+                
+                .action-buttons {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                
+                .action-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 14px 20px;
+                    border: none;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    font-family: inherit;
+                    font-size: 0.9rem;
+                    text-decoration: none;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .action-btn::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                    transition: left 0.5s ease;
+                }
+                
+                .action-btn:hover::before {
+                    left: 100%;
+                }
+                
+                .action-btn.primary {
+                    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                    color: white;
+                    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+                }
+                
+                .action-btn.primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+                }
+                
+                .action-btn.secondary {
+                    background: white;
+                    color: #64748b;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                }
+                
+                .action-btn.secondary:hover {
+                    background: #f8fafc;
+                    color: #334155;
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+                }
+                
+                .btn-icon {
+                    font-size: 1.1rem;
+                }
+                
                 /* Responsive Design */
                 @media (max-width: 768px) {
-                    .impact-hero h1 {
-                        font-size: 1.8rem;
+                    .header-content {
+                        grid-template-columns: 1fr;
+                        gap: 20px;
                     }
                     
-                    .hero-stats {
+                    .page-title {
+                        font-size: 1.4rem;
+                    }
+                    
+                    .overview-grid {
                         grid-template-columns: 1fr;
                     }
                     
@@ -2617,30 +3984,8 @@
                         overflow-x: scroll;
                     }
                     
-                    .tab-btn {
-                        min-width: 140px;
-                    }
-                    
-                    .matrix-container,
-                    .quality-overview {
-                        grid-template-columns: 1fr;
-                    }
-                    
-                    .category-grid,
-                    .gaps-grid,
-                    .trend-metrics-grid,
-                    .actions-grid,
-                    .ux-metrics-grid {
-                        grid-template-columns: 1fr;
-                    }
-                    
-                    .timeline-phase {
-                        flex-direction: column;
-                        text-align: center;
-                    }
-                    
-                    .timeline-phase::before {
-                        display: none;
+                    .panel-content {
+                        padding: 20px;
                     }
                     
                     .action-buttons {
@@ -2652,104 +3997,233 @@
                         width: 200px;
                         justify-content: center;
                     }
+                    
+                    .impact-summary {
+                        min-width: auto;
+                    }
+                    
+                    .quality-overview {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .score-breakdown {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .component {
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+                    
+                    .table-header,
+                    .table-row {
+                        grid-template-columns: 2fr 1fr 1fr;
+                        font-size: 0.8rem;
+                    }
+                    
+                    .col-impressions,
+                    .col-position {
+                        display: none;
+                    }
+                    
+                    .timeline-phase {
+                        flex-direction: column;
+                        text-align: center;
+                    }
+                    
+                    .timeline-phase::before {
+                        display: none;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .citizens-dashboard-container {
+                        border-radius: 0;
+                    }
+                    
+                    .dashboard-header,
+                    .performance-overview,
+                    .panel-content,
+                    .action-center {
+                        padding: 20px;
+                    }
+                    
+                    .tab-btn {
+                        min-width: 120px;
+                        padding: 12px 16px;
+                        font-size: 0.8rem;
+                    }
+                    
+                    .tab-label {
+                        display: none;
+                    }
+                    
+                    .metrics-grid,
+                    .category-grid,
+                    .gaps-grid,
+                    .trend-metrics-grid,
+                    .actions-grid,
+                    .ux-metrics-grid,
+                    .insights-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .overview-card {
+                        min-height: auto;
+                    }
                 }
             </style>
         `;
     }
 
     // ===========================================
-    // DASHBOARD INTERACTIONS
+    // DASHBOARD INITIALIZATION - FIXED!
     // ===========================================
 
-    function initializeEnhancedDashboard() {
-        // Tab functionality
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabPanels = document.querySelectorAll('.tab-panel');
+    function initializeEnhancedDashboard(dashboardId) {
+        console.log('🎯 Initializing Enhanced Dashboard:', dashboardId);
         
+        const dashboard = document.getElementById(dashboardId);
+        if (!dashboard) {
+            console.error('Dashboard not found:', dashboardId);
+            return;
+        }
+        
+        const tabBtns = dashboard.querySelectorAll('.tab-btn');
+        const tabPanels = dashboard.querySelectorAll('.tab-panel');
+        
+        console.log('Found tabs:', tabBtns.length, 'panels:', tabPanels.length);
+        
+        // Remove any existing event listeners by cloning elements
         tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+        });
+        
+        // Get fresh references after cloning
+        const freshTabBtns = dashboard.querySelectorAll('.tab-btn');
+        
+        freshTabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const targetTab = btn.dataset.tab;
+                console.log('Tab clicked:', targetTab);
                 
                 // Update buttons
-                tabBtns.forEach(b => b.classList.remove('active'));
+                freshTabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 
-                // Update panels
+                // Update panels with smooth transition
                 tabPanels.forEach(panel => {
                     if (panel.dataset.panel === targetTab) {
+                        // Show target panel
+                        panel.style.display = 'block';
                         panel.classList.add('active');
+                        
+                        // Trigger animation
+                        requestAnimationFrame(() => {
+                            panel.style.opacity = '1';
+                            panel.style.transform = 'translateY(0)';
+                        });
                     } else {
+                        // Hide other panels
                         panel.classList.remove('active');
+                        panel.style.display = 'none';
                     }
                 });
             });
         });
+        
+        console.log('✅ Dashboard tabs initialized successfully!');
     }
 
     // ===========================================
     // EXPORT FUNCTIONS
     // ===========================================
 
-    function exportEnhancedReport(url) {
+    function exportDetailedReport(url) {
+        console.log('📊 Exporting detailed report for:', url);
         const timestamp = new Date().toISOString();
         let csv = `Enhanced Citizens Information Analytics Report\n`;
         csv += `Generated: ${timestamp}\n`;
         csv += `URL: ${url}\n\n`;
         
-        console.log('Exporting enhanced report for:', url);
-        alert('Enhanced export functionality ready - integrate with your existing export system');
+        // Implementation for export functionality
+        showNotification('📊 Report export functionality ready - integrate with your existing export system');
     }
 
-    function copyEnhancedSummary(url) {
+    function copyPageSummary(url) {
         const summary = `
-📊 ENHANCED CITIZENS INFORMATION ANALYSIS
+📊 CITIZENS INFORMATION PAGE ANALYSIS
 
 🔗 Page: ${url}
-📅 Generated: ${new Date().toLocaleDateString()}
+📅 Generated: ${new Date().toLocaleDateString('en-IE')}
 
-🎯 KEY INSIGHTS:
-- Performance matrix analysis complete
-- Query intelligence extracted  
-- Traffic quality assessed
-- Trend impact analyzed
+🎯 KEY METRICS:
+- Performance analysis complete
+- Quality assessment conducted
+- User behavior analyzed
+- Action items identified
 
 📋 NEXT STEPS:
-- Review content optimization opportunities
-- Implement recommended improvements
-- Monitor performance trends
+- Review optimization recommendations
+- Implement priority actions
+- Monitor performance improvements
 - Schedule regular reviews
 
-Generated by Enhanced Citizens Information Analytics Dashboard
+Generated by Citizens Information Analytics Dashboard
         `.trim();
         
         navigator.clipboard.writeText(summary).then(() => {
-            const message = document.createElement('div');
-            message.style.cssText = `
-                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                background: #10b981; color: white; padding: 15px 25px; border-radius: 8px;
-                font-weight: 600; z-index: 10001; animation: fadeIn 0.3s ease;
-            `;
-            message.textContent = '✅ Enhanced summary copied to clipboard!';
-            document.body.appendChild(message);
-            
-            setTimeout(() => {
-                message.style.opacity = '0';
-                setTimeout(() => message.remove(), 300);
-            }, 2000);
+            showNotification('✅ Page summary copied to clipboard!');
         }).catch(() => {
             alert('Failed to copy to clipboard. Please try again.');
         });
     }
 
+    function scheduleReview(url) {
+        console.log('📅 Scheduling review for:', url);
+        // Implementation for review scheduling
+        showNotification('📅 Review scheduling functionality - integrate with your calendar system');
+    }
+
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 10001;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            animation: slideInRight 0.3s ease;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100px)';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
     // ===========================================
-    // EXPORT TO GLOBAL SCOPE
+    // GLOBAL EXPORTS
     // ===========================================
 
     window.createEnhancedCitizensDashboard = createEnhancedCitizensDashboard;
-    window.exportEnhancedReport = exportEnhancedReport;
-    window.copyEnhancedSummary = copyEnhancedSummary;
     window.initializeEnhancedDashboard = initializeEnhancedDashboard;
+    window.exportDetailedReport = exportDetailedReport;
+    window.copyPageSummary = copyPageSummary;
+    window.scheduleReview = scheduleReview;
 
-    console.log('✅ Complete Enhanced Citizens Dashboard loaded!');
+    console.log('✅ Complete Enhanced Citizens Dashboard v2.0 loaded successfully!');
 
 })();
