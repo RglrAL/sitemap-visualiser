@@ -1084,7 +1084,7 @@ function formatDuration(seconds) {
                                 expression: variation
                             }]
                         }],
-                        rowLimit: 10
+                        rowLimit: 200
                     }
                 });
             });
@@ -1180,7 +1180,7 @@ const geoResponse = await robustGSCApiCall(async () => {
                 fetchedAt: Date.now(),
                 
                 // Enhanced data for content writers
-                topQueries: queries.slice(0, 5).map(q => ({
+                topQueries: queries.map(q => ({
                     query: q.keys[0],
                     clicks: q.clicks,
                     impressions: q.impressions,
