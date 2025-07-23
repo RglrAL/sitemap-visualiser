@@ -4357,6 +4357,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <!-- Irish Service Detection Analysis -->
             <div class="irish-service-analysis">
                 <h4>🇮🇪 Irish Government Service Detection</h4>
+                <p class="filter-instruction">💡 <strong>Click on any Irish service below to filter queries by that service type</strong></p>
                 <div class="service-stats">
                     <div class="service-stat">
                         <span class="stat-number">${irishServiceAnalysis.totalIrishQueries}</span>
@@ -4379,7 +4380,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                             ${topIrishServices.map(([service, count]) => {
                                 const percentage = Math.round((count / irishServiceAnalysis.totalIrishQueries) * 100);
                                 return `
-                                    <div class="service-bar">
+                                    <div class="service-bar clickable" data-filter-service="${service}" role="button" tabindex="0" aria-label="Click to filter queries by ${getServiceDisplayName(service)}" title="Click to see only ${getServiceDisplayName(service)} queries">
                                         <div class="service-bar-label">
                                             <span class="service-name">${getServiceDisplayName(service)}</span>
                                             <span class="service-count">${count} queries (${percentage}%)</span>
@@ -4390,6 +4391,11 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                     </div>
                                 `;
                             }).join('')}
+                        </div>
+                        <div class="service-filter-controls">
+                            <button class="clear-filter-btn" id="clearServiceFilter" style="display: none;">
+                                ✕ Show All Irish Services (<span id="totalIrishQueryCount">${irishServiceAnalysis.totalIrishQueries}</span> queries)
+                            </button>
                         </div>
                     </div>
                 ` : ''}
@@ -5009,6 +5015,60 @@ function createCitizenQueryIntelligenceStyles() {
             .service-bar {
                 display: grid;
                 gap: 4px;
+                transition: all 0.2s ease;
+            }
+            
+            .service-bar.clickable {
+                cursor: pointer;
+                padding: 8px;
+                border-radius: 6px;
+                border: 2px solid transparent;
+                position: relative;
+            }
+            
+            .service-bar.clickable::before {
+                content: "👆 Click to filter";
+                position: absolute;
+                top: -25px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #1f2937;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+                white-space: nowrap;
+                z-index: 10;
+            }
+            
+            .service-bar.clickable:hover::before {
+                opacity: 1;
+            }
+            
+            .service-bar.clickable:hover {
+                background: rgba(16, 185, 129, 0.1);
+                border-color: rgba(16, 185, 129, 0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+            }
+            
+            .service-bar.clickable:active {
+                transform: translateY(0);
+            }
+            
+            .service-bar.active-filter {
+                background: rgba(16, 185, 129, 0.15) !important;
+                border-color: #10b981 !important;
+                box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            }
+            
+            .service-bar.active-filter::before {
+                content: "✓ Filtered";
+                opacity: 1;
+                background: #10b981;
             }
             
             .service-bar-label {
@@ -5039,6 +5099,11 @@ function createCitizenQueryIntelligenceStyles() {
                 height: 100%;
                 border-radius: 3px;
                 transition: width 0.5s ease;
+            }
+            
+            .service-filter-controls {
+                margin-top: 12px;
+                text-align: center;
             }
             
             .irish-service-badge {
@@ -5704,7 +5769,7 @@ function createCitizenQueryIntelligenceStyles() {
                     grid-template-columns: 1fr;
                 }
                 
-                .intent-badges, .query-badges, .opportunity-badges {
+                .query-badges, .opportunity-badges {
                     justify-content: flex-start;
                 }
             }
@@ -5741,14 +5806,33 @@ function initializeCitizenQueryIntelligence() {
             const filterIntent = intentBarElement.getAttribute('data-filter-intent');
             if (filterIntent) {
                 console.log('Filtering by intent:', filterIntent); // Debug log
+                clearServiceFilter(); // Clear any active service filter
                 filterQueriesByIntent(filterIntent);
             }
         }
         
-        // Handle clear filter
+        // Handle Irish service filtering
+        const serviceBarElement = e.target.closest('.service-bar');
+        if (serviceBarElement && serviceBarElement.classList.contains('clickable')) {
+            console.log('Service bar clicked!', serviceBarElement); // Debug log
+            const filterService = serviceBarElement.getAttribute('data-filter-service');
+            if (filterService) {
+                console.log('Filtering by service:', filterService); // Debug log
+                clearJourneyFilter(); // Clear any active journey filter
+                filterQueriesByService(filterService);
+            }
+        }
+        
+        // Handle clear journey filter
         if (e.target.closest('#clearJourneyFilter')) {
-            console.log('Clear filter clicked!'); // Debug log
+            console.log('Clear journey filter clicked!'); // Debug log
             clearJourneyFilter();
+        }
+        
+        // Handle clear service filter
+        if (e.target.closest('#clearServiceFilter')) {
+            console.log('Clear service filter clicked!'); // Debug log
+            clearServiceFilter();
         }
         
         // Handle show more buttons
@@ -5786,15 +5870,32 @@ function initializeCitizenQueryIntelligence() {
         }
     });
     
-    // Handle keyboard navigation for intent bars
+    // Handle keyboard navigation for intent bars and service bars
     document.addEventListener('keydown', function(e) {
         const intentBarElement = e.target.closest('.intent-bar');
-        if (intentBarElement && intentBarElement.classList.contains('clickable') && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            console.log('Intent bar keyboard activated!', intentBarElement); // Debug log
-            const filterIntent = intentBarElement.getAttribute('data-filter-intent');
-            if (filterIntent) {
-                filterQueriesByIntent(filterIntent);
+        const serviceBarElement = e.target.closest('.service-bar');
+        
+        if ((intentBarElement && intentBarElement.classList.contains('clickable')) || 
+            (serviceBarElement && serviceBarElement.classList.contains('clickable'))) {
+            
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                
+                if (intentBarElement) {
+                    console.log('Intent bar keyboard activated!', intentBarElement); // Debug log
+                    const filterIntent = intentBarElement.getAttribute('data-filter-intent');
+                    if (filterIntent) {
+                        clearServiceFilter();
+                        filterQueriesByIntent(filterIntent);
+                    }
+                } else if (serviceBarElement) {
+                    console.log('Service bar keyboard activated!', serviceBarElement); // Debug log
+                    const filterService = serviceBarElement.getAttribute('data-filter-service');
+                    if (filterService) {
+                        clearJourneyFilter();
+                        filterQueriesByService(filterService);
+                    }
+                }
             }
         }
     });
@@ -5807,7 +5908,7 @@ function initializeCitizenQueryIntelligence() {
 
 // Add visual indicators to make clickability obvious
 function addClickableIndicators() {
-    const clickableBars = document.querySelectorAll('.intent-bar.clickable');
+    const clickableBars = document.querySelectorAll('.intent-bar.clickable, .service-bar.clickable');
     console.log('Found clickable bars:', clickableBars.length); // Debug log
     
     clickableBars.forEach(bar => {
@@ -6029,7 +6130,6 @@ if (document.readyState === 'loading') {
 } else {
     initializeCitizenQueryIntelligence();
 }
-
 
     
 
