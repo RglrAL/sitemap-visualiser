@@ -2174,7 +2174,7 @@
                 }
                 
                 .impact-label {
-                    color: #64748b;
+                    color: #ffffff;
                     font-weight: 500;
                     font-size: 0.9rem;
                 }
