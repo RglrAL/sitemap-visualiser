@@ -4322,6 +4322,48 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
     `;
 }
 
+// ADD NEW FUNCTION: Validate and fix intent counts
+function validateIntentCounts(intentAnalysis, intentCounts) {
+    console.log('Validating intent counts...'); // Debug log
+    
+    // Count actual intents from the analysis data
+    const actualCounts = {};
+    Object.keys(citizenJourneyCategories).forEach(intent => {
+        actualCounts[intent] = 0;
+    });
+    
+    intentAnalysis.forEach(item => {
+        if (actualCounts.hasOwnProperty(item.primaryIntent)) {
+            actualCounts[item.primaryIntent]++;
+        } else {
+            console.warn('Unknown intent in analysis:', item.primaryIntent);
+            actualCounts[item.primaryIntent] = (actualCounts[item.primaryIntent] || 0) + 1;
+        }
+    });
+    
+    console.log('Original counts:', intentCounts);
+    console.log('Actual counts:', actualCounts);
+    
+    // Check for mismatches
+    const mismatches = [];
+    Object.keys(actualCounts).forEach(intent => {
+        if (intentCounts[intent] !== actualCounts[intent]) {
+            mismatches.push({
+                intent,
+                expected: intentCounts[intent] || 0,
+                actual: actualCounts[intent]
+            });
+        }
+    });
+    
+    if (mismatches.length > 0) {
+        console.warn('Intent count mismatches found:', mismatches);
+    }
+    
+    // Return the corrected counts
+    return actualCounts;
+}
+
 // CITIZEN JOURNEY PANEL
 function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     if (intentAnalysis.length === 0) {
@@ -4331,8 +4373,11 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     const initialDisplayCount = 12;
     const showPagination = intentAnalysis.length > initialDisplayCount;
     
-    // Create intent distribution chart
-    const topIntents = Object.entries(intentCounts)
+    // FIX: Validate and correct intent counts
+    const correctedIntentCounts = validateIntentCounts(intentAnalysis, intentCounts);
+    
+    // Create intent distribution chart using corrected counts
+    const topIntents = Object.entries(correctedIntentCounts)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 6)
         .filter(([,count]) => count > 0);
@@ -4348,6 +4393,13 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
         <div class="citizen-journey-panel">
             <div class="journey-explanation">
                 <p><strong>Citizen Journey Analysis:</strong> Understanding what stage citizens are at when they search helps tailor content to their specific needs and urgency levels.</p>
+            </div>
+            
+            <!-- Debug Information (can be removed in production) -->
+            <div class="debug-info" style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.8rem; color: #6b7280;">
+                <strong>Debug:</strong> Total queries in analysis: ${intentAnalysis.length} | 
+                Total in corrected counts: ${Object.values(correctedIntentCounts).reduce((sum, count) => sum + count, 0)} |
+                Queries with data-intent will be: ${intentAnalysis.length}
             </div>
             
             <!-- Irish Service Detection Analysis -->
@@ -4394,7 +4446,9 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <!-- Intent Distribution -->
             <div class="intent-distribution">
                 <h4>🗺️ Where Citizens Are in Their Journey</h4>
-                <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused)</p>
+                <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused) 
+                    <br><small style="color: #6b7280;">Look for the 👆 cursor icon when hovering - if bars aren't clickable, check browser console for errors</small>
+                </p>
                 <div class="intent-bars">
                     ${topIntents.map(([intent, count]) => {
                         const percentage = Math.round((count / intentAnalysis.length) * 100);
@@ -5762,6 +5816,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 // INITIALIZATION
 function initializeCitizenQueryIntelligence() {
+    // Use event delegation to handle clicks on dynamically created elements
     document.addEventListener('click', function(e) {
         // Handle tab switching
         if (e.target.closest('.citizen-tab-btn')) {
@@ -5781,15 +5836,20 @@ function initializeCitizenQueryIntelligence() {
             }
         }
         
-        // Handle journey stage filtering
-        if (e.target.closest('.intent-bar.clickable')) {
-            const intentBar = e.target.closest('.intent-bar.clickable');
-            const filterIntent = intentBar.getAttribute('data-filter-intent');
-            filterQueriesByIntent(filterIntent);
+        // Handle journey stage filtering - improved detection
+        const intentBarElement = e.target.closest('.intent-bar');
+        if (intentBarElement && intentBarElement.classList.contains('clickable')) {
+            console.log('Intent bar clicked!', intentBarElement); // Debug log
+            const filterIntent = intentBarElement.getAttribute('data-filter-intent');
+            if (filterIntent) {
+                console.log('Filtering by intent:', filterIntent); // Debug log
+                filterQueriesByIntent(filterIntent);
+            }
         }
         
         // Handle clear filter
         if (e.target.closest('#clearJourneyFilter')) {
+            console.log('Clear filter clicked!'); // Debug log
             clearJourneyFilter();
         }
         
@@ -5830,11 +5890,57 @@ function initializeCitizenQueryIntelligence() {
     
     // Handle keyboard navigation for intent bars
     document.addEventListener('keydown', function(e) {
-        if (e.target.closest('.intent-bar.clickable') && (e.key === 'Enter' || e.key === ' ')) {
+        const intentBarElement = e.target.closest('.intent-bar');
+        if (intentBarElement && intentBarElement.classList.contains('clickable') && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
-            const intentBar = e.target.closest('.intent-bar.clickable');
-            const filterIntent = intentBar.getAttribute('data-filter-intent');
-            filterQueriesByIntent(filterIntent);
+            console.log('Intent bar keyboard activated!', intentBarElement); // Debug log
+            const filterIntent = intentBarElement.getAttribute('data-filter-intent');
+            if (filterIntent) {
+                filterQueriesByIntent(filterIntent);
+            }
+        }
+    });
+    
+    // Add visual feedback initialization
+    setTimeout(() => {
+        addClickableIndicators();
+    }, 500);
+}
+
+// Add visual indicators to make clickability obvious
+function addClickableIndicators() {
+    const clickableBars = document.querySelectorAll('.intent-bar.clickable');
+    console.log('Found clickable bars:', clickableBars.length); // Debug log
+    
+    clickableBars.forEach(bar => {
+        // Add a visual indicator if not already present
+        if (!bar.querySelector('.click-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.className = 'click-indicator';
+            indicator.innerHTML = '👆';
+            indicator.style.cssText = `
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 1.2rem;
+                opacity: 0.6;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+            `;
+            bar.style.position = 'relative';
+            bar.appendChild(indicator);
+            
+            // Enhance on hover
+            bar.addEventListener('mouseenter', () => {
+                indicator.style.opacity = '1';
+                indicator.style.transform = 'translateY(-50%) scale(1.2)';
+            });
+            
+            bar.addEventListener('mouseleave', () => {
+                indicator.style.opacity = '0.6';
+                indicator.style.transform = 'translateY(-50%) scale(1)';
+            });
         }
     });
 }
@@ -5843,6 +5949,8 @@ function initializeCitizenQueryIntelligence() {
 let originalQueryData = null; // Store original data for filter clearing
 
 function filterQueriesByIntent(filterIntent) {
+    console.log('filterQueriesByIntent called with:', filterIntent); // Debug log
+    
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
     const filterStatus = document.getElementById('journeyFilterStatus');
@@ -5850,14 +5958,27 @@ function filterQueriesByIntent(filterIntent) {
     const filterCountDisplay = document.getElementById('filterCountDisplay');
     const clearFilterBtn = document.getElementById('clearJourneyFilter');
     
-    if (!queriesList) return;
+    console.log('Found elements:', { queriesList, hiddenQueriesList, filterStatus }); // Debug log
     
-    // Store original data if not already stored
-    if (!originalQueryData) {
+    if (!queriesList) {
+        console.error('citizenQueriesList not found!');
+        alert('Filtering not available - query list not found. Please try refreshing the page.');
+        return;
+    }
+    
+    // ALWAYS reset to original data first (this fixes the consecutive filtering issue)
+    if (originalQueryData) {
+        queriesList.innerHTML = originalQueryData.mainQueries;
+        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+        }
+    } else {
+        // Store original data if not already stored
         originalQueryData = {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
+        console.log('Stored original query data'); // Debug log
     }
     
     // Clear any existing active filter styling
@@ -5869,26 +5990,50 @@ function filterQueriesByIntent(filterIntent) {
     const clickedBar = document.querySelector(`[data-filter-intent="${filterIntent}"]`);
     if (clickedBar) {
         clickedBar.classList.add('active-filter');
+        console.log('Added active filter to bar:', clickedBar); // Debug log
     }
     
-    // Get all query items (including hidden ones)
+    // Get all query items from ORIGINAL data (including hidden ones)
     let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
     if (hiddenQueriesList) {
         allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
     }
     
+    console.log('Total query items found:', allQueryItems.length); // Debug log
+    
+    // Debug: Check what data-intent values we actually have
+    const intentValues = allQueryItems.map(item => item.getAttribute('data-intent')).filter(Boolean);
+    const uniqueIntents = [...new Set(intentValues)];
+    console.log('Available data-intent values:', uniqueIntents);
+    console.log('Looking for intent:', filterIntent);
+    
     // Filter items by intent
     const filteredItems = allQueryItems.filter(item => {
-        return item.getAttribute('data-intent') === filterIntent;
+        const itemIntent = item.getAttribute('data-intent');
+        return itemIntent === filterIntent;
     });
     
-    // Clear current display
-    queriesList.innerHTML = '';
+    console.log('Filtered items count:', filteredItems.length); // Debug log
     
-    // Show filtered items
-    filteredItems.forEach(item => {
-        queriesList.appendChild(item.cloneNode(true));
-    });
+    if (filteredItems.length === 0) {
+        queriesList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <p>No queries found for this journey stage: <strong>${filterIntent}</strong></p>
+                <p><em>Available intents: ${uniqueIntents.join(', ')}</em></p>
+                <button onclick="clearJourneyFilter()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
+                    Show All Queries
+                </button>
+            </div>
+        `;
+    } else {
+        // Clear current display
+        queriesList.innerHTML = '';
+        
+        // Show filtered items
+        filteredItems.forEach(item => {
+            queriesList.appendChild(item.cloneNode(true));
+        });
+    }
     
     // Update filter status
     const intentConfig = citizenJourneyCategories[filterIntent];
@@ -5909,6 +6054,29 @@ function filterQueriesByIntent(filterIntent) {
     setTimeout(() => {
         queriesList.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
+    
+    // Show success message
+    const successMsg = document.createElement('div');
+    successMsg.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        z-index: 1000;
+        font-weight: 600;
+        font-size: 0.9rem;
+    `;
+    successMsg.textContent = `✓ Filtered to show ${filteredItems.length} queries`;
+    document.body.appendChild(successMsg);
+    
+    setTimeout(() => {
+        if (document.body.contains(successMsg)) {
+            document.body.removeChild(successMsg);
+        }
+    }, 3000);
 }
 
 function clearJourneyFilter() {
@@ -5963,8 +6131,6 @@ if (document.readyState === 'loading') {
 } else {
     initializeCitizenQueryIntelligence();
 }
-
-
     
 
 // ===========================================
