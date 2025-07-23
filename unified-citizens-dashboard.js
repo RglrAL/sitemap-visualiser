@@ -1814,6 +1814,7 @@
                     color: white;
                     padding: 0px;
                     position: relative;
+                    text-align: left;
                     overflow: hidden;
                 }
                 
