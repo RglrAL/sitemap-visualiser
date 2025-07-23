@@ -1810,7 +1810,7 @@
                 
                 /* Dashboard Header */
                 .dashboard-header {
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
+                    background: linear-gradient(135deg, #5a8200 0%, #72A300 100%);
                     color: white;
                     padding: 0px;
                     position: relative;
