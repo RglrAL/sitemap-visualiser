@@ -3923,117 +3923,6 @@ function analyzeIrishServiceUsage(intentAnalysis) {
     };
 }
 
-// ENHANCED CONTENT MISMATCH DETECTION
-function detectContentMismatch(query, pageUrl, impressions, ctr, position) {
-    const urlParts = pageUrl.toLowerCase().split('/').filter(part => part.length > 0);
-    const urlKeywords = urlParts.join(' ').replace(/-/g, ' ').split(' ')
-        .filter(word => word.length > 2);
-    const queryWords = query.toLowerCase().split(' ')
-        .filter(word => word.length > 2);
-    
-    // Enhanced keyword overlap calculation
-    let overlap = 0;
-    const synonymMap = {
-        'pps': ['personal', 'public', 'service'],
-        'hse': ['health', 'service', 'executive'],
-        'rtb': ['rental', 'tenancy', 'board'],
-        'susi': ['student', 'grant', 'support'],
-        'intreo': ['social', 'welfare', 'office'],
-        'allowance': ['benefit', 'payment'],
-        'pension': ['retirement', 'contributory']
-    };
-    
-    queryWords.forEach(word => {
-        let found = false;
-        
-        // Direct match
-        if (urlKeywords.some(urlWord => urlWord.includes(word) || word.includes(urlWord))) {
-            overlap++;
-            found = true;
-        }
-        
-        // Synonym match
-        if (!found && synonymMap[word]) {
-            if (synonymMap[word].some(synonym => 
-                urlKeywords.some(urlWord => urlWord.includes(synonym)))) {
-                overlap += 0.5;
-            }
-        }
-    });
-    
-    const overlapPercentage = queryWords.length > 0 ? (overlap / queryWords.length) : 0;
-    
-    // Enhanced mismatch scoring
-    let mismatchScore = 0;
-    let reasons = [];
-    let recommendations = [];
-    
-    // High traffic, low engagement patterns
-    if (impressions >= 500 && ctr < 0.015) {
-        mismatchScore += 5;
-        reasons.push('Very high search volume but very low click-through rate');
-        recommendations.push('Review page title and description to better match what citizens are actually looking for');
-    } else if (impressions >= 200 && ctr < 0.025) {
-        mismatchScore += 3;
-        reasons.push('High search volume but low click-through rate');
-        recommendations.push('Optimize title and description to be more appealing to citizens');
-    }
-    
-    // Content relevance issues
-    if (overlapPercentage < 0.2) {
-        mismatchScore += 4;
-        reasons.push(`Very low content match (${(overlapPercentage * 100).toFixed(0)}%) between citizen search and page content`);
-        recommendations.push('Consider creating dedicated content for this citizen query');
-    } else if (overlapPercentage < 0.4) {
-        mismatchScore += 2;
-        reasons.push(`Low content match (${(overlapPercentage * 100).toFixed(0)}%) between citizen search and page content`);
-        recommendations.push('Review page content to better address citizen intent');
-    }
-    
-    // Ranking vs. search volume misalignment
-    if (position > 20 && impressions >= 300) {
-        mismatchScore += 3;
-        reasons.push('High citizen interest but very poor ranking suggests content gaps');
-        recommendations.push('Improve content comprehensiveness and SEO optimization');
-    } else if (position > 10 && impressions >= 150) {
-        mismatchScore += 2;
-        reasons.push('Decent citizen interest but poor ranking');
-        recommendations.push('Enhance content quality and on-page SEO');
-    }
-    
-    // Intent-specific mismatch detection
-    const queryIntent = classifyCitizenIntent(query);
-    
-    if (queryIntent.primaryIntent === 'immediateAction' && ctr < 0.03) {
-        mismatchScore += 3;
-        reasons.push('Citizens need immediate action but aren\'t clicking through');
-        recommendations.push('Add clear "Apply Now" or "Get This Service" buttons in title/description');
-    }
-    
-    if (queryIntent.primaryIntent === 'processLearning' && position > 15) {
-        mismatchScore += 2;
-        reasons.push('Citizens want step-by-step help but content isn\'t ranking well');
-        recommendations.push('Create clear, numbered step-by-step guides');
-    }
-    
-    if (queryIntent.hasUrgency && ctr < 0.04) {
-        mismatchScore += 2;
-        reasons.push('Urgent citizen queries but low engagement');
-        recommendations.push('Highlight urgency and immediate help in page titles');
-    }
-    
-    return {
-        isMismatch: mismatchScore >= 3,
-        severity: mismatchScore >= 7 ? 'high' : mismatchScore >= 3 ? 'medium' : 'low',
-        score: mismatchScore,
-        reasons: reasons,
-        recommendations: recommendations,
-        overlapPercentage: Math.round(overlapPercentage * 100),
-        queryIntent: queryIntent.primaryIntent,
-        plainEnglishIntent: queryIntent.plainEnglish
-    };
-}
-
 // CITIZEN OPPORTUNITY SCORING
 function calculateCitizenOpportunities(topQueries) {
     if (!topQueries || topQueries.length === 0) return [];
@@ -4211,74 +4100,6 @@ function performCitizenQueryAnalysis(gscData, pageUrl) {
             urgentQueries: urgentCount
         }
     };
-}
-
-// UI CREATION FUNCTION
-function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
-    const analysis = performCitizenQueryAnalysis(gscData, pageUrl);
-    
-    return `
-        <div class="section citizen-query-intelligence">
-            <h2 class="section-title">🎯 Citizen Query Intelligence</h2>
-            <div class="citizen-analysis-explanation">
-                <p><strong>Understanding What Citizens Really Want:</strong> This analysis examines real citizen searches to identify their needs, problems, and opportunities to serve them better through your content.</p>
-            </div>
-            
-            <!-- Executive Summary for Management -->
-            <div class="executive-summary">
-                <h3>📊 Executive Summary</h3>
-                <div class="summary-grid">
-                    <div class="summary-card citizens-reached">
-                        <div class="summary-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
-                        <div class="summary-label">Citizens Reached Monthly</div>
-                        <div class="summary-subtitle">Total monthly searches for your content</div>
-                    </div>
-                    <div class="summary-card urgent-needs">
-                        <div class="summary-number">${analysis.summary.urgentQueries}</div>
-                        <div class="summary-label">Urgent Citizen Needs</div>
-                        <div class="summary-subtitle">Queries requiring immediate attention</div>
-                    </div>
-                    <div class="summary-card improvement-opportunities">
-                        <div class="summary-number">${analysis.summary.opportunities}</div>
-                        <div class="summary-label">Improvement Opportunities</div>
-                        <div class="summary-subtitle">Ways to better serve citizens</div>
-                    </div>
-                    <div class="summary-card journey-stages">
-                        <div class="summary-number">${Object.keys(analysis.summary.byIntent).filter(intent => analysis.summary.byIntent[intent] > 0).length}</div>
-                        <div class="summary-label">Active Journey Stages</div>
-                        <div class="summary-subtitle">Different citizen needs identified</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Main Analysis Tabs -->
-            <div class="citizen-analysis-tabs">
-                <div class="citizen-tab-nav">
-                    <button class="citizen-tab-btn active" data-citizen-tab="journey">
-                        <span class="tab-icon">🛤️</span>
-                        <span>Citizen Journey Stages</span>
-                    </button>
-                    <button class="citizen-tab-btn" data-citizen-tab="opportunities">
-                        <span class="tab-icon">🎯</span>
-                        <span>Improvement Opportunities</span>
-                        ${analysis.summary.opportunities > 0 ? '<span class="tab-badge">' + analysis.summary.opportunities + '</span>' : ''}
-                    </button>
-                </div>
-                
-                <div class="citizen-tab-content">
-                    <!-- Citizen Journey Panel -->
-                    <div class="citizen-tab-panel active" data-citizen-panel="journey">
-                        ${createCitizenJourneyPanel(analysis.intentAnalysis, analysis.summary.byIntent)}
-                    </div>
-                    
-                    <!-- Opportunities Panel -->
-                    <div class="citizen-tab-panel" data-citizen-panel="opportunities">
-                        ${createCitizenOpportunitiesPanel(analysis.citizenOpportunities)}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
 }
 
 // ADD NEW FUNCTION: Validate and fix intent counts
@@ -4696,6 +4517,74 @@ function createCitizenOpportunitiesPanel(opportunities) {
                     </button>
                 </div>
             ` : ''}
+        </div>
+    `;
+}
+
+// UI CREATION FUNCTION
+function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
+    const analysis = performCitizenQueryAnalysis(gscData, pageUrl);
+    
+    return `
+        <div class="section citizen-query-intelligence">
+            <h2 class="section-title">🎯 Citizen Query Intelligence</h2>
+            <div class="citizen-analysis-explanation">
+                <p><strong>Understanding What Citizens Really Want:</strong> This analysis examines real citizen searches to identify their needs, problems, and opportunities to serve them better through your content.</p>
+            </div>
+            
+            <!-- Executive Summary for Management -->
+            <div class="executive-summary">
+                <h3>📊 Executive Summary</h3>
+                <div class="summary-grid">
+                    <div class="summary-card citizens-reached">
+                        <div class="summary-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
+                        <div class="summary-label">Citizens Reached Monthly</div>
+                        <div class="summary-subtitle">Total monthly searches for your content</div>
+                    </div>
+                    <div class="summary-card urgent-needs">
+                        <div class="summary-number">${analysis.summary.urgentQueries}</div>
+                        <div class="summary-label">Urgent Citizen Needs</div>
+                        <div class="summary-subtitle">Queries requiring immediate attention</div>
+                    </div>
+                    <div class="summary-card improvement-opportunities">
+                        <div class="summary-number">${analysis.summary.opportunities}</div>
+                        <div class="summary-label">Improvement Opportunities</div>
+                        <div class="summary-subtitle">Ways to better serve citizens</div>
+                    </div>
+                    <div class="summary-card journey-stages">
+                        <div class="summary-number">${Object.keys(analysis.summary.byIntent).filter(intent => analysis.summary.byIntent[intent] > 0).length}</div>
+                        <div class="summary-label">Active Journey Stages</div>
+                        <div class="summary-subtitle">Different citizen needs identified</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Analysis Tabs -->
+            <div class="citizen-analysis-tabs">
+                <div class="citizen-tab-nav">
+                    <button class="citizen-tab-btn active" data-citizen-tab="journey">
+                        <span class="tab-icon">🛤️</span>
+                        <span>Citizen Journey Stages</span>
+                    </button>
+                    <button class="citizen-tab-btn" data-citizen-tab="opportunities">
+                        <span class="tab-icon">🎯</span>
+                        <span>Improvement Opportunities</span>
+                        ${analysis.summary.opportunities > 0 ? '<span class="tab-badge">' + analysis.summary.opportunities + '</span>' : ''}
+                    </button>
+                </div>
+                
+                <div class="citizen-tab-content">
+                    <!-- Citizen Journey Panel -->
+                    <div class="citizen-tab-panel active" data-citizen-panel="journey">
+                        ${createCitizenJourneyPanel(analysis.intentAnalysis, analysis.summary.byIntent)}
+                    </div>
+                    
+                    <!-- Opportunities Panel -->
+                    <div class="citizen-tab-panel" data-citizen-panel="opportunities">
+                        ${createCitizenOpportunitiesPanel(analysis.citizenOpportunities)}
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -5292,13 +5181,13 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             /* Query Items */
-            .citizen-queries-list, .mismatch-list, .opportunities-list {
+            .citizen-queries-list, .opportunities-list {
                 display: grid;
                 gap: 16px;
                 margin-bottom: 24px;
             }
             
-            .citizen-query-item, .mismatch-item, .opportunity-item {
+            .citizen-query-item, .opportunity-item {
                 background: white;
                 border: 1px solid #e2e8f0;
                 border-radius: 10px;
@@ -5306,11 +5195,11 @@ function createCitizenQueryIntelligenceStyles() {
                 transition: all 0.2s ease;
             }
             
-            .citizen-query-item:hover, .mismatch-item:hover, .opportunity-item:hover {
+            .citizen-query-item:hover, .opportunity-item:hover {
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }
             
-            .query-header, .mismatch-header, .opportunity-header {
+            .query-header, .opportunity-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
@@ -5372,127 +5261,7 @@ function createCitizenQueryIntelligenceStyles() {
                 margin-bottom: 8px;
             }
             
-            .secondary-intents, .secondary-journey {
-                font-size: 0.8rem;
-                color: #6b7280;
-                font-style: italic;
-                margin-top: 8px;
-            }
-            
-            /* Mismatch Specific */
-            .mismatch-item.high {
-                border-left: 4px solid #ef4444;
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            }
-            
-            .mismatch-item.medium {
-                border-left: 4px solid #f59e0b;
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            }
-            
-            .severity-indicator {
-                padding: 6px 12px;
-                border-radius: 16px;
-                font-size: 0.75rem;
-                font-weight: 700;
-                white-space: nowrap;
-            }
-            
-            .severity-indicator.high {
-                background: #ef4444;
-                color: white;
-            }
-            
-            .severity-indicator.medium {
-                background: #f59e0b;
-                color: white;
-            }
-            
-            .citizen-impact, .current-performance {
-                margin-bottom: 16px;
-            }
-            
-            .impact-metrics, .performance-metrics {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 12px;
-                padding: 12px;
-                background: rgba(255,255,255,0.7);
-                border-radius: 6px;
-            }
-            
-            .metric-group {
-                display: grid;
-                gap: 8px;
-            }
-            
-            .metric-item {
-                display: flex;
-                justify-content: space-between;
-                font-size: 0.85rem;
-            }
-            
-            .metric-label {
-                color: #64748b;
-                font-weight: 500;
-            }
-            
-            .metric-value {
-                font-weight: 600;
-                color: #1f2937;
-            }
-            
-            .problem-analysis, .fix-recommendations, .opportunity-factors, .potential-results {
-                margin-bottom: 16px;
-            }
-            
-            .problem-analysis h5, .fix-recommendations h5, .opportunity-factors h5, .potential-results h5 {
-                color: #374151;
-                margin-bottom: 8px;
-                font-size: 0.9rem;
-            }
-            
-            .problem-reasons, .factor-list {
-                margin: 0;
-                padding-left: 20px;
-                color: #64748b;
-            }
-            
-            .problem-reasons li, .factor-list li {
-                margin-bottom: 4px;
-                font-size: 0.85rem;
-            }
-            
-            .recommendation-list {
-                display: grid;
-                gap: 8px;
-            }
-            
-            .recommendation-item {
-                display: flex;
-                align-items: flex-start;
-                gap: 8px;
-                font-size: 0.85rem;
-            }
-            
-            .rec-icon {
-                color: #10b981;
-                font-weight: bold;
-                flex-shrink: 0;
-            }
-            
-            .rec-text {
-                color: #374151;
-                line-height: 1.4;
-            }
-            
-            .potential-impact, .impact-estimate {
-                font-size: 0.85rem;
-                color: #059669;
-                font-weight: 600;
-            }
-            
-            /* Opportunity Specific */
+            /* Opportunity Specific Styles */
             .opportunity-item.high {
                 border-left: 4px solid #ef4444;
                 background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
@@ -5543,106 +5312,6 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .journey-stage {
-                color: #374151;
-                font-weight: 600;
-            }
-            
-            .results-grid {
-                display: grid;
-                gap: 8px;
-                margin-top: 8px;
-            }
-            
-            .result-item {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 0.85rem;
-                color: #059669;
-                font-weight: 500;
-            }
-            
-            .result-icon {
-                font-size: 1rem;
-            }
-            
-            /* Pagination */
-            .pagination-controls {
-                margin-top: 24px;
-                text-align: center;
-                padding: 20px;
-                border-top: 1px solid #e2e8f0;
-            }
-            
-            .show-more-btn {
-                background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                font-size: 0.9rem;
-            }
-            
-            .show-more-btn:hover {
-                background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            }
-            
-            /* Opportunity Specific Styles */
-            .opportunity-item.high {
-                border-left: 4px solid #ef4444;
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            }
-            
-            .opportunity-item.medium {
-                border-left: 4px solid #f59e0b;
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            }
-            
-            .opportunity-item.low {
-                border-left: 4px solid #6366f1;
-                background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-            }
-            
-            .citizen-impact-badge.high {
-                background: #dcfce7;
-                color: #166534;
-            }
-            
-            .citizen-impact-badge.medium {
-                background: #fef3c7;
-                color: #92400e;
-            }
-            
-            .citizen-impact-badge.low {
-                background: #f1f5f9;
-                color: #475569;
-            }
-            
-            .citizen-journey-context {
-                background: rgba(59, 130, 246, 0.05);
-                padding: 12px;
-                border-radius: 6px;
-                margin-bottom: 16px;
-            }
-            
-            .journey-info, .secondary-journey {
-                font-size: 0.85rem;
-                display: flex;
-                gap: 8px;
-                align-items: center;
-            }
-            
-            .journey-label, .secondary-label {
-                color: #6b7280;
-                font-weight: 500;
-            }
-            
-            .journey-stage, .secondary-stages {
                 color: #374151;
                 font-weight: 600;
             }
@@ -5721,26 +5390,52 @@ function createCitizenQueryIntelligenceStyles() {
                 font-size: 1rem;
             }
             
+            /* Pagination */
+            .pagination-controls {
+                margin-top: 24px;
+                text-align: center;
+                padding: 20px;
+                border-top: 1px solid #e2e8f0;
+            }
+            
+            .show-more-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-size: 0.9rem;
+            }
+            
+            .show-more-btn:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+            
             /* No Data Messages */
-            .no-data-message, .no-mismatch-message, .no-opportunities-message {
+            .no-data-message, .no-opportunities-message {
                 text-align: center;
                 padding: 40px;
                 color: #6b7280;
             }
             
-            .success-icon, .info-icon {
+            .info-icon {
                 font-size: 3rem;
                 margin-bottom: 16px;
             }
             
-            .success-title, .info-title {
+            .info-title {
                 font-size: 1.2rem;
                 font-weight: 700;
                 margin-bottom: 8px;
                 color: #374151;
             }
             
-            .success-description, .info-description {
+            .info-description {
                 color: #6b7280;
             }
             
@@ -5759,13 +5454,13 @@ function createCitizenQueryIntelligenceStyles() {
                     justify-content: flex-start;
                 }
                 
-                .query-header, .mismatch-header, .opportunity-header {
+                .query-header, .opportunity-header {
                     flex-direction: column;
                     align-items: flex-start;
                     gap: 12px;
                 }
                 
-                .impact-metrics, .performance-metrics {
+                .performance-metrics {
                     grid-template-columns: 1fr;
                 }
                 
@@ -5775,173 +5470,6 @@ function createCitizenQueryIntelligenceStyles() {
             }
         </style>
     `;
-}
-
-// INITIALIZATION
-function initializeCitizenQueryIntelligence() {
-    // Use event delegation to handle clicks on dynamically created elements
-    document.addEventListener('click', function(e) {
-        // Handle tab switching
-        if (e.target.closest('.citizen-tab-btn')) {
-            const button = e.target.closest('.citizen-tab-btn');
-            const targetTab = button.getAttribute('data-citizen-tab');
-            const container = button.closest('.citizen-analysis-tabs');
-            
-            // Remove active class from all buttons and panels in this container
-            container.querySelectorAll('.citizen-tab-btn').forEach(btn => btn.classList.remove('active'));
-            container.querySelectorAll('.citizen-tab-panel').forEach(panel => panel.classList.remove('active'));
-            
-            // Activate clicked button and corresponding panel
-            button.classList.add('active');
-            const targetPanel = container.querySelector(`[data-citizen-panel="${targetTab}"]`);
-            if (targetPanel) {
-                targetPanel.classList.add('active');
-            }
-        }
-        
-        // Handle journey stage filtering - improved detection
-        const intentBarElement = e.target.closest('.intent-bar');
-        if (intentBarElement && intentBarElement.classList.contains('clickable')) {
-            console.log('Intent bar clicked!', intentBarElement); // Debug log
-            const filterIntent = intentBarElement.getAttribute('data-filter-intent');
-            if (filterIntent) {
-                console.log('Filtering by intent:', filterIntent); // Debug log
-                clearServiceFilter(); // Clear any active service filter
-                filterQueriesByIntent(filterIntent);
-            }
-        }
-        
-        // Handle Irish service filtering
-        const serviceBarElement = e.target.closest('.service-bar');
-        if (serviceBarElement && serviceBarElement.classList.contains('clickable')) {
-            console.log('Service bar clicked!', serviceBarElement); // Debug log
-            const filterService = serviceBarElement.getAttribute('data-filter-service');
-            if (filterService) {
-                console.log('Filtering by service:', filterService); // Debug log
-                clearJourneyFilter(); // Clear any active journey filter
-                filterQueriesByService(filterService);
-            }
-        }
-        
-        // Handle clear journey filter
-        if (e.target.closest('#clearJourneyFilter')) {
-            console.log('Clear journey filter clicked!'); // Debug log
-            clearJourneyFilter();
-        }
-        
-        // Handle clear service filter
-        if (e.target.closest('#clearServiceFilter')) {
-            console.log('Clear service filter clicked!'); // Debug log
-            clearServiceFilter();
-        }
-        
-        // Handle show more buttons
-        if (e.target.closest('.show-more-btn')) {
-            const button = e.target.closest('.show-more-btn');
-            const target = button.getAttribute('data-target');
-            
-            // Find the corresponding list and hidden queries
-            const panel = button.closest('.citizen-tab-panel');
-            const queryList = panel.querySelector(`[data-citizen-list="${target}"]`);
-            const hiddenQueries = queryList.querySelector('.hidden-queries');
-            
-            if (hiddenQueries) {
-                // Show the hidden queries
-                hiddenQueries.style.display = 'block';
-                
-                // Move hidden queries to the main list
-                const hiddenItems = hiddenQueries.children;
-                while (hiddenItems.length > 0) {
-                    queryList.insertBefore(hiddenItems[0], hiddenQueries);
-                }
-                
-                // Remove the hidden container and pagination controls
-                hiddenQueries.remove();
-                button.closest('.pagination-controls').remove();
-                
-                // Smooth scroll to newly revealed content
-                setTimeout(() => {
-                    const allItems = queryList.querySelectorAll('.citizen-query-item, .opportunity-item');
-                    if (allItems.length > 12) {
-                        allItems[12].scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }, 100);
-            }
-        }
-    });
-    
-    // Handle keyboard navigation for intent bars and service bars
-    document.addEventListener('keydown', function(e) {
-        const intentBarElement = e.target.closest('.intent-bar');
-        const serviceBarElement = e.target.closest('.service-bar');
-        
-        if ((intentBarElement && intentBarElement.classList.contains('clickable')) || 
-            (serviceBarElement && serviceBarElement.classList.contains('clickable'))) {
-            
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                
-                if (intentBarElement) {
-                    console.log('Intent bar keyboard activated!', intentBarElement); // Debug log
-                    const filterIntent = intentBarElement.getAttribute('data-filter-intent');
-                    if (filterIntent) {
-                        clearServiceFilter();
-                        filterQueriesByIntent(filterIntent);
-                    }
-                } else if (serviceBarElement) {
-                    console.log('Service bar keyboard activated!', serviceBarElement); // Debug log
-                    const filterService = serviceBarElement.getAttribute('data-filter-service');
-                    if (filterService) {
-                        clearJourneyFilter();
-                        filterQueriesByService(filterService);
-                    }
-                }
-            }
-        }
-    });
-    
-    // Add visual feedback initialization
-    setTimeout(() => {
-        addClickableIndicators();
-    }, 500);
-}
-
-// Add visual indicators to make clickability obvious
-function addClickableIndicators() {
-    const clickableBars = document.querySelectorAll('.intent-bar.clickable, .service-bar.clickable');
-    console.log('Found clickable bars:', clickableBars.length); // Debug log
-    
-    clickableBars.forEach(bar => {
-        // Add a visual indicator if not already present
-        if (!bar.querySelector('.click-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.className = 'click-indicator';
-            indicator.innerHTML = '👆';
-            indicator.style.cssText = `
-                position: absolute;
-                right: 8px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 1.2rem;
-                opacity: 0.6;
-                transition: opacity 0.2s ease;
-                pointer-events: none;
-            `;
-            bar.style.position = 'relative';
-            bar.appendChild(indicator);
-            
-            // Enhance on hover
-            bar.addEventListener('mouseenter', () => {
-                indicator.style.opacity = '1';
-                indicator.style.transform = 'translateY(-50%) scale(1.2)';
-            });
-            
-            bar.addEventListener('mouseleave', () => {
-                indicator.style.opacity = '0.6';
-                indicator.style.transform = 'translateY(-50%) scale(1)';
-            });
-        }
-    });
 }
 
 // JOURNEY AND SERVICE FILTERING FUNCTIONS
@@ -6153,59 +5681,326 @@ function filterQueriesByIntent(filterIntent) {
     }, 3000);
 }
 
-function clearJourneyFilter() {
-    const panel = document.querySelector('[data-citizen-panel="journey"]');
-    if (!panel || !originalQueryData) return;
+function filterQueriesByService(filterService) {
+    console.log('filterQueriesByService called with:', filterService); // Debug log
     
-    // Clear active filter styling
-    document.querySelectorAll('.intent-bar.active-filter').forEach(bar => {
+    const queriesList = document.getElementById('citizenQueriesList');
+    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const filterValueDisplay = document.getElementById('filterValueDisplay');
+    const filterCountDisplay = document.getElementById('filterCountDisplay');
+    const clearServiceBtn = document.getElementById('clearServiceFilter');
+    
+    console.log('Found elements for service filtering:', { queriesList, hiddenQueriesList, filterStatus }); // Debug log
+    
+    if (!queriesList) {
+        console.error('citizenQueriesList not found!');
+        alert('Filtering not available - query list not found. Please try refreshing the page.');
+        return;
+    }
+    
+    // ALWAYS reset to original data first
+    if (originalQueryData) {
+        queriesList.innerHTML = originalQueryData.mainQueries;
+        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+        }
+    } else {
+        // Store original data if not already stored
+        originalQueryData = {
+            mainQueries: queriesList.innerHTML,
+            hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
+        };
+        console.log('Stored original query data for service filtering'); // Debug log
+    }
+    
+    // Clear any existing active filter styling
+    document.querySelectorAll('.service-bar.active-filter').forEach(bar => {
         bar.classList.remove('active-filter');
     });
     
-    // Hide filter status
-    const filterStatus = document.getElementById('journeyFilterStatus');
-    const clearFilterBtn = document.getElementById('clearJourneyFilter');
-    if (filterStatus) filterStatus.style.display = 'none';
-    if (clearFilterBtn) clearFilterBtn.style.display = 'none';
-    
-    // Restore original query data
-    const queriesList = document.getElementById('citizenQueriesList');
-    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
-    
-    if (queriesList && originalQueryData.mainQueries) {
-        queriesList.innerHTML = originalQueryData.mainQueries;
+    // Add active filter styling to clicked bar
+    const clickedBar = document.querySelector(`[data-filter-service="${filterService}"]`);
+    if (clickedBar) {
+        clickedBar.classList.add('active-filter');
+        console.log('Added active filter to service bar:', clickedBar); // Debug log
     }
     
-    if (hiddenQueriesList && originalQueryData.hiddenQueries) {
-        hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+    // Get all query items from ORIGINAL data (including hidden ones)
+    let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    if (hiddenQueriesList) {
+        allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
     }
     
-    // Show pagination controls again
-    const paginationControls = panel.querySelector('.pagination-controls');
+    console.log('Total query items found for service filtering:', allQueryItems.length); // Debug log
+    
+    // Filter items by detected service types
+    const filteredItems = allQueryItems.filter(item => {
+        // Get the detected services from the item's HTML content
+        const detectedServicesElement = item.querySelector('.detected-services');
+        if (!detectedServicesElement) return false;
+        
+        const detectedServicesText = detectedServicesElement.textContent;
+        const serviceDisplayName = getServiceDisplayName(filterService);
+        
+        console.log('Checking item for service:', serviceDisplayName, 'in text:', detectedServicesText); // Debug log
+        
+        return detectedServicesText.includes(serviceDisplayName);
+    });
+    
+    console.log('Filtered items count for service:', filteredItems.length); // Debug log
+    
+    if (filteredItems.length === 0) {
+        queriesList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <p>No queries found for this Irish service: <strong>${getServiceDisplayName(filterService)}</strong></p>
+                <button onclick="clearServiceFilter()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
+                    Show All Queries
+                </button>
+            </div>
+        `;
+    } else {
+        // Clear current display
+        queriesList.innerHTML = '';
+        
+        // Show filtered items
+        filteredItems.forEach(item => {
+            queriesList.appendChild(item.cloneNode(true));
+        });
+    }
+    
+    // Update filter status
+    const displayName = getServiceDisplayName(filterService);
+    
+    if (filterValueDisplay) filterValueDisplay.textContent = displayName;
+    if (filterCountDisplay) filterCountDisplay.textContent = `(${filteredItems.length} queries)`;
+    if (filterStatus) filterStatus.style.display = 'flex';
+    if (clearServiceBtn) clearServiceBtn.style.display = 'block';
+    
+    // Hide pagination controls when filtering
+    const paginationControls = queriesList.closest('.citizen-tab-panel').querySelector('.pagination-controls');
     if (paginationControls) {
-        paginationControls.style.display = 'block';
+        paginationControls.style.display = 'none';
     }
     
-    // Reset original data
-    originalQueryData = null;
+    // Scroll to queries list
+    setTimeout(() => {
+        queriesList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    
+    // Show success message
+    const successMsg = document.createElement('div');
+    successMsg.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        z-index: 1000;
+        font-weight: 600;
+        font-size: 0.9rem;
+    `;
+    successMsg.textContent = `✓ Filtered to show ${filteredItems.length} ${displayName} queries`;
+    document.body.appendChild(successMsg);
+    
+    setTimeout(() => {
+        if (document.body.contains(successMsg)) {
+            document.body.removeChild(successMsg);
+        }
+    }, 3000);
 }
 
-// ALIAS FOR BACKWARD COMPATIBILITY
+// INITIALIZATION
+function initializeCitizenQueryIntelligence() {
+    // Use event delegation to handle clicks on dynamically created elements
+    document.addEventListener('click', function(e) {
+        // Handle tab switching
+        if (e.target.closest('.citizen-tab-btn')) {
+            const button = e.target.closest('.citizen-tab-btn');
+            const targetTab = button.getAttribute('data-citizen-tab');
+            const container = button.closest('.citizen-analysis-tabs');
+            
+            // Remove active class from all buttons and panels in this container
+            container.querySelectorAll('.citizen-tab-btn').forEach(btn => btn.classList.remove('active'));
+            container.querySelectorAll('.citizen-tab-panel').forEach(panel => panel.classList.remove('active'));
+            
+            // Activate clicked button and corresponding panel
+            button.classList.add('active');
+            const targetPanel = container.querySelector(`[data-citizen-panel="${targetTab}"]`);
+            if (targetPanel) {
+                targetPanel.classList.add('active');
+            }
+        }
+        
+        // Handle journey stage filtering - improved detection
+        const intentBarElement = e.target.closest('.intent-bar');
+        if (intentBarElement && intentBarElement.classList.contains('clickable')) {
+            console.log('Intent bar clicked!', intentBarElement); // Debug log
+            const filterIntent = intentBarElement.getAttribute('data-filter-intent');
+            if (filterIntent) {
+                console.log('Filtering by intent:', filterIntent); // Debug log
+                clearServiceFilter(); // Clear any active service filter
+                filterQueriesByIntent(filterIntent);
+            }
+        }
+        
+        // Handle Irish service filtering
+        const serviceBarElement = e.target.closest('.service-bar');
+        if (serviceBarElement && serviceBarElement.classList.contains('clickable')) {
+            console.log('Service bar clicked!', serviceBarElement); // Debug log
+            const filterService = serviceBarElement.getAttribute('data-filter-service');
+            if (filterService) {
+                console.log('Filtering by service:', filterService); // Debug log
+                clearJourneyFilter(); // Clear any active journey filter
+                filterQueriesByService(filterService);
+            }
+        }
+        
+        // Handle clear journey filter
+        if (e.target.closest('#clearJourneyFilter')) {
+            console.log('Clear journey filter clicked!'); // Debug log
+            clearJourneyFilter();
+        }
+        
+        // Handle clear service filter
+        if (e.target.closest('#clearServiceFilter')) {
+            console.log('Clear service filter clicked!'); // Debug log
+            clearServiceFilter();
+        }
+        
+        // Handle show more buttons
+        if (e.target.closest('.show-more-btn')) {
+            const button = e.target.closest('.show-more-btn');
+            const target = button.getAttribute('data-target');
+            
+            // Find the corresponding list and hidden queries
+            const panel = button.closest('.citizen-tab-panel');
+            const queryList = panel.querySelector(`[data-citizen-list="${target}"]`);
+            const hiddenQueries = queryList.querySelector('.hidden-queries');
+            
+            if (hiddenQueries) {
+                // Show the hidden queries
+                hiddenQueries.style.display = 'block';
+                
+                // Move hidden queries to the main list
+                const hiddenItems = hiddenQueries.children;
+                while (hiddenItems.length > 0) {
+                    queryList.insertBefore(hiddenItems[0], hiddenQueries);
+                }
+                
+                // Remove the hidden container and pagination controls
+                hiddenQueries.remove();
+                button.closest('.pagination-controls').remove();
+                
+                // Smooth scroll to newly revealed content
+                setTimeout(() => {
+                    const allItems = queryList.querySelectorAll('.citizen-query-item, .opportunity-item');
+                    if (allItems.length > 12) {
+                        allItems[12].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            }
+        }
+    });
+    
+    // Handle keyboard navigation for intent bars and service bars
+    document.addEventListener('keydown', function(e) {
+        const intentBarElement = e.target.closest('.intent-bar');
+        const serviceBarElement = e.target.closest('.service-bar');
+        
+        if ((intentBarElement && intentBarElement.classList.contains('clickable')) || 
+            (serviceBarElement && serviceBarElement.classList.contains('clickable'))) {
+            
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                
+                if (intentBarElement) {
+                    console.log('Intent bar keyboard activated!', intentBarElement); // Debug log
+                    const filterIntent = intentBarElement.getAttribute('data-filter-intent');
+                    if (filterIntent) {
+                        clearServiceFilter();
+                        filterQueriesByIntent(filterIntent);
+                    }
+                } else if (serviceBarElement) {
+                    console.log('Service bar keyboard activated!', serviceBarElement); // Debug log
+                    const filterService = serviceBarElement.getAttribute('data-filter-service');
+                    if (filterService) {
+                        clearJourneyFilter();
+                        filterQueriesByService(filterService);
+                    }
+                }
+            }
+        }
+    });
+    
+    // Add visual feedback initialization
+    setTimeout(() => {
+        addClickableIndicators();
+    }, 500);
+}
+
+// Add visual indicators to make clickability obvious
+function addClickableIndicators() {
+    const clickableBars = document.querySelectorAll('.intent-bar.clickable, .service-bar.clickable');
+    console.log('Found clickable bars:', clickableBars.length); // Debug log
+    
+    clickableBars.forEach(bar => {
+        // Add a visual indicator if not already present
+        if (!bar.querySelector('.click-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.className = 'click-indicator';
+            indicator.innerHTML = '👆';
+            indicator.style.cssText = `
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 1.2rem;
+                opacity: 0.6;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+            `;
+            bar.style.position = 'relative';
+            bar.appendChild(indicator);
+            
+            // Enhance on hover
+            bar.addEventListener('mouseenter', () => {
+                indicator.style.opacity = '1';
+                indicator.style.transform = 'translateY(-50%) scale(1.2)';
+            });
+            
+            bar.addEventListener('mouseleave', () => {
+                indicator.style.opacity = '0.6';
+                indicator.style.transform = 'translateY(-50%) scale(1)';
+            });
+        }
+    });
+}
+
+// ALIAS FOR BACKWARD COMPATIBILITY + GLOBAL SCOPE
 const createEnhancedQueryAnalysisStyles = createCitizenQueryIntelligenceStyles;
 const createEnhancedQueryAnalysisSection = createCitizenQueryIntelligenceSection;
 const performEnhancedQueryAnalysis = performCitizenQueryAnalysis;
+
+// Make filtering functions globally accessible
+window.filterQueriesByIntent = filterQueriesByIntent;
+window.filterQueriesByService = filterQueriesByService;
+window.clearJourneyFilter = clearJourneyFilter;
+window.clearServiceFilter = clearServiceFilter;
 
 // AUTO-INITIALIZATION
 document.addEventListener('DOMContentLoaded', function() {
     initializeCitizenQueryIntelligence();
 });
 
+// If already loaded, initialize immediately
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeCitizenQueryIntelligence);
 } else {
     initializeCitizenQueryIntelligence();
 }
-
 
 
 
