@@ -3440,416 +3440,548 @@ function showUnifiedNotification(message) {
 }
 
 
+
 // ===========================================
-// ENHANCED QUERY ANALYSIS FUNCTIONS - COMPLETE VERSION
-// Complete updated code for citizens.ie page level dashboards
-// Add this code to your unified-citizens-dashboard.js file
+// ENHANCED QUERY INTELLIGENCE - COMPLETE REPLACEMENT
+// Advanced citizen query analysis for Citizens.ie page-level dashboards
+// Based on actual citizen queries and Irish government service patterns
 // ===========================================
 
-// ENHANCED TRANSACTIONAL KEYWORDS - Actions users want to take
-const transactionalKeywords = [
-    // Basic Actions
-    'apply', 'application', 'form', 'register', 'registration', 'submit', 'download',
-    'book', 'appointment', 'contact', 'phone', 'number', 'office', 'address',
-    'pay', 'payment', 'fee', 'cost', 'price', 'how to apply', 'where to apply',
-    'certificate', 'license', 'permit', 'visa', 'passport', 'renew', 'renewal',
+// EXPANDED IRISH-SPECIFIC KEYWORDS (400+ terms based on real citizen queries)
+const socialWelfareKeywords = [
+    // Benefits & Allowances
+    'carers allowance', 'disability allowance', 'working family payment', 'fuel allowance',
+    'illness benefit', 'jobseekers allowance', 'household benefits package', 'child benefit',
+    'domiciliary care allowance', 'back to school allowance', 'carers benefit', 'carers support grant',
+    'one parent family payment', 'invalidity pension', 'state pension', 'contributory pension',
+    'non contributory pension', 'guardians payment', 'orphans pension', 'blind pension',
+    'living alone allowance', 'island allowance', 'rent supplement', 'supplementary welfare',
+    'exceptional needs payment', 'urgent needs payment', 'community welfare officer',
     
-    // Extended Action Verbs
-    'schedule', 'reserve', 'request', 'order', 'purchase', 'buy', 'get', 'obtain',
-    'file', 'claim', 'report', 'notify', 'update', 'change', 'cancel', 'transfer',
-    'enroll', 'sign up', 'join', 'participate', 'volunteer', 'donate',
-    
-    // Irish Government Specific Actions
-    'pps number', 'personal public service', 'revenue', 'rte licence', 'tv licence',
+    // Employment Related
+    'redundancy payment', 'insolvency payment', 'jobseekers benefit', 'jobseekers transition',
+    'pre retirement allowance', 'back to work allowance', 'part time job incentive',
+    'community employment', 'tús scheme', 'rural social scheme', 'job initiative',
+    'back to education allowance', 'vtos allowance', 'training allowance'
+];
+
+const healthKeywords = [
+    'medical card', 'gp visit card', 'drugs payment scheme', 'long term illness scheme',
+    'health insurance', 'treatment benefit scheme', 'dental benefit scheme',
+    'optical benefit scheme', 'maternity benefit', 'health and safety benefit',
+    'occupational injury benefit', 'disability benefit', 'invalidity pension',
+    'mental health services', 'counselling services', 'addiction services'
+];
+
+const familyChildrenKeywords = [
+    'parental leave', 'maternity leave', 'paternity leave', 'adoptive leave',
+    'parent\'s leave', 'force majeure leave', 'carer\'s leave', 'parental benefit',
+    'maternity benefit', 'child benefit', 'early childhood care', 'childcare support',
+    'guardian ad litem', 'special guardianship', 'adoption', 'fostering',
+    'family mediation', 'child maintenance', 'domestic violence', 'barring order'
+];
+
+const housingKeywords = [
+    'housing assistance payment', 'hap', 'social housing', 'housing list',
+    'rental accommodation scheme', 'rent supplement', 'homeless services',
+    'housing adaptation grant', 'mobility aids grant', 'housing aid for older people',
+    'vacant homes', 'help to buy', 'shared ownership', 'affordable housing',
+    'rental tenancy board', 'rtb', 'deposit retention scheme', 'tenancy tribunal'
+];
+
+const educationKeywords = [
+    'susi', 'student grant', 'back to school allowance', 'school transport',
+    'school completion programme', 'education welfare', 'home school liaison',
+    'special education needs', 'sen', 'school book grant', 'school meals',
+    'further education', 'adult education', 'community education', 'literacy',
+    'apprenticeship', 'traineeship', 'youthreach', 'vtos', 'btea'
+];
+
+const employmentKeywords = [
+    'minimum wage', 'sick pay', 'redundancy', 'unfair dismissal', 'workplace relations',
+    'employment rights', 'parental leave', 'annual leave', 'public holidays',
+    'working time', 'part time workers', 'fixed term contracts', 'agency workers',
+    'workplace safety', 'protective equipment', 'safety statement', 'safety training',
+    'jobseekers', 'activation', 'intreo', 'pathways to work', 'job club'
+];
+
+const elderlyKeywords = [
+    'state pension', 'pension contribution', 'pension credit', 'qualified adult',
+    'free travel', 'senior alert scheme', 'nursing home support', 'fair deal',
+    'home care packages', 'meals on wheels', 'day care centres', 'respite care',
+    'elder abuse', 'pension splitting', 'pension adjustment order'
+];
+
+const disabilityKeywords = [
+    'disability allowance', 'invalidity pension', 'blind pension', 'domiciliary care',
+    'mobility allowance', 'disabled drivers', 'parking permit', 'wheelchair',
+    'guide dog', 'hearing aid', 'personal assistance', 'respite care',
+    'disability assessment', 'occupational therapy', 'physiotherapy', 'speech therapy'
+];
+
+const transportKeywords = [
     'driving licence', 'theory test', 'driving test', 'nct', 'motor tax', 'road tax',
-    'birth cert', 'death cert', 'marriage cert', 'civil partnership',
-    'social welfare', 'jobseekers', 'disability allowance', 'carers allowance',
-    'child benefit', 'back to school', 'fuel allowance', 'rent supplement',
-    
-    // Healthcare Actions (Irish)
-    'medical card', 'gp visit card', 'drugs payment scheme', 'hse',
-    'hospital appointment', 'referral', 'prescription', 'vaccination',
-    'maternity', 'dental', 'mental health', 'counselling',
-    
-    // Education Actions (Irish)
-    'cao', 'susi', 'student grant', 'school transport', 'school enrolment',
-    'leaving cert', 'junior cert', 'qqi', 'fetac', 'apprenticeship',
-    
-    // Housing Actions (Irish)
-    'housing list', 'social housing', 'housing assistance payment', 'hap',
-    'rent a room', 'rental tenancy board', 'rtb', 'deposit protection',
-    
-    // Business Actions (Irish)
-    'cro', 'company registration', 'business name', 'vat registration',
-    'employer registration', 'work permit', 'stamp 4', 'immigration',
-    
-    // Service-Specific Actions
-    'repair', 'fix', 'maintenance', 'inspection', 'test', 'exam',
-    'consultation', 'meeting', 'interview', 'hearing', 'appeal',
-    'complaint', 'grievance', 'petition', 'legal action',
-    
-    // Location-Based Actions
-    'near me', 'nearby', 'location', 'directions', 'map', 'hours',
-    'open now', 'closed', 'holiday hours', 'weekend hours',
-    
-    // Time-Sensitive Actions
-    'deadline', 'due date', 'expires', 'expiration', 'urgent', 'asap',
-    'today', 'tomorrow', 'this week', 'next week', 'emergency',
-    
-    // Digital Actions
-    'login', 'log in', 'sign in', 'account', 'portal', 'dashboard',
-    'mygovid', 'gov.ie', 'reset password', 'forgot password', 'verification',
-    'upload', 'attach', 'send', 'email', 'fax', 'mail', 'post',
-    
-    // Financial Actions
-    'calculate', 'estimate', 'quote', 'billing', 'invoice', 'receipt',
-    'bank details', 'iban', 'direct debit', 'standing order', 'refund',
-    
-    // Communication Actions
-    'call', 'phone number', 'email address', 'contact form',
-    'chat', 'live chat', 'support', 'help desk', 'customer service',
-    'citizen information', 'mabs', 'legal aid'
+    'disabled drivers', 'free travel', 'bus pass', 'student travel', 'taxi licence',
+    'public service vehicle', 'psv', 'transport allowance', 'mobility allowance'
 ];
 
-// ENHANCED INFORMATIONAL KEYWORDS - Information seeking queries
-const informationalKeywords = [
-    // Basic Question Words
-    'what is', 'what are', 'how does', 'why', 'when', 'where', 'who',
-    'which', 'whose', 'how much', 'how many', 'how long', 'how often',
-    'definition', 'meaning', 'explain', 'information', 'about', 'guide',
-    'requirements', 'eligibility', 'criteria', 'rules', 'law', 'legislation',
-    'benefits', 'rights', 'entitlements', 'help', 'support', 'advice',
-    
-    // Extended Question Patterns
-    'difference between', 'comparison', 'compare', 'versus', 'vs',
-    'best', 'worst', 'top', 'bottom', 'most', 'least', 'fastest', 'slowest',
-    'cheapest', 'expensive', 'free', 'alternatives', 'options', 'choices',
-    
-    // Learning and Understanding
-    'learn', 'understand', 'tutorial', 'course', 'training', 'education',
-    'example', 'examples', 'sample', 'template', 'format', 'structure',
-    'step by step', 'walkthrough', 'instructions', 'manual', 'handbook',
-    
-    // Irish Government/Legal Information
-    'policy', 'procedure', 'process', 'regulation', 'act', 'bill', 'law', 'legal',
-    'constitution', 'rights', 'human rights', 'discrimination', 'equality',
-    'data protection', 'gdpr', 'freedom of information', 'foi',
-    'ombudsman', 'citizens assembly', 'oireachtas', 'dail', 'seanad',
-    
-    // Irish Specific Information Terms
-    'irish citizen', 'citizenship', 'naturalisation', 'residency',
-    'eu citizen', 'brexit', 'common travel area', 'northern ireland',
-    'irish language', 'gaeilge', 'irish speaker', 'gaeltacht',
-    
-    // Research and Analysis
-    'research', 'study', 'report', 'statistics', 'data', 'facts',
-    'history', 'background', 'overview', 'summary', 'analysis',
-    'trend', 'forecast', 'prediction', 'future', 'past', 'current',
-    
-    // Status and Updates
-    'status', 'update', 'news', 'announcement', 'alert', 'notice',
-    'latest', 'recent', 'new', 'current', 'today', 'this year',
-    'changes', 'updates', 'modifications', 'revisions',
-    
-    // Lists and Categories
-    'list', 'types', 'kinds', 'categories', 'classification',
-    'directory', 'index', 'catalog', 'database', 'registry',
-    
-    // Problems and Solutions
-    'problem', 'issue', 'trouble', 'difficulty', 'challenge',
-    'solution', 'fix', 'resolve', 'troubleshoot', 'debug',
-    'error', 'mistake', 'wrong', 'incorrect', 'failed',
-    
-    // Comparison and Evaluation
-    'review', 'rating', 'score', 'grade', 'rank', 'quality',
-    'pros and cons', 'advantages', 'disadvantages', 'benefits', 'drawbacks'
+const legalKeywords = [
+    'small claims court', 'district court', 'circuit court', 'high court',
+    'legal aid', 'civil legal aid', 'criminal legal aid', 'free legal advice',
+    'legal separation', 'divorce', 'judicial separation', 'family law',
+    'employment law', 'consumer rights', 'debt advice', 'money advice',
+    'personal insolvency', 'bankruptcy', 'debt settlement', 'protective certificate'
 ];
 
-// NAVIGATIONAL KEYWORDS - Seeking specific pages/sections
-const navigationalKeywords = [
-    // Direct Navigation
-    'homepage', 'home page', 'main page', 'landing page',
-    'about us', 'about', 'contact us', 'contact', 'staff', 'team',
-    'services', 'programs', 'departments', 'divisions', 'offices',
-    
-    // Site Sections
-    'news', 'events', 'calendar', 'announcements', 'press releases',
-    'publications', 'documents', 'downloads', 'resources', 'links',
-    'faq', 'frequently asked questions', 'help', 'support',
-    
-    // Irish Government Specific Sections
-    'minister', 'taoiseach', 'president', 'government', 'cabinet',
-    'county council', 'city council', 'local authority',
-    'budget', 'agenda', 'minutes', 'policy', 'strategy',
-    
-    // Organization Navigation
-    'directory', 'phone directory', 'staff directory', 'organization chart',
-    'map', 'building map', 'location', 'parking', 'accessibility',
-    'citizens information centre', 'local office'
+const businessKeywords = [
+    'starting a business', 'company registration', 'business registration', 'sole trader',
+    'partnership', 'limited company', 'vat registration', 'tax registration',
+    'employer registration', 'prsi employer', 'workplace relations', 'employment law',
+    'health and safety', 'data protection', 'gdpr compliance', 'business grants'
 ];
 
-// Query Intent Classification with Enhanced Logic
-function classifyQueryIntent(query) {
+const documentKeywords = [
+    'pps number', 'birth certificate', 'death certificate', 'marriage certificate',
+    'civil partnership certificate', 'passport', 'driving licence', 'garda vetting',
+    'criminal record', 'european health insurance card', 'ehic', 'safe pass',
+    'public services card', 'mygovid', 'revenue login', 'welfare login'
+];
+
+const emergencyKeywords = [
+    'emergency', 'urgent', 'crisis', 'homeless', 'domestic violence', 'addiction',
+    'mental health crisis', 'suicide prevention', 'emergency payment', 'crisis pregnancy',
+    'emergency accommodation', 'emergency tax', 'urgent needs payment'
+];
+
+// 12-CATEGORY CITIZEN JOURNEY INTENT CLASSIFICATION
+const citizenJourneyCategories = {
+    // Immediate action needed - highest priority
+    immediateAction: {
+        keywords: [
+            'apply now', 'urgent', 'emergency', 'today', 'deadline tomorrow', 'expires',
+            'submit application', 'pay now', 'book appointment', 'register now',
+            'appeal deadline', 'court date', 'eviction notice', 'benefit stopped'
+        ],
+        patterns: ['apply now', 'urgent', 'emergency', 'today', 'deadline', 'expires'],
+        priority: 10,
+        plainEnglish: 'Citizens who need to act immediately'
+    },
+    
+    // Checking if they qualify for services
+    eligibilityResearch: {
+        keywords: [
+            'am i entitled', 'do i qualify', 'am i eligible', 'requirements', 'criteria',
+            'who can apply', 'who gets', 'means test', 'income limit', 'age limit',
+            'what do i need', 'conditions', 'qualifying', 'entitled to', 'eligible for'
+        ],
+        patterns: ['am i', 'do i qualify', 'entitled', 'eligible', 'requirements', 'criteria'],
+        priority: 8,
+        plainEnglish: 'Citizens checking if they qualify for services'
+    },
+    
+    // Learning how to complete processes
+    processLearning: {
+        keywords: [
+            'how to apply', 'how do i', 'step by step', 'what documents', 'application process',
+            'how to get', 'what forms', 'where to send', 'how to submit', 'what information',
+            'application guide', 'how to complete', 'instructions', 'guide to'
+        ],
+        patterns: ['how to', 'how do i', 'step by step', 'what documents', 'application process'],
+        priority: 7,
+        plainEnglish: 'Citizens learning how to complete applications or processes'
+    },
+    
+    // Comparing different options
+    comparisonShopping: {
+        keywords: [
+            'compare', 'difference between', 'which is better', 'vs', 'versus', 'alternatives',
+            'options', 'choices', 'best option', 'should i choose', 'better to',
+            'pros and cons', 'advantages', 'disadvantages'
+        ],
+        patterns: ['compare', 'difference between', 'vs', 'which', 'better', 'options'],
+        priority: 6,
+        plainEnglish: 'Citizens comparing different service options'
+    },
+    
+    // Solving problems with applications or services
+    problemSolving: {
+        keywords: [
+            'appeal', 'complaint', 'problem with', 'not working', 'rejected', 'refused',
+            'denied', 'dispute', 'review decision', 'wrong decision', 'unfair',
+            'what if', 'went wrong', 'mistake', 'error', 'issue with'
+        ],
+        patterns: ['appeal', 'complaint', 'problem', 'rejected', 'dispute', 'wrong'],
+        priority: 9,
+        plainEnglish: 'Citizens with problems or disputes needing resolution'
+    },
+    
+    // Checking status of applications
+    statusChecking: {
+        keywords: [
+            'application status', 'when will i', 'how long', 'processing time',
+            'still waiting', 'check status', 'track application', 'progress',
+            'decision time', 'how long does it take', 'waiting for'
+        ],
+        patterns: ['status', 'when will', 'how long', 'processing time', 'waiting'],
+        priority: 5,
+        plainEnglish: 'Citizens checking on application progress'
+    },
+    
+    // Looking for contact information
+    contactSeeking: {
+        keywords: [
+            'phone number', 'contact', 'office hours', 'address', 'location',
+            'where to go', 'local office', 'citizen information centre', 'intreo office',
+            'social welfare office', 'who to contact', 'speak to someone'
+        ],
+        patterns: ['phone', 'contact', 'office', 'address', 'location', 'where'],
+        priority: 4,
+        plainEnglish: 'Citizens looking for contact details or office locations'
+    },
+    
+    // Cost and payment information
+    costPayment: {
+        keywords: [
+            'how much', 'cost', 'fee', 'price', 'payment', 'rates', 'charges',
+            'what does it cost', 'how much does', 'payment methods', 'when to pay',
+            'refund', 'overpayment', 'underpayment'
+        ],
+        patterns: ['how much', 'cost', 'fee', 'price', 'payment', 'rates'],
+        priority: 6,
+        plainEnglish: 'Citizens asking about costs, fees, or payments'
+    },
+    
+    // Timing and deadline information
+    timingDeadlines: {
+        keywords: [
+            'deadline', 'when', 'time limit', 'expires', 'due date', 'before',
+            'how long', 'processing time', 'waiting time', 'appointment time',
+            'office hours', 'closing date', 'opening hours'
+        ],
+        patterns: ['deadline', 'when', 'expires', 'due date', 'time limit'],
+        priority: 7,
+        plainEnglish: 'Citizens asking about timing, deadlines, or schedules'
+    },
+    
+    // Location-specific information
+    locationFinding: {
+        keywords: [
+            'near me', 'local', 'closest', 'address', 'directions', 'location',
+            'where is', 'dublin', 'cork', 'galway', 'limerick', 'waterford',
+            'county', 'area', 'region', 'my area'
+        ],
+        patterns: ['near me', 'local', 'where is', 'address', 'location'],
+        priority: 4,
+        plainEnglish: 'Citizens looking for local services or office locations'
+    },
+    
+    // Documents and forms
+    documentForm: {
+        keywords: [
+            'download form', 'application form', 'certificate', 'document',
+            'birth cert', 'death cert', 'marriage cert', 'passport', 'pps number',
+            'form', 'paperwork', 'what documents', 'proof of'
+        ],
+        patterns: ['form', 'certificate', 'document', 'download', 'cert'],
+        priority: 5,
+        plainEnglish: 'Citizens looking for forms, documents, or certificates'
+    },
+    
+    // General information seeking
+    generalInformation: {
+        keywords: [
+            'what is', 'what are', 'information about', 'tell me about', 'explain',
+            'definition', 'meaning', 'guide', 'overview', 'introduction to',
+            'general information', 'basic information'
+        ],
+        patterns: ['what is', 'what are', 'information', 'explain', 'guide'],
+        priority: 3,
+        plainEnglish: 'Citizens seeking general information and explanations'
+    }
+};
+
+// ENHANCED QUERY INTENT CLASSIFICATION
+function classifyCitizenIntent(query) {
     const queryLower = query.toLowerCase();
     
-    let transactionalScore = 0;
-    let informationalScore = 0;
-    let navigationalScore = 0;
+    let intentScores = {};
+    let matchedKeywords = {};
     
-    let matchedKeywords = {
-        transactional: [],
-        informational: [],
-        navigational: []
-    };
-    
-    // Score transactional keywords
-    transactionalKeywords.forEach(keyword => {
-        if (queryLower.includes(keyword)) {
-            const weight = keyword.length > 3 ? 2 : 1;
-            // Boost score for Irish-specific terms
-            const irishBoost = keyword.includes('pps') || keyword.includes('hse') || 
-                             keyword.includes('cao') || keyword.includes('rtb') ? 1.5 : 1;
-            transactionalScore += weight * irishBoost;
-            matchedKeywords.transactional.push(keyword);
-        }
+    // Initialize scores and matched keywords for each category
+    Object.keys(citizenJourneyCategories).forEach(category => {
+        intentScores[category] = 0;
+        matchedKeywords[category] = [];
     });
     
-    // Score informational keywords
-    informationalKeywords.forEach(keyword => {
-        if (queryLower.includes(keyword)) {
-            const weight = keyword.length > 3 ? 2 : 1;
-            informationalScore += weight;
-            matchedKeywords.informational.push(keyword);
-        }
+    // Score each category based on keyword matches
+    Object.entries(citizenJourneyCategories).forEach(([category, config]) => {
+        // Check exact keyword matches
+        config.keywords.forEach(keyword => {
+            if (queryLower.includes(keyword.toLowerCase())) {
+                const weight = keyword.length > 10 ? 3 : keyword.length > 5 ? 2 : 1;
+                intentScores[category] += weight * config.priority;
+                matchedKeywords[category].push(keyword);
+            }
+        });
+        
+        // Check pattern matches
+        config.patterns.forEach(pattern => {
+            if (queryLower.includes(pattern.toLowerCase())) {
+                intentScores[category] += 2 * config.priority;
+                if (!matchedKeywords[category].includes(pattern)) {
+                    matchedKeywords[category].push(pattern);
+                }
+            }
+        });
     });
     
-    // Score navigational keywords
-    navigationalKeywords.forEach(keyword => {
-        if (queryLower.includes(keyword)) {
-            navigationalScore += 2;
-            matchedKeywords.navigational.push(keyword);
-        }
-    });
-    
-    // Enhanced pattern recognition for Irish context
-    if (queryLower.startsWith('how to ') || queryLower.startsWith('where to ') || 
-        queryLower.startsWith('how do i ') || queryLower.startsWith('can i ')) {
-        transactionalScore += 3;
+    // Apply urgency boosting
+    const urgencyIndicators = ['urgent', 'emergency', 'today', 'deadline', 'expires', 'asap'];
+    const hasUrgency = urgencyIndicators.some(indicator => queryLower.includes(indicator));
+    if (hasUrgency) {
+        intentScores.immediateAction += 50;
+        intentScores.problemSolving += 25;
     }
     
-    if (queryLower.includes('?') || queryLower.startsWith('what ') || 
-        queryLower.startsWith('when ') || queryLower.startsWith('why ') ||
-        queryLower.startsWith('is it ') || queryLower.startsWith('are there ')) {
-        informationalScore += 2;
-    }
-    
-    // Irish-specific question patterns
-    if (queryLower.includes('am i entitled') || queryLower.includes('do i qualify') ||
-        queryLower.includes('am i eligible') || queryLower.includes('what benefits')) {
-        informationalScore += 2;
-        transactionalScore += 1; // Often leads to applications
-    }
-    
-    // Navigation indicators
-    if (queryLower.includes('site:') || queryLower.includes('.ie') ||
-        queryLower.includes('website') || queryLower.includes('page')) {
-        navigationalScore += 3;
+    // Apply Irish-specific service boosting
+    const irishServiceTerms = ['social welfare', 'citizens information', 'intreo', 'hse', 'revenue'];
+    const hasIrishService = irishServiceTerms.some(term => queryLower.includes(term));
+    if (hasIrishService) {
+        Object.keys(intentScores).forEach(category => {
+            if (intentScores[category] > 0) {
+                intentScores[category] *= 1.2;
+            }
+        });
     }
     
     // Determine primary intent
-    const maxScore = Math.max(transactionalScore, informationalScore, navigationalScore);
-    let primaryIntent = 'mixed';
-    
-    if (maxScore === transactionalScore && transactionalScore > 0) {
-        primaryIntent = 'transactional';
-    } else if (maxScore === informationalScore && informationalScore > 0) {
-        primaryIntent = 'informational';
-    } else if (maxScore === navigationalScore && navigationalScore > 0) {
-        primaryIntent = 'navigational';
-    }
+    const maxScore = Math.max(...Object.values(intentScores));
+    const primaryIntent = Object.keys(intentScores).find(key => intentScores[key] === maxScore) || 'generalInformation';
     
     // Calculate confidence
-    const totalScore = transactionalScore + informationalScore + navigationalScore;
-    const confidence = totalScore > 0 ? Math.min(0.95, 0.4 + (maxScore / totalScore) * 0.5) : 0.2;
+    const totalScore = Object.values(intentScores).reduce((sum, score) => sum + score, 0);
+    const confidence = totalScore > 0 ? Math.min(0.95, 0.3 + (maxScore / totalScore) * 0.6) : 0.2;
+    
+    // Determine secondary intent if score is close
+    const secondaryIntents = Object.entries(intentScores)
+        .filter(([category, score]) => category !== primaryIntent && score >= maxScore * 0.7)
+        .map(([category]) => category);
     
     return {
-        intent: primaryIntent,
+        primaryIntent: primaryIntent,
         confidence: confidence,
-        score: maxScore,
-        scores: {
-            transactional: transactionalScore,
-            informational: informationalScore,
-            navigational: navigationalScore
-        },
+        maxScore: maxScore,
+        allScores: intentScores,
         matchedKeywords: matchedKeywords,
-        totalMatches: Object.values(matchedKeywords).flat().length
+        totalMatches: Object.values(matchedKeywords).flat().length,
+        hasUrgency: hasUrgency,
+        hasIrishService: hasIrishService,
+        secondaryIntents: secondaryIntents,
+        plainEnglish: citizenJourneyCategories[primaryIntent]?.plainEnglish || 'Citizens with general inquiries'
     };
 }
 
-// Query-to-Content Mismatch Detection
+// ENHANCED CONTENT MISMATCH DETECTION
 function detectContentMismatch(query, pageUrl, impressions, ctr, position) {
     const urlParts = pageUrl.toLowerCase().split('/').filter(part => part.length > 0);
     const urlKeywords = urlParts.join(' ').replace(/-/g, ' ').split(' ')
-        .filter(word => word.length > 2); // Filter out short words
+        .filter(word => word.length > 2);
     const queryWords = query.toLowerCase().split(' ')
-        .filter(word => word.length > 2); // Filter out short words
+        .filter(word => word.length > 2);
     
-    // Calculate keyword overlap with better matching
+    // Enhanced keyword overlap calculation
     let overlap = 0;
+    const synonymMap = {
+        'pps': ['personal', 'public', 'service'],
+        'hse': ['health', 'service', 'executive'],
+        'rtb': ['rental', 'tenancy', 'board'],
+        'susi': ['student', 'grant', 'support'],
+        'intreo': ['social', 'welfare', 'office'],
+        'allowance': ['benefit', 'payment'],
+        'pension': ['retirement', 'contributory']
+    };
+    
     queryWords.forEach(word => {
-        if (urlKeywords.some(urlWord => 
-            urlWord.includes(word) || word.includes(urlWord) || 
-            // Check for common Irish abbreviations/variations
-            (word === 'pps' && urlWord.includes('personal')) ||
-            (word === 'hse' && urlWord.includes('health')) ||
-            (word === 'rtb' && urlWord.includes('tenancy')) ||
-            (word === 'cao' && urlWord.includes('college')) ||
-            (word === 'susi' && urlWord.includes('grant'))
-        )) {
+        let found = false;
+        
+        // Direct match
+        if (urlKeywords.some(urlWord => urlWord.includes(word) || word.includes(urlWord))) {
             overlap++;
+            found = true;
+        }
+        
+        // Synonym match
+        if (!found && synonymMap[word]) {
+            if (synonymMap[word].some(synonym => 
+                urlKeywords.some(urlWord => urlWord.includes(synonym)))) {
+                overlap += 0.5;
+            }
         }
     });
     
     const overlapPercentage = queryWords.length > 0 ? (overlap / queryWords.length) : 0;
     
-    // Enhanced mismatch indicators
-    const highImpressions = impressions >= 100;
-    const veryHighImpressions = impressions >= 500;
-    const lowCTR = ctr < 0.03;
-    const veryLowCTR = ctr < 0.015;
-    const poorPosition = position > 10;
-    const veryPoorPosition = position > 20;
-    const lowOverlap = overlapPercentage < 0.3;
-    const veryLowOverlap = overlapPercentage < 0.15;
-    
+    // Enhanced mismatch scoring
     let mismatchScore = 0;
     let reasons = [];
+    let recommendations = [];
     
-    if (veryHighImpressions && veryLowCTR) {
+    // High traffic, low engagement patterns
+    if (impressions >= 500 && ctr < 0.015) {
+        mismatchScore += 5;
+        reasons.push('Very high search volume but very low click-through rate');
+        recommendations.push('Review page title and description to better match what citizens are actually looking for');
+    } else if (impressions >= 200 && ctr < 0.025) {
+        mismatchScore += 3;
+        reasons.push('High search volume but low click-through rate');
+        recommendations.push('Optimize title and description to be more appealing to citizens');
+    }
+    
+    // Content relevance issues
+    if (overlapPercentage < 0.2) {
         mismatchScore += 4;
-        reasons.push('Very high impressions but very low CTR suggests major title/description mismatch');
-    } else if (highImpressions && lowCTR) {
+        reasons.push(`Very low content match (${(overlapPercentage * 100).toFixed(0)}%) between citizen search and page content`);
+        recommendations.push('Consider creating dedicated content for this citizen query');
+    } else if (overlapPercentage < 0.4) {
+        mismatchScore += 2;
+        reasons.push(`Low content match (${(overlapPercentage * 100).toFixed(0)}%) between citizen search and page content`);
+        recommendations.push('Review page content to better address citizen intent');
+    }
+    
+    // Ranking vs. search volume misalignment
+    if (position > 20 && impressions >= 300) {
         mismatchScore += 3;
-        reasons.push('High impressions but low CTR suggests title/description mismatch');
+        reasons.push('High citizen interest but very poor ranking suggests content gaps');
+        recommendations.push('Improve content comprehensiveness and SEO optimization');
+    } else if (position > 10 && impressions >= 150) {
+        mismatchScore += 2;
+        reasons.push('Decent citizen interest but poor ranking');
+        recommendations.push('Enhance content quality and on-page SEO');
     }
     
-    if (veryLowOverlap) {
+    // Intent-specific mismatch detection
+    const queryIntent = classifyCitizenIntent(query);
+    
+    if (queryIntent.primaryIntent === 'immediateAction' && ctr < 0.03) {
         mismatchScore += 3;
-        reasons.push(`Very low keyword overlap (${(overlapPercentage * 100).toFixed(0)}%) with page content`);
-    } else if (lowOverlap) {
-        mismatchScore += 2;
-        reasons.push(`Low keyword overlap (${(overlapPercentage * 100).toFixed(0)}%) with page content`);
+        reasons.push('Citizens need immediate action but aren\'t clicking through');
+        recommendations.push('Add clear "Apply Now" or "Get This Service" buttons in title/description');
     }
     
-    if (veryPoorPosition && highImpressions) {
-        mismatchScore += 3;
-        reasons.push('High search volume but very poor ranking suggests content relevance issues');
-    } else if (poorPosition && highImpressions) {
+    if (queryIntent.primaryIntent === 'processLearning' && position > 15) {
         mismatchScore += 2;
-        reasons.push('High search volume but poor ranking suggests content relevance issues');
+        reasons.push('Citizens want step-by-step help but content isn\'t ranking well');
+        recommendations.push('Create clear, numbered step-by-step guides');
     }
     
-    // Irish-specific mismatch detection
-    const queryIntent = classifyQueryIntent(query);
-    if (queryIntent.intent === 'transactional' && ctr < 0.02 && impressions > 200) {
+    if (queryIntent.hasUrgency && ctr < 0.04) {
         mismatchScore += 2;
-        reasons.push('Transactional query with low CTR suggests missing clear call-to-action');
-    }
-    
-    if (query.toLowerCase().includes('how to') && position > 15) {
-        mismatchScore += 2;
-        reasons.push('How-to query ranking poorly suggests need for step-by-step content');
+        reasons.push('Urgent citizen queries but low engagement');
+        recommendations.push('Highlight urgency and immediate help in page titles');
     }
     
     return {
         isMismatch: mismatchScore >= 3,
-        severity: mismatchScore >= 6 ? 'high' : mismatchScore >= 3 ? 'medium' : 'low',
+        severity: mismatchScore >= 7 ? 'high' : mismatchScore >= 3 ? 'medium' : 'low',
         score: mismatchScore,
         reasons: reasons,
+        recommendations: recommendations,
         overlapPercentage: Math.round(overlapPercentage * 100),
-        queryIntent: queryIntent.intent
+        queryIntent: queryIntent.primaryIntent,
+        plainEnglishIntent: queryIntent.plainEnglish
     };
 }
 
-// Long-tail Opportunity Scoring (Enhanced for Irish Government Context)
-function calculateLongTailOpportunities(topQueries) {
+// CITIZEN OPPORTUNITY SCORING
+function calculateCitizenOpportunities(topQueries) {
     if (!topQueries || topQueries.length === 0) return [];
     
     const opportunities = [];
     const totalImpressions = topQueries.reduce((sum, q) => sum + q.impressions, 0);
     
-    topQueries.forEach((query, index) => {
+    topQueries.forEach((query) => {
         const queryWords = query.query.split(' ');
-        const isLongTail = queryWords.length >= 4;
-        const isMediumTail = queryWords.length >= 3;
-        const impressionShare = query.impressions / totalImpressions;
-        const rankingOpportunity = query.position <= 20 && query.position > 3;
-        const ctrPotential = query.ctr < getCTRBenchmark(query.position) * 0.8;
+        const queryIntent = classifyCitizenIntent(query.query);
         
         let opportunityScore = 0;
         let factors = [];
+        let citizenImpact = 'low';
         
-        // Enhanced long-tail detection
-        if (isLongTail && query.impressions >= 50) {
+        // Service complexity and citizen value
+        const isHighValueService = query.query.toLowerCase().includes('allowance') ||
+                                 query.query.toLowerCase().includes('benefit') ||
+                                 query.query.toLowerCase().includes('pension') ||
+                                 query.query.toLowerCase().includes('medical card') ||
+                                 query.query.toLowerCase().includes('housing');
+        
+        if (isHighValueService && query.impressions >= 100) {
+            opportunityScore += 5;
+            factors.push('High-value citizen service with good search volume');
+            citizenImpact = 'high';
+        }
+        
+        // Urgency and citizen need
+        if (queryIntent.hasUrgency && query.impressions >= 50) {
             opportunityScore += 4;
-            factors.push('Long-tail query with decent volume');
-        } else if (isMediumTail && query.impressions >= 100) {
-            opportunityScore += 2;
-            factors.push('Medium-tail query with good volume');
+            factors.push('Urgent citizen need requiring immediate attention');
+            citizenImpact = 'high';
         }
         
-        if (rankingOpportunity) {
-            opportunityScore += 3;
-            factors.push(`Rankable position (${query.position.toFixed(0)}) with improvement potential`);
+        // Intent-based scoring
+        const intentMultipliers = {
+            immediateAction: 2.0,
+            problemSolving: 1.8,
+            eligibilityResearch: 1.6,
+            processLearning: 1.5,
+            timingDeadlines: 1.4,
+            costPayment: 1.3
+        };
+        
+        const multiplier = intentMultipliers[queryIntent.primaryIntent] || 1.0;
+        if (multiplier > 1.2) {
+            opportunityScore += Math.round(3 * multiplier);
+            factors.push(`High-priority citizen journey stage: ${queryIntent.plainEnglish}`);
         }
         
-        if (ctrPotential && query.impressions >= 100) {
-            opportunityScore += 2;
-            factors.push('CTR below expected benchmark');
-        }
+        // Performance gaps
+        const expectedCTR = getCTRBenchmark(query.position);
+        const ctrGap = expectedCTR - query.ctr;
         
-        if (query.impressions >= 200 && query.clicks < 10) {
+        if (ctrGap > 0.02 && query.impressions >= 100) {
             opportunityScore += 4;
-            factors.push('High impressions but very low clicks');
+            factors.push('Large gap between citizen searches and clicks');
+            citizenImpact = citizenImpact === 'low' ? 'medium' : 'high';
         }
         
-        // Irish government-specific patterns
-        const queryLower = query.query.toLowerCase();
-        
-        // High-value Irish service queries
-        if (queryLower.includes('pps number') || queryLower.includes('medical card') ||
-            queryLower.includes('social welfare') || queryLower.includes('child benefit') ||
-            queryLower.includes('driving licence') || queryLower.includes('passport')) {
+        // Ranking improvement potential
+        if (query.position <= 20 && query.position > 3 && query.impressions >= 75) {
             opportunityScore += 3;
-            factors.push('High-value Irish government service query');
+            factors.push('Page ranking well enough to improve with optimization');
         }
         
-        // Question-based patterns (very valuable for government sites)
-        if (queryLower.includes('how to ') || queryLower.includes('where to ') ||
-            queryLower.includes('what is ') || queryLower.includes('am i entitled') ||
-            queryLower.includes('do i qualify') || queryLower.includes('can i apply')) {
+        // Long-tail citizen questions
+        if (queryWords.length >= 4 && query.impressions >= 30) {
             opportunityScore += 2;
-            factors.push('Question-based query pattern');
+            factors.push('Specific citizen question with targeted optimization potential');
         }
         
-        // Location-specific opportunities
-        if (queryLower.includes('near me') || queryLower.includes('dublin') ||
-            queryLower.includes('cork') || queryLower.includes('galway') ||
-            queryLower.includes('local office') || queryLower.includes('citizen information')) {
+        // Irish service-specific boost
+        if (queryIntent.hasIrishService) {
             opportunityScore += 1;
-            factors.push('Location-specific query');
+            factors.push('Core Irish government service query');
         }
         
-        // Urgent/time-sensitive queries
-        if (queryLower.includes('deadline') || queryLower.includes('urgent') ||
-            queryLower.includes('expires') || queryLower.includes('due date') ||
-            queryLower.includes('emergency')) {
-            opportunityScore += 2;
-            factors.push('Time-sensitive query requiring priority content');
+        // High impressions, low clicks (missed citizen opportunities)
+        if (query.impressions >= 200 && query.clicks < 8) {
+            opportunityScore += 4;
+            factors.push('Many citizens searching but very few finding what they need');
+            citizenImpact = 'high';
         }
         
-        if (opportunityScore >= 3) {
-            const potentialClicks = Math.round(query.impressions * (getCTRBenchmark(query.position) - query.ctr));
+        if (opportunityScore >= 4) {
+            const potentialClicks = Math.round(query.impressions * Math.max(0, ctrGap));
+            const estimatedCitizensHelped = Math.round(potentialClicks * 1.2); // Assuming some will share/return
+            
             opportunities.push({
                 query: query.query,
                 score: opportunityScore,
@@ -3858,9 +3990,14 @@ function calculateLongTailOpportunities(topQueries) {
                 ctr: query.ctr,
                 position: query.position,
                 factors: factors,
-                priority: opportunityScore >= 7 ? 'high' : opportunityScore >= 5 ? 'medium' : 'low',
+                priority: opportunityScore >= 10 ? 'high' : opportunityScore >= 7 ? 'medium' : 'low',
                 potentialClicks: Math.max(0, potentialClicks),
-                queryIntent: classifyQueryIntent(query.query).intent
+                citizenImpact: citizenImpact,
+                estimatedCitizensHelped: estimatedCitizensHelped,
+                queryIntent: queryIntent.primaryIntent,
+                plainEnglishIntent: queryIntent.plainEnglish,
+                hasUrgency: queryIntent.hasUrgency,
+                secondaryIntents: queryIntent.secondaryIntents
             });
         }
     });
@@ -3868,61 +4005,58 @@ function calculateLongTailOpportunities(topQueries) {
     return opportunities.sort((a, b) => b.score - a.score);
 }
 
-// Enhanced Query Analysis (combines all three analyses)
-function performEnhancedQueryAnalysis(gscData, pageUrl) {
+// MAIN ANALYSIS FUNCTION
+function performCitizenQueryAnalysis(gscData, pageUrl) {
     if (!gscData || !gscData.topQueries || gscData.topQueries.length === 0) {
         return {
             intentAnalysis: [],
             mismatchDetection: [],
-            longTailOpportunities: [],
+            citizenOpportunities: [],
             summary: {
                 totalQueries: 0,
-                transactionalQueries: 0,
-                informationalQueries: 0,
-                navigationalQueries: 0,
+                byIntent: {},
                 mismatchedQueries: 0,
                 opportunities: 0,
-                irishSpecificQueries: 0
+                citizensImpacted: 0,
+                urgentQueries: 0
             }
         };
     }
     
     const intentAnalysis = [];
     const mismatchDetection = [];
-    let transactionalCount = 0;
-    let informationalCount = 0;
-    let navigationalCount = 0;
+    let intentCounts = {};
     let mismatchCount = 0;
-    let irishSpecificCount = 0;
+    let urgentCount = 0;
+    let totalCitizensImpacted = 0;
+    
+    // Initialize intent counts
+    Object.keys(citizenJourneyCategories).forEach(intent => {
+        intentCounts[intent] = 0;
+    });
     
     // Analyze each query
     gscData.topQueries.forEach(queryData => {
-        // Intent classification
-        const intent = classifyQueryIntent(queryData.query);
+        // Citizen intent classification
+        const intent = classifyCitizenIntent(queryData.query);
         intentAnalysis.push({
             query: queryData.query,
-            intent: intent.intent,
+            primaryIntent: intent.primaryIntent,
+            plainEnglishIntent: intent.plainEnglish,
             confidence: intent.confidence,
             impressions: queryData.impressions,
             clicks: queryData.clicks,
             matchedKeywords: intent.matchedKeywords,
-            totalMatches: intent.totalMatches
+            totalMatches: intent.totalMatches,
+            hasUrgency: intent.hasUrgency,
+            secondaryIntents: intent.secondaryIntents
         });
         
-        if (intent.intent === 'transactional') transactionalCount++;
-        if (intent.intent === 'informational') informationalCount++;
-        if (intent.intent === 'navigational') navigationalCount++;
+        intentCounts[intent.primaryIntent]++;
+        if (intent.hasUrgency) urgentCount++;
+        totalCitizensImpacted += queryData.impressions;
         
-        // Count Irish-specific queries
-        const queryLower = queryData.query.toLowerCase();
-        if (queryLower.includes('pps') || queryLower.includes('hse') || 
-            queryLower.includes('revenue') || queryLower.includes('social welfare') ||
-            queryLower.includes('irish') || queryLower.includes('ireland') ||
-            queryLower.includes('dublin') || queryLower.includes('cork')) {
-            irishSpecificCount++;
-        }
-        
-        // Mismatch detection
+        // Content mismatch detection
         const mismatch = detectContentMismatch(
             queryData.query, 
             pageUrl, 
@@ -3936,118 +4070,107 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
                 query: queryData.query,
                 severity: mismatch.severity,
                 reasons: mismatch.reasons,
+                recommendations: mismatch.recommendations,
                 overlap: mismatch.overlapPercentage,
                 impressions: queryData.impressions,
                 ctr: queryData.ctr,
                 position: queryData.position,
-                queryIntent: mismatch.queryIntent
+                queryIntent: mismatch.queryIntent,
+                plainEnglishIntent: mismatch.plainEnglishIntent
             });
             mismatchCount++;
         }
     });
     
-    // Long-tail opportunities
-    const longTailOpportunities = calculateLongTailOpportunities(gscData.topQueries);
+    // Citizen opportunity analysis
+    const citizenOpportunities = calculateCitizenOpportunities(gscData.topQueries);
     
     return {
-        intentAnalysis: intentAnalysis, // Show all queries, no artificial limit
-        mismatchDetection: mismatchDetection, // Show all mismatches
-        longTailOpportunities: longTailOpportunities, // Show all opportunities
+        intentAnalysis: intentAnalysis,
+        mismatchDetection: mismatchDetection,
+        citizenOpportunities: citizenOpportunities,
         summary: {
             totalQueries: gscData.topQueries.length,
-            transactionalQueries: transactionalCount,
-            informationalQueries: informationalCount,
-            navigationalQueries: navigationalCount,
+            byIntent: intentCounts,
             mismatchedQueries: mismatchCount,
-            opportunities: longTailOpportunities.length,
-            irishSpecificQueries: irishSpecificCount
+            opportunities: citizenOpportunities.length,
+            citizensImpacted: totalCitizensImpacted,
+            urgentQueries: urgentCount
         }
     };
 }
 
-// Create Enhanced Query Analysis UI Component
-function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
-    const analysis = performEnhancedQueryAnalysis(gscData, pageUrl);
+// UI CREATION FUNCTION
+function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
+    const analysis = performCitizenQueryAnalysis(gscData, pageUrl);
     
     return `
-        <div class="section enhanced-query-analysis">
-            <h2 class="section-title">🔍 Enhanced Query Intelligence</h2>
-            <div class="query-analysis-explanation">
-                <p>Advanced analysis of search queries to understand citizen intent, content alignment, and optimization opportunities for Irish government services.</p>
+        <div class="section citizen-query-intelligence">
+            <h2 class="section-title">🎯 Citizen Query Intelligence</h2>
+            <div class="citizen-analysis-explanation">
+                <p><strong>Understanding What Citizens Really Want:</strong> This analysis examines real citizen searches to identify their needs, problems, and opportunities to serve them better through your content.</p>
             </div>
             
-            <!-- Summary Dashboard -->
-            <div class="query-summary-grid">
-                <div class="query-summary-card">
-                    <div class="summary-number">${analysis.summary.totalQueries}</div>
-                    <div class="summary-label">Total Queries</div>
-                </div>
-                <div class="query-summary-card intent-split">
-                    <div class="summary-split">
-                        <div class="split-item">
-                            <span class="split-number">${analysis.summary.informationalQueries}</span>
-                            <span class="split-label">Info</span>
-                        </div>
-                        <div class="split-divider"></div>
-                        <div class="split-item">
-                            <span class="split-number">${analysis.summary.transactionalQueries}</span>
-                            <span class="split-label">Action</span>
-                        </div>
-                        <div class="split-divider"></div>
-                        <div class="split-item">
-                            <span class="split-number">${analysis.summary.navigationalQueries}</span>
-                            <span class="split-label">Nav</span>
-                        </div>
+            <!-- Executive Summary for Management -->
+            <div class="executive-summary">
+                <h3>📊 Executive Summary</h3>
+                <div class="summary-grid">
+                    <div class="summary-card citizens-reached">
+                        <div class="summary-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
+                        <div class="summary-label">Citizens Reached Monthly</div>
+                        <div class="summary-subtitle">Total monthly searches for your content</div>
                     </div>
-                    <div class="summary-label">Query Intent Split</div>
-                </div>
-                <div class="query-summary-card ${analysis.summary.mismatchedQueries > 0 ? 'warning' : 'success'}">
-                    <div class="summary-number">${analysis.summary.mismatchedQueries}</div>
-                    <div class="summary-label">Content Mismatches</div>
-                </div>
-                <div class="query-summary-card opportunities">
-                    <div class="summary-number">${analysis.summary.opportunities}</div>
-                    <div class="summary-label">Optimization Opportunities</div>
-                </div>
-                <div class="query-summary-card irish-specific">
-                    <div class="summary-number">${analysis.summary.irishSpecificQueries}</div>
-                    <div class="summary-label">Irish-Specific Queries</div>
+                    <div class="summary-card urgent-needs">
+                        <div class="summary-number">${analysis.summary.urgentQueries}</div>
+                        <div class="summary-label">Urgent Citizen Needs</div>
+                        <div class="summary-subtitle">Queries requiring immediate attention</div>
+                    </div>
+                    <div class="summary-card improvement-opportunities">
+                        <div class="summary-number">${analysis.summary.opportunities}</div>
+                        <div class="summary-label">Improvement Opportunities</div>
+                        <div class="summary-subtitle">Ways to better serve citizens</div>
+                    </div>
+                    <div class="summary-card content-issues">
+                        <div class="summary-number">${analysis.summary.mismatchedQueries}</div>
+                        <div class="summary-label">Content Alignment Issues</div>
+                        <div class="summary-subtitle">Citizens searching for X but finding Y</div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Analysis Tabs -->
-            <div class="query-analysis-tabs">
-                <div class="query-tab-nav">
-                    <button class="query-tab-btn active" data-query-tab="intent">
-                        <span class="tab-icon">🎯</span>
-                        <span>Intent Analysis</span>
+            <!-- Main Analysis Tabs -->
+            <div class="citizen-analysis-tabs">
+                <div class="citizen-tab-nav">
+                    <button class="citizen-tab-btn active" data-citizen-tab="journey">
+                        <span class="tab-icon">🛤️</span>
+                        <span>Citizen Journey Stages</span>
                     </button>
-                    <button class="query-tab-btn" data-query-tab="mismatch">
-                        <span class="tab-icon">⚠️</span>
-                        <span>Content Mismatches</span>
+                    <button class="citizen-tab-btn" data-citizen-tab="mismatches">
+                        <span class="tab-icon">🔍</span>
+                        <span>Content Misalignment</span>
                         ${analysis.summary.mismatchedQueries > 0 ? '<span class="tab-badge">' + analysis.summary.mismatchedQueries + '</span>' : ''}
                     </button>
-                    <button class="query-tab-btn" data-query-tab="opportunities">
-                        <span class="tab-icon">💎</span>
-                        <span>Opportunities</span>
+                    <button class="citizen-tab-btn" data-citizen-tab="opportunities">
+                        <span class="tab-icon">🎯</span>
+                        <span>Improvement Opportunities</span>
                         ${analysis.summary.opportunities > 0 ? '<span class="tab-badge">' + analysis.summary.opportunities + '</span>' : ''}
                     </button>
                 </div>
                 
-                <div class="query-tab-content">
-                    <!-- Intent Analysis Panel -->
-                    <div class="query-tab-panel active" data-query-panel="intent">
-                        ${createIntentAnalysisPanel(analysis.intentAnalysis)}
+                <div class="citizen-tab-content">
+                    <!-- Citizen Journey Panel -->
+                    <div class="citizen-tab-panel active" data-citizen-panel="journey">
+                        ${createCitizenJourneyPanel(analysis.intentAnalysis, analysis.summary.byIntent)}
                     </div>
                     
-                    <!-- Mismatch Detection Panel -->
-                    <div class="query-tab-panel" data-query-panel="mismatch">
-                        ${createMismatchDetectionPanel(analysis.mismatchDetection)}
+                    <!-- Content Mismatches Panel -->
+                    <div class="citizen-tab-panel" data-citizen-panel="mismatches">
+                        ${createContentMismatchPanel(analysis.mismatchDetection)}
                     </div>
                     
-                    <!-- Long-tail Opportunities Panel -->
-                    <div class="query-tab-panel" data-query-panel="opportunities">
-                        ${createLongtailOpportunitiesPanel(analysis.longTailOpportunities)}
+                    <!-- Opportunities Panel -->
+                    <div class="citizen-tab-panel" data-citizen-panel="opportunities">
+                        ${createCitizenOpportunitiesPanel(analysis.citizenOpportunities)}
                     </div>
                 </div>
             </div>
@@ -4055,235 +4178,259 @@ function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
     `;
 }
 
-// Intent Analysis Panel with Pagination
-function createIntentAnalysisPanel(intentAnalysis) {
+// CITIZEN JOURNEY PANEL
+function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     if (intentAnalysis.length === 0) {
-        return '<div class="no-data-message">No query data available for intent analysis</div>';
+        return '<div class="no-data-message">No citizen query data available</div>';
     }
     
-    const initialDisplayCount = 15;
+    const initialDisplayCount = 12;
     const showPagination = intentAnalysis.length > initialDisplayCount;
     
+    // Create intent distribution chart
+    const topIntents = Object.entries(intentCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 6)
+        .filter(([,count]) => count > 0);
+    
     return `
-        <div class="intent-analysis-panel">
-            <div class="intent-explanation">
-                <p><strong>Intent Classification:</strong> Understanding whether citizens are seeking information or wanting to take action helps optimize content strategy for Irish government services.</p>
-                <div class="analysis-stats">
-                    <span class="stat-item">Analyzing <strong>${intentAnalysis.length}</strong> queries</span>
-                    ${showPagination ? `<span class="stat-item">Showing first <strong>${initialDisplayCount}</strong></span>` : ''}
-                </div>
+        <div class="citizen-journey-panel">
+            <div class="journey-explanation">
+                <p><strong>Citizen Journey Analysis:</strong> Understanding what stage citizens are at when they search helps tailor content to their specific needs and urgency levels.</p>
             </div>
             
-            <div class="intent-queries-list" data-query-list="intent">
-                ${intentAnalysis.slice(0, initialDisplayCount).map(item => `
-                    <div class="intent-query-item ${item.intent}">
-                        <div class="intent-query-header">
-                            <div class="query-text">"${escapeHtml(item.query)}"</div>
-                            <div class="intent-badges">
-                                <span class="intent-badge ${item.intent}">
-                                    ${item.intent === 'transactional' ? '🎯 Action' : 
-                                      item.intent === 'informational' ? '📚 Info' : 
-                                      item.intent === 'navigational' ? '🧭 Navigate' : '🔄 Mixed'}
-                                </span>
-                                <span class="confidence-badge" style="opacity: ${item.confidence}">
-                                    ${Math.round(item.confidence * 100)}% confidence
-                                </span>
-                                ${item.totalMatches > 0 ? `<span class="matches-badge">${item.totalMatches} matches</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="intent-metrics">
-                            <span class="metric">${formatNumber(item.impressions)} impressions</span>
-                            <span class="metric">${formatNumber(item.clicks)} clicks</span>
-                            <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% CTR</span>
-                        </div>
-                    </div>
-                `).join('')}
-                
-                <!-- Hidden queries for pagination -->
-                <div class="hidden-queries" style="display: none;">
-                    ${intentAnalysis.slice(initialDisplayCount).map(item => `
-                        <div class="intent-query-item ${item.intent}">
-                            <div class="intent-query-header">
-                                <div class="query-text">"${escapeHtml(item.query)}"</div>
-                                <div class="intent-badges">
-                                    <span class="intent-badge ${item.intent}">
-                                        ${item.intent === 'transactional' ? '🎯 Action' : 
-                                          item.intent === 'informational' ? '📚 Info' : 
-                                          item.intent === 'navigational' ? '🧭 Navigate' : '🔄 Mixed'}
-                                    </span>
-                                    <span class="confidence-badge" style="opacity: ${item.confidence}">
-                                        ${Math.round(item.confidence * 100)}% confidence
-                                    </span>
-                                    ${item.totalMatches > 0 ? `<span class="matches-badge">${item.totalMatches} matches</span>` : ''}
+            <!-- Intent Distribution -->
+            <div class="intent-distribution">
+                <h4>🗺️ Where Citizens Are in Their Journey</h4>
+                <div class="intent-bars">
+                    ${topIntents.map(([intent, count]) => {
+                        const percentage = Math.round((count / intentAnalysis.length) * 100);
+                        const config = citizenJourneyCategories[intent];
+                        return `
+                            <div class="intent-bar">
+                                <div class="intent-bar-label">
+                                    <span class="intent-name">${config?.plainEnglish || intent}</span>
+                                    <span class="intent-count">${count} queries (${percentage}%)</span>
+                                </div>
+                                <div class="intent-bar-fill">
+                                    <div class="intent-bar-progress" style="width: ${percentage}%; background: ${getIntentColor(intent)}"></div>
                                 </div>
                             </div>
-                            <div class="intent-metrics">
-                                <span class="metric">${formatNumber(item.impressions)} impressions</span>
-                                <span class="metric">${formatNumber(item.clicks)} clicks</span>
-                                <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% CTR</span>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
             
-            ${showPagination ? `
-                <div class="pagination-controls">
-                    <button class="show-more-btn" data-target="intent" data-remaining="${intentAnalysis.length - initialDisplayCount}">
-                        Show ${intentAnalysis.length - initialDisplayCount} More Queries
-                    </button>
+            <!-- Detailed Query Analysis -->
+            <div class="queries-analysis">
+                <h4>🔍 Detailed Citizen Query Analysis</h4>
+                <div class="citizen-queries-list" data-citizen-list="journey">
+                    ${intentAnalysis.slice(0, initialDisplayCount).map(item => `
+                        <div class="citizen-query-item ${item.primaryIntent}">
+                            <div class="query-header">
+                                <div class="query-text">"${escapeHtml(item.query)}"</div>
+                                <div class="query-badges">
+                                    <span class="intent-badge ${item.primaryIntent}">
+                                        ${getIntentIcon(item.primaryIntent)} ${item.plainEnglishIntent}
+                                    </span>
+                                    ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent</span>' : ''}
+                                    <span class="confidence-badge">${Math.round(item.confidence * 100)}% confident</span>
+                                </div>
+                            </div>
+                            <div class="query-metrics">
+                                <span class="metric">${formatNumber(item.impressions)} monthly searches</span>
+                                <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
+                                <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
+                            </div>
+                            ${item.secondaryIntents.length > 0 ? `
+                                <div class="secondary-intents">
+                                    <strong>Also indicates:</strong> ${item.secondaryIntents.map(intent => 
+                                        citizenJourneyCategories[intent]?.plainEnglish || intent
+                                    ).join(', ')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                    
+                    <!-- Hidden queries for pagination -->
+                    <div class="hidden-queries" style="display: none;">
+                        ${intentAnalysis.slice(initialDisplayCount).map(item => `
+                            <div class="citizen-query-item ${item.primaryIntent}">
+                                <div class="query-header">
+                                    <div class="query-text">"${escapeHtml(item.query)}"</div>
+                                    <div class="query-badges">
+                                        <span class="intent-badge ${item.primaryIntent}">
+                                            ${getIntentIcon(item.primaryIntent)} ${item.plainEnglishIntent}
+                                        </span>
+                                        ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent</span>' : ''}
+                                        <span class="confidence-badge">${Math.round(item.confidence * 100)}% confident</span>
+                                    </div>
+                                </div>
+                                <div class="query-metrics">
+                                    <span class="metric">${formatNumber(item.impressions)} monthly searches</span>
+                                    <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
+                                    <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
+                                </div>
+                                ${item.secondaryIntents.length > 0 ? `
+                                    <div class="secondary-intents">
+                                        <strong>Also indicates:</strong> ${item.secondaryIntents.map(intent => 
+                                            citizenJourneyCategories[intent]?.plainEnglish || intent
+                                        ).join(', ')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
-            ` : ''}
-            
-            <div class="intent-recommendations">
-                <h4>🎯 Content Strategy Recommendations for Citizens.ie</h4>
-                <div class="recommendations-grid">
-                    <div class="recommendation-card">
-                        <strong>For Informational Queries:</strong>
-                        <p>Focus on comprehensive guides, eligibility criteria, and clear explanations. Optimize for featured snippets. Include "What you need to know" sections.</p>
+                
+                ${showPagination ? `
+                    <div class="pagination-controls">
+                        <button class="show-more-btn" data-target="journey" data-remaining="${intentAnalysis.length - initialDisplayCount}">
+                            Show ${intentAnalysis.length - initialDisplayCount} More Citizen Queries
+                        </button>
                     </div>
-                    <div class="recommendation-card">
-                        <strong>For Transactional Queries:</strong>
-                        <p>Emphasize clear CTAs, application processes, required documents, and links to MyGovID. Include step-by-step checklists.</p>
-                    </div>
-                    <div class="recommendation-card">
-                        <strong>For Navigational Queries:</strong>
-                        <p>Ensure clear site structure, breadcrumbs, and internal linking. Include local office finder and contact information.</p>
-                    </div>
-                </div>
+                ` : ''}
             </div>
         </div>
     `;
 }
 
-// Mismatch Detection Panel with Pagination
-function createMismatchDetectionPanel(mismatchDetection) {
+// CONTENT MISMATCH PANEL
+function createContentMismatchPanel(mismatchDetection) {
     if (mismatchDetection.length === 0) {
         return `
             <div class="no-mismatch-message">
                 <div class="success-icon">✅</div>
-                <div class="success-title">No Major Content Mismatches Detected</div>
-                <div class="success-description">Your content appears well-aligned with citizen search queries</div>
+                <div class="success-title">Great News! No Major Content Misalignment</div>
+                <div class="success-description">Your content appears well-aligned with what citizens are looking for</div>
             </div>
         `;
     }
     
-    const initialDisplayCount = 10;
+    const initialDisplayCount = 8;
     const showPagination = mismatchDetection.length > initialDisplayCount;
     
     return `
-        <div class="mismatch-detection-panel">
+        <div class="content-mismatch-panel">
             <div class="mismatch-explanation">
-                <p><strong>Content Mismatch Detection:</strong> Identifies queries where high search volume doesn't convert well, suggesting content-intent misalignment for Irish government services.</p>
-                <div class="analysis-stats">
-                    <span class="stat-item">Found <strong>${mismatchDetection.length}</strong> mismatches</span>
-                    ${showPagination ? `<span class="stat-item">Showing first <strong>${initialDisplayCount}</strong></span>` : ''}
+                <p><strong>Content Misalignment Issues:</strong> These are cases where citizens are searching for something but your content doesn't quite match their needs - leading to missed opportunities to help them.</p>
+                <div class="mismatch-stats">
+                    <span class="stat-item">Found <strong>${mismatchDetection.length}</strong> alignment issues</span>
+                    <span class="stat-item">Affecting <strong>${mismatchDetection.reduce((sum, item) => sum + item.impressions, 0)}</strong> monthly citizen searches</span>
                 </div>
             </div>
             
-            <div class="mismatch-queries-list" data-query-list="mismatch">
+            <div class="mismatch-list" data-citizen-list="mismatches">
                 ${mismatchDetection.slice(0, initialDisplayCount).map(item => `
-                    <div class="mismatch-query-item ${item.severity}">
+                    <div class="mismatch-item ${item.severity}">
                         <div class="mismatch-header">
                             <div class="query-text">"${escapeHtml(item.query)}"</div>
-                            <div class="severity-badge ${item.severity}">
-                                ${item.severity === 'high' ? '🚨 High Priority' : '⚠️ Medium Priority'}
+                            <div class="severity-indicator ${item.severity}">
+                                ${item.severity === 'high' ? '🚨 High Priority Fix' : '⚠️ Needs Attention'}
                             </div>
                         </div>
                         
-                        <div class="mismatch-metrics">
-                            <div class="metric-item">
-                                <span class="metric-label">Impressions:</span>
-                                <span class="metric-value">${formatNumber(item.impressions)}</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">CTR:</span>
-                                <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">Position:</span>
-                                <span class="metric-value">#${item.position.toFixed(0)}</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">Content Overlap:</span>
-                                <span class="metric-value">${item.overlap}%</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-label">Query Intent:</span>
-                                <span class="metric-value">${item.queryIntent}</span>
+                        <div class="citizen-impact">
+                            <div class="impact-metrics">
+                                <div class="metric-item">
+                                    <span class="metric-label">Citizens searching monthly:</span>
+                                    <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Actually clicking through:</span>
+                                    <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Content match with search:</span>
+                                    <span class="metric-value">${item.overlap}%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">What citizens want:</span>
+                                    <span class="metric-value">${item.plainEnglishIntent}</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="mismatch-reasons">
-                            <strong>Issues Detected:</strong>
-                            <ul>
+                        <div class="problem-analysis">
+                            <h5>🔍 What's Going Wrong:</h5>
+                            <ul class="problem-reasons">
                                 ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
                             </ul>
                         </div>
                         
-                        <div class="mismatch-recommendations">
-                            <strong>💡 Recommended Actions for Citizens.ie:</strong>
-                            <div class="action-items">
-                                ${item.overlap < 30 ? '<div class="action-item">• Review page title and meta description to better match citizen query intent</div>' : ''}
-                                ${item.ctr < 0.02 ? '<div class="action-item">• Optimize title tags and meta descriptions for higher CTR - consider adding "Ireland" or service-specific terms</div>' : ''}
-                                ${item.position > 15 ? '<div class="action-item">• Consider creating dedicated content page for this citizen service query</div>' : ''}
-                                ${item.queryIntent === 'transactional' ? '<div class="action-item">• Add clear call-to-action buttons and links to application forms or MyGovID</div>' : ''}
-                                ${item.queryIntent === 'informational' ? '<div class="action-item">• Expand content with comprehensive eligibility criteria and requirements</div>' : ''}
+                        <div class="fix-recommendations">
+                            <h5>💡 How to Fix This for Citizens:</h5>
+                            <div class="recommendation-list">
+                                ${item.recommendations.map(rec => `
+                                    <div class="recommendation-item">
+                                        <span class="rec-icon">→</span>
+                                        <span class="rec-text">${rec}</span>
+                                    </div>
+                                `).join('')}
                             </div>
+                        </div>
+                        
+                        <div class="potential-impact">
+                            <strong>📈 Expected Improvement:</strong>
+                            <span class="impact-estimate">Could help ${Math.round(item.impressions * 0.15)} more citizens monthly find what they need</span>
                         </div>
                     </div>
                 `).join('')}
                 
-                <!-- Hidden queries for pagination -->
+                <!-- Hidden items for pagination -->
                 <div class="hidden-queries" style="display: none;">
                     ${mismatchDetection.slice(initialDisplayCount).map(item => `
-                        <div class="mismatch-query-item ${item.severity}">
+                        <div class="mismatch-item ${item.severity}">
                             <div class="mismatch-header">
                                 <div class="query-text">"${escapeHtml(item.query)}"</div>
-                                <div class="severity-badge ${item.severity}">
-                                    ${item.severity === 'high' ? '🚨 High Priority' : '⚠️ Medium Priority'}
+                                <div class="severity-indicator ${item.severity}">
+                                    ${item.severity === 'high' ? '🚨 High Priority Fix' : '⚠️ Needs Attention'}
                                 </div>
                             </div>
                             
-                            <div class="mismatch-metrics">
-                                <div class="metric-item">
-                                    <span class="metric-label">Impressions:</span>
-                                    <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">CTR:</span>
-                                    <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Position:</span>
-                                    <span class="metric-value">#${item.position.toFixed(0)}</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Content Overlap:</span>
-                                    <span class="metric-value">${item.overlap}%</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Query Intent:</span>
-                                    <span class="metric-value">${item.queryIntent}</span>
+                            <div class="citizen-impact">
+                                <div class="impact-metrics">
+                                    <div class="metric-item">
+                                        <span class="metric-label">Citizens searching monthly:</span>
+                                        <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Actually clicking through:</span>
+                                        <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Content match with search:</span>
+                                        <span class="metric-value">${item.overlap}%</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">What citizens want:</span>
+                                        <span class="metric-value">${item.plainEnglishIntent}</span>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="mismatch-reasons">
-                                <strong>Issues Detected:</strong>
-                                <ul>
+                            <div class="problem-analysis">
+                                <h5>🔍 What's Going Wrong:</h5>
+                                <ul class="problem-reasons">
                                     ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
                                 </ul>
                             </div>
                             
-                            <div class="mismatch-recommendations">
-                                <strong>💡 Recommended Actions for Citizens.ie:</strong>
-                                <div class="action-items">
-                                    ${item.overlap < 30 ? '<div class="action-item">• Review page title and meta description to better match citizen query intent</div>' : ''}
-                                    ${item.ctr < 0.02 ? '<div class="action-item">• Optimize title tags and meta descriptions for higher CTR - consider adding "Ireland" or service-specific terms</div>' : ''}
-                                    ${item.position > 15 ? '<div class="action-item">• Consider creating dedicated content page for this citizen service query</div>' : ''}
-                                    ${item.queryIntent === 'transactional' ? '<div class="action-item">• Add clear call-to-action buttons and links to application forms or MyGovID</div>' : ''}
-                                    ${item.queryIntent === 'informational' ? '<div class="action-item">• Expand content with comprehensive eligibility criteria and requirements</div>' : ''}
+                            <div class="fix-recommendations">
+                                <h5>💡 How to Fix This for Citizens:</h5>
+                                <div class="recommendation-list">
+                                    ${item.recommendations.map(rec => `
+                                        <div class="recommendation-item">
+                                            <span class="rec-icon">→</span>
+                                            <span class="rec-text">${rec}</span>
+                                        </div>
+                                    `).join('')}
                                 </div>
+                            </div>
+                            
+                            <div class="potential-impact">
+                                <strong>📈 Expected Improvement:</strong>
+                                <span class="impact-estimate">Could help ${Math.round(item.impressions * 0.15)} more citizens monthly find what they need</span>
                             </div>
                         </div>
                     `).join('')}
@@ -4292,8 +4439,8 @@ function createMismatchDetectionPanel(mismatchDetection) {
             
             ${showPagination ? `
                 <div class="pagination-controls">
-                    <button class="show-more-btn" data-target="mismatch" data-remaining="${mismatchDetection.length - initialDisplayCount}">
-                        Show ${mismatchDetection.length - initialDisplayCount} More Mismatches
+                    <button class="show-more-btn" data-target="mismatches" data-remaining="${mismatchDetection.length - initialDisplayCount}">
+                        Show ${mismatchDetection.length - initialDisplayCount} More Content Issues
                     </button>
                 </div>
             ` : ''}
@@ -4301,85 +4448,108 @@ function createMismatchDetectionPanel(mismatchDetection) {
     `;
 }
 
-// Long-tail Opportunities Panel with Pagination
-function createLongtailOpportunitiesPanel(opportunities) {
+// CITIZEN OPPORTUNITIES PANEL
+function createCitizenOpportunitiesPanel(opportunities) {
     if (opportunities.length === 0) {
         return `
             <div class="no-opportunities-message">
-                <div class="info-icon">💡</div>
-                <div class="info-title">No Major Long-tail Opportunities Detected</div>
-                <div class="info-description">Current query performance appears optimized</div>
+                <div class="info-icon">👍</div>
+                <div class="info-title">No Major Opportunities Detected</div>
+                <div class="info-description">Your content appears to be serving citizens well</div>
             </div>
         `;
     }
     
-    const initialDisplayCount = 10;
+    const initialDisplayCount = 8;
     const showPagination = opportunities.length > initialDisplayCount;
     
     return `
-        <div class="longtail-opportunities-panel">
+        <div class="citizen-opportunities-panel">
             <div class="opportunities-explanation">
-                <p><strong>Optimization Opportunities:</strong> Specific, longer queries with potential for targeted traffic growth for Irish government services.</p>
-                <div class="analysis-stats">
-                    <span class="stat-item">Found <strong>${opportunities.length}</strong> opportunities</span>
-                    ${showPagination ? `<span class="stat-item">Showing first <strong>${initialDisplayCount}</strong></span>` : ''}
+                <p><strong>Opportunities to Better Serve Citizens:</strong> These are specific ways you can improve your content to help more citizens find what they need and complete their tasks successfully.</p>
+                <div class="opportunities-stats">
+                    <span class="stat-item">Found <strong>${opportunities.length}</strong> improvement opportunities</span>
+                    <span class="stat-item">Could help <strong>${opportunities.reduce((sum, item) => sum + item.estimatedCitizensHelped, 0)}</strong> more citizens monthly</span>
                 </div>
             </div>
             
-            <div class="opportunities-list" data-query-list="opportunities">
+            <div class="opportunities-list" data-citizen-list="opportunities">
                 ${opportunities.slice(0, initialDisplayCount).map(item => `
-                    <div class="opportunity-item ${item.priority}">
+                    <div class="opportunity-item ${item.priority} ${item.citizenImpact}">
                         <div class="opportunity-header">
                             <div class="query-text">"${escapeHtml(item.query)}"</div>
-                            <div class="priority-badges">
+                            <div class="opportunity-badges">
                                 <span class="priority-badge ${item.priority}">
-                                    ${item.priority === 'high' ? '🔥 High Priority' : item.priority === 'medium' ? '⭐ Medium Priority' : '💫 Low Priority'}
+                                    ${item.priority === 'high' ? '🎯 High Impact' : item.priority === 'medium' ? '⭐ Medium Impact' : '💡 Low Impact'}
                                 </span>
-                                <span class="score-badge">Score: ${item.score}</span>
-                                <span class="intent-badge-small ${item.queryIntent}">${item.queryIntent}</span>
+                                <span class="citizen-impact-badge ${item.citizenImpact}">
+                                    ${item.citizenImpact === 'high' ? '👥 High Citizen Value' : item.citizenImpact === 'medium' ? '👤 Medium Citizen Value' : '📋 Standard Service'}
+                                </span>
+                                ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent Need</span>' : ''}
                             </div>
                         </div>
                         
-                        <div class="opportunity-metrics">
-                            <div class="metric-group">
-                                <div class="metric-item">
-                                    <span class="metric-label">Monthly Impressions:</span>
-                                    <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Current Clicks:</span>
-                                    <span class="metric-value">${formatNumber(item.clicks)}</span>
-                                </div>
+                        <div class="citizen-journey-context">
+                            <div class="journey-info">
+                                <span class="journey-label">Citizen Journey Stage:</span>
+                                <span class="journey-stage">${item.plainEnglishIntent}</span>
                             </div>
-                            <div class="metric-group">
-                                <div class="metric-item">
-                                    <span class="metric-label">CTR:</span>
-                                    <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                            ${item.secondaryIntents.length > 0 ? `
+                                <div class="secondary-journey">
+                                    <span class="secondary-label">Also seeking:</span>
+                                    <span class="secondary-stages">${item.secondaryIntents.map(intent => 
+                                        citizenJourneyCategories[intent]?.plainEnglish || intent
+                                    ).join(', ')}</span>
                                 </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Position:</span>
-                                    <span class="metric-value">#${item.position.toFixed(0)}</span>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="current-performance">
+                            <div class="performance-metrics">
+                                <div class="metric-group">
+                                    <div class="metric-item">
+                                        <span class="metric-label">Citizens searching monthly:</span>
+                                        <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Currently clicking through:</span>
+                                        <span class="metric-value">${formatNumber(item.clicks)} (${(item.ctr * 100).toFixed(1)}%)</span>
+                                    </div>
+                                </div>
+                                <div class="metric-group">
+                                    <div class="metric-item">
+                                        <span class="metric-label">Google ranking position:</span>
+                                        <span class="metric-value">#${item.position.toFixed(0)}</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Opportunity score:</span>
+                                        <span class="metric-value">${item.score}/10</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="opportunity-factors">
-                            <strong>🎯 Opportunity Factors:</strong>
-                            <ul>
+                            <h5>🎯 Why This is an Opportunity:</h5>
+                            <ul class="factor-list">
                                 ${item.factors.map(factor => `<li>${factor}</li>`).join('')}
                             </ul>
                         </div>
                         
-                        <div class="opportunity-potential">
-                            <strong>📈 Potential Impact:</strong>
-                            <div class="potential-metrics">
-                                <div class="potential-item">
-                                    <span>Expected CTR improvement:</span>
-                                    <span class="highlight">+${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100 * 100)}%</span>
+                        <div class="potential-results">
+                            <h5>📈 Expected Results from Improvement:</h5>
+                            <div class="results-grid">
+                                <div class="result-item">
+                                    <span class="result-icon">👆</span>
+                                    <span class="result-text">+${item.potentialClicks} more citizens clicking monthly</span>
                                 </div>
-                                <div class="potential-item">
-                                    <span>Additional monthly clicks:</span>
-                                    <span class="highlight">+${item.potentialClicks}</span>
+                                <div class="result-item">
+                                    <span class="result-icon">🎯</span>
+                                    <span class="result-text">${item.estimatedCitizensHelped} total citizens better served</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-icon">📊</span>
+                                    <span class="result-text">CTR improvement potential: +${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100)}%</span>
                                 </div>
                             </div>
                         </div>
@@ -4389,58 +4559,81 @@ function createLongtailOpportunitiesPanel(opportunities) {
                 <!-- Hidden opportunities for pagination -->
                 <div class="hidden-queries" style="display: none;">
                     ${opportunities.slice(initialDisplayCount).map(item => `
-                        <div class="opportunity-item ${item.priority}">
+                        <div class="opportunity-item ${item.priority} ${item.citizenImpact}">
                             <div class="opportunity-header">
                                 <div class="query-text">"${escapeHtml(item.query)}"</div>
-                                <div class="priority-badges">
+                                <div class="opportunity-badges">
                                     <span class="priority-badge ${item.priority}">
-                                        ${item.priority === 'high' ? '🔥 High Priority' : item.priority === 'medium' ? '⭐ Medium Priority' : '💫 Low Priority'}
+                                        ${item.priority === 'high' ? '🎯 High Impact' : item.priority === 'medium' ? '⭐ Medium Impact' : '💡 Low Impact'}
                                     </span>
-                                    <span class="score-badge">Score: ${item.score}</span>
-                                    <span class="intent-badge-small ${item.queryIntent}">${item.queryIntent}</span>
+                                    <span class="citizen-impact-badge ${item.citizenImpact}">
+                                        ${item.citizenImpact === 'high' ? '👥 High Citizen Value' : item.citizenImpact === 'medium' ? '👤 Medium Citizen Value' : '📋 Standard Service'}
+                                    </span>
+                                    ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent Need</span>' : ''}
                                 </div>
                             </div>
                             
-                            <div class="opportunity-metrics">
-                                <div class="metric-group">
-                                    <div class="metric-item">
-                                        <span class="metric-label">Monthly Impressions:</span>
-                                        <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">Current Clicks:</span>
-                                        <span class="metric-value">${formatNumber(item.clicks)}</span>
-                                    </div>
+                            <div class="citizen-journey-context">
+                                <div class="journey-info">
+                                    <span class="journey-label">Citizen Journey Stage:</span>
+                                    <span class="journey-stage">${item.plainEnglishIntent}</span>
                                 </div>
-                                <div class="metric-group">
-                                    <div class="metric-item">
-                                        <span class="metric-label">CTR:</span>
-                                        <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                                ${item.secondaryIntents.length > 0 ? `
+                                    <div class="secondary-journey">
+                                        <span class="secondary-label">Also seeking:</span>
+                                        <span class="secondary-stages">${item.secondaryIntents.map(intent => 
+                                            citizenJourneyCategories[intent]?.plainEnglish || intent
+                                        ).join(', ')}</span>
                                     </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">Position:</span>
-                                        <span class="metric-value">#${item.position.toFixed(0)}</span>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="current-performance">
+                                <div class="performance-metrics">
+                                    <div class="metric-group">
+                                        <div class="metric-item">
+                                            <span class="metric-label">Citizens searching monthly:</span>
+                                            <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <span class="metric-label">Currently clicking through:</span>
+                                            <span class="metric-value">${formatNumber(item.clicks)} (${(item.ctr * 100).toFixed(1)}%)</span>
+                                        </div>
+                                    </div>
+                                    <div class="metric-group">
+                                        <div class="metric-item">
+                                            <span class="metric-label">Google ranking position:</span>
+                                            <span class="metric-value">#${item.position.toFixed(0)}</span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <span class="metric-label">Opportunity score:</span>
+                                            <span class="metric-value">${item.score}/10</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="opportunity-factors">
-                                <strong>🎯 Opportunity Factors:</strong>
-                                <ul>
+                                <h5>🎯 Why This is an Opportunity:</h5>
+                                <ul class="factor-list">
                                     ${item.factors.map(factor => `<li>${factor}</li>`).join('')}
                                 </ul>
                             </div>
                             
-                            <div class="opportunity-potential">
-                                <strong>📈 Potential Impact:</strong>
-                                <div class="potential-metrics">
-                                    <div class="potential-item">
-                                        <span>Expected CTR improvement:</span>
-                                        <span class="highlight">+${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100 * 100)}%</span>
+                            <div class="potential-results">
+                                <h5>📈 Expected Results from Improvement:</h5>
+                                <div class="results-grid">
+                                    <div class="result-item">
+                                        <span class="result-icon">👆</span>
+                                        <span class="result-text">+${item.potentialClicks} more citizens clicking monthly</span>
                                     </div>
-                                    <div class="potential-item">
-                                        <span>Additional monthly clicks:</span>
-                                        <span class="highlight">+${item.potentialClicks}</span>
+                                    <div class="result-item">
+                                        <span class="result-icon">🎯</span>
+                                        <span class="result-text">${item.estimatedCitizensHelped} total citizens better served</span>
+                                    </div>
+                                    <div class="result-item">
+                                        <span class="result-icon">📊</span>
+                                        <span class="result-text">CTR improvement potential: +${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100)}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -4460,17 +4653,87 @@ function createLongtailOpportunitiesPanel(opportunities) {
     `;
 }
 
-// Enhanced Query Analysis Styles
-function createEnhancedQueryAnalysisStyles() {
+// HELPER FUNCTIONS
+function getIntentColor(intent) {
+    const colors = {
+        immediateAction: '#ef4444',
+        problemSolving: '#f97316',
+        eligibilityResearch: '#3b82f6',
+        processLearning: '#8b5cf6',
+        timingDeadlines: '#f59e0b',
+        costPayment: '#10b981',
+        contactSeeking: '#6b7280',
+        statusChecking: '#06b6d4',
+        comparisonShopping: '#84cc16',
+        locationFinding: '#ec4899',
+        documentForm: '#14b8a6',
+        generalInformation: '#64748b'
+    };
+    return colors[intent] || '#64748b';
+}
+
+function getIntentIcon(intent) {
+    const icons = {
+        immediateAction: '🚀',
+        problemSolving: '🔧',
+        eligibilityResearch: '🔍',
+        processLearning: '📋',
+        timingDeadlines: '⏰',
+        costPayment: '💳',
+        contactSeeking: '📞',
+        statusChecking: '📊',
+        comparisonShopping: '⚖️',
+        locationFinding: '📍',
+        documentForm: '📄',
+        generalInformation: '💡'
+    };
+    return icons[intent] || '💡';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+function getCTRBenchmark(position) {
+    const benchmarks = {
+        1: 0.284, 2: 0.155, 3: 0.110, 4: 0.077, 5: 0.061,
+        6: 0.050, 7: 0.041, 8: 0.034, 9: 0.029, 10: 0.025
+    };
+    
+    if (position <= 10) {
+        return benchmarks[Math.round(position)] || benchmarks[10];
+    } else if (position <= 20) {
+        return 0.015;
+    } else {
+        return 0.005;
+    }
+}
+
+// STYLING AND INITIALIZATION
+function createCitizenQueryIntelligenceStyles() {
     return `
         <style>
-            /* Enhanced Query Analysis Styles for Citizens.ie */
-            .enhanced-query-analysis {
+            /* Citizen Query Intelligence Styles */
+            .citizen-query-intelligence {
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
                 border-left: 4px solid #3b82f6;
+                border-radius: 12px;
+                padding: 24px;
+                margin-bottom: 24px;
             }
             
-            .query-analysis-explanation {
+            .citizen-analysis-explanation {
                 background: rgba(59, 130, 246, 0.1);
                 padding: 16px;
                 border-radius: 8px;
@@ -4478,21 +4741,468 @@ function createEnhancedQueryAnalysisStyles() {
                 border-left: 3px solid #3b82f6;
             }
             
-            .analysis-stats {
-                margin-top: 12px;
-                display: flex;
+            /* Executive Summary */
+            .executive-summary {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 24px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 16px;
+                margin-top: 16px;
+            }
+            
+            .summary-card {
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .summary-card.citizens-reached {
+                background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                border-color: #10b981;
+            }
+            
+            .summary-card.urgent-needs {
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                border-color: #ef4444;
+            }
+            
+            .summary-card.improvement-opportunities {
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                border-color: #f59e0b;
+            }
+            
+            .summary-card.content-issues {
+                background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+                border-color: #a855f7;
+            }
+            
+            .summary-number {
+                font-size: 2.2rem;
+                font-weight: 800;
+                color: #1f2937;
+                margin-bottom: 4px;
+            }
+            
+            .summary-label {
+                font-size: 0.9rem;
+                color: #374151;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            
+            .summary-subtitle {
+                font-size: 0.75rem;
+                color: #6b7280;
+                font-style: italic;
+            }
+            
+            /* Tabs */
+            .citizen-analysis-tabs {
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .citizen-tab-nav {
+                display: flex;
+                background: #f8fafc;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            
+            .citizen-tab-btn {
+                flex: 1;
+                padding: 16px 20px;
+                border: none;
+                background: none;
+                cursor: pointer;
+                color: #64748b;
+                border-bottom: 3px solid transparent;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-family: inherit;
+                font-weight: 600;
+                position: relative;
+            }
+            
+            .citizen-tab-btn:hover:not(.active) {
+                color: #475569;
+                background: rgba(0,0,0,0.02);
+            }
+            
+            .citizen-tab-btn.active {
+                color: #1e293b;
+                border-bottom-color: #3b82f6;
+                background: white;
+            }
+            
+            .tab-badge {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: #ef4444;
+                color: white;
+                border-radius: 10px;
+                padding: 2px 6px;
+                font-size: 0.7rem;
+                font-weight: 700;
+                min-width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .citizen-tab-content {
+                background: white;
+            }
+            
+            .citizen-tab-panel {
+                display: none;
+                padding: 24px;
+            }
+            
+            .citizen-tab-panel.active {
+                display: block;
+            }
+            
+            /* Journey Panel */
+            .intent-distribution {
+                background: #f8fafc;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 24px;
+            }
+            
+            .intent-bars {
+                margin-top: 16px;
+                display: grid;
+                gap: 12px;
+            }
+            
+            .intent-bar {
+                display: grid;
+                gap: 6px;
+            }
+            
+            .intent-bar-label {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 0.85rem;
+            }
+            
+            .intent-name {
+                font-weight: 600;
+                color: #374151;
+            }
+            
+            .intent-count {
+                color: #6b7280;
+                font-size: 0.8rem;
+            }
+            
+            .intent-bar-fill {
+                height: 8px;
+                background: #e5e7eb;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            
+            .intent-bar-progress {
+                height: 100%;
+                border-radius: 4px;
+                transition: width 0.5s ease;
+            }
+            
+            /* Query Items */
+            .citizen-queries-list, .mismatch-list, .opportunities-list {
+                display: grid;
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            
+            .citizen-query-item, .mismatch-item, .opportunity-item {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 20px;
+                transition: all 0.2s ease;
+            }
+            
+            .citizen-query-item:hover, .mismatch-item:hover, .opportunity-item:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+            
+            .query-header, .mismatch-header, .opportunity-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 12px;
+                gap: 16px;
+            }
+            
+            .query-text {
+                font-weight: 600;
+                color: #1f2937;
+                font-size: 0.95rem;
+                flex-grow: 1;
+            }
+            
+            .query-badges, .opportunity-badges {
+                display: flex;
+                gap: 8px;
+                flex-shrink: 0;
                 flex-wrap: wrap;
             }
             
-            .stat-item {
-                padding: 4px 8px;
-                background: rgba(59, 130, 246, 0.1);
-                border-radius: 4px;
-                font-size: 0.85rem;
-                color: #1e40af;
+            .intent-badge, .priority-badge, .citizen-impact-badge {
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                white-space: nowrap;
             }
             
+            .urgency-badge {
+                background: #fecaca;
+                color: #dc2626;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.7rem;
+                font-weight: 700;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
+            }
+            
+            .confidence-badge {
+                background: #f1f5f9;
+                color: #475569;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+            
+            .query-metrics {
+                display: flex;
+                gap: 16px;
+                font-size: 0.85rem;
+                color: #64748b;
+                margin-bottom: 8px;
+            }
+            
+            .secondary-intents, .secondary-journey {
+                font-size: 0.8rem;
+                color: #6b7280;
+                font-style: italic;
+                margin-top: 8px;
+            }
+            
+            /* Mismatch Specific */
+            .mismatch-item.high {
+                border-left: 4px solid #ef4444;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            }
+            
+            .mismatch-item.medium {
+                border-left: 4px solid #f59e0b;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            }
+            
+            .severity-indicator {
+                padding: 6px 12px;
+                border-radius: 16px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            
+            .severity-indicator.high {
+                background: #ef4444;
+                color: white;
+            }
+            
+            .severity-indicator.medium {
+                background: #f59e0b;
+                color: white;
+            }
+            
+            .citizen-impact, .current-performance {
+                margin-bottom: 16px;
+            }
+            
+            .impact-metrics, .performance-metrics {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 12px;
+                padding: 12px;
+                background: rgba(255,255,255,0.7);
+                border-radius: 6px;
+            }
+            
+            .metric-group {
+                display: grid;
+                gap: 8px;
+            }
+            
+            .metric-item {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.85rem;
+            }
+            
+            .metric-label {
+                color: #64748b;
+                font-weight: 500;
+            }
+            
+            .metric-value {
+                font-weight: 600;
+                color: #1f2937;
+            }
+            
+            .problem-analysis, .fix-recommendations, .opportunity-factors, .potential-results {
+                margin-bottom: 16px;
+            }
+            
+            .problem-analysis h5, .fix-recommendations h5, .opportunity-factors h5, .potential-results h5 {
+                color: #374151;
+                margin-bottom: 8px;
+                font-size: 0.9rem;
+            }
+            
+            .problem-reasons, .factor-list {
+                margin: 0;
+                padding-left: 20px;
+                color: #64748b;
+            }
+            
+            .problem-reasons li, .factor-list li {
+                margin-bottom: 4px;
+                font-size: 0.85rem;
+            }
+            
+            .recommendation-list {
+                display: grid;
+                gap: 8px;
+            }
+            
+            .recommendation-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 8px;
+                font-size: 0.85rem;
+            }
+            
+            .rec-icon {
+                color: #10b981;
+                font-weight: bold;
+                flex-shrink: 0;
+            }
+            
+            .rec-text {
+                color: #374151;
+                line-height: 1.4;
+            }
+            
+            .potential-impact, .impact-estimate {
+                font-size: 0.85rem;
+                color: #059669;
+                font-weight: 600;
+            }
+            
+            /* Opportunity Specific */
+            .opportunity-item.high {
+                border-left: 4px solid #ef4444;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            }
+            
+            .opportunity-item.medium {
+                border-left: 4px solid #f59e0b;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            }
+            
+            .opportunity-item.low {
+                border-left: 4px solid #6366f1;
+                background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            }
+            
+            .citizen-impact-badge.high {
+                background: #dcfce7;
+                color: #166534;
+            }
+            
+            .citizen-impact-badge.medium {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            
+            .citizen-impact-badge.low {
+                background: #f1f5f9;
+                color: #475569;
+            }
+            
+            .citizen-journey-context {
+                background: rgba(59, 130, 246, 0.05);
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 16px;
+            }
+            
+            .journey-info, .secondary-journey {
+                font-size: 0.85rem;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+            
+            .journey-label, .secondary-label {
+                color: #6b7280;
+                font-weight: 500;
+            }
+            
+            .journey-stage, .secondary-stages {
+                color: #374151;
+                font-weight: 600;
+            }
+            
+            .results-grid {
+                display: grid;
+                gap: 8px;
+                margin-top: 8px;
+            }
+            
+            .result-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 0.85rem;
+                color: #059669;
+                font-weight: 500;
+            }
+            
+            .result-icon {
+                font-size: 1rem;
+            }
+            
+            /* Pagination */
             .pagination-controls {
                 margin-top: 24px;
                 text-align: center;
@@ -4518,623 +5228,55 @@ function createEnhancedQueryAnalysisStyles() {
                 box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
             }
             
-            .show-more-btn:active {
-                transform: translateY(0);
-            }
-            
-            /* Summary Grid */
-            .query-summary-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 16px;
-                margin-bottom: 32px;
-            }
-            
-            .query-summary-card {
-                background: white;
-                padding: 20px;
-                border-radius: 12px;
-                text-align: center;
-                border: 1px solid #e2e8f0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            
-            .query-summary-card.warning {
-                background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-                border-color: #f59e0b;
-            }
-            
-            .query-summary-card.success {
-                background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-                border-color: #10b981;
-            }
-            
-            .query-summary-card.opportunities {
-                background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-                border-color: #6366f1;
-            }
-            
-            .query-summary-card.irish-specific {
-                background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-                border-color: #16a34a;
-            }
-            
-            .summary-number {
-                font-size: 2rem;
-                font-weight: 800;
-                color: #1f2937;
-                margin-bottom: 4px;
-            }
-            
-            .summary-label {
-                font-size: 0.85rem;
-                color: #64748b;
-                font-weight: 600;
-            }
-            
-            .summary-split {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                margin-bottom: 8px;
-            }
-            
-            .split-item {
-                text-align: center;
-            }
-            
-            .split-number {
-                display: block;
-                font-size: 1.2rem;
-                font-weight: 800;
-                color: #1f2937;
-            }
-            
-            .split-label {
-                font-size: 0.7rem;
-                color: #64748b;
-                font-weight: 600;
-            }
-            
-            .split-divider {
-                width: 1px;
-                height: 25px;
-                background: #e2e8f0;
-                border-radius: 1px;
-            }
-            
-            /* Query Analysis Tabs */
-            .query-analysis-tabs {
-                background: white;
-                border-radius: 12px;
-                overflow: hidden;
-                border: 1px solid #e2e8f0;
-            }
-            
-            .query-tab-nav {
-                display: flex;
-                background: #f8fafc;
-                border-bottom: 1px solid #e2e8f0;
-            }
-            
-            .query-tab-btn {
-                flex: 1;
-                padding: 16px 20px;
-                border: none;
-                background: none;
-                cursor: pointer;
-                color: #64748b;
-                border-bottom: 3px solid transparent;
-                transition: all 0.2s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                font-family: inherit;
-                font-weight: 600;
-                position: relative;
-            }
-            
-            .query-tab-btn:hover:not(.active) {
-                color: #475569;
-                background: rgba(0,0,0,0.02);
-            }
-            
-            .query-tab-btn.active {
-                color: #1e293b;
-                border-bottom-color: #3b82f6;
-                background: white;
-            }
-            
-            .tab-badge {
-                position: absolute;
-                top: 8px;
-                right: 8px;
-                background: #ef4444;
-                color: white;
-                border-radius: 10px;
-                padding: 2px 6px;
-                font-size: 0.7rem;
-                font-weight: 700;
-                min-width: 18px;
-                height: 18px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .query-tab-content {
-                background: white;
-            }
-            
-            .query-tab-panel {
-                display: none;
-                padding: 24px;
-            }
-            
-            .query-tab-panel.active {
-                display: block;
-            }
-            
-            /* Intent Analysis Styles */
-            .intent-queries-list {
-                display: grid;
-                gap: 16px;
-                margin-bottom: 24px;
-            }
-            
-            .intent-query-item {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 16px;
-                transition: all 0.2s ease;
-            }
-            
-            .intent-query-item:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            }
-            
-            .intent-query-item.transactional {
-                border-left: 4px solid #f59e0b;
-            }
-            
-            .intent-query-item.informational {
-                border-left: 4px solid #3b82f6;
-            }
-            
-            .intent-query-item.navigational {
-                border-left: 4px solid #10b981;
-            }
-            
-            .intent-query-item.mixed {
-                border-left: 4px solid #8b5cf6;
-            }
-            
-            .intent-query-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 12px;
-                gap: 16px;
-            }
-            
-            .query-text {
-                font-weight: 600;
-                color: #1f2937;
-                font-size: 0.95rem;
-                flex-grow: 1;
-            }
-            
-            .intent-badges {
-                display: flex;
-                gap: 8px;
-                flex-shrink: 0;
-                flex-wrap: wrap;
-            }
-            
-            .intent-badge {
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                white-space: nowrap;
-            }
-            
-            .intent-badge.transactional {
-                background: #fef3c7;
-                color: #92400e;
-            }
-            
-            .intent-badge.informational {
-                background: #dbeafe;
-                color: #1e40af;
-            }
-            
-            .intent-badge.navigational {
-                background: #d1fae5;
-                color: #065f46;
-            }
-            
-            .intent-badge.mixed {
-                background: #ede9fe;
-                color: #6b21a8;
-            }
-            
-            .confidence-badge, .matches-badge {
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                background: #f1f5f9;
-                color: #475569;
-            }
-            
-            .matches-badge {
-                background: #ecfdf5;
-                color: #065f46;
-            }
-            
-            .intent-metrics {
-                display: flex;
-                gap: 16px;
-                font-size: 0.85rem;
-                color: #64748b;
-            }
-            
-            .recommendations-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 16px;
-                margin-top: 16px;
-            }
-            
-            .recommendation-card {
-                background: #f8fafc;
-                padding: 16px;
-                border-radius: 8px;
-                border-left: 3px solid #3b82f6;
-            }
-            
-            /* Mismatch Detection Styles */
-            .no-mismatch-message {
+            /* No Data Messages */
+            .no-data-message, .no-mismatch-message, .no-opportunities-message {
                 text-align: center;
                 padding: 40px;
-                color: #059669;
+                color: #6b7280;
             }
             
-            .success-icon {
+            .success-icon, .info-icon {
                 font-size: 3rem;
                 margin-bottom: 16px;
             }
             
-            .success-title {
+            .success-title, .info-title {
                 font-size: 1.2rem;
                 font-weight: 700;
                 margin-bottom: 8px;
-            }
-            
-            .mismatch-queries-list {
-                display: grid;
-                gap: 20px;
-            }
-            
-            .mismatch-query-item {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            
-            .mismatch-query-item.high {
-                border-left: 4px solid #ef4444;
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            }
-            
-            .mismatch-query-item.medium {
-                border-left: 4px solid #f59e0b;
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            }
-            
-            .mismatch-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 16px;
-                gap: 16px;
-            }
-            
-            .severity-badge {
-                padding: 6px 12px;
-                border-radius: 16px;
-                font-size: 0.75rem;
-                font-weight: 700;
-                white-space: nowrap;
-            }
-            
-            .severity-badge.high {
-                background: #ef4444;
-                color: white;
-            }
-            
-            .severity-badge.medium {
-                background: #f59e0b;
-                color: white;
-            }
-            
-            .mismatch-metrics {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                gap: 12px;
-                margin-bottom: 16px;
-                padding: 12px;
-                background: rgba(255,255,255,0.5);
-                border-radius: 6px;
-            }
-            
-            .metric-item {
-                display: flex;
-                justify-content: space-between;
-                font-size: 0.85rem;
-            }
-            
-            .metric-label {
-                color: #64748b;
-                font-weight: 500;
-            }
-            
-            .metric-value {
-                font-weight: 600;
-                color: #1f2937;
-            }
-            
-            .mismatch-reasons {
-                margin-bottom: 16px;
-                font-size: 0.9rem;
-            }
-            
-            .mismatch-reasons strong {
                 color: #374151;
-                display: block;
-                margin-bottom: 8px;
             }
             
-            .mismatch-reasons ul {
-                margin: 0;
-                padding-left: 20px;
-                color: #64748b;
-            }
-            
-            .mismatch-reasons li {
-                margin-bottom: 4px;
-            }
-            
-            .mismatch-recommendations strong {
-                color: #374151;
-                display: block;
-                margin-bottom: 8px;
-            }
-            
-            .action-items {
-                display: grid;
-                gap: 6px;
-            }
-            
-            .action-item {
-                color: #059669;
-                font-size: 0.85rem;
-                font-weight: 500;
-            }
-            
-            /* Long-tail Opportunities Styles */
-            .no-opportunities-message {
-                text-align: center;
-                padding: 40px;
-                color: #6366f1;
-            }
-            
-            .info-icon {
-                font-size: 3rem;
-                margin-bottom: 16px;
-            }
-            
-            .info-title {
-                font-size: 1.2rem;
-                font-weight: 700;
-                margin-bottom: 8px;
-            }
-            
-            .opportunities-list {
-                display: grid;
-                gap: 24px;
-            }
-            
-            .opportunity-item {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            
-            .opportunity-item.high {
-                border-left: 4px solid #ef4444;
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            }
-            
-            .opportunity-item.medium {
-                border-left: 4px solid #f59e0b;
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            }
-            
-            .opportunity-item.low {
-                border-left: 4px solid #6366f1;
-                background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-            }
-            
-            .opportunity-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 16px;
-                gap: 16px;
-            }
-            
-            .priority-badges {
-                display: flex;
-                gap: 8px;
-                flex-shrink: 0;
-                flex-wrap: wrap;
-            }
-            
-            .priority-badge {
-                padding: 6px 12px;
-                border-radius: 16px;
-                font-size: 0.75rem;
-                font-weight: 700;
-                white-space: nowrap;
-            }
-            
-            .priority-badge.high {
-                background: #ef4444;
-                color: white;
-            }
-            
-            .priority-badge.medium {
-                background: #f59e0b;
-                color: white;
-            }
-            
-            .priority-badge.low {
-                background: #6366f1;
-                color: white;
-            }
-            
-            .score-badge {
-                padding: 4px 8px;
-                border-radius: 12px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                background: #f1f5f9;
-                color: #475569;
-            }
-            
-            .intent-badge-small {
-                padding: 3px 6px;
-                border-radius: 8px;
-                font-size: 0.7rem;
-                font-weight: 600;
-                text-transform: capitalize;
-            }
-            
-            .intent-badge-small.transactional {
-                background: #fef3c7;
-                color: #92400e;
-            }
-            
-            .intent-badge-small.informational {
-                background: #dbeafe;
-                color: #1e40af;
-            }
-            
-            .intent-badge-small.navigational {
-                background: #d1fae5;
-                color: #065f46;
-            }
-            
-            .opportunity-metrics {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                margin-bottom: 16px;
-                padding: 12px;
-                background: rgba(255,255,255,0.5);
-                border-radius: 6px;
-            }
-            
-            .metric-group {
-                display: grid;
-                gap: 8px;
-            }
-            
-            .opportunity-factors {
-                margin-bottom: 16px;
-                font-size: 0.9rem;
-            }
-            
-            .opportunity-factors strong {
-                color: #374151;
-                display: block;
-                margin-bottom: 8px;
-            }
-            
-            .opportunity-factors ul {
-                margin: 0;
-                padding-left: 20px;
-                color: #64748b;
-            }
-            
-            .opportunity-potential strong {
-                color: #374151;
-                display: block;
-                margin-bottom: 12px;
-            }
-            
-            .potential-metrics {
-                display: grid;
-                gap: 8px;
-            }
-            
-            .potential-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 8px 12px;
-                background: rgba(16, 185, 129, 0.1);
-                border-radius: 6px;
-                font-size: 0.85rem;
-            }
-            
-            .highlight {
-                font-weight: 700;
-                color: #059669;
+            .success-description, .info-description {
+                color: #6b7280;
             }
             
             /* Responsive Design */
             @media (max-width: 768px) {
-                .query-summary-grid {
+                .summary-grid {
                     grid-template-columns: repeat(2, 1fr);
                 }
                 
-                .query-tab-nav {
+                .citizen-tab-nav {
                     flex-direction: column;
                 }
                 
-                .query-tab-btn {
+                .citizen-tab-btn {
                     flex: none;
                     justify-content: flex-start;
                 }
                 
-                .intent-query-header,
-                .mismatch-header,
-                .opportunity-header {
+                .query-header, .mismatch-header, .opportunity-header {
                     flex-direction: column;
                     align-items: flex-start;
                     gap: 12px;
                 }
                 
-                .opportunity-metrics {
+                .impact-metrics, .performance-metrics {
                     grid-template-columns: 1fr;
                 }
                 
-                .recommendations-grid {
-                    grid-template-columns: 1fr;
-                }
-                
-                .intent-badges,
-                .priority-badges {
+                .query-badges, .opportunity-badges {
                     justify-content: flex-start;
                 }
             }
@@ -5142,22 +5284,22 @@ function createEnhancedQueryAnalysisStyles() {
     `;
 }
 
-// Initialize Enhanced Query Analysis Tabs and Pagination
-function initializeEnhancedQueryAnalysisTabs() {
+// INITIALIZATION
+function initializeCitizenQueryIntelligence() {
     document.addEventListener('click', function(e) {
         // Handle tab switching
-        if (e.target.closest('.query-tab-btn')) {
-            const button = e.target.closest('.query-tab-btn');
-            const targetTab = button.getAttribute('data-query-tab');
-            const container = button.closest('.query-analysis-tabs');
+        if (e.target.closest('.citizen-tab-btn')) {
+            const button = e.target.closest('.citizen-tab-btn');
+            const targetTab = button.getAttribute('data-citizen-tab');
+            const container = button.closest('.citizen-analysis-tabs');
             
             // Remove active class from all buttons and panels in this container
-            container.querySelectorAll('.query-tab-btn').forEach(btn => btn.classList.remove('active'));
-            container.querySelectorAll('.query-tab-panel').forEach(panel => panel.classList.remove('active'));
+            container.querySelectorAll('.citizen-tab-btn').forEach(btn => btn.classList.remove('active'));
+            container.querySelectorAll('.citizen-tab-panel').forEach(panel => panel.classList.remove('active'));
             
             // Activate clicked button and corresponding panel
             button.classList.add('active');
-            const targetPanel = container.querySelector(`[data-query-panel="${targetTab}"]`);
+            const targetPanel = container.querySelector(`[data-citizen-panel="${targetTab}"]`);
             if (targetPanel) {
                 targetPanel.classList.add('active');
             }
@@ -5167,11 +5309,10 @@ function initializeEnhancedQueryAnalysisTabs() {
         if (e.target.closest('.show-more-btn')) {
             const button = e.target.closest('.show-more-btn');
             const target = button.getAttribute('data-target');
-            const remaining = parseInt(button.getAttribute('data-remaining'));
             
-            // Find the corresponding query list and hidden queries
-            const panel = button.closest('.query-tab-panel');
-            const queryList = panel.querySelector(`[data-query-list="${target}"]`);
+            // Find the corresponding list and hidden queries
+            const panel = button.closest('.citizen-tab-panel');
+            const queryList = panel.querySelector(`[data-citizen-list="${target}"]`);
             const hiddenQueries = queryList.querySelector('.hidden-queries');
             
             if (hiddenQueries) {
@@ -5188,11 +5329,11 @@ function initializeEnhancedQueryAnalysisTabs() {
                 hiddenQueries.remove();
                 button.closest('.pagination-controls').remove();
                 
-                // Optional: Add a scroll animation to the newly revealed content
+                // Smooth scroll to newly revealed content
                 setTimeout(() => {
-                    const newItems = queryList.querySelectorAll('.intent-query-item, .mismatch-query-item, .opportunity-item');
-                    if (newItems.length > 15) {
-                        newItems[15].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const allItems = queryList.querySelectorAll('.citizen-query-item, .mismatch-item, .opportunity-item');
+                    if (allItems.length > 12) {
+                        allItems[12].scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }, 100);
             }
@@ -5200,52 +5341,16 @@ function initializeEnhancedQueryAnalysisTabs() {
     });
 }
 
-// Helper function for escaping HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Helper function for formatting numbers
-function formatNumber(num) {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    } else if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-}
-
-// Helper function for CTR benchmarks
-function getCTRBenchmark(position) {
-    const benchmarks = {
-        1: 0.284, 2: 0.155, 3: 0.110, 4: 0.077, 5: 0.061,
-        6: 0.050, 7: 0.041, 8: 0.034, 9: 0.029, 10: 0.025
-    };
-    
-    if (position <= 10) {
-        return benchmarks[Math.round(position)] || benchmarks[10];
-    } else if (position <= 20) {
-        return 0.015;
-    } else {
-        return 0.005;
-    }
-}
-
 // AUTO-INITIALIZATION
 document.addEventListener('DOMContentLoaded', function() {
-    initializeEnhancedQueryAnalysisTabs();
+    initializeCitizenQueryIntelligence();
 });
 
-// If already loaded, initialize immediately
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeEnhancedQueryAnalysisTabs);
+    document.addEventListener('DOMContentLoaded', initializeCitizenQueryIntelligence);
 } else {
-    initializeEnhancedQueryAnalysisTabs();
+    initializeCitizenQueryIntelligence();
 }
-
-
 
 
     
