@@ -3441,7 +3441,7 @@ function showUnifiedNotification(message) {
 
 
 // ===========================================
-// ENHANCED QUERY ANALYSIS FUNCTIONS
+// ENHANCED QUERY ANALYSIS FUNCTIONS - COMPLETE VERSION
 // Complete updated code for citizens.ie page level dashboards
 // Add this code to your unified-citizens-dashboard.js file
 // ===========================================
@@ -3950,9 +3950,9 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
     const longTailOpportunities = calculateLongTailOpportunities(gscData.topQueries);
     
     return {
-        intentAnalysis: intentAnalysis.slice(0, 12),
-        mismatchDetection: mismatchDetection.slice(0, 8),
-        longTailOpportunities: longTailOpportunities.slice(0, 8),
+        intentAnalysis: intentAnalysis, // Show all queries, no artificial limit
+        mismatchDetection: mismatchDetection, // Show all mismatches
+        longTailOpportunities: longTailOpportunities, // Show all opportunities
         summary: {
             totalQueries: gscData.topQueries.length,
             transactionalQueries: transactionalCount,
@@ -4055,20 +4055,27 @@ function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
     `;
 }
 
-// Intent Analysis Panel
+// Intent Analysis Panel with Pagination
 function createIntentAnalysisPanel(intentAnalysis) {
     if (intentAnalysis.length === 0) {
         return '<div class="no-data-message">No query data available for intent analysis</div>';
     }
     
+    const initialDisplayCount = 15;
+    const showPagination = intentAnalysis.length > initialDisplayCount;
+    
     return `
         <div class="intent-analysis-panel">
             <div class="intent-explanation">
                 <p><strong>Intent Classification:</strong> Understanding whether citizens are seeking information or wanting to take action helps optimize content strategy for Irish government services.</p>
+                <div class="analysis-stats">
+                    <span class="stat-item">Analyzing <strong>${intentAnalysis.length}</strong> queries</span>
+                    ${showPagination ? `<span class="stat-item">Showing first <strong>${initialDisplayCount}</strong></span>` : ''}
+                </div>
             </div>
             
-            <div class="intent-queries-list">
-                ${intentAnalysis.map(item => `
+            <div class="intent-queries-list" data-query-list="intent">
+                ${intentAnalysis.slice(0, initialDisplayCount).map(item => `
                     <div class="intent-query-item ${item.intent}">
                         <div class="intent-query-header">
                             <div class="query-text">"${escapeHtml(item.query)}"</div>
@@ -4091,7 +4098,42 @@ function createIntentAnalysisPanel(intentAnalysis) {
                         </div>
                     </div>
                 `).join('')}
+                
+                <!-- Hidden queries for pagination -->
+                <div class="hidden-queries" style="display: none;">
+                    ${intentAnalysis.slice(initialDisplayCount).map(item => `
+                        <div class="intent-query-item ${item.intent}">
+                            <div class="intent-query-header">
+                                <div class="query-text">"${escapeHtml(item.query)}"</div>
+                                <div class="intent-badges">
+                                    <span class="intent-badge ${item.intent}">
+                                        ${item.intent === 'transactional' ? '🎯 Action' : 
+                                          item.intent === 'informational' ? '📚 Info' : 
+                                          item.intent === 'navigational' ? '🧭 Navigate' : '🔄 Mixed'}
+                                    </span>
+                                    <span class="confidence-badge" style="opacity: ${item.confidence}">
+                                        ${Math.round(item.confidence * 100)}% confidence
+                                    </span>
+                                    ${item.totalMatches > 0 ? `<span class="matches-badge">${item.totalMatches} matches</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="intent-metrics">
+                                <span class="metric">${formatNumber(item.impressions)} impressions</span>
+                                <span class="metric">${formatNumber(item.clicks)} clicks</span>
+                                <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% CTR</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
+            
+            ${showPagination ? `
+                <div class="pagination-controls">
+                    <button class="show-more-btn" data-target="intent" data-remaining="${intentAnalysis.length - initialDisplayCount}">
+                        Show ${intentAnalysis.length - initialDisplayCount} More Queries
+                    </button>
+                </div>
+            ` : ''}
             
             <div class="intent-recommendations">
                 <h4>🎯 Content Strategy Recommendations for Citizens.ie</h4>
@@ -4114,7 +4156,7 @@ function createIntentAnalysisPanel(intentAnalysis) {
     `;
 }
 
-// Mismatch Detection Panel
+// Mismatch Detection Panel with Pagination
 function createMismatchDetectionPanel(mismatchDetection) {
     if (mismatchDetection.length === 0) {
         return `
@@ -4126,14 +4168,21 @@ function createMismatchDetectionPanel(mismatchDetection) {
         `;
     }
     
+    const initialDisplayCount = 10;
+    const showPagination = mismatchDetection.length > initialDisplayCount;
+    
     return `
         <div class="mismatch-detection-panel">
             <div class="mismatch-explanation">
                 <p><strong>Content Mismatch Detection:</strong> Identifies queries where high search volume doesn't convert well, suggesting content-intent misalignment for Irish government services.</p>
+                <div class="analysis-stats">
+                    <span class="stat-item">Found <strong>${mismatchDetection.length}</strong> mismatches</span>
+                    ${showPagination ? `<span class="stat-item">Showing first <strong>${initialDisplayCount}</strong></span>` : ''}
+                </div>
             </div>
             
-            <div class="mismatch-queries-list">
-                ${mismatchDetection.map(item => `
+            <div class="mismatch-queries-list" data-query-list="mismatch">
+                ${mismatchDetection.slice(0, initialDisplayCount).map(item => `
                     <div class="mismatch-query-item ${item.severity}">
                         <div class="mismatch-header">
                             <div class="query-text">"${escapeHtml(item.query)}"</div>
@@ -4184,12 +4233,75 @@ function createMismatchDetectionPanel(mismatchDetection) {
                         </div>
                     </div>
                 `).join('')}
+                
+                <!-- Hidden queries for pagination -->
+                <div class="hidden-queries" style="display: none;">
+                    ${mismatchDetection.slice(initialDisplayCount).map(item => `
+                        <div class="mismatch-query-item ${item.severity}">
+                            <div class="mismatch-header">
+                                <div class="query-text">"${escapeHtml(item.query)}"</div>
+                                <div class="severity-badge ${item.severity}">
+                                    ${item.severity === 'high' ? '🚨 High Priority' : '⚠️ Medium Priority'}
+                                </div>
+                            </div>
+                            
+                            <div class="mismatch-metrics">
+                                <div class="metric-item">
+                                    <span class="metric-label">Impressions:</span>
+                                    <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">CTR:</span>
+                                    <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Position:</span>
+                                    <span class="metric-value">#${item.position.toFixed(0)}</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Content Overlap:</span>
+                                    <span class="metric-value">${item.overlap}%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Query Intent:</span>
+                                    <span class="metric-value">${item.queryIntent}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mismatch-reasons">
+                                <strong>Issues Detected:</strong>
+                                <ul>
+                                    ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                                </ul>
+                            </div>
+                            
+                            <div class="mismatch-recommendations">
+                                <strong>💡 Recommended Actions for Citizens.ie:</strong>
+                                <div class="action-items">
+                                    ${item.overlap < 30 ? '<div class="action-item">• Review page title and meta description to better match citizen query intent</div>' : ''}
+                                    ${item.ctr < 0.02 ? '<div class="action-item">• Optimize title tags and meta descriptions for higher CTR - consider adding "Ireland" or service-specific terms</div>' : ''}
+                                    ${item.position > 15 ? '<div class="action-item">• Consider creating dedicated content page for this citizen service query</div>' : ''}
+                                    ${item.queryIntent === 'transactional' ? '<div class="action-item">• Add clear call-to-action buttons and links to application forms or MyGovID</div>' : ''}
+                                    ${item.queryIntent === 'informational' ? '<div class="action-item">• Expand content with comprehensive eligibility criteria and requirements</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
+            
+            ${showPagination ? `
+                <div class="pagination-controls">
+                    <button class="show-more-btn" data-target="mismatch" data-remaining="${mismatchDetection.length - initialDisplayCount}">
+                        Show ${mismatchDetection.length - initialDisplayCount} More Mismatches
+                    </button>
+                </div>
+            ` : ''}
         </div>
     `;
 }
 
-// Long-tail Opportunities Panel
+// Long-tail Opportunities Panel with Pagination
 function createLongtailOpportunitiesPanel(opportunities) {
     if (opportunities.length === 0) {
         return `
@@ -4201,14 +4313,21 @@ function createLongtailOpportunitiesPanel(opportunities) {
         `;
     }
     
+    const initialDisplayCount = 10;
+    const showPagination = opportunities.length > initialDisplayCount;
+    
     return `
         <div class="longtail-opportunities-panel">
             <div class="opportunities-explanation">
                 <p><strong>Optimization Opportunities:</strong> Specific, longer queries with potential for targeted traffic growth for Irish government services.</p>
+                <div class="analysis-stats">
+                    <span class="stat-item">Found <strong>${opportunities.length}</strong> opportunities</span>
+                    ${showPagination ? `<span class="stat-item">Showing first <strong>${initialDisplayCount}</strong></span>` : ''}
+                </div>
             </div>
             
-            <div class="opportunities-list">
-                ${opportunities.map(item => `
+            <div class="opportunities-list" data-query-list="opportunities">
+                ${opportunities.slice(0, initialDisplayCount).map(item => `
                     <div class="opportunity-item ${item.priority}">
                         <div class="opportunity-header">
                             <div class="query-text">"${escapeHtml(item.query)}"</div>
@@ -4266,7 +4385,77 @@ function createLongtailOpportunitiesPanel(opportunities) {
                         </div>
                     </div>
                 `).join('')}
+                
+                <!-- Hidden opportunities for pagination -->
+                <div class="hidden-queries" style="display: none;">
+                    ${opportunities.slice(initialDisplayCount).map(item => `
+                        <div class="opportunity-item ${item.priority}">
+                            <div class="opportunity-header">
+                                <div class="query-text">"${escapeHtml(item.query)}"</div>
+                                <div class="priority-badges">
+                                    <span class="priority-badge ${item.priority}">
+                                        ${item.priority === 'high' ? '🔥 High Priority' : item.priority === 'medium' ? '⭐ Medium Priority' : '💫 Low Priority'}
+                                    </span>
+                                    <span class="score-badge">Score: ${item.score}</span>
+                                    <span class="intent-badge-small ${item.queryIntent}">${item.queryIntent}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="opportunity-metrics">
+                                <div class="metric-group">
+                                    <div class="metric-item">
+                                        <span class="metric-label">Monthly Impressions:</span>
+                                        <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Current Clicks:</span>
+                                        <span class="metric-value">${formatNumber(item.clicks)}</span>
+                                    </div>
+                                </div>
+                                <div class="metric-group">
+                                    <div class="metric-item">
+                                        <span class="metric-label">CTR:</span>
+                                        <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="metric-item">
+                                        <span class="metric-label">Position:</span>
+                                        <span class="metric-value">#${item.position.toFixed(0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="opportunity-factors">
+                                <strong>🎯 Opportunity Factors:</strong>
+                                <ul>
+                                    ${item.factors.map(factor => `<li>${factor}</li>`).join('')}
+                                </ul>
+                            </div>
+                            
+                            <div class="opportunity-potential">
+                                <strong>📈 Potential Impact:</strong>
+                                <div class="potential-metrics">
+                                    <div class="potential-item">
+                                        <span>Expected CTR improvement:</span>
+                                        <span class="highlight">+${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100 * 100)}%</span>
+                                    </div>
+                                    <div class="potential-item">
+                                        <span>Additional monthly clicks:</span>
+                                        <span class="highlight">+${item.potentialClicks}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
+            
+            ${showPagination ? `
+                <div class="pagination-controls">
+                    <button class="show-more-btn" data-target="opportunities" data-remaining="${opportunities.length - initialDisplayCount}">
+                        Show ${opportunities.length - initialDisplayCount} More Opportunities
+                    </button>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -4287,6 +4476,50 @@ function createEnhancedQueryAnalysisStyles() {
                 border-radius: 8px;
                 margin-bottom: 24px;
                 border-left: 3px solid #3b82f6;
+            }
+            
+            .analysis-stats {
+                margin-top: 12px;
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            
+            .stat-item {
+                padding: 4px 8px;
+                background: rgba(59, 130, 246, 0.1);
+                border-radius: 4px;
+                font-size: 0.85rem;
+                color: #1e40af;
+            }
+            
+            .pagination-controls {
+                margin-top: 24px;
+                text-align: center;
+                padding: 20px;
+                border-top: 1px solid #e2e8f0;
+            }
+            
+            .show-more-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-size: 0.9rem;
+            }
+            
+            .show-more-btn:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+            
+            .show-more-btn:active {
+                transform: translateY(0);
             }
             
             /* Summary Grid */
@@ -4909,9 +5142,10 @@ function createEnhancedQueryAnalysisStyles() {
     `;
 }
 
-// Initialize Enhanced Query Analysis Tabs
+// Initialize Enhanced Query Analysis Tabs and Pagination
 function initializeEnhancedQueryAnalysisTabs() {
     document.addEventListener('click', function(e) {
+        // Handle tab switching
         if (e.target.closest('.query-tab-btn')) {
             const button = e.target.closest('.query-tab-btn');
             const targetTab = button.getAttribute('data-query-tab');
@@ -4926,6 +5160,41 @@ function initializeEnhancedQueryAnalysisTabs() {
             const targetPanel = container.querySelector(`[data-query-panel="${targetTab}"]`);
             if (targetPanel) {
                 targetPanel.classList.add('active');
+            }
+        }
+        
+        // Handle show more buttons
+        if (e.target.closest('.show-more-btn')) {
+            const button = e.target.closest('.show-more-btn');
+            const target = button.getAttribute('data-target');
+            const remaining = parseInt(button.getAttribute('data-remaining'));
+            
+            // Find the corresponding query list and hidden queries
+            const panel = button.closest('.query-tab-panel');
+            const queryList = panel.querySelector(`[data-query-list="${target}"]`);
+            const hiddenQueries = queryList.querySelector('.hidden-queries');
+            
+            if (hiddenQueries) {
+                // Show the hidden queries
+                hiddenQueries.style.display = 'block';
+                
+                // Move hidden queries to the main list
+                const hiddenItems = hiddenQueries.children;
+                while (hiddenItems.length > 0) {
+                    queryList.insertBefore(hiddenItems[0], hiddenQueries);
+                }
+                
+                // Remove the hidden container and pagination controls
+                hiddenQueries.remove();
+                button.closest('.pagination-controls').remove();
+                
+                // Optional: Add a scroll animation to the newly revealed content
+                setTimeout(() => {
+                    const newItems = queryList.querySelectorAll('.intent-query-item, .mismatch-query-item, .opportunity-item');
+                    if (newItems.length > 15) {
+                        newItems[15].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
             }
         }
     });
