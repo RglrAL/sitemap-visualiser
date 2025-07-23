@@ -3447,7 +3447,6 @@ function showUnifiedNotification(message) {
 // Based on actual citizen queries and Irish government service patterns
 // ===========================================
 
-
 // EXPANDED IRISH-SPECIFIC KEYWORDS (400+ terms based on real citizen queries)
 const socialWelfareKeywords = [
     // Benefits & Allowances
@@ -4395,12 +4394,13 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <!-- Intent Distribution -->
             <div class="intent-distribution">
                 <h4>🗺️ Where Citizens Are in Their Journey</h4>
+                <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong></p>
                 <div class="intent-bars">
                     ${topIntents.map(([intent, count]) => {
                         const percentage = Math.round((count / intentAnalysis.length) * 100);
                         const config = citizenJourneyCategories[intent];
                         return `
-                            <div class="intent-bar">
+                            <div class="intent-bar clickable" data-filter-intent="${intent}" role="button" tabindex="0">
                                 <div class="intent-bar-label">
                                     <span class="intent-name">${config?.plainEnglish || intent}</span>
                                     <span class="intent-count">${count} queries (${percentage}%)</span>
@@ -4412,14 +4412,27 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                         `;
                     }).join('')}
                 </div>
+                <div class="filter-controls">
+                    <button class="clear-filter-btn" id="clearJourneyFilter" style="display: none;">
+                        ✕ Show All Journey Stages (${intentAnalysis.length} queries)
+                    </button>
+                </div>
             </div>
             
             <!-- Detailed Query Analysis -->
             <div class="queries-analysis">
-                <h4>🔍 Detailed Citizen Query Analysis</h4>
-                <div class="citizen-queries-list" data-citizen-list="journey">
+                <div class="queries-analysis-header">
+                    <h4>🔍 Detailed Citizen Query Analysis</h4>
+                    <div class="filter-status" id="journeyFilterStatus" style="display: none;">
+                        <span class="filter-label">Filtered by:</span>
+                        <span class="filter-value" id="filterValueDisplay"></span>
+                        <span class="filter-count" id="filterCountDisplay"></span>
+                    </div>
+                </div>
+                
+                <div class="citizen-queries-list" data-citizen-list="journey" id="citizenQueriesList">
                     ${intentAnalysis.slice(0, initialDisplayCount).map(item => `
-                        <div class="citizen-query-item ${item.primaryIntent}">
+                        <div class="citizen-query-item ${item.primaryIntent}" data-intent="${item.primaryIntent}">
                             <div class="query-header">
                                 <div class="query-text">"${escapeHtml(item.query)}"</div>
                                 <div class="query-badges">
@@ -4452,9 +4465,9 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                     `).join('')}
                     
                     <!-- Hidden queries for pagination -->
-                    <div class="hidden-queries" style="display: none;">
+                    <div class="hidden-queries" style="display: none;" id="hiddenQueriesList">
                         ${intentAnalysis.slice(initialDisplayCount).map(item => `
-                            <div class="citizen-query-item ${item.primaryIntent}">
+                            <div class="citizen-query-item ${item.primaryIntent}" data-intent="${item.primaryIntent}">
                                 <div class="query-header">
                                     <div class="query-text">"${escapeHtml(item.query)}"</div>
                                     <div class="query-badges">
