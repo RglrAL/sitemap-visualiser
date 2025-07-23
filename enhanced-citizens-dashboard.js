@@ -1731,9 +1731,34 @@
             </div>
 
             <script>
-    setTimeout(() => {
-        initializeEnhancedDashboard('${dashboardId}');
-    }, 100);
+    (function() {
+        console.log('🚀 Dashboard script executing for ID: ${dashboardId}');
+        
+        function tryInit() {
+            if (document.getElementById('${dashboardId}')) {
+                console.log('🎯 Dashboard found, initializing...');
+                initializeEnhancedDashboard('${dashboardId}');
+                return true;
+            }
+            return false;
+        }
+        
+        // Try immediate initialization
+        if (!tryInit()) {
+            console.log('🕐 Dashboard not ready, using fallbacks...');
+            // Multiple attempts with different timings
+            setTimeout(tryInit, 10);
+            setTimeout(tryInit, 50);
+            setTimeout(tryInit, 100);
+            setTimeout(tryInit, 200);
+            setTimeout(tryInit, 500);
+        }
+        
+        // Also try when DOM is fully ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tryInit);
+        }
+    })();
 </script>
         `;
     }
