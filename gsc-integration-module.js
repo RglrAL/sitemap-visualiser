@@ -3034,6 +3034,9 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
         </div>
         ` : ''}
 
+        <!-- GEOGRAPHIC INTELLIGENCE -->
+        ${createGeographicServiceIntelligence(gscData, ga4Data)}
+
         <!-- Content Gap Analysis -->
         <div class="section">
             <h2 class="section-title">🔍 Content Gap Analysis</h2>
