@@ -3442,122 +3442,336 @@ function showUnifiedNotification(message) {
 
 // ===========================================
 // ENHANCED QUERY ANALYSIS FUNCTIONS
+// Complete updated code for citizens.ie page level dashboards
 // Add this code to your unified-citizens-dashboard.js file
 // ===========================================
 
-// Query Intent Classification
+// ENHANCED TRANSACTIONAL KEYWORDS - Actions users want to take
+const transactionalKeywords = [
+    // Basic Actions
+    'apply', 'application', 'form', 'register', 'registration', 'submit', 'download',
+    'book', 'appointment', 'contact', 'phone', 'number', 'office', 'address',
+    'pay', 'payment', 'fee', 'cost', 'price', 'how to apply', 'where to apply',
+    'certificate', 'license', 'permit', 'visa', 'passport', 'renew', 'renewal',
+    
+    // Extended Action Verbs
+    'schedule', 'reserve', 'request', 'order', 'purchase', 'buy', 'get', 'obtain',
+    'file', 'claim', 'report', 'notify', 'update', 'change', 'cancel', 'transfer',
+    'enroll', 'sign up', 'join', 'participate', 'volunteer', 'donate',
+    
+    // Irish Government Specific Actions
+    'pps number', 'personal public service', 'revenue', 'rte licence', 'tv licence',
+    'driving licence', 'theory test', 'driving test', 'nct', 'motor tax', 'road tax',
+    'birth cert', 'death cert', 'marriage cert', 'civil partnership',
+    'social welfare', 'jobseekers', 'disability allowance', 'carers allowance',
+    'child benefit', 'back to school', 'fuel allowance', 'rent supplement',
+    
+    // Healthcare Actions (Irish)
+    'medical card', 'gp visit card', 'drugs payment scheme', 'hse',
+    'hospital appointment', 'referral', 'prescription', 'vaccination',
+    'maternity', 'dental', 'mental health', 'counselling',
+    
+    // Education Actions (Irish)
+    'cao', 'susi', 'student grant', 'school transport', 'school enrolment',
+    'leaving cert', 'junior cert', 'qqi', 'fetac', 'apprenticeship',
+    
+    // Housing Actions (Irish)
+    'housing list', 'social housing', 'housing assistance payment', 'hap',
+    'rent a room', 'rental tenancy board', 'rtb', 'deposit protection',
+    
+    // Business Actions (Irish)
+    'cro', 'company registration', 'business name', 'vat registration',
+    'employer registration', 'work permit', 'stamp 4', 'immigration',
+    
+    // Service-Specific Actions
+    'repair', 'fix', 'maintenance', 'inspection', 'test', 'exam',
+    'consultation', 'meeting', 'interview', 'hearing', 'appeal',
+    'complaint', 'grievance', 'petition', 'legal action',
+    
+    // Location-Based Actions
+    'near me', 'nearby', 'location', 'directions', 'map', 'hours',
+    'open now', 'closed', 'holiday hours', 'weekend hours',
+    
+    // Time-Sensitive Actions
+    'deadline', 'due date', 'expires', 'expiration', 'urgent', 'asap',
+    'today', 'tomorrow', 'this week', 'next week', 'emergency',
+    
+    // Digital Actions
+    'login', 'log in', 'sign in', 'account', 'portal', 'dashboard',
+    'mygovid', 'gov.ie', 'reset password', 'forgot password', 'verification',
+    'upload', 'attach', 'send', 'email', 'fax', 'mail', 'post',
+    
+    // Financial Actions
+    'calculate', 'estimate', 'quote', 'billing', 'invoice', 'receipt',
+    'bank details', 'iban', 'direct debit', 'standing order', 'refund',
+    
+    // Communication Actions
+    'call', 'phone number', 'email address', 'contact form',
+    'chat', 'live chat', 'support', 'help desk', 'customer service',
+    'citizen information', 'mabs', 'legal aid'
+];
+
+// ENHANCED INFORMATIONAL KEYWORDS - Information seeking queries
+const informationalKeywords = [
+    // Basic Question Words
+    'what is', 'what are', 'how does', 'why', 'when', 'where', 'who',
+    'which', 'whose', 'how much', 'how many', 'how long', 'how often',
+    'definition', 'meaning', 'explain', 'information', 'about', 'guide',
+    'requirements', 'eligibility', 'criteria', 'rules', 'law', 'legislation',
+    'benefits', 'rights', 'entitlements', 'help', 'support', 'advice',
+    
+    // Extended Question Patterns
+    'difference between', 'comparison', 'compare', 'versus', 'vs',
+    'best', 'worst', 'top', 'bottom', 'most', 'least', 'fastest', 'slowest',
+    'cheapest', 'expensive', 'free', 'alternatives', 'options', 'choices',
+    
+    // Learning and Understanding
+    'learn', 'understand', 'tutorial', 'course', 'training', 'education',
+    'example', 'examples', 'sample', 'template', 'format', 'structure',
+    'step by step', 'walkthrough', 'instructions', 'manual', 'handbook',
+    
+    // Irish Government/Legal Information
+    'policy', 'procedure', 'process', 'regulation', 'act', 'bill', 'law', 'legal',
+    'constitution', 'rights', 'human rights', 'discrimination', 'equality',
+    'data protection', 'gdpr', 'freedom of information', 'foi',
+    'ombudsman', 'citizens assembly', 'oireachtas', 'dail', 'seanad',
+    
+    // Irish Specific Information Terms
+    'irish citizen', 'citizenship', 'naturalisation', 'residency',
+    'eu citizen', 'brexit', 'common travel area', 'northern ireland',
+    'irish language', 'gaeilge', 'irish speaker', 'gaeltacht',
+    
+    // Research and Analysis
+    'research', 'study', 'report', 'statistics', 'data', 'facts',
+    'history', 'background', 'overview', 'summary', 'analysis',
+    'trend', 'forecast', 'prediction', 'future', 'past', 'current',
+    
+    // Status and Updates
+    'status', 'update', 'news', 'announcement', 'alert', 'notice',
+    'latest', 'recent', 'new', 'current', 'today', 'this year',
+    'changes', 'updates', 'modifications', 'revisions',
+    
+    // Lists and Categories
+    'list', 'types', 'kinds', 'categories', 'classification',
+    'directory', 'index', 'catalog', 'database', 'registry',
+    
+    // Problems and Solutions
+    'problem', 'issue', 'trouble', 'difficulty', 'challenge',
+    'solution', 'fix', 'resolve', 'troubleshoot', 'debug',
+    'error', 'mistake', 'wrong', 'incorrect', 'failed',
+    
+    // Comparison and Evaluation
+    'review', 'rating', 'score', 'grade', 'rank', 'quality',
+    'pros and cons', 'advantages', 'disadvantages', 'benefits', 'drawbacks'
+];
+
+// NAVIGATIONAL KEYWORDS - Seeking specific pages/sections
+const navigationalKeywords = [
+    // Direct Navigation
+    'homepage', 'home page', 'main page', 'landing page',
+    'about us', 'about', 'contact us', 'contact', 'staff', 'team',
+    'services', 'programs', 'departments', 'divisions', 'offices',
+    
+    // Site Sections
+    'news', 'events', 'calendar', 'announcements', 'press releases',
+    'publications', 'documents', 'downloads', 'resources', 'links',
+    'faq', 'frequently asked questions', 'help', 'support',
+    
+    // Irish Government Specific Sections
+    'minister', 'taoiseach', 'president', 'government', 'cabinet',
+    'county council', 'city council', 'local authority',
+    'budget', 'agenda', 'minutes', 'policy', 'strategy',
+    
+    // Organization Navigation
+    'directory', 'phone directory', 'staff directory', 'organization chart',
+    'map', 'building map', 'location', 'parking', 'accessibility',
+    'citizens information centre', 'local office'
+];
+
+// Query Intent Classification with Enhanced Logic
 function classifyQueryIntent(query) {
-    const transactionalKeywords = [
-        'apply', 'application', 'form', 'register', 'registration', 'submit', 'download',
-        'book', 'appointment', 'contact', 'phone', 'number', 'office', 'address',
-        'pay', 'payment', 'fee', 'cost', 'price', 'how to apply', 'where to apply',
-        'certificate', 'license', 'permit', 'visa', 'passport', 'renew', 'renewal'
-    ];
-    
-    const informationalKeywords = [
-        'what is', 'what are', 'how does', 'why', 'when', 'where', 'who',
-        'definition', 'meaning', 'explain', 'information', 'about', 'guide',
-        'requirements', 'eligibility', 'criteria', 'rules', 'law', 'legislation',
-        'benefits', 'rights', 'entitlements', 'help', 'support', 'advice'
-    ];
-    
     const queryLower = query.toLowerCase();
     
     let transactionalScore = 0;
     let informationalScore = 0;
+    let navigationalScore = 0;
     
+    let matchedKeywords = {
+        transactional: [],
+        informational: [],
+        navigational: []
+    };
+    
+    // Score transactional keywords
     transactionalKeywords.forEach(keyword => {
         if (queryLower.includes(keyword)) {
-            transactionalScore += keyword.length > 3 ? 2 : 1;
+            const weight = keyword.length > 3 ? 2 : 1;
+            // Boost score for Irish-specific terms
+            const irishBoost = keyword.includes('pps') || keyword.includes('hse') || 
+                             keyword.includes('cao') || keyword.includes('rtb') ? 1.5 : 1;
+            transactionalScore += weight * irishBoost;
+            matchedKeywords.transactional.push(keyword);
         }
     });
     
+    // Score informational keywords
     informationalKeywords.forEach(keyword => {
         if (queryLower.includes(keyword)) {
-            informationalScore += keyword.length > 3 ? 2 : 1;
+            const weight = keyword.length > 3 ? 2 : 1;
+            informationalScore += weight;
+            matchedKeywords.informational.push(keyword);
         }
     });
     
-    // Default scoring based on structure
-    if (queryLower.startsWith('how to ') || queryLower.startsWith('where to ')) {
-        transactionalScore += 2;
-    }
-    if (queryLower.includes('?') || queryLower.startsWith('what ') || queryLower.startsWith('when ')) {
-        informationalScore += 1;
+    // Score navigational keywords
+    navigationalKeywords.forEach(keyword => {
+        if (queryLower.includes(keyword)) {
+            navigationalScore += 2;
+            matchedKeywords.navigational.push(keyword);
+        }
+    });
+    
+    // Enhanced pattern recognition for Irish context
+    if (queryLower.startsWith('how to ') || queryLower.startsWith('where to ') || 
+        queryLower.startsWith('how do i ') || queryLower.startsWith('can i ')) {
+        transactionalScore += 3;
     }
     
-    if (transactionalScore > informationalScore) {
-        return {
-            intent: 'transactional',
-            confidence: Math.min(0.9, 0.5 + (transactionalScore * 0.1)),
-            score: transactionalScore
-        };
-    } else if (informationalScore > transactionalScore) {
-        return {
-            intent: 'informational',
-            confidence: Math.min(0.9, 0.5 + (informationalScore * 0.1)),
-            score: informationalScore
-        };
-    } else {
-        return {
-            intent: 'mixed',
-            confidence: 0.5,
-            score: 0
-        };
+    if (queryLower.includes('?') || queryLower.startsWith('what ') || 
+        queryLower.startsWith('when ') || queryLower.startsWith('why ') ||
+        queryLower.startsWith('is it ') || queryLower.startsWith('are there ')) {
+        informationalScore += 2;
     }
+    
+    // Irish-specific question patterns
+    if (queryLower.includes('am i entitled') || queryLower.includes('do i qualify') ||
+        queryLower.includes('am i eligible') || queryLower.includes('what benefits')) {
+        informationalScore += 2;
+        transactionalScore += 1; // Often leads to applications
+    }
+    
+    // Navigation indicators
+    if (queryLower.includes('site:') || queryLower.includes('.ie') ||
+        queryLower.includes('website') || queryLower.includes('page')) {
+        navigationalScore += 3;
+    }
+    
+    // Determine primary intent
+    const maxScore = Math.max(transactionalScore, informationalScore, navigationalScore);
+    let primaryIntent = 'mixed';
+    
+    if (maxScore === transactionalScore && transactionalScore > 0) {
+        primaryIntent = 'transactional';
+    } else if (maxScore === informationalScore && informationalScore > 0) {
+        primaryIntent = 'informational';
+    } else if (maxScore === navigationalScore && navigationalScore > 0) {
+        primaryIntent = 'navigational';
+    }
+    
+    // Calculate confidence
+    const totalScore = transactionalScore + informationalScore + navigationalScore;
+    const confidence = totalScore > 0 ? Math.min(0.95, 0.4 + (maxScore / totalScore) * 0.5) : 0.2;
+    
+    return {
+        intent: primaryIntent,
+        confidence: confidence,
+        score: maxScore,
+        scores: {
+            transactional: transactionalScore,
+            informational: informationalScore,
+            navigational: navigationalScore
+        },
+        matchedKeywords: matchedKeywords,
+        totalMatches: Object.values(matchedKeywords).flat().length
+    };
 }
 
 // Query-to-Content Mismatch Detection
 function detectContentMismatch(query, pageUrl, impressions, ctr, position) {
     const urlParts = pageUrl.toLowerCase().split('/').filter(part => part.length > 0);
-    const urlKeywords = urlParts.join(' ').replace(/-/g, ' ').split(' ');
-    const queryWords = query.toLowerCase().split(' ');
+    const urlKeywords = urlParts.join(' ').replace(/-/g, ' ').split(' ')
+        .filter(word => word.length > 2); // Filter out short words
+    const queryWords = query.toLowerCase().split(' ')
+        .filter(word => word.length > 2); // Filter out short words
     
-    // Calculate keyword overlap
+    // Calculate keyword overlap with better matching
     let overlap = 0;
     queryWords.forEach(word => {
-        if (word.length > 2 && urlKeywords.some(urlWord => 
-            urlWord.includes(word) || word.includes(urlWord))) {
+        if (urlKeywords.some(urlWord => 
+            urlWord.includes(word) || word.includes(urlWord) || 
+            // Check for common Irish abbreviations/variations
+            (word === 'pps' && urlWord.includes('personal')) ||
+            (word === 'hse' && urlWord.includes('health')) ||
+            (word === 'rtb' && urlWord.includes('tenancy')) ||
+            (word === 'cao' && urlWord.includes('college')) ||
+            (word === 'susi' && urlWord.includes('grant'))
+        )) {
             overlap++;
         }
     });
     
     const overlapPercentage = queryWords.length > 0 ? (overlap / queryWords.length) : 0;
     
-    // Mismatch indicators
+    // Enhanced mismatch indicators
     const highImpressions = impressions >= 100;
+    const veryHighImpressions = impressions >= 500;
     const lowCTR = ctr < 0.03;
+    const veryLowCTR = ctr < 0.015;
     const poorPosition = position > 10;
+    const veryPoorPosition = position > 20;
     const lowOverlap = overlapPercentage < 0.3;
+    const veryLowOverlap = overlapPercentage < 0.15;
     
     let mismatchScore = 0;
     let reasons = [];
     
-    if (highImpressions && lowCTR) {
+    if (veryHighImpressions && veryLowCTR) {
+        mismatchScore += 4;
+        reasons.push('Very high impressions but very low CTR suggests major title/description mismatch');
+    } else if (highImpressions && lowCTR) {
         mismatchScore += 3;
         reasons.push('High impressions but low CTR suggests title/description mismatch');
     }
     
-    if (lowOverlap) {
+    if (veryLowOverlap) {
+        mismatchScore += 3;
+        reasons.push(`Very low keyword overlap (${(overlapPercentage * 100).toFixed(0)}%) with page content`);
+    } else if (lowOverlap) {
         mismatchScore += 2;
         reasons.push(`Low keyword overlap (${(overlapPercentage * 100).toFixed(0)}%) with page content`);
     }
     
-    if (poorPosition && highImpressions) {
+    if (veryPoorPosition && highImpressions) {
+        mismatchScore += 3;
+        reasons.push('High search volume but very poor ranking suggests content relevance issues');
+    } else if (poorPosition && highImpressions) {
         mismatchScore += 2;
         reasons.push('High search volume but poor ranking suggests content relevance issues');
     }
     
+    // Irish-specific mismatch detection
+    const queryIntent = classifyQueryIntent(query);
+    if (queryIntent.intent === 'transactional' && ctr < 0.02 && impressions > 200) {
+        mismatchScore += 2;
+        reasons.push('Transactional query with low CTR suggests missing clear call-to-action');
+    }
+    
+    if (query.toLowerCase().includes('how to') && position > 15) {
+        mismatchScore += 2;
+        reasons.push('How-to query ranking poorly suggests need for step-by-step content');
+    }
+    
     return {
         isMismatch: mismatchScore >= 3,
-        severity: mismatchScore >= 5 ? 'high' : mismatchScore >= 3 ? 'medium' : 'low',
+        severity: mismatchScore >= 6 ? 'high' : mismatchScore >= 3 ? 'medium' : 'low',
         score: mismatchScore,
         reasons: reasons,
-        overlapPercentage: Math.round(overlapPercentage * 100)
+        overlapPercentage: Math.round(overlapPercentage * 100),
+        queryIntent: queryIntent.intent
     };
 }
 
-// Long-tail Opportunity Scoring
+// Long-tail Opportunity Scoring (Enhanced for Irish Government Context)
 function calculateLongTailOpportunities(topQueries) {
     if (!topQueries || topQueries.length === 0) return [];
     
@@ -3565,7 +3779,9 @@ function calculateLongTailOpportunities(topQueries) {
     const totalImpressions = topQueries.reduce((sum, q) => sum + q.impressions, 0);
     
     topQueries.forEach((query, index) => {
-        const isLongTail = query.query.split(' ').length >= 4;
+        const queryWords = query.query.split(' ');
+        const isLongTail = queryWords.length >= 4;
+        const isMediumTail = queryWords.length >= 3;
         const impressionShare = query.impressions / totalImpressions;
         const rankingOpportunity = query.position <= 20 && query.position > 3;
         const ctrPotential = query.ctr < getCTRBenchmark(query.position) * 0.8;
@@ -3573,13 +3789,17 @@ function calculateLongTailOpportunities(topQueries) {
         let opportunityScore = 0;
         let factors = [];
         
+        // Enhanced long-tail detection
         if (isLongTail && query.impressions >= 50) {
-            opportunityScore += 3;
+            opportunityScore += 4;
             factors.push('Long-tail query with decent volume');
+        } else if (isMediumTail && query.impressions >= 100) {
+            opportunityScore += 2;
+            factors.push('Medium-tail query with good volume');
         }
         
         if (rankingOpportunity) {
-            opportunityScore += 2;
+            opportunityScore += 3;
             factors.push(`Rankable position (${query.position.toFixed(0)}) with improvement potential`);
         }
         
@@ -3589,19 +3809,47 @@ function calculateLongTailOpportunities(topQueries) {
         }
         
         if (query.impressions >= 200 && query.clicks < 10) {
-            opportunityScore += 3;
+            opportunityScore += 4;
             factors.push('High impressions but very low clicks');
         }
         
-        // Bonus for specific long-tail patterns
-        if (query.query.toLowerCase().includes('how to ') || 
-            query.query.toLowerCase().includes('where to ') ||
-            query.query.toLowerCase().includes('what is ')) {
-            opportunityScore += 1;
+        // Irish government-specific patterns
+        const queryLower = query.query.toLowerCase();
+        
+        // High-value Irish service queries
+        if (queryLower.includes('pps number') || queryLower.includes('medical card') ||
+            queryLower.includes('social welfare') || queryLower.includes('child benefit') ||
+            queryLower.includes('driving licence') || queryLower.includes('passport')) {
+            opportunityScore += 3;
+            factors.push('High-value Irish government service query');
+        }
+        
+        // Question-based patterns (very valuable for government sites)
+        if (queryLower.includes('how to ') || queryLower.includes('where to ') ||
+            queryLower.includes('what is ') || queryLower.includes('am i entitled') ||
+            queryLower.includes('do i qualify') || queryLower.includes('can i apply')) {
+            opportunityScore += 2;
             factors.push('Question-based query pattern');
         }
         
+        // Location-specific opportunities
+        if (queryLower.includes('near me') || queryLower.includes('dublin') ||
+            queryLower.includes('cork') || queryLower.includes('galway') ||
+            queryLower.includes('local office') || queryLower.includes('citizen information')) {
+            opportunityScore += 1;
+            factors.push('Location-specific query');
+        }
+        
+        // Urgent/time-sensitive queries
+        if (queryLower.includes('deadline') || queryLower.includes('urgent') ||
+            queryLower.includes('expires') || queryLower.includes('due date') ||
+            queryLower.includes('emergency')) {
+            opportunityScore += 2;
+            factors.push('Time-sensitive query requiring priority content');
+        }
+        
         if (opportunityScore >= 3) {
+            const potentialClicks = Math.round(query.impressions * (getCTRBenchmark(query.position) - query.ctr));
             opportunities.push({
                 query: query.query,
                 score: opportunityScore,
@@ -3610,7 +3858,9 @@ function calculateLongTailOpportunities(topQueries) {
                 ctr: query.ctr,
                 position: query.position,
                 factors: factors,
-                priority: opportunityScore >= 6 ? 'high' : opportunityScore >= 4 ? 'medium' : 'low'
+                priority: opportunityScore >= 7 ? 'high' : opportunityScore >= 5 ? 'medium' : 'low',
+                potentialClicks: Math.max(0, potentialClicks),
+                queryIntent: classifyQueryIntent(query.query).intent
             });
         }
     });
@@ -3629,8 +3879,10 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
                 totalQueries: 0,
                 transactionalQueries: 0,
                 informationalQueries: 0,
+                navigationalQueries: 0,
                 mismatchedQueries: 0,
-                opportunities: 0
+                opportunities: 0,
+                irishSpecificQueries: 0
             }
         };
     }
@@ -3639,7 +3891,9 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
     const mismatchDetection = [];
     let transactionalCount = 0;
     let informationalCount = 0;
+    let navigationalCount = 0;
     let mismatchCount = 0;
+    let irishSpecificCount = 0;
     
     // Analyze each query
     gscData.topQueries.forEach(queryData => {
@@ -3650,11 +3904,23 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
             intent: intent.intent,
             confidence: intent.confidence,
             impressions: queryData.impressions,
-            clicks: queryData.clicks
+            clicks: queryData.clicks,
+            matchedKeywords: intent.matchedKeywords,
+            totalMatches: intent.totalMatches
         });
         
         if (intent.intent === 'transactional') transactionalCount++;
         if (intent.intent === 'informational') informationalCount++;
+        if (intent.intent === 'navigational') navigationalCount++;
+        
+        // Count Irish-specific queries
+        const queryLower = queryData.query.toLowerCase();
+        if (queryLower.includes('pps') || queryLower.includes('hse') || 
+            queryLower.includes('revenue') || queryLower.includes('social welfare') ||
+            queryLower.includes('irish') || queryLower.includes('ireland') ||
+            queryLower.includes('dublin') || queryLower.includes('cork')) {
+            irishSpecificCount++;
+        }
         
         // Mismatch detection
         const mismatch = detectContentMismatch(
@@ -3673,7 +3939,8 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
                 overlap: mismatch.overlapPercentage,
                 impressions: queryData.impressions,
                 ctr: queryData.ctr,
-                position: queryData.position
+                position: queryData.position,
+                queryIntent: mismatch.queryIntent
             });
             mismatchCount++;
         }
@@ -3683,15 +3950,17 @@ function performEnhancedQueryAnalysis(gscData, pageUrl) {
     const longTailOpportunities = calculateLongTailOpportunities(gscData.topQueries);
     
     return {
-        intentAnalysis: intentAnalysis.slice(0, 10),
+        intentAnalysis: intentAnalysis.slice(0, 12),
         mismatchDetection: mismatchDetection.slice(0, 8),
-        longTailOpportunities: longTailOpportunities.slice(0, 6),
+        longTailOpportunities: longTailOpportunities.slice(0, 8),
         summary: {
             totalQueries: gscData.topQueries.length,
             transactionalQueries: transactionalCount,
             informationalQueries: informationalCount,
+            navigationalQueries: navigationalCount,
             mismatchedQueries: mismatchCount,
-            opportunities: longTailOpportunities.length
+            opportunities: longTailOpportunities.length,
+            irishSpecificQueries: irishSpecificCount
         }
     };
 }
@@ -3704,7 +3973,7 @@ function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
         <div class="section enhanced-query-analysis">
             <h2 class="section-title">🔍 Enhanced Query Intelligence</h2>
             <div class="query-analysis-explanation">
-                <p>Advanced analysis of search queries to understand user intent, content alignment, and optimization opportunities.</p>
+                <p>Advanced analysis of search queries to understand citizen intent, content alignment, and optimization opportunities for Irish government services.</p>
             </div>
             
             <!-- Summary Dashboard -->
@@ -3724,6 +3993,11 @@ function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
                             <span class="split-number">${analysis.summary.transactionalQueries}</span>
                             <span class="split-label">Action</span>
                         </div>
+                        <div class="split-divider"></div>
+                        <div class="split-item">
+                            <span class="split-number">${analysis.summary.navigationalQueries}</span>
+                            <span class="split-label">Nav</span>
+                        </div>
                     </div>
                     <div class="summary-label">Query Intent Split</div>
                 </div>
@@ -3733,7 +4007,11 @@ function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
                 </div>
                 <div class="query-summary-card opportunities">
                     <div class="summary-number">${analysis.summary.opportunities}</div>
-                    <div class="summary-label">Long-tail Opportunities</div>
+                    <div class="summary-label">Optimization Opportunities</div>
+                </div>
+                <div class="query-summary-card irish-specific">
+                    <div class="summary-number">${analysis.summary.irishSpecificQueries}</div>
+                    <div class="summary-label">Irish-Specific Queries</div>
                 </div>
             </div>
             
@@ -3751,7 +4029,7 @@ function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
                     </button>
                     <button class="query-tab-btn" data-query-tab="opportunities">
                         <span class="tab-icon">💎</span>
-                        <span>Long-tail Opportunities</span>
+                        <span>Opportunities</span>
                         ${analysis.summary.opportunities > 0 ? '<span class="tab-badge">' + analysis.summary.opportunities + '</span>' : ''}
                     </button>
                 </div>
@@ -3786,7 +4064,7 @@ function createIntentAnalysisPanel(intentAnalysis) {
     return `
         <div class="intent-analysis-panel">
             <div class="intent-explanation">
-                <p><strong>Intent Classification:</strong> Understanding whether users are seeking information or wanting to take action helps optimize content strategy.</p>
+                <p><strong>Intent Classification:</strong> Understanding whether citizens are seeking information or wanting to take action helps optimize content strategy for Irish government services.</p>
             </div>
             
             <div class="intent-queries-list">
@@ -3796,31 +4074,39 @@ function createIntentAnalysisPanel(intentAnalysis) {
                             <div class="query-text">"${escapeHtml(item.query)}"</div>
                             <div class="intent-badges">
                                 <span class="intent-badge ${item.intent}">
-                                    ${item.intent === 'transactional' ? '🎯 Action' : item.intent === 'informational' ? '📚 Info' : '🔄 Mixed'}
+                                    ${item.intent === 'transactional' ? '🎯 Action' : 
+                                      item.intent === 'informational' ? '📚 Info' : 
+                                      item.intent === 'navigational' ? '🧭 Navigate' : '🔄 Mixed'}
                                 </span>
                                 <span class="confidence-badge" style="opacity: ${item.confidence}">
                                     ${Math.round(item.confidence * 100)}% confidence
                                 </span>
+                                ${item.totalMatches > 0 ? `<span class="matches-badge">${item.totalMatches} matches</span>` : ''}
                             </div>
                         </div>
                         <div class="intent-metrics">
                             <span class="metric">${formatNumber(item.impressions)} impressions</span>
                             <span class="metric">${formatNumber(item.clicks)} clicks</span>
+                            <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% CTR</span>
                         </div>
                     </div>
                 `).join('')}
             </div>
             
             <div class="intent-recommendations">
-                <h4>🎯 Content Strategy Recommendations</h4>
+                <h4>🎯 Content Strategy Recommendations for Citizens.ie</h4>
                 <div class="recommendations-grid">
                     <div class="recommendation-card">
                         <strong>For Informational Queries:</strong>
-                        <p>Focus on comprehensive guides, FAQs, and clear explanations. Optimize for featured snippets.</p>
+                        <p>Focus on comprehensive guides, eligibility criteria, and clear explanations. Optimize for featured snippets. Include "What you need to know" sections.</p>
                     </div>
                     <div class="recommendation-card">
                         <strong>For Transactional Queries:</strong>
-                        <p>Emphasize clear CTAs, application forms, contact details, and step-by-step processes.</p>
+                        <p>Emphasize clear CTAs, application processes, required documents, and links to MyGovID. Include step-by-step checklists.</p>
+                    </div>
+                    <div class="recommendation-card">
+                        <strong>For Navigational Queries:</strong>
+                        <p>Ensure clear site structure, breadcrumbs, and internal linking. Include local office finder and contact information.</p>
                     </div>
                 </div>
             </div>
@@ -3835,7 +4121,7 @@ function createMismatchDetectionPanel(mismatchDetection) {
             <div class="no-mismatch-message">
                 <div class="success-icon">✅</div>
                 <div class="success-title">No Major Content Mismatches Detected</div>
-                <div class="success-description">Your content appears well-aligned with search queries</div>
+                <div class="success-description">Your content appears well-aligned with citizen search queries</div>
             </div>
         `;
     }
@@ -3843,7 +4129,7 @@ function createMismatchDetectionPanel(mismatchDetection) {
     return `
         <div class="mismatch-detection-panel">
             <div class="mismatch-explanation">
-                <p><strong>Content Mismatch Detection:</strong> Identifies queries where high search volume doesn't convert well, suggesting content-intent misalignment.</p>
+                <p><strong>Content Mismatch Detection:</strong> Identifies queries where high search volume doesn't convert well, suggesting content-intent misalignment for Irish government services.</p>
             </div>
             
             <div class="mismatch-queries-list">
@@ -3873,6 +4159,10 @@ function createMismatchDetectionPanel(mismatchDetection) {
                                 <span class="metric-label">Content Overlap:</span>
                                 <span class="metric-value">${item.overlap}%</span>
                             </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Query Intent:</span>
+                                <span class="metric-value">${item.queryIntent}</span>
+                            </div>
                         </div>
                         
                         <div class="mismatch-reasons">
@@ -3883,11 +4173,13 @@ function createMismatchDetectionPanel(mismatchDetection) {
                         </div>
                         
                         <div class="mismatch-recommendations">
-                            <strong>💡 Recommended Actions:</strong>
+                            <strong>💡 Recommended Actions for Citizens.ie:</strong>
                             <div class="action-items">
-                                ${item.overlap < 30 ? '<div class="action-item">• Review page title and meta description to better match query intent</div>' : ''}
-                                ${item.ctr < 0.02 ? '<div class="action-item">• Optimize title tags and meta descriptions for higher CTR</div>' : ''}
-                                ${item.position > 15 ? '<div class="action-item">• Consider creating dedicated content for this query</div>' : ''}
+                                ${item.overlap < 30 ? '<div class="action-item">• Review page title and meta description to better match citizen query intent</div>' : ''}
+                                ${item.ctr < 0.02 ? '<div class="action-item">• Optimize title tags and meta descriptions for higher CTR - consider adding "Ireland" or service-specific terms</div>' : ''}
+                                ${item.position > 15 ? '<div class="action-item">• Consider creating dedicated content page for this citizen service query</div>' : ''}
+                                ${item.queryIntent === 'transactional' ? '<div class="action-item">• Add clear call-to-action buttons and links to application forms or MyGovID</div>' : ''}
+                                ${item.queryIntent === 'informational' ? '<div class="action-item">• Expand content with comprehensive eligibility criteria and requirements</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -3912,7 +4204,7 @@ function createLongtailOpportunitiesPanel(opportunities) {
     return `
         <div class="longtail-opportunities-panel">
             <div class="opportunities-explanation">
-                <p><strong>Long-tail Opportunities:</strong> Specific, longer queries with optimization potential for targeted traffic growth.</p>
+                <p><strong>Optimization Opportunities:</strong> Specific, longer queries with potential for targeted traffic growth for Irish government services.</p>
             </div>
             
             <div class="opportunities-list">
@@ -3925,6 +4217,7 @@ function createLongtailOpportunitiesPanel(opportunities) {
                                     ${item.priority === 'high' ? '🔥 High Priority' : item.priority === 'medium' ? '⭐ Medium Priority' : '💫 Low Priority'}
                                 </span>
                                 <span class="score-badge">Score: ${item.score}</span>
+                                <span class="intent-badge-small ${item.queryIntent}">${item.queryIntent}</span>
                             </div>
                         </div>
                         
@@ -3967,7 +4260,7 @@ function createLongtailOpportunitiesPanel(opportunities) {
                                 </div>
                                 <div class="potential-item">
                                     <span>Additional monthly clicks:</span>
-                                    <span class="highlight">+${Math.round(item.impressions * (getCTRBenchmark(item.position) - item.ctr))}</span>
+                                    <span class="highlight">+${item.potentialClicks}</span>
                                 </div>
                             </div>
                         </div>
@@ -3982,7 +4275,7 @@ function createLongtailOpportunitiesPanel(opportunities) {
 function createEnhancedQueryAnalysisStyles() {
     return `
         <style>
-            /* Enhanced Query Analysis Styles */
+            /* Enhanced Query Analysis Styles for Citizens.ie */
             .enhanced-query-analysis {
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
                 border-left: 4px solid #3b82f6;
@@ -3999,7 +4292,7 @@ function createEnhancedQueryAnalysisStyles() {
             /* Summary Grid */
             .query-summary-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
                 gap: 16px;
                 margin-bottom: 32px;
             }
@@ -4028,6 +4321,11 @@ function createEnhancedQueryAnalysisStyles() {
                 border-color: #6366f1;
             }
             
+            .query-summary-card.irish-specific {
+                background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+                border-color: #16a34a;
+            }
+            
             .summary-number {
                 font-size: 2rem;
                 font-weight: 800;
@@ -4045,7 +4343,7 @@ function createEnhancedQueryAnalysisStyles() {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                gap: 12px;
+                gap: 8px;
                 margin-bottom: 8px;
             }
             
@@ -4055,20 +4353,20 @@ function createEnhancedQueryAnalysisStyles() {
             
             .split-number {
                 display: block;
-                font-size: 1.5rem;
+                font-size: 1.2rem;
                 font-weight: 800;
                 color: #1f2937;
             }
             
             .split-label {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
                 color: #64748b;
                 font-weight: 600;
             }
             
             .split-divider {
-                width: 2px;
-                height: 30px;
+                width: 1px;
+                height: 25px;
                 background: #e2e8f0;
                 border-radius: 1px;
             }
@@ -4173,6 +4471,10 @@ function createEnhancedQueryAnalysisStyles() {
                 border-left: 4px solid #3b82f6;
             }
             
+            .intent-query-item.navigational {
+                border-left: 4px solid #10b981;
+            }
+            
             .intent-query-item.mixed {
                 border-left: 4px solid #8b5cf6;
             }
@@ -4196,6 +4498,7 @@ function createEnhancedQueryAnalysisStyles() {
                 display: flex;
                 gap: 8px;
                 flex-shrink: 0;
+                flex-wrap: wrap;
             }
             
             .intent-badge {
@@ -4216,18 +4519,28 @@ function createEnhancedQueryAnalysisStyles() {
                 color: #1e40af;
             }
             
+            .intent-badge.navigational {
+                background: #d1fae5;
+                color: #065f46;
+            }
+            
             .intent-badge.mixed {
                 background: #ede9fe;
                 color: #6b21a8;
             }
             
-            .confidence-badge {
+            .confidence-badge, .matches-badge {
                 padding: 4px 8px;
                 border-radius: 12px;
                 font-size: 0.75rem;
                 font-weight: 600;
                 background: #f1f5f9;
                 color: #475569;
+            }
+            
+            .matches-badge {
+                background: #ecfdf5;
+                color: #065f46;
             }
             
             .intent-metrics {
@@ -4239,7 +4552,7 @@ function createEnhancedQueryAnalysisStyles() {
             
             .recommendations-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
                 gap: 16px;
                 margin-top: 16px;
             }
@@ -4440,6 +4753,7 @@ function createEnhancedQueryAnalysisStyles() {
                 display: flex;
                 gap: 8px;
                 flex-shrink: 0;
+                flex-wrap: wrap;
             }
             
             .priority-badge {
@@ -4472,6 +4786,29 @@ function createEnhancedQueryAnalysisStyles() {
                 font-weight: 600;
                 background: #f1f5f9;
                 color: #475569;
+            }
+            
+            .intent-badge-small {
+                padding: 3px 6px;
+                border-radius: 8px;
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-transform: capitalize;
+            }
+            
+            .intent-badge-small.transactional {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            
+            .intent-badge-small.informational {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+            
+            .intent-badge-small.navigational {
+                background: #d1fae5;
+                color: #065f46;
             }
             
             .opportunity-metrics {
@@ -4562,6 +4899,11 @@ function createEnhancedQueryAnalysisStyles() {
                 .recommendations-grid {
                     grid-template-columns: 1fr;
                 }
+                
+                .intent-badges,
+                .priority-badges {
+                    justify-content: flex-start;
+                }
             }
         </style>
     `;
@@ -4589,6 +4931,39 @@ function initializeEnhancedQueryAnalysisTabs() {
     });
 }
 
+// Helper function for escaping HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Helper function for formatting numbers
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+// Helper function for CTR benchmarks
+function getCTRBenchmark(position) {
+    const benchmarks = {
+        1: 0.284, 2: 0.155, 3: 0.110, 4: 0.077, 5: 0.061,
+        6: 0.050, 7: 0.041, 8: 0.034, 9: 0.029, 10: 0.025
+    };
+    
+    if (position <= 10) {
+        return benchmarks[Math.round(position)] || benchmarks[10];
+    } else if (position <= 20) {
+        return 0.015;
+    } else {
+        return 0.005;
+    }
+}
+
 // AUTO-INITIALIZATION
 document.addEventListener('DOMContentLoaded', function() {
     initializeEnhancedQueryAnalysisTabs();
@@ -4600,6 +4975,7 @@ if (document.readyState === 'loading') {
 } else {
     initializeEnhancedQueryAnalysisTabs();
 }
+
 
 
 
