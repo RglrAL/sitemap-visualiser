@@ -10,6 +10,152 @@
     console.log('✅ Dashboard script execution started');
 
     // ===========================================
+    // EMERGENCY DEBUGGING - GLOBAL FUNCTION
+    // ===========================================
+    
+    // Create global debugging function IMMEDIATELY
+    window.emergencyDashboardDebug = function() {
+        console.log('🚨 === EMERGENCY DEBUG START ===');
+        console.log('🚨 Current time:', new Date().toISOString());
+        
+        // Look for any dashboard containers
+        const allDashboards = document.querySelectorAll('.citizens-dashboard-container');
+        console.log('🚨 Total dashboard containers found:', allDashboards.length);
+        
+        if (allDashboards.length === 0) {
+            console.log('💥 NO DASHBOARD CONTAINERS FOUND!');
+            console.log('💡 This means the dashboard HTML was never inserted');
+            return;
+        }
+        
+        allDashboards.forEach((dashboard, index) => {
+            console.log(`🔍 === DASHBOARD ${index + 1} ===`);
+            console.log('🔍 Dashboard ID:', dashboard.id);
+            console.log('🔍 Dashboard classes:', dashboard.className);
+            console.log('🔍 Dashboard has content:', dashboard.innerHTML.length > 0);
+            
+            const buttons = dashboard.querySelectorAll('.tab-btn');
+            const panels = dashboard.querySelectorAll('.tab-panel');
+            
+            console.log('🔍 Tab buttons found:', buttons.length);
+            console.log('🔍 Tab panels found:', panels.length);
+            
+            if (buttons.length > 0) {
+                console.log('🔍 Button details:');
+                buttons.forEach((btn, i) => {
+                    console.log(`  Button ${i + 1}: data-tab="${btn.dataset.tab}", classes="${btn.className}"`);
+                });
+            }
+            
+            if (panels.length > 0) {
+                console.log('🔍 Panel details:');
+                panels.forEach((panel, i) => {
+                    console.log(`  Panel ${i + 1}: data-panel="${panel.dataset.panel}", display="${panel.style.display}"`);
+                });
+            }
+            
+            // Try to manually fix tabs for this dashboard
+            if (buttons.length > 0 && panels.length > 0) {
+                console.log('🔧 ATTEMPTING MANUAL TAB FIX...');
+                
+                buttons.forEach((button, i) => {
+                    button.onclick = function(e) {
+                        console.log('🎯 MANUAL TAB CLICKED:', this.dataset.tab);
+                        e.preventDefault();
+                        
+                        const targetTab = this.dataset.tab;
+                        
+                        // Remove active from all buttons in this dashboard
+                        buttons.forEach(btn => btn.classList.remove('active'));
+                        
+                        // Remove active from all panels and hide them
+                        panels.forEach(panel => {
+                            panel.classList.remove('active');
+                            panel.style.display = 'none';
+                        });
+                        
+                        // Activate clicked button
+                        this.classList.add('active');
+                        
+                        // Show target panel
+                        const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
+                        if (targetPanel) {
+                            targetPanel.style.display = 'block';
+                            targetPanel.classList.add('active');
+                            console.log('✅ MANUAL Panel activated:', targetTab);
+                        } else {
+                            console.log('❌ MANUAL Panel not found for:', targetTab);
+                        }
+                    };
+                });
+                
+                // Initialize first tab
+                panels.forEach(panel => {
+                    panel.style.display = 'none';
+                    panel.classList.remove('active');
+                });
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                if (buttons[0] && panels[0]) {
+                    buttons[0].classList.add('active');
+                    panels[0].style.display = 'block';
+                    panels[0].classList.add('active');
+                    console.log('✅ MANUAL First tab initialized');
+                }
+                
+                console.log('🎉 MANUAL TAB FIX COMPLETE - Try clicking tabs now!');
+            }
+        });
+        
+        console.log('🚨 === EMERGENCY DEBUG END ===');
+    };
+    
+    // Also create a simpler version
+    window.fixTabs = function() {
+        console.log('🔧 QUICK TAB FIX ATTEMPT...');
+        const container = document.querySelector('.citizens-dashboard-container');
+        if (!container) {
+            console.log('❌ No dashboard container found');
+            return;
+        }
+        
+        const buttons = container.querySelectorAll('.tab-btn');
+        const panels = container.querySelectorAll('.tab-panel');
+        
+        console.log('Found:', buttons.length, 'buttons,', panels.length, 'panels');
+        
+        if (buttons.length === 0 || panels.length === 0) {
+            console.log('❌ No buttons or panels found');
+            return;
+        }
+        
+        buttons.forEach(button => {
+            button.onclick = function(e) {
+                console.log('🎯 QUICK TAB CLICKED:', this.dataset.tab);
+                e.preventDefault();
+                
+                buttons.forEach(btn => btn.classList.remove('active'));
+                panels.forEach(panel => {
+                    panel.classList.remove('active');
+                    panel.style.display = 'none';
+                });
+                
+                this.classList.add('active');
+                const targetPanel = container.querySelector(`[data-panel="${this.dataset.tab}"]`);
+                if (targetPanel) {
+                    targetPanel.style.display = 'block';
+                    targetPanel.classList.add('active');
+                }
+            });
+        });
+        
+        console.log('✅ QUICK FIX COMPLETE');
+    };
+    
+    console.log('🚨 Emergency debugging functions created!');
+    console.log('🚨 Run: emergencyDashboardDebug() or fixTabs()');
+
+    // ===========================================
     // UTILITY FUNCTIONS (DEFINED FIRST)
     // ===========================================
 
