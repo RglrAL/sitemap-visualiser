@@ -1731,194 +1731,10 @@
             </div>
 
             <script>
-                // COMPREHENSIVE DEBUGGING - Let's find out what's wrong!
-                console.log('🚀 SCRIPT STARTING - This should always appear!');
-                console.log('🚀 Dashboard ID: ${dashboardId}');
-                console.log('🚀 Current time:', new Date().toISOString());
-                
-                // Add global debugging function
-                window.debugDashboard = function() {
-                    console.log('🔍 === MANUAL DEBUG START ===');
-                    console.log('🔍 Looking for dashboard ID: ${dashboardId}');
-                    
-                    const container = document.getElementById('${dashboardId}');
-                    console.log('🔍 Container found:', !!container);
-                    
-                    if (container) {
-                        console.log('🔍 Container HTML preview:', container.innerHTML.substring(0, 200) + '...');
-                        
-                        const buttons = container.querySelectorAll('.tab-btn');
-                        const panels = container.querySelectorAll('.tab-panel');
-                        
-                        console.log('🔍 Tab buttons found:', buttons.length);
-                        console.log('🔍 Tab panels found:', panels.length);
-                        
-                        if (buttons.length > 0) {
-                            console.log('🔍 First button data-tab:', buttons[0].dataset.tab);
-                            console.log('🔍 First button classes:', buttons[0].className);
-                        }
-                        
-                        if (panels.length > 0) {
-                            console.log('🔍 First panel data-panel:', panels[0].dataset.panel);
-                            console.log('🔍 First panel display:', panels[0].style.display);
-                        }
-                    } else {
-                        console.log('🔍 Available IDs on page:');
-                        document.querySelectorAll('[id]').forEach(el => {
-                            console.log('  - ' + el.id);
-                        });
-                    }
-                    
-                    console.log('🔍 === MANUAL DEBUG END ===');
-                };
-                
-                // Immediate check
-                try {
-                    console.log('🔍 IMMEDIATE CHECK - Document ready state:', document.readyState);
-                    console.log('🔍 IMMEDIATE CHECK - Looking for container...');
-                    
-                    const immediateContainer = document.getElementById('${dashboardId}');
-                    console.log('🔍 IMMEDIATE CHECK - Container exists:', !!immediateContainer);
-                    
-                    if (immediateContainer) {
-                        console.log('🔍 IMMEDIATE CHECK - Container has content:', immediateContainer.innerHTML.length > 0);
-                    }
-                } catch (error) {
-                    console.error('❌ Error in immediate check:', error);
-                }
-                
-                // Try multiple initialization strategies
-                function attemptTabInit(strategy) {
-                    console.log('🔄 Attempting strategy:', strategy);
-                    
-                    try {
-                        const container = document.getElementById('${dashboardId}');
-                        console.log('🔄 Container found in', strategy + ':', !!container);
-                        
-                        if (!container) {
-                            console.log('❌ No container in', strategy);
-                            return false;
-                        }
-                        
-                        const buttons = container.querySelectorAll('.tab-btn');
-                        const panels = container.querySelectorAll('.tab-panel');
-                        
-                        console.log('🔄 Found in', strategy + ':', buttons.length, 'buttons,', panels.length, 'panels');
-                        
-                        if (buttons.length === 0 || panels.length === 0) {
-                            console.log('❌ No buttons/panels in', strategy);
-                            return false;
-                        }
-                        
-                        // SUCCESS! Add the click handlers
-                        console.log('✅ SUCCESS in', strategy, '- Adding click handlers...');
-                        
-                        buttons.forEach(function(button, index) {
-                            console.log('🔧 Adding handler to button', index + ':', button.dataset.tab);
-                            
-                            // Remove any existing onclick
-                            button.onclick = null;
-                            
-                            // Add new onclick
-                            button.onclick = function(e) {
-                                console.log('🎯 TAB CLICKED:', this.dataset.tab, 'via', strategy);
-                                e.preventDefault();
-                                
-                                const targetTab = this.dataset.tab;
-                                
-                                // Remove active from all buttons
-                                buttons.forEach(function(btn) {
-                                    btn.classList.remove('active');
-                                });
-                                
-                                // Remove active from all panels and hide them
-                                panels.forEach(function(panel) {
-                                    panel.classList.remove('active');
-                                    panel.style.display = 'none';
-                                });
-                                
-                                // Activate clicked button
-                                this.classList.add('active');
-                                
-                                // Show target panel
-                                const targetPanel = container.querySelector('[data-panel="' + targetTab + '"]');
-                                console.log('🎯 Target panel found for', targetTab + ':', !!targetPanel);
-                                
-                                if (targetPanel) {
-                                    targetPanel.style.display = 'block';
-                                    targetPanel.classList.add('active');
-                                    console.log('✅ Panel activated:', targetTab);
-                                } else {
-                                    console.log('❌ Panel not found for:', targetTab);
-                                }
-                            };
-                        });
-                        
-                        // Initialize first tab
-                        console.log('🔧 Initializing first tab...');
-                        
-                        // Hide all panels first
-                        panels.forEach(function(panel) {
-                            panel.style.display = 'none';
-                            panel.classList.remove('active');
-                        });
-                        
-                        // Remove active from all buttons
-                        buttons.forEach(function(btn) {
-                            btn.classList.remove('active');
-                        });
-                        
-                        // Activate first button and panel
-                        buttons[0].classList.add('active');
-                        panels[0].style.display = 'block';
-                        panels[0].classList.add('active');
-                        
-                        console.log('🎉 TABS FULLY INITIALIZED via', strategy + '!');
-                        return true;
-                        
-                    } catch (error) {
-                        console.error('❌ Error in', strategy + ':', error);
-                        return false;
-                    }
-                }
-                
-                // Strategy 1: Immediate
-                console.log('📋 Trying Strategy 1: Immediate');
-                if (!attemptTabInit('immediate')) {
-                    
-                    // Strategy 2: Short delay
-                    console.log('📋 Trying Strategy 2: Short delay (100ms)');
-                    setTimeout(function() {
-                        if (!attemptTabInit('short-delay')) {
-                            
-                            // Strategy 3: Medium delay  
-                            console.log('📋 Trying Strategy 3: Medium delay (500ms)');
-                            setTimeout(function() {
-                                if (!attemptTabInit('medium-delay')) {
-                                    
-                                    // Strategy 4: Long delay
-                                    console.log('📋 Trying Strategy 4: Long delay (1000ms)');
-                                    setTimeout(function() {
-                                        if (!attemptTabInit('long-delay')) {
-                                            
-                                            // Strategy 5: Very long delay
-                                            console.log('📋 Trying Strategy 5: Very long delay (2000ms)');
-                                            setTimeout(function() {
-                                                if (!attemptTabInit('very-long-delay')) {
-                                                    console.log('💥 ALL STRATEGIES FAILED!');
-                                                    console.log('💡 Try running: debugDashboard() in console');
-                                                }
-                                            }, 2000);
-                                        }
-                                    }, 1000);
-                                }
-                            }, 500);
-                        }
-                    }, 100);
-                }
-                
-                console.log('🚀 SCRIPT ENDING - This should always appear too!');
-            </script>
+    setTimeout(() => {
+        initializeEnhancedDashboard('${dashboardId}');
+    }, 100);
+</script>
         `;
     }
 
@@ -4269,69 +4085,119 @@
     // ===========================================
 
     function initializeEnhancedDashboard(dashboardId) {
-        console.log('🎯 Initializing Enhanced Dashboard:', dashboardId);
+    console.log('🎯 Initializing Dashboard:', dashboardId);
+    
+    const dashboard = document.getElementById(dashboardId);
+    if (!dashboard) {
+        console.error('❌ Dashboard container not found:', dashboardId);
+        return;
+    }
+    
+    const tabButtons = dashboard.querySelectorAll('.tab-btn');
+    const tabPanels = dashboard.querySelectorAll('.tab-panel');
+    
+    if (tabButtons.length === 0 || tabPanels.length === 0) {
+        console.error('❌ No tab buttons or panels found');
+        return;
+    }
+    
+    console.log('✅ Found', tabButtons.length, 'buttons and', tabPanels.length, 'panels');
+    
+    // Remove any existing event listeners and add new ones
+    tabButtons.forEach((button, index) => {
+        // Clone the button to remove all existing event listeners
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
         
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        function tryInitialize() {
-            attempts++;
-            const dashboard = document.getElementById(dashboardId);
+        // Add click handler to the new button
+        newButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🎯 Tab clicked:', this.dataset.tab);
             
-            if (!dashboard) {
-                if (attempts < maxAttempts) {
-                    setTimeout(tryInitialize, 100);
-                }
-                return;
-            }
+            const targetTab = this.dataset.tab;
             
-            const tabBtns = dashboard.querySelectorAll('.tab-btn');
-            const tabPanels = dashboard.querySelectorAll('.tab-panel');
-            
-            if (tabBtns.length === 0 || tabPanels.length === 0) {
-                if (attempts < maxAttempts) {
-                    setTimeout(tryInitialize, 100);
-                }
-                return;
-            }
-            
-            tabBtns.forEach((btn) => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    const targetTab = this.getAttribute('data-tab');
-                    
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    tabPanels.forEach(p => {
-                        p.classList.remove('active');
-                        p.style.display = 'none';
-                    });
-                    
-                    this.classList.add('active');
-                    
-                    const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
-                    if (targetPanel) {
-                        targetPanel.style.display = 'block';
-                        targetPanel.classList.add('active');
-                    }
-                });
+            // Remove active class from all buttons
+            dashboard.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
             
-            if (tabBtns.length > 0 && tabPanels.length > 0) {
-                tabBtns[0].classList.add('active');
-                tabPanels.forEach(p => p.style.display = 'none');
-                const firstPanel = tabPanels[0];
-                if (firstPanel) {
-                    firstPanel.style.display = 'block';
-                    firstPanel.classList.add('active');
-                }
-            }
+            // Hide all panels
+            dashboard.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+                panel.style.display = 'none';
+            });
             
-            console.log('✅ Dashboard tabs initialized successfully!');
-        }
+            // Activate clicked button
+            this.classList.add('active');
+            
+            // Show target panel
+            const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
+            if (targetPanel) {
+                targetPanel.style.display = 'block';
+                targetPanel.classList.add('active');
+                console.log('✅ Activated panel:', targetTab);
+            } else {
+                console.error('❌ Target panel not found:', targetTab);
+            }
+        });
+    });
+    
+    // Initialize first tab
+    const firstButton = dashboard.querySelector('.tab-btn');
+    const firstPanel = dashboard.querySelector('.tab-panel');
+    
+    if (firstButton && firstPanel) {
+        // Hide all panels first
+        dashboard.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.style.display = 'none';
+            panel.classList.remove('active');
+        });
         
-        tryInitialize();
+        // Remove active from all buttons
+        dashboard.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Activate first button and panel
+        firstButton.classList.add('active');
+        firstPanel.style.display = 'block';
+        firstPanel.classList.add('active');
+        
+        console.log('✅ Dashboard tabs initialized successfully!');
     }
+}
+
+
+
+
+
+    // Add this debugging function
+window.debugTabs = function(dashboardId) {
+    const dashboard = document.getElementById(dashboardId || document.querySelector('.citizens-dashboard-container').id);
+    if (!dashboard) {
+        console.log('❌ Dashboard not found');
+        return;
+    }
+    
+    const buttons = dashboard.querySelectorAll('.tab-btn');
+    const panels = dashboard.querySelectorAll('.tab-panel');
+    
+    console.log('🔍 Debug Info:');
+    console.log('- Buttons found:', buttons.length);
+    console.log('- Panels found:', panels.length);
+    
+    buttons.forEach((btn, i) => {
+        console.log(`- Button ${i}: data-tab="${btn.dataset.tab}", active=${btn.classList.contains('active')}`);
+    });
+    
+    panels.forEach((panel, i) => {
+        console.log(`- Panel ${i}: data-panel="${panel.dataset.panel}", active=${panel.classList.contains('active')}, display=${panel.style.display}`);
+    });
+};
+
+
+
+    
 
     // ===========================================
     // EXPORT FUNCTIONS
