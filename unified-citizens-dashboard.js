@@ -1812,7 +1812,7 @@
                 .dashboard-header {
                     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
                     color: white;
-                    padding: 30px;
+                    padding: 0px;
                     position: relative;
                     overflow: hidden;
                 }
