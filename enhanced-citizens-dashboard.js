@@ -4121,19 +4121,17 @@
                 btn.classList.remove('active');
             });
             
-            // Hide all panels
+            // Remove active class from all panels (CSS handles display)
             dashboard.querySelectorAll('.tab-panel').forEach(panel => {
                 panel.classList.remove('active');
-                panel.style.display = 'none';
             });
             
             // Activate clicked button
             this.classList.add('active');
             
-            // Show target panel
+            // Show target panel by adding active class
             const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
             if (targetPanel) {
-                targetPanel.style.display = 'block';
                 targetPanel.classList.add('active');
                 console.log('✅ Activated panel:', targetTab);
             } else {
@@ -4142,25 +4140,22 @@
         });
     });
     
-    // Initialize first tab
+    // Initialize first tab (remove inline styles, use CSS classes)
     const firstButton = dashboard.querySelector('.tab-btn');
     const firstPanel = dashboard.querySelector('.tab-panel');
     
     if (firstButton && firstPanel) {
-        // Hide all panels first
+        // Remove active from all panels and buttons
         dashboard.querySelectorAll('.tab-panel').forEach(panel => {
-            panel.style.display = 'none';
             panel.classList.remove('active');
         });
         
-        // Remove active from all buttons
         dashboard.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         
-        // Activate first button and panel
+        // Activate first button and panel using CSS classes
         firstButton.classList.add('active');
-        firstPanel.style.display = 'block';
         firstPanel.classList.add('active');
         
         console.log('✅ Dashboard tabs initialized successfully!');
