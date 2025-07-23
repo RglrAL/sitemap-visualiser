@@ -423,82 +423,263 @@ Try:
             const today = new Date();
             const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
             
-            const requestBody = {
-                dateRanges: [{
-                    startDate: thirtyDaysAgo.toISOString().split('T')[0],
-                    endDate: today.toISOString().split('T')[0]
-                }],
-                dimensions: [{ name: 'pagePath' }],
-                metrics: [
-                    { name: 'screenPageViews' },
-                    { name: 'sessions' },
-                    { name: 'totalUsers' },
-                    { name: 'newUsers' },
-                    { name: 'averageSessionDuration' },
-                    { name: 'bounceRate' },
-                    { name: 'engagementRate' }
-                ],
-                dimensionFilter: {
-                    filter: {
-                        fieldName: 'pagePath',
-                        stringFilter: {
-                            matchType: 'EXACT',
-                            value: pagePath
-                        }
+            // Make multiple API calls for enhanced data
+const [basicData, geoData, trafficData] = await Promise.all([
+    
+    // 1. Basic metrics (your existing call)
+    fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${ga4AccessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            dateRanges: [{
+                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                endDate: today.toISOString().split('T')[0]
+            }],
+            dimensions: [{ name: 'pagePath' }],
+            metrics: [
+                { name: 'screenPageViews' },
+                { name: 'sessions' },
+                { name: 'totalUsers' },
+                { name: 'newUsers' },
+                { name: 'averageSessionDuration' },
+                { name: 'bounceRate' },
+                { name: 'engagementRate' }
+            ],
+            dimensionFilter: {
+                filter: {
+                    fieldName: 'pagePath',
+                    stringFilter: {
+                        matchType: 'EXACT',
+                        value: pagePath
                     }
-                },
-                limit: 1
-            };
+                }
+            },
+            limit: 1
+        })
+    }),
+    
+    // 2. NEW: Geographic data
+    fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${ga4AccessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            dateRanges: [{
+                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                endDate: today.toISOString().split('T')[0]
+            }],
+            dimensions: [
+                { name: 'pagePath' },
+                { name: 'country' },
+                { name: 'region' },
+                { name: 'city' }
+            ],
+            metrics: [
+                { name: 'activeUsers' },
+                { name: 'screenPageViews' }
+            ],
+            dimensionFilter: {
+                filter: {
+                    fieldName: 'pagePath',
+                    stringFilter: {
+                        matchType: 'EXACT',
+                        value: pagePath
+                    }
+                }
+            },
+            limit: 10
+        })
+    }),
+    
+    // 3. NEW: Enhanced traffic sources
+    fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${ga4AccessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            dateRanges: [{
+                startDate: thirtyDaysAgo.toISOString().split('T')[0],
+                endDate: today.toISOString().split('T')[0]
+            }],
+            dimensions: [
+                { name: 'pagePath' },
+                { name: 'sessionDefaultChannelGrouping' },
+                { name: 'sessionSource' },
+                { name: 'sessionMedium' }
+            ],
+            metrics: [
+                { name: 'sessions' },
+                { name: 'activeUsers' }
+            ],
+            dimensionFilter: {
+                filter: {
+                    fieldName: 'pagePath',
+                    stringFilter: {
+                        matchType: 'EXACT',
+                        value: pagePath
+                    }
+                }
+            },
+            limit: 10
+        })
+    })
+]);
             
-            const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${ga4AccessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            let ga4Data = {
-                pagePath: pagePath,
-                pageViews: 0,
-                sessions: 0,
-                users: 0,
-                newUsers: 0,
-                avgSessionDuration: 0,
-                bounceRate: 0,
-                engagementRate: 0,
-                noDataFound: true,
-                fetchedAt: Date.now()
-            };
-            
-            if (data.rows && data.rows.length > 0) {
-                const row = data.rows[0];
-                const metrics = row.metricValues;
-                
-                ga4Data = {
-                    pagePath: pagePath,
-                    pageViews: parseInt(metrics[0]?.value || 0),
-                    sessions: parseInt(metrics[1]?.value || 0),
-                    users: parseInt(metrics[2]?.value || 0),
-                    newUsers: parseInt(metrics[3]?.value || 0),
-                    avgSessionDuration: parseFloat(metrics[4]?.value || 0),
-                    bounceRate: parseFloat(metrics[5]?.value || 0),
-                    engagementRate: parseFloat(metrics[6]?.value || 0),
-                    noDataFound: false,
-                    fetchedAt: Date.now()
-                };
-                
-                ga4Log('GA4 data found for:', pagePath, ga4Data);
-            } else {
-                ga4Log('No GA4 data found for:', pagePath);
-            }
+            // Process all three responses
+const [basicResponse, geoResponse, trafficResponse] = await Promise.all([
+    basicData.json(),
+    geoData.json(),
+    trafficData.json()
+]);
+
+let ga4Data = {
+    pagePath: pagePath,
+    pageViews: 0,
+    sessions: 0,
+    users: 0,
+    newUsers: 0,
+    avgSessionDuration: 0,
+    bounceRate: 0,
+    engagementRate: 0,
+    noDataFound: true,
+    fetchedAt: Date.now(),
+    
+    // NEW: Geographic data
+    geographic: {
+        countries: [],
+        regions: [],
+        cities: [],
+        topCountry: null,
+        internationalTraffic: 0
+    },
+    
+    // NEW: Enhanced traffic sources
+    trafficSources: {
+        channels: [],
+        sources: [],
+        topChannel: null,
+        organicPercent: 0
+    }
+};
+
+// Process basic data (your existing logic)
+if (basicResponse.rows && basicResponse.rows.length > 0) {
+    const row = basicResponse.rows[0];
+    const metrics = row.metricValues;
+    
+    ga4Data = {
+        ...ga4Data,
+        pageViews: parseInt(metrics[0]?.value || 0),
+        sessions: parseInt(metrics[1]?.value || 0),
+        users: parseInt(metrics[2]?.value || 0),
+        newUsers: parseInt(metrics[3]?.value || 0),
+        avgSessionDuration: parseFloat(metrics[4]?.value || 0),
+        bounceRate: parseFloat(metrics[5]?.value || 0),
+        engagementRate: parseFloat(metrics[6]?.value || 0),
+        noDataFound: false
+    };
+}
+
+// NEW: Process geographic data
+if (geoResponse.rows && geoResponse.rows.length > 0) {
+    const countries = {};
+    const regions = {};
+    const cities = {};
+    
+    geoResponse.rows.forEach(row => {
+        const country = row.dimensionValues[1].value;
+        const region = row.dimensionValues[2].value;
+        const city = row.dimensionValues[3].value;
+        const users = parseInt(row.metricValues[0].value);
+        
+        // Aggregate by country
+        if (!countries[country]) countries[country] = 0;
+        countries[country] += users;
+        
+        // Aggregate by region (if Ireland)
+        if (country === 'Ireland' && region !== '(not set)') {
+            if (!regions[region]) regions[region] = 0;
+            regions[region] += users;
+        }
+        
+        // Top cities
+        if (city !== '(not set)') {
+            if (!cities[city]) cities[city] = 0;
+            cities[city] += users;
+        }
+    });
+    
+    // Convert to arrays and sort
+    ga4Data.geographic.countries = Object.entries(countries)
+        .map(([country, users]) => ({ country, users, percentage: (users / ga4Data.users) * 100 }))
+        .sort((a, b) => b.users - a.users);
+    
+    ga4Data.geographic.regions = Object.entries(regions)
+        .map(([region, users]) => ({ region, users, percentage: (users / ga4Data.users) * 100 }))
+        .sort((a, b) => b.users - a.users);
+    
+    ga4Data.geographic.cities = Object.entries(cities)
+        .map(([city, users]) => ({ city, users, percentage: (users / ga4Data.users) * 100 }))
+        .sort((a, b) => b.users - a.users)
+        .slice(0, 5); // Top 5 cities only
+    
+    ga4Data.geographic.topCountry = ga4Data.geographic.countries[0]?.country || 'Ireland';
+    ga4Data.geographic.internationalTraffic = ga4Data.geographic.countries
+        .filter(c => c.country !== 'Ireland')
+        .reduce((sum, c) => sum + c.percentage, 0);
+}
+
+// NEW: Process traffic sources
+if (trafficResponse.rows && trafficResponse.rows.length > 0) {
+    const channels = {};
+    const sources = {};
+    
+    trafficResponse.rows.forEach(row => {
+        const channel = row.dimensionValues[1].value;
+        const source = row.dimensionValues[2].value;
+        const sessions = parseInt(row.metricValues[0].value);
+        
+        // Aggregate by channel
+        if (!channels[channel]) channels[channel] = 0;
+        channels[channel] += sessions;
+        
+        // Aggregate by source
+        if (!sources[source]) sources[source] = 0;
+        sources[source] += sessions;
+    });
+    
+    const totalSessions = ga4Data.sessions || 1;
+    
+    ga4Data.trafficSources.channels = Object.entries(channels)
+        .map(([channel, sessions]) => ({ 
+            channel, 
+            sessions, 
+            percentage: (sessions / totalSessions) * 100 
+        }))
+        .sort((a, b) => b.sessions - a.sessions);
+    
+    ga4Data.trafficSources.sources = Object.entries(sources)
+        .map(([source, sessions]) => ({ 
+            source, 
+            sessions, 
+            percentage: (sessions / totalSessions) * 100 
+        }))
+        .sort((a, b) => b.sessions - a.sessions)
+        .slice(0, 5); // Top 5 sources
+    
+    ga4Data.trafficSources.topChannel = ga4Data.trafficSources.channels[0]?.channel || 'Unknown';
+    ga4Data.trafficSources.organicPercent = ga4Data.trafficSources.channels
+        .find(c => c.channel === 'Organic Search')?.percentage || 0;
+}
+
+ga4Log('Enhanced GA4 data processed for:', pagePath, ga4Data);
             
             ga4DataCache.set(pagePath, ga4Data);
             return ga4Data;
@@ -1037,42 +1218,44 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
     });
     
     try {
-        const requestBody = {
-            dateRanges: [{
-                startDate: startDate.toISOString().split('T')[0],
-                endDate: endDate.toISOString().split('T')[0]
-            }],
-            dimensions: [{ name: 'pagePath' }],
-            metrics: [
-                { name: 'screenPageViews' },
-                { name: 'sessions' },
-                { name: 'totalUsers' },
-                { name: 'newUsers' },
-                { name: 'averageSessionDuration' },
-                { name: 'bounceRate' },
-                { name: 'engagementRate' },
-                { name: 'activeUsers' }
-            ],
-            dimensionFilter: {
-                filter: {
-                    fieldName: 'pagePath',
-                    stringFilter: {
-                        matchType: 'EXACT',
-                        value: pagePath
-                    }
-                }
-            },
-            limit: 1
-        };
-        
-        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        // FIND AND REPLACE THIS ENTIRE SECTION:
+const requestBody = {
+    dateRanges: [{
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+    }],
+    dimensions: [{ name: 'pagePath' }],
+    metrics: [
+        { name: 'screenPageViews' },
+        { name: 'sessions' },
+        { name: 'totalUsers' },
+        { name: 'newUsers' },
+        { name: 'averageSessionDuration' },
+        { name: 'bounceRate' },
+        { name: 'engagementRate' },
+        { name: 'activeUsers' }
+    ],
+    dimensionFilter: {
+        filter: {
+            fieldName: 'pagePath',
+            stringFilter: {
+                matchType: 'EXACT',
+                value: pagePath
+            }
+        }
+    },
+    limit: 1
+};
+
+// And the fetch call that follows it
+const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+    method: 'POST',
+    headers: {
+        'Authorization': `Bearer ${ga4AccessToken}`,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+});
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
