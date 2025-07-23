@@ -1218,44 +1218,39 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
     });
     
     try {
-        // FIND AND REPLACE THIS ENTIRE SECTION:
-const requestBody = {
-    dateRanges: [{
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
-    }],
-    dimensions: [{ name: 'pagePath' }],
-    metrics: [
-        { name: 'screenPageViews' },
-        { name: 'sessions' },
-        { name: 'totalUsers' },
-        { name: 'newUsers' },
-        { name: 'averageSessionDuration' },
-        { name: 'bounceRate' },
-        { name: 'engagementRate' },
-        { name: 'activeUsers' }
-    ],
-    dimensionFilter: {
-        filter: {
-            fieldName: 'pagePath',
-            stringFilter: {
-                matchType: 'EXACT',
-                value: pagePath
-            }
-        }
-    },
-    limit: 1
-};
-
-// And the fetch call that follows it
-const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
-    method: 'POST',
-    headers: {
-        'Authorization': `Bearer ${ga4AccessToken}`,
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-});
+        const requestBody = {
+            dateRanges: [{
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            }],
+            dimensions: [{ name: 'pagePath' }],
+            metrics: [
+                { name: 'screenPageViews' },
+                { name: 'sessions' },
+                { name: 'totalUsers' },
+                { name: 'newUsers' },
+                { name: 'averageSessionDuration' },
+                { name: 'bounceRate' },
+                { name: 'engagementRate' },
+                { name: 'activeUsers' }
+            ],
+            dimensionFilter: {
+                filter: {
+                    fieldName: 'pagePath',
+                    stringFilter: { matchType: 'EXACT', value: pagePath }
+                }
+            },
+            limit: 1
+        };
+        
+        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
