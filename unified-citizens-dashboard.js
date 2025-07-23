@@ -4460,13 +4460,6 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                     <strong>Irish Services Detected:</strong> ${item.detectedServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
                                 </div>
                             ` : ''}
-                            ${item.secondaryIntents.length > 0 ? `
-                                <div class="secondary-intents">
-                                    <strong>Also indicates:</strong> ${item.secondaryIntents.map(intent => 
-                                        citizenJourneyCategories[intent]?.plainEnglish || intent
-                                    ).join(', ')}
-                                </div>
-                            ` : ''}
                         </div>
                     `).join('')}
                     
@@ -4493,13 +4486,6 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                 ${item.detectedServiceTypes && item.detectedServiceTypes.length > 0 ? `
                                     <div class="detected-services">
                                         <strong>Irish Services Detected:</strong> ${item.detectedServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
-                                    </div>
-                                ` : ''}
-                                ${item.secondaryIntents.length > 0 ? `
-                                    <div class="secondary-intents">
-                                        <strong>Also indicates:</strong> ${item.secondaryIntents.map(intent => 
-                                            citizenJourneyCategories[intent]?.plainEnglish || intent
-                                        ).join(', ')}
                                     </div>
                                 ` : ''}
                             </div>
@@ -4565,14 +4551,6 @@ function createCitizenOpportunitiesPanel(opportunities) {
                                 <span class="journey-label">Citizen Journey Stage:</span>
                                 <span class="journey-stage">${item.plainEnglishIntent}</span>
                             </div>
-                            ${item.secondaryIntents.length > 0 ? `
-                                <div class="secondary-journey">
-                                    <span class="secondary-label">Also seeking:</span>
-                                    <span class="secondary-stages">${item.secondaryIntents.map(intent => 
-                                        citizenJourneyCategories[intent]?.plainEnglish || intent
-                                    ).join(', ')}</span>
-                                </div>
-                            ` : ''}
                         </div>
                         
                         <div class="current-performance">
@@ -4649,14 +4627,6 @@ function createCitizenOpportunitiesPanel(opportunities) {
                                     <span class="journey-label">Citizen Journey Stage:</span>
                                     <span class="journey-stage">${item.plainEnglishIntent}</span>
                                 </div>
-                                ${item.secondaryIntents.length > 0 ? `
-                                    <div class="secondary-journey">
-                                        <span class="secondary-label">Also seeking:</span>
-                                        <span class="secondary-stages">${item.secondaryIntents.map(intent => 
-                                            citizenJourneyCategories[intent]?.plainEnglish || intent
-                                        ).join(', ')}</span>
-                                    </div>
-                                ` : ''}
                             </div>
                             
                             <div class="current-performance">
@@ -5495,19 +5465,19 @@ function createCitizenQueryIntelligenceStyles() {
                 margin-bottom: 16px;
             }
             
-            .journey-info, .secondary-journey {
+            .journey-info {
                 font-size: 0.85rem;
                 display: flex;
                 gap: 8px;
                 align-items: center;
             }
             
-            .journey-label, .secondary-label {
+            .journey-label {
                 color: #6b7280;
                 font-weight: 500;
             }
             
-            .journey-stage, .secondary-stages {
+            .journey-stage {
                 color: #374151;
                 font-weight: 600;
             }
@@ -5734,7 +5704,7 @@ function createCitizenQueryIntelligenceStyles() {
                     grid-template-columns: 1fr;
                 }
                 
-                .query-badges, .opportunity-badges {
+                .intent-badges, .query-badges, .opportunity-badges {
                     justify-content: flex-start;
                 }
             }
@@ -6059,7 +6029,6 @@ if (document.readyState === 'loading') {
 } else {
     initializeCitizenQueryIntelligence();
 }
-
 
 
     
