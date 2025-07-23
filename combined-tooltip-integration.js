@@ -1263,36 +1263,70 @@
 
 
 // New unified dashboard integration function
+// REPLACE your showUnifiedDashboardReport function with this corrected version:
+
 window.showUnifiedDashboardReport = async function(url) {
     console.log('🚀 Opening Unified Citizens Dashboard for:', url);
     
     try {
-        // Gather data (same pattern as your tooltip system)
-        const promises = [];
+        // Initialize data objects
         let gscData = null, ga4Data = null, gscTrends = null, ga4Trends = null;
+        let gscPrevious = null, ga4Previous = null;
         
         // Fetch GSC data if connected
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
-            promises.push(
-                window.GSCIntegration.fetchNodeData({ url }).then(data => { gscData = data; }),
-                window.GSCIntegration.fetchPreviousPeriodData({ url }).then(data => { gscTrends = { trends: data }; })
-            );
+            try {
+                // Fetch current and previous data
+                gscData = await window.GSCIntegration.fetchNodeData({ url });
+                gscPrevious = await window.GSCIntegration.fetchPreviousPeriodData({ url });
+                
+                // Calculate trends properly
+                if (gscData && gscPrevious && !gscData.noDataFound && !gscPrevious.noDataFound) {
+                    gscTrends = {
+                        trends: {
+                            clicks: calculateTrend(gscData.clicks, gscPrevious.clicks),
+                            impressions: calculateTrend(gscData.impressions, gscPrevious.impressions),
+                            ctr: calculateTrend(gscData.ctr, gscPrevious.ctr),
+                            position: calculateTrend(gscData.position, gscPrevious.position, true) // inverted for position
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('GSC data fetch error:', error);
+                gscData = { noDataFound: true };
+            }
         } else {
             gscData = { noDataFound: true };
         }
         
         // Fetch GA4 data if connected  
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
-            promises.push(
-                window.GA4Integration.fetchData(url).then(data => { ga4Data = data; }),
-                window.GA4Integration.fetchPreviousPeriodData(url).then(data => { ga4Trends = { trends: data }; })
-            );
+            try {
+                // Fetch current and previous data
+                ga4Data = await window.GA4Integration.fetchData(url);
+                ga4Previous = await window.GA4Integration.fetchPreviousPeriodData(url);
+                
+                // Calculate trends properly
+                if (ga4Data && ga4Previous && !ga4Data.noDataFound && !ga4Previous.noDataFound) {
+                    ga4Trends = {
+                        trends: {
+                            users: calculateTrend(ga4Data.users, ga4Previous.users),
+                            pageViews: calculateTrend(ga4Data.pageViews, ga4Previous.pageViews),
+                            sessions: calculateTrend(ga4Data.sessions, ga4Previous.sessions),
+                            avgSessionDuration: calculateTrend(ga4Data.avgSessionDuration, ga4Previous.avgSessionDuration),
+                            bounceRate: calculateTrend(ga4Data.bounceRate, ga4Previous.bounceRate, true) // inverted for bounce rate
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('GA4 data fetch error:', error);
+                ga4Data = { noDataFound: true };
+            }
         } else {
             ga4Data = { noDataFound: true };
         }
         
-        // Wait for all data
-        await Promise.allSettled(promises);
+        console.log('📊 Dashboard data prepared:', { gscData, ga4Data, gscTrends, ga4Trends });
         
         // Create the unified dashboard
         const dashboardHtml = createUnifiedCitizensDashboard(
@@ -1303,7 +1337,7 @@ window.showUnifiedDashboardReport = async function(url) {
             ga4Trends
         );
         
-        // Show in modal/overlay (reuse your existing modal system or create new one)
+        // Show in modal
         showDashboardModal(dashboardHtml);
         
     } catch (error) {
@@ -1311,6 +1345,40 @@ window.showUnifiedDashboardReport = async function(url) {
         alert('Failed to load dashboard data. Please try again.');
     }
 };
+
+// Helper function to calculate trend data in the format the dashboard expects
+function calculateTrend(currentValue, previousValue, inverted = false) {
+    const current = parseFloat(currentValue) || 0;
+    const previous = parseFloat(previousValue) || 0;
+    
+    if (previous === 0) {
+        return {
+            percentChange: 0,
+            direction: 'neutral'
+        };
+    }
+    
+    let percentChange = ((current - previous) / previous) * 100;
+    
+    // For inverted metrics (position, bounce rate), flip the direction
+    const actualChange = inverted ? -percentChange : percentChange;
+    
+    let direction = 'neutral';
+    if (Math.abs(actualChange) < 2) {
+        direction = 'neutral';
+    } else if (actualChange > 0) {
+        direction = 'up';
+    } else {
+        direction = 'down';
+    }
+    
+    return {
+        percentChange: Math.abs(percentChange), // Always positive number
+        direction: direction
+    };
+}
+
+
 
 // Modal display function (customize to match your UI style)
 function showDashboardModal(htmlContent) {
