@@ -611,7 +611,13 @@
                                 </div>
                             ` : `
                                 <div class="no-data-message">
-                                    <span class="no-data-icon">📊</span>
+                                    <span class="no-data-icon">
+                                    <div style="margin-bottom: 16px; display: flex; justify-content: center;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
+                        <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                                    </span>
                                     <span class="no-data-text">Connect Google Analytics</span>
                                 </div>
                             `}
