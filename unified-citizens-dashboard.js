@@ -1231,7 +1231,9 @@
         if (!ga4Data || ga4Data.noDataFound) {
             return `
                 <div class="metric-card no-data">
-                    <div class="metric-icon">📊</div>
+                    <div class="metric-icon"><svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
+                        <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg></div>
                     <div class="metric-label">Google Analytics</div>
                     <div class="metric-value">Not Connected</div>
                     <div class="metric-description">Connect GA4 for user behavior insights</div>
