@@ -3447,6 +3447,7 @@ function showUnifiedNotification(message) {
 // Based on actual citizen queries and Irish government service patterns
 // ===========================================
 
+
 // EXPANDED IRISH-SPECIFIC KEYWORDS (400+ terms based on real citizen queries)
 const socialWelfareKeywords = [
     // Benefits & Allowances
@@ -3735,6 +3736,87 @@ function classifyCitizenIntent(query) {
         });
     });
     
+    // ENHANCED: Apply Irish-specific service keyword matching with intent boosting
+    const irishKeywordSets = {
+        socialWelfare: socialWelfareKeywords,
+        health: healthKeywords,
+        family: familyChildrenKeywords,
+        housing: housingKeywords,
+        education: educationKeywords,
+        employment: employmentKeywords,
+        elderly: elderlyKeywords,
+        disability: disabilityKeywords,
+        transport: transportKeywords,
+        legal: legalKeywords,
+        business: businessKeywords,
+        documents: documentKeywords,
+        emergency: emergencyKeywords
+    };
+    
+    // Check for Irish-specific service matches and boost relevant intents
+    Object.entries(irishKeywordSets).forEach(([serviceType, keywords]) => {
+        keywords.forEach(keyword => {
+            if (queryLower.includes(keyword.toLowerCase())) {
+                // Boost intent scores based on service type and keyword context
+                switch(serviceType) {
+                    case 'socialWelfare':
+                        intentScores.eligibilityResearch += 4; // People often check if they qualify
+                        intentScores.immediateAction += 3; // Social welfare often urgent
+                        intentScores.processLearning += 2; // Need to know how to apply
+                        matchedKeywords.eligibilityResearch.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'health':
+                        intentScores.eligibilityResearch += 4; // Medical card eligibility common
+                        intentScores.contactSeeking += 3; // Health services need contact info
+                        intentScores.processLearning += 2;
+                        matchedKeywords.eligibilityResearch.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'emergency':
+                        intentScores.immediateAction += 8; // Emergency = immediate action
+                        intentScores.contactSeeking += 6; // Need contact info urgently
+                        intentScores.problemSolving += 4; // Usually solving a crisis
+                        matchedKeywords.immediateAction.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'housing':
+                        intentScores.eligibilityResearch += 4; // Housing eligibility key
+                        intentScores.processLearning += 3; // Complex application process
+                        intentScores.statusChecking += 2; // Often checking waiting lists
+                        matchedKeywords.eligibilityResearch.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'documents':
+                        intentScores.processLearning += 5; // Need to know how to get docs
+                        intentScores.documentForm += 4; // Direct document seeking
+                        intentScores.contactSeeking += 2; // Where to get documents
+                        matchedKeywords.processLearning.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'disability':
+                        intentScores.eligibilityResearch += 5; // Disability eligibility complex
+                        intentScores.processLearning += 3;
+                        intentScores.problemSolving += 2; // Often appeals/issues
+                        matchedKeywords.eligibilityResearch.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'employment':
+                        intentScores.eligibilityResearch += 3;
+                        intentScores.processLearning += 3;
+                        intentScores.problemSolving += 2; // Employment issues
+                        matchedKeywords.eligibilityResearch.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    case 'legal':
+                        intentScores.problemSolving += 6; // Legal = problem solving
+                        intentScores.contactSeeking += 4; // Need legal contacts
+                        intentScores.processLearning += 2;
+                        matchedKeywords.problemSolving.push(`Irish ${serviceType}: ${keyword}`);
+                        break;
+                    default:
+                        // General Irish service boost
+                        intentScores.eligibilityResearch += 2;
+                        intentScores.processLearning += 2;
+                        matchedKeywords.generalInformation.push(`Irish ${serviceType}: ${keyword}`);
+                }
+            }
+        });
+    });
+    
     // Apply urgency boosting
     const urgencyIndicators = ['urgent', 'emergency', 'today', 'deadline', 'expires', 'asap'];
     const hasUrgency = urgencyIndicators.some(indicator => queryLower.includes(indicator));
@@ -3743,13 +3825,30 @@ function classifyCitizenIntent(query) {
         intentScores.problemSolving += 25;
     }
     
-    // Apply Irish-specific service boosting
-    const irishServiceTerms = ['social welfare', 'citizens information', 'intreo', 'hse', 'revenue'];
-    const hasIrishService = irishServiceTerms.some(term => queryLower.includes(term));
+    // Enhanced Irish-specific service detection using our comprehensive keyword lists
+    let hasIrishService = false;
+    let detectedServiceTypes = [];
+    
+    Object.entries(irishKeywordSets).forEach(([serviceType, keywords]) => {
+        const hasThisService = keywords.some(keyword => queryLower.includes(keyword.toLowerCase()));
+        if (hasThisService) {
+            hasIrishService = true;
+            detectedServiceTypes.push(serviceType);
+        }
+    });
+    
+    // Additional high-level Irish service terms
+    const mainIrishServiceTerms = ['social welfare', 'citizens information', 'intreo', 'hse', 'revenue', 'dublin city council', 'county council'];
+    if (mainIrishServiceTerms.some(term => queryLower.includes(term))) {
+        hasIrishService = true;
+        detectedServiceTypes.push('government');
+    }
+    
+    // Apply Irish service multiplier boost
     if (hasIrishService) {
         Object.keys(intentScores).forEach(category => {
             if (intentScores[category] > 0) {
-                intentScores[category] *= 1.2;
+                intentScores[category] *= 1.3; // Increased from 1.2 to 1.3
             }
         });
     }
@@ -3776,8 +3875,52 @@ function classifyCitizenIntent(query) {
         totalMatches: Object.values(matchedKeywords).flat().length,
         hasUrgency: hasUrgency,
         hasIrishService: hasIrishService,
+        detectedServiceTypes: detectedServiceTypes, // NEW: Which Irish services detected
         secondaryIntents: secondaryIntents,
         plainEnglish: citizenJourneyCategories[primaryIntent]?.plainEnglish || 'Citizens with general inquiries'
+    };
+}
+
+// ADD NEW FUNCTION: Irish Service Analysis
+function analyzeIrishServiceUsage(intentAnalysis) {
+    const serviceBreakdown = {
+        socialWelfare: 0,
+        health: 0,
+        family: 0,
+        housing: 0,
+        education: 0,
+        employment: 0,
+        elderly: 0,
+        disability: 0,
+        transport: 0,
+        legal: 0,
+        business: 0,
+        documents: 0,
+        emergency: 0,
+        government: 0
+    };
+    
+    let totalIrishQueries = 0;
+    let totalImpressions = 0;
+    
+    intentAnalysis.forEach(item => {
+        if (item.hasIrishService && item.detectedServiceTypes) {
+            totalIrishQueries++;
+            totalImpressions += item.impressions;
+            
+            item.detectedServiceTypes.forEach(serviceType => {
+                if (serviceBreakdown.hasOwnProperty(serviceType)) {
+                    serviceBreakdown[serviceType]++;
+                }
+            });
+        }
+    });
+    
+    return {
+        serviceBreakdown,
+        totalIrishQueries,
+        totalImpressions,
+        percentageIrish: intentAnalysis.length > 0 ? Math.round((totalIrishQueries / intentAnalysis.length) * 100) : 0
     };
 }
 
@@ -4049,6 +4192,8 @@ function performCitizenQueryAnalysis(gscData, pageUrl) {
             matchedKeywords: intent.matchedKeywords,
             totalMatches: intent.totalMatches,
             hasUrgency: intent.hasUrgency,
+            hasIrishService: intent.hasIrishService,
+            detectedServiceTypes: intent.detectedServiceTypes, // NEW: Include detected Irish services
             secondaryIntents: intent.secondaryIntents
         });
         
@@ -4193,10 +4338,58 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
         .slice(0, 6)
         .filter(([,count]) => count > 0);
     
+    // NEW: Analyze Irish service usage
+    const irishServiceAnalysis = analyzeIrishServiceUsage(intentAnalysis);
+    const topIrishServices = Object.entries(irishServiceAnalysis.serviceBreakdown)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .filter(([,count]) => count > 0);
+    
     return `
         <div class="citizen-journey-panel">
             <div class="journey-explanation">
                 <p><strong>Citizen Journey Analysis:</strong> Understanding what stage citizens are at when they search helps tailor content to their specific needs and urgency levels.</p>
+            </div>
+            
+            <!-- Irish Service Detection Analysis -->
+            <div class="irish-service-analysis">
+                <h4>🇮🇪 Irish Government Service Detection</h4>
+                <div class="service-stats">
+                    <div class="service-stat">
+                        <span class="stat-number">${irishServiceAnalysis.totalIrishQueries}</span>
+                        <span class="stat-label">Irish Service Queries</span>
+                    </div>
+                    <div class="service-stat">
+                        <span class="stat-number">${irishServiceAnalysis.percentageIrish}%</span>
+                        <span class="stat-label">of All Queries</span>
+                    </div>
+                    <div class="service-stat">
+                        <span class="stat-number">${formatNumber(irishServiceAnalysis.totalImpressions)}</span>
+                        <span class="stat-label">Monthly Irish Service Searches</span>
+                    </div>
+                </div>
+                
+                ${topIrishServices.length > 0 ? `
+                    <div class="irish-service-breakdown">
+                        <h5>📊 Top Irish Services Being Searched:</h5>
+                        <div class="service-bars">
+                            ${topIrishServices.map(([service, count]) => {
+                                const percentage = Math.round((count / irishServiceAnalysis.totalIrishQueries) * 100);
+                                return `
+                                    <div class="service-bar">
+                                        <div class="service-bar-label">
+                                            <span class="service-name">${getServiceDisplayName(service)}</span>
+                                            <span class="service-count">${count} queries (${percentage}%)</span>
+                                        </div>
+                                        <div class="service-bar-fill">
+                                            <div class="service-bar-progress" style="width: ${percentage}%; background: ${getServiceColor(service)}"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
             
             <!-- Intent Distribution -->
@@ -4234,6 +4427,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                         ${getIntentIcon(item.primaryIntent)} ${item.plainEnglishIntent}
                                     </span>
                                     ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent</span>' : ''}
+                                    ${item.hasIrishService ? '<span class="irish-service-badge">🇮🇪 Irish Service</span>' : ''}
                                     <span class="confidence-badge">${Math.round(item.confidence * 100)}% confident</span>
                                 </div>
                             </div>
@@ -4242,6 +4436,11 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                 <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
                                 <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
                             </div>
+                            ${item.detectedServiceTypes && item.detectedServiceTypes.length > 0 ? `
+                                <div class="detected-services">
+                                    <strong>Irish Services Detected:</strong> ${item.detectedServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
+                                </div>
+                            ` : ''}
                             ${item.secondaryIntents.length > 0 ? `
                                 <div class="secondary-intents">
                                     <strong>Also indicates:</strong> ${item.secondaryIntents.map(intent => 
@@ -4263,6 +4462,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                             ${getIntentIcon(item.primaryIntent)} ${item.plainEnglishIntent}
                                         </span>
                                         ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent</span>' : ''}
+                                        ${item.hasIrishService ? '<span class="irish-service-badge">🇮🇪 Irish Service</span>' : ''}
                                         <span class="confidence-badge">${Math.round(item.confidence * 100)}% confident</span>
                                     </div>
                                 </div>
@@ -4271,6 +4471,11 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                     <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
                                     <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
                                 </div>
+                                ${item.detectedServiceTypes && item.detectedServiceTypes.length > 0 ? `
+                                    <div class="detected-services">
+                                        <strong>Irish Services Detected:</strong> ${item.detectedServiceTypes.map(type => getServiceDisplayName(type)).join(', ')}
+                                    </div>
+                                ` : ''}
                                 ${item.secondaryIntents.length > 0 ? `
                                     <div class="secondary-intents">
                                         <strong>Also indicates:</strong> ${item.secondaryIntents.map(intent => 
@@ -4654,6 +4859,46 @@ function createCitizenOpportunitiesPanel(opportunities) {
 }
 
 // HELPER FUNCTIONS
+function getServiceDisplayName(service) {
+    const displayNames = {
+        socialWelfare: 'Social Welfare',
+        health: 'Health Services',
+        family: 'Family & Children',
+        housing: 'Housing',
+        education: 'Education',
+        employment: 'Employment',
+        elderly: 'Elderly Services',
+        disability: 'Disability Services',
+        transport: 'Transport',
+        legal: 'Legal Services',
+        business: 'Business',
+        documents: 'Documents & Certificates',
+        emergency: 'Emergency Services',
+        government: 'General Government'
+    };
+    return displayNames[service] || service;
+}
+
+function getServiceColor(service) {
+    const colors = {
+        socialWelfare: '#10b981',
+        health: '#ef4444',
+        family: '#f59e0b',
+        housing: '#3b82f6',
+        education: '#8b5cf6',
+        employment: '#06b6d4',
+        elderly: '#84cc16',
+        disability: '#f97316',
+        transport: '#6366f1',
+        legal: '#dc2626',
+        business: '#059669',
+        documents: '#7c3aed',
+        emergency: '#b91c1c',
+        government: '#374151'
+    };
+    return colors[service] || '#64748b';
+}
+
 function getIntentColor(intent) {
     const colors = {
         immediateAction: '#ef4444',
@@ -4879,6 +5124,106 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             /* Journey Panel */
+            .irish-service-analysis {
+                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 24px;
+                border-left: 3px solid #16a34a;
+            }
+            
+            .service-stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 16px;
+                margin: 16px 0;
+            }
+            
+            .service-stat {
+                text-align: center;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.7);
+                border-radius: 6px;
+            }
+            
+            .stat-number {
+                display: block;
+                font-size: 1.8rem;
+                font-weight: 800;
+                color: #166534;
+                margin-bottom: 4px;
+            }
+            
+            .stat-label {
+                font-size: 0.8rem;
+                color: #374151;
+                font-weight: 600;
+            }
+            
+            .irish-service-breakdown {
+                margin-top: 16px;
+            }
+            
+            .service-bars {
+                margin-top: 12px;
+                display: grid;
+                gap: 10px;
+            }
+            
+            .service-bar {
+                display: grid;
+                gap: 4px;
+            }
+            
+            .service-bar-label {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 0.8rem;
+            }
+            
+            .service-name {
+                font-weight: 600;
+                color: #374151;
+            }
+            
+            .service-count {
+                color: #6b7280;
+                font-size: 0.75rem;
+            }
+            
+            .service-bar-fill {
+                height: 6px;
+                background: #e5e7eb;
+                border-radius: 3px;
+                overflow: hidden;
+            }
+            
+            .service-bar-progress {
+                height: 100%;
+                border-radius: 3px;
+                transition: width 0.5s ease;
+            }
+            
+            .irish-service-badge {
+                background: #dcfce7;
+                color: #166534;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.7rem;
+                font-weight: 700;
+            }
+            
+            .detected-services {
+                font-size: 0.8rem;
+                color: #059669;
+                font-weight: 500;
+                margin-top: 8px;
+                padding: 8px;
+                background: rgba(16, 185, 129, 0.1);
+                border-radius: 4px;
+            }
+            
             .intent-distribution {
                 background: #f8fafc;
                 padding: 20px;
@@ -5340,6 +5685,11 @@ function initializeCitizenQueryIntelligence() {
         }
     });
 }
+
+// ALIAS FOR BACKWARD COMPATIBILITY
+const createEnhancedQueryAnalysisStyles = createCitizenQueryIntelligenceStyles;
+const createEnhancedQueryAnalysisSection = createCitizenQueryIntelligenceSection;
+const performEnhancedQueryAnalysis = performCitizenQueryAnalysis;
 
 // AUTO-INITIALIZATION
 document.addEventListener('DOMContentLoaded', function() {
