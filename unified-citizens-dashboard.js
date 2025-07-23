@@ -4394,13 +4394,13 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <!-- Intent Distribution -->
             <div class="intent-distribution">
                 <h4>🗺️ Where Citizens Are in Their Journey</h4>
-                <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong></p>
+                <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused)</p>
                 <div class="intent-bars">
                     ${topIntents.map(([intent, count]) => {
                         const percentage = Math.round((count / intentAnalysis.length) * 100);
                         const config = citizenJourneyCategories[intent];
                         return `
-                            <div class="intent-bar clickable" data-filter-intent="${intent}" role="button" tabindex="0">
+                            <div class="intent-bar clickable" data-filter-intent="${intent}" role="button" tabindex="0" aria-label="Click to filter queries by ${config?.plainEnglish || intent}" title="Click to see only ${config?.plainEnglish || intent} queries">
                                 <div class="intent-bar-label">
                                     <span class="intent-name">${config?.plainEnglish || intent}</span>
                                     <span class="intent-count">${count} queries (${percentage}%)</span>
@@ -4414,7 +4414,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                 </div>
                 <div class="filter-controls">
                     <button class="clear-filter-btn" id="clearJourneyFilter" style="display: none;">
-                        ✕ Show All Journey Stages (${intentAnalysis.length} queries)
+                        ✕ Show All Journey Stages (<span id="totalQueryCount">${intentAnalysis.length}</span> queries)
                     </button>
                 </div>
             </div>
@@ -5244,6 +5244,13 @@ function createCitizenQueryIntelligenceStyles() {
                 margin-bottom: 24px;
             }
             
+            .filter-instruction {
+                font-size: 0.85rem;
+                color: #6366f1;
+                margin-bottom: 12px;
+                font-style: italic;
+            }
+            
             .intent-bars {
                 margin-top: 16px;
                 display: grid;
@@ -5253,6 +5260,60 @@ function createCitizenQueryIntelligenceStyles() {
             .intent-bar {
                 display: grid;
                 gap: 6px;
+                transition: all 0.2s ease;
+            }
+            
+            .intent-bar.clickable {
+                cursor: pointer;
+                padding: 8px;
+                border-radius: 6px;
+                border: 2px solid transparent;
+                position: relative;
+            }
+            
+            .intent-bar.clickable::before {
+                content: "👆 Click to filter";
+                position: absolute;
+                top: -25px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #1f2937;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+                white-space: nowrap;
+                z-index: 10;
+            }
+            
+            .intent-bar.clickable:hover::before {
+                opacity: 1;
+            }
+            
+            .intent-bar.clickable:hover {
+                background: rgba(59, 130, 246, 0.1);
+                border-color: rgba(59, 130, 246, 0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            }
+            
+            .intent-bar.clickable:active {
+                transform: translateY(0);
+            }
+            
+            .intent-bar.active-filter {
+                background: rgba(59, 130, 246, 0.15) !important;
+                border-color: #3b82f6 !important;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            }
+            
+            .intent-bar.active-filter::before {
+                content: "✓ Filtered";
+                opacity: 1;
+                background: #10b981;
             }
             
             .intent-bar-label {
@@ -5283,6 +5344,63 @@ function createCitizenQueryIntelligenceStyles() {
                 height: 100%;
                 border-radius: 4px;
                 transition: width 0.5s ease;
+            }
+            
+            .filter-controls {
+                margin-top: 16px;
+                text-align: center;
+            }
+            
+            .clear-filter-btn {
+                background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .clear-filter-btn:hover {
+                background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+                transform: translateY(-1px);
+            }
+            
+            .queries-analysis-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            
+            .filter-status {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px;
+                background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+                border-radius: 6px;
+                border: 1px solid #3b82f6;
+                font-size: 0.85rem;
+            }
+            
+            .filter-label {
+                color: #1e40af;
+                font-weight: 600;
+            }
+            
+            .filter-value {
+                color: #1f2937;
+                font-weight: 700;
+            }
+            
+            .filter-count {
+                color: #6b7280;
+                font-size: 0.8rem;
             }
             
             /* Query Items */
@@ -5663,6 +5781,18 @@ function initializeCitizenQueryIntelligence() {
             }
         }
         
+        // Handle journey stage filtering
+        if (e.target.closest('.intent-bar.clickable')) {
+            const intentBar = e.target.closest('.intent-bar.clickable');
+            const filterIntent = intentBar.getAttribute('data-filter-intent');
+            filterQueriesByIntent(filterIntent);
+        }
+        
+        // Handle clear filter
+        if (e.target.closest('#clearJourneyFilter')) {
+            clearJourneyFilter();
+        }
+        
         // Handle show more buttons
         if (e.target.closest('.show-more-btn')) {
             const button = e.target.closest('.show-more-btn');
@@ -5697,6 +5827,125 @@ function initializeCitizenQueryIntelligence() {
             }
         }
     });
+    
+    // Handle keyboard navigation for intent bars
+    document.addEventListener('keydown', function(e) {
+        if (e.target.closest('.intent-bar.clickable') && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            const intentBar = e.target.closest('.intent-bar.clickable');
+            const filterIntent = intentBar.getAttribute('data-filter-intent');
+            filterQueriesByIntent(filterIntent);
+        }
+    });
+}
+
+// JOURNEY FILTERING FUNCTIONS
+let originalQueryData = null; // Store original data for filter clearing
+
+function filterQueriesByIntent(filterIntent) {
+    const queriesList = document.getElementById('citizenQueriesList');
+    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const filterValueDisplay = document.getElementById('filterValueDisplay');
+    const filterCountDisplay = document.getElementById('filterCountDisplay');
+    const clearFilterBtn = document.getElementById('clearJourneyFilter');
+    
+    if (!queriesList) return;
+    
+    // Store original data if not already stored
+    if (!originalQueryData) {
+        originalQueryData = {
+            mainQueries: queriesList.innerHTML,
+            hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
+        };
+    }
+    
+    // Clear any existing active filter styling
+    document.querySelectorAll('.intent-bar.active-filter').forEach(bar => {
+        bar.classList.remove('active-filter');
+    });
+    
+    // Add active filter styling to clicked bar
+    const clickedBar = document.querySelector(`[data-filter-intent="${filterIntent}"]`);
+    if (clickedBar) {
+        clickedBar.classList.add('active-filter');
+    }
+    
+    // Get all query items (including hidden ones)
+    let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    if (hiddenQueriesList) {
+        allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
+    }
+    
+    // Filter items by intent
+    const filteredItems = allQueryItems.filter(item => {
+        return item.getAttribute('data-intent') === filterIntent;
+    });
+    
+    // Clear current display
+    queriesList.innerHTML = '';
+    
+    // Show filtered items
+    filteredItems.forEach(item => {
+        queriesList.appendChild(item.cloneNode(true));
+    });
+    
+    // Update filter status
+    const intentConfig = citizenJourneyCategories[filterIntent];
+    const displayName = intentConfig?.plainEnglish || filterIntent;
+    
+    if (filterValueDisplay) filterValueDisplay.textContent = displayName;
+    if (filterCountDisplay) filterCountDisplay.textContent = `(${filteredItems.length} queries)`;
+    if (filterStatus) filterStatus.style.display = 'flex';
+    if (clearFilterBtn) clearFilterBtn.style.display = 'block';
+    
+    // Hide pagination controls when filtering
+    const paginationControls = queriesList.closest('.citizen-tab-panel').querySelector('.pagination-controls');
+    if (paginationControls) {
+        paginationControls.style.display = 'none';
+    }
+    
+    // Scroll to queries list
+    setTimeout(() => {
+        queriesList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+}
+
+function clearJourneyFilter() {
+    const panel = document.querySelector('[data-citizen-panel="journey"]');
+    if (!panel || !originalQueryData) return;
+    
+    // Clear active filter styling
+    document.querySelectorAll('.intent-bar.active-filter').forEach(bar => {
+        bar.classList.remove('active-filter');
+    });
+    
+    // Hide filter status
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const clearFilterBtn = document.getElementById('clearJourneyFilter');
+    if (filterStatus) filterStatus.style.display = 'none';
+    if (clearFilterBtn) clearFilterBtn.style.display = 'none';
+    
+    // Restore original query data
+    const queriesList = document.getElementById('citizenQueriesList');
+    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
+    
+    if (queriesList && originalQueryData.mainQueries) {
+        queriesList.innerHTML = originalQueryData.mainQueries;
+    }
+    
+    if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+        hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+    }
+    
+    // Show pagination controls again
+    const paginationControls = panel.querySelector('.pagination-controls');
+    if (paginationControls) {
+        paginationControls.style.display = 'block';
+    }
+    
+    // Reset original data
+    originalQueryData = null;
 }
 
 // ALIAS FOR BACKWARD COMPATIBILITY
