@@ -881,18 +881,20 @@
         `;
     }
 
-    function createContentAnalysisPanel(gscData, ga4Data) {
-        const contentGaps = identifyContentGaps(gscData, ga4Data);
-        
-        return `
-            <div class="panel-content">
-                <div class="section">
-                    <h2 class="section-title">📝 Content Performance Score</h2>
-                    ${createContentScoreBreakdown(gscData, ga4Data)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🔍 Content Gap Analysis</h2>
+    function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {  // Note: add pageUrl parameter
+    const contentGaps = identifyContentGaps(gscData, ga4Data);
+    
+    return `
+        <div class="panel-content">
+            ${createEnhancedQueryAnalysisSection(gscData, pageUrl)}
+            
+            <div class="section">
+                <h2 class="section-title">📝 Content Performance Score</h2>
+                ${createContentScoreBreakdown(gscData, ga4Data)}
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">🔍 Content Gap Analysis</h2>
                     <div class="gap-analysis-grid">
                         <div class="gap-card high-opportunity">
                             <div class="gap-header">
@@ -3174,6 +3176,8 @@
                     min-height: auto;
                 }
             }
+
+            ${createEnhancedQueryAnalysisStyles()}
         </style>
     `;
 }
@@ -3250,7 +3254,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                     </div>
                     
                     <div class="tab-panel" data-panel="content">
-                        ${createContentAnalysisPanel(gscData, ga4Data)}
+                        ${createContentAnalysisPanel(gscData, ga4Data, url)}
                     </div>
                     
                     <div class="tab-panel" data-panel="users">
@@ -3434,6 +3438,1172 @@ function showUnifiedNotification(message) {
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
+
+
+// ===========================================
+// ENHANCED QUERY ANALYSIS FUNCTIONS
+// Add this code to your unified-citizens-dashboard.js file
+// ===========================================
+
+// Query Intent Classification
+function classifyQueryIntent(query) {
+    const transactionalKeywords = [
+        'apply', 'application', 'form', 'register', 'registration', 'submit', 'download',
+        'book', 'appointment', 'contact', 'phone', 'number', 'office', 'address',
+        'pay', 'payment', 'fee', 'cost', 'price', 'how to apply', 'where to apply',
+        'certificate', 'license', 'permit', 'visa', 'passport', 'renew', 'renewal'
+    ];
+    
+    const informationalKeywords = [
+        'what is', 'what are', 'how does', 'why', 'when', 'where', 'who',
+        'definition', 'meaning', 'explain', 'information', 'about', 'guide',
+        'requirements', 'eligibility', 'criteria', 'rules', 'law', 'legislation',
+        'benefits', 'rights', 'entitlements', 'help', 'support', 'advice'
+    ];
+    
+    const queryLower = query.toLowerCase();
+    
+    let transactionalScore = 0;
+    let informationalScore = 0;
+    
+    transactionalKeywords.forEach(keyword => {
+        if (queryLower.includes(keyword)) {
+            transactionalScore += keyword.length > 3 ? 2 : 1;
+        }
+    });
+    
+    informationalKeywords.forEach(keyword => {
+        if (queryLower.includes(keyword)) {
+            informationalScore += keyword.length > 3 ? 2 : 1;
+        }
+    });
+    
+    // Default scoring based on structure
+    if (queryLower.startsWith('how to ') || queryLower.startsWith('where to ')) {
+        transactionalScore += 2;
+    }
+    if (queryLower.includes('?') || queryLower.startsWith('what ') || queryLower.startsWith('when ')) {
+        informationalScore += 1;
+    }
+    
+    if (transactionalScore > informationalScore) {
+        return {
+            intent: 'transactional',
+            confidence: Math.min(0.9, 0.5 + (transactionalScore * 0.1)),
+            score: transactionalScore
+        };
+    } else if (informationalScore > transactionalScore) {
+        return {
+            intent: 'informational',
+            confidence: Math.min(0.9, 0.5 + (informationalScore * 0.1)),
+            score: informationalScore
+        };
+    } else {
+        return {
+            intent: 'mixed',
+            confidence: 0.5,
+            score: 0
+        };
+    }
+}
+
+// Query-to-Content Mismatch Detection
+function detectContentMismatch(query, pageUrl, impressions, ctr, position) {
+    const urlParts = pageUrl.toLowerCase().split('/').filter(part => part.length > 0);
+    const urlKeywords = urlParts.join(' ').replace(/-/g, ' ').split(' ');
+    const queryWords = query.toLowerCase().split(' ');
+    
+    // Calculate keyword overlap
+    let overlap = 0;
+    queryWords.forEach(word => {
+        if (word.length > 2 && urlKeywords.some(urlWord => 
+            urlWord.includes(word) || word.includes(urlWord))) {
+            overlap++;
+        }
+    });
+    
+    const overlapPercentage = queryWords.length > 0 ? (overlap / queryWords.length) : 0;
+    
+    // Mismatch indicators
+    const highImpressions = impressions >= 100;
+    const lowCTR = ctr < 0.03;
+    const poorPosition = position > 10;
+    const lowOverlap = overlapPercentage < 0.3;
+    
+    let mismatchScore = 0;
+    let reasons = [];
+    
+    if (highImpressions && lowCTR) {
+        mismatchScore += 3;
+        reasons.push('High impressions but low CTR suggests title/description mismatch');
+    }
+    
+    if (lowOverlap) {
+        mismatchScore += 2;
+        reasons.push(`Low keyword overlap (${(overlapPercentage * 100).toFixed(0)}%) with page content`);
+    }
+    
+    if (poorPosition && highImpressions) {
+        mismatchScore += 2;
+        reasons.push('High search volume but poor ranking suggests content relevance issues');
+    }
+    
+    return {
+        isMismatch: mismatchScore >= 3,
+        severity: mismatchScore >= 5 ? 'high' : mismatchScore >= 3 ? 'medium' : 'low',
+        score: mismatchScore,
+        reasons: reasons,
+        overlapPercentage: Math.round(overlapPercentage * 100)
+    };
+}
+
+// Long-tail Opportunity Scoring
+function calculateLongTailOpportunities(topQueries) {
+    if (!topQueries || topQueries.length === 0) return [];
+    
+    const opportunities = [];
+    const totalImpressions = topQueries.reduce((sum, q) => sum + q.impressions, 0);
+    
+    topQueries.forEach((query, index) => {
+        const isLongTail = query.query.split(' ').length >= 4;
+        const impressionShare = query.impressions / totalImpressions;
+        const rankingOpportunity = query.position <= 20 && query.position > 3;
+        const ctrPotential = query.ctr < getCTRBenchmark(query.position) * 0.8;
+        
+        let opportunityScore = 0;
+        let factors = [];
+        
+        if (isLongTail && query.impressions >= 50) {
+            opportunityScore += 3;
+            factors.push('Long-tail query with decent volume');
+        }
+        
+        if (rankingOpportunity) {
+            opportunityScore += 2;
+            factors.push(`Rankable position (${query.position.toFixed(0)}) with improvement potential`);
+        }
+        
+        if (ctrPotential && query.impressions >= 100) {
+            opportunityScore += 2;
+            factors.push('CTR below expected benchmark');
+        }
+        
+        if (query.impressions >= 200 && query.clicks < 10) {
+            opportunityScore += 3;
+            factors.push('High impressions but very low clicks');
+        }
+        
+        // Bonus for specific long-tail patterns
+        if (query.query.toLowerCase().includes('how to ') || 
+            query.query.toLowerCase().includes('where to ') ||
+            query.query.toLowerCase().includes('what is ')) {
+            opportunityScore += 1;
+            factors.push('Question-based query pattern');
+        }
+        
+        if (opportunityScore >= 3) {
+            opportunities.push({
+                query: query.query,
+                score: opportunityScore,
+                impressions: query.impressions,
+                clicks: query.clicks,
+                ctr: query.ctr,
+                position: query.position,
+                factors: factors,
+                priority: opportunityScore >= 6 ? 'high' : opportunityScore >= 4 ? 'medium' : 'low'
+            });
+        }
+    });
+    
+    return opportunities.sort((a, b) => b.score - a.score);
+}
+
+// Enhanced Query Analysis (combines all three analyses)
+function performEnhancedQueryAnalysis(gscData, pageUrl) {
+    if (!gscData || !gscData.topQueries || gscData.topQueries.length === 0) {
+        return {
+            intentAnalysis: [],
+            mismatchDetection: [],
+            longTailOpportunities: [],
+            summary: {
+                totalQueries: 0,
+                transactionalQueries: 0,
+                informationalQueries: 0,
+                mismatchedQueries: 0,
+                opportunities: 0
+            }
+        };
+    }
+    
+    const intentAnalysis = [];
+    const mismatchDetection = [];
+    let transactionalCount = 0;
+    let informationalCount = 0;
+    let mismatchCount = 0;
+    
+    // Analyze each query
+    gscData.topQueries.forEach(queryData => {
+        // Intent classification
+        const intent = classifyQueryIntent(queryData.query);
+        intentAnalysis.push({
+            query: queryData.query,
+            intent: intent.intent,
+            confidence: intent.confidence,
+            impressions: queryData.impressions,
+            clicks: queryData.clicks
+        });
+        
+        if (intent.intent === 'transactional') transactionalCount++;
+        if (intent.intent === 'informational') informationalCount++;
+        
+        // Mismatch detection
+        const mismatch = detectContentMismatch(
+            queryData.query, 
+            pageUrl, 
+            queryData.impressions, 
+            queryData.ctr, 
+            queryData.position
+        );
+        
+        if (mismatch.isMismatch) {
+            mismatchDetection.push({
+                query: queryData.query,
+                severity: mismatch.severity,
+                reasons: mismatch.reasons,
+                overlap: mismatch.overlapPercentage,
+                impressions: queryData.impressions,
+                ctr: queryData.ctr,
+                position: queryData.position
+            });
+            mismatchCount++;
+        }
+    });
+    
+    // Long-tail opportunities
+    const longTailOpportunities = calculateLongTailOpportunities(gscData.topQueries);
+    
+    return {
+        intentAnalysis: intentAnalysis.slice(0, 10),
+        mismatchDetection: mismatchDetection.slice(0, 8),
+        longTailOpportunities: longTailOpportunities.slice(0, 6),
+        summary: {
+            totalQueries: gscData.topQueries.length,
+            transactionalQueries: transactionalCount,
+            informationalQueries: informationalCount,
+            mismatchedQueries: mismatchCount,
+            opportunities: longTailOpportunities.length
+        }
+    };
+}
+
+// Create Enhanced Query Analysis UI Component
+function createEnhancedQueryAnalysisSection(gscData, pageUrl) {
+    const analysis = performEnhancedQueryAnalysis(gscData, pageUrl);
+    
+    return `
+        <div class="section enhanced-query-analysis">
+            <h2 class="section-title">🔍 Enhanced Query Intelligence</h2>
+            <div class="query-analysis-explanation">
+                <p>Advanced analysis of search queries to understand user intent, content alignment, and optimization opportunities.</p>
+            </div>
+            
+            <!-- Summary Dashboard -->
+            <div class="query-summary-grid">
+                <div class="query-summary-card">
+                    <div class="summary-number">${analysis.summary.totalQueries}</div>
+                    <div class="summary-label">Total Queries</div>
+                </div>
+                <div class="query-summary-card intent-split">
+                    <div class="summary-split">
+                        <div class="split-item">
+                            <span class="split-number">${analysis.summary.informationalQueries}</span>
+                            <span class="split-label">Info</span>
+                        </div>
+                        <div class="split-divider"></div>
+                        <div class="split-item">
+                            <span class="split-number">${analysis.summary.transactionalQueries}</span>
+                            <span class="split-label">Action</span>
+                        </div>
+                    </div>
+                    <div class="summary-label">Query Intent Split</div>
+                </div>
+                <div class="query-summary-card ${analysis.summary.mismatchedQueries > 0 ? 'warning' : 'success'}">
+                    <div class="summary-number">${analysis.summary.mismatchedQueries}</div>
+                    <div class="summary-label">Content Mismatches</div>
+                </div>
+                <div class="query-summary-card opportunities">
+                    <div class="summary-number">${analysis.summary.opportunities}</div>
+                    <div class="summary-label">Long-tail Opportunities</div>
+                </div>
+            </div>
+            
+            <!-- Analysis Tabs -->
+            <div class="query-analysis-tabs">
+                <div class="query-tab-nav">
+                    <button class="query-tab-btn active" data-query-tab="intent">
+                        <span class="tab-icon">🎯</span>
+                        <span>Intent Analysis</span>
+                    </button>
+                    <button class="query-tab-btn" data-query-tab="mismatch">
+                        <span class="tab-icon">⚠️</span>
+                        <span>Content Mismatches</span>
+                        ${analysis.summary.mismatchedQueries > 0 ? '<span class="tab-badge">' + analysis.summary.mismatchedQueries + '</span>' : ''}
+                    </button>
+                    <button class="query-tab-btn" data-query-tab="opportunities">
+                        <span class="tab-icon">💎</span>
+                        <span>Long-tail Opportunities</span>
+                        ${analysis.summary.opportunities > 0 ? '<span class="tab-badge">' + analysis.summary.opportunities + '</span>' : ''}
+                    </button>
+                </div>
+                
+                <div class="query-tab-content">
+                    <!-- Intent Analysis Panel -->
+                    <div class="query-tab-panel active" data-query-panel="intent">
+                        ${createIntentAnalysisPanel(analysis.intentAnalysis)}
+                    </div>
+                    
+                    <!-- Mismatch Detection Panel -->
+                    <div class="query-tab-panel" data-query-panel="mismatch">
+                        ${createMismatchDetectionPanel(analysis.mismatchDetection)}
+                    </div>
+                    
+                    <!-- Long-tail Opportunities Panel -->
+                    <div class="query-tab-panel" data-query-panel="opportunities">
+                        ${createLongtailOpportunitiesPanel(analysis.longTailOpportunities)}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Intent Analysis Panel
+function createIntentAnalysisPanel(intentAnalysis) {
+    if (intentAnalysis.length === 0) {
+        return '<div class="no-data-message">No query data available for intent analysis</div>';
+    }
+    
+    return `
+        <div class="intent-analysis-panel">
+            <div class="intent-explanation">
+                <p><strong>Intent Classification:</strong> Understanding whether users are seeking information or wanting to take action helps optimize content strategy.</p>
+            </div>
+            
+            <div class="intent-queries-list">
+                ${intentAnalysis.map(item => `
+                    <div class="intent-query-item ${item.intent}">
+                        <div class="intent-query-header">
+                            <div class="query-text">"${escapeHtml(item.query)}"</div>
+                            <div class="intent-badges">
+                                <span class="intent-badge ${item.intent}">
+                                    ${item.intent === 'transactional' ? '🎯 Action' : item.intent === 'informational' ? '📚 Info' : '🔄 Mixed'}
+                                </span>
+                                <span class="confidence-badge" style="opacity: ${item.confidence}">
+                                    ${Math.round(item.confidence * 100)}% confidence
+                                </span>
+                            </div>
+                        </div>
+                        <div class="intent-metrics">
+                            <span class="metric">${formatNumber(item.impressions)} impressions</span>
+                            <span class="metric">${formatNumber(item.clicks)} clicks</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="intent-recommendations">
+                <h4>🎯 Content Strategy Recommendations</h4>
+                <div class="recommendations-grid">
+                    <div class="recommendation-card">
+                        <strong>For Informational Queries:</strong>
+                        <p>Focus on comprehensive guides, FAQs, and clear explanations. Optimize for featured snippets.</p>
+                    </div>
+                    <div class="recommendation-card">
+                        <strong>For Transactional Queries:</strong>
+                        <p>Emphasize clear CTAs, application forms, contact details, and step-by-step processes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Mismatch Detection Panel
+function createMismatchDetectionPanel(mismatchDetection) {
+    if (mismatchDetection.length === 0) {
+        return `
+            <div class="no-mismatch-message">
+                <div class="success-icon">✅</div>
+                <div class="success-title">No Major Content Mismatches Detected</div>
+                <div class="success-description">Your content appears well-aligned with search queries</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="mismatch-detection-panel">
+            <div class="mismatch-explanation">
+                <p><strong>Content Mismatch Detection:</strong> Identifies queries where high search volume doesn't convert well, suggesting content-intent misalignment.</p>
+            </div>
+            
+            <div class="mismatch-queries-list">
+                ${mismatchDetection.map(item => `
+                    <div class="mismatch-query-item ${item.severity}">
+                        <div class="mismatch-header">
+                            <div class="query-text">"${escapeHtml(item.query)}"</div>
+                            <div class="severity-badge ${item.severity}">
+                                ${item.severity === 'high' ? '🚨 High Priority' : '⚠️ Medium Priority'}
+                            </div>
+                        </div>
+                        
+                        <div class="mismatch-metrics">
+                            <div class="metric-item">
+                                <span class="metric-label">Impressions:</span>
+                                <span class="metric-value">${formatNumber(item.impressions)}</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">CTR:</span>
+                                <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Position:</span>
+                                <span class="metric-value">#${item.position.toFixed(0)}</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">Content Overlap:</span>
+                                <span class="metric-value">${item.overlap}%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mismatch-reasons">
+                            <strong>Issues Detected:</strong>
+                            <ul>
+                                ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="mismatch-recommendations">
+                            <strong>💡 Recommended Actions:</strong>
+                            <div class="action-items">
+                                ${item.overlap < 30 ? '<div class="action-item">• Review page title and meta description to better match query intent</div>' : ''}
+                                ${item.ctr < 0.02 ? '<div class="action-item">• Optimize title tags and meta descriptions for higher CTR</div>' : ''}
+                                ${item.position > 15 ? '<div class="action-item">• Consider creating dedicated content for this query</div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Long-tail Opportunities Panel
+function createLongtailOpportunitiesPanel(opportunities) {
+    if (opportunities.length === 0) {
+        return `
+            <div class="no-opportunities-message">
+                <div class="info-icon">💡</div>
+                <div class="info-title">No Major Long-tail Opportunities Detected</div>
+                <div class="info-description">Current query performance appears optimized</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="longtail-opportunities-panel">
+            <div class="opportunities-explanation">
+                <p><strong>Long-tail Opportunities:</strong> Specific, longer queries with optimization potential for targeted traffic growth.</p>
+            </div>
+            
+            <div class="opportunities-list">
+                ${opportunities.map(item => `
+                    <div class="opportunity-item ${item.priority}">
+                        <div class="opportunity-header">
+                            <div class="query-text">"${escapeHtml(item.query)}"</div>
+                            <div class="priority-badges">
+                                <span class="priority-badge ${item.priority}">
+                                    ${item.priority === 'high' ? '🔥 High Priority' : item.priority === 'medium' ? '⭐ Medium Priority' : '💫 Low Priority'}
+                                </span>
+                                <span class="score-badge">Score: ${item.score}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="opportunity-metrics">
+                            <div class="metric-group">
+                                <div class="metric-item">
+                                    <span class="metric-label">Monthly Impressions:</span>
+                                    <span class="metric-value">${formatNumber(item.impressions)}</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Current Clicks:</span>
+                                    <span class="metric-value">${formatNumber(item.clicks)}</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <div class="metric-item">
+                                    <span class="metric-label">CTR:</span>
+                                    <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Position:</span>
+                                    <span class="metric-value">#${item.position.toFixed(0)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="opportunity-factors">
+                            <strong>🎯 Opportunity Factors:</strong>
+                            <ul>
+                                ${item.factors.map(factor => `<li>${factor}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="opportunity-potential">
+                            <strong>📈 Potential Impact:</strong>
+                            <div class="potential-metrics">
+                                <div class="potential-item">
+                                    <span>Expected CTR improvement:</span>
+                                    <span class="highlight">+${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100 * 100)}%</span>
+                                </div>
+                                <div class="potential-item">
+                                    <span>Additional monthly clicks:</span>
+                                    <span class="highlight">+${Math.round(item.impressions * (getCTRBenchmark(item.position) - item.ctr))}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Enhanced Query Analysis Styles
+function createEnhancedQueryAnalysisStyles() {
+    return `
+        <style>
+            /* Enhanced Query Analysis Styles */
+            .enhanced-query-analysis {
+                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+                border-left: 4px solid #3b82f6;
+            }
+            
+            .query-analysis-explanation {
+                background: rgba(59, 130, 246, 0.1);
+                padding: 16px;
+                border-radius: 8px;
+                margin-bottom: 24px;
+                border-left: 3px solid #3b82f6;
+            }
+            
+            /* Summary Grid */
+            .query-summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 16px;
+                margin-bottom: 32px;
+            }
+            
+            .query-summary-card {
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                text-align: center;
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            
+            .query-summary-card.warning {
+                background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                border-color: #f59e0b;
+            }
+            
+            .query-summary-card.success {
+                background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+                border-color: #10b981;
+            }
+            
+            .query-summary-card.opportunities {
+                background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+                border-color: #6366f1;
+            }
+            
+            .summary-number {
+                font-size: 2rem;
+                font-weight: 800;
+                color: #1f2937;
+                margin-bottom: 4px;
+            }
+            
+            .summary-label {
+                font-size: 0.85rem;
+                color: #64748b;
+                font-weight: 600;
+            }
+            
+            .summary-split {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                margin-bottom: 8px;
+            }
+            
+            .split-item {
+                text-align: center;
+            }
+            
+            .split-number {
+                display: block;
+                font-size: 1.5rem;
+                font-weight: 800;
+                color: #1f2937;
+            }
+            
+            .split-label {
+                font-size: 0.75rem;
+                color: #64748b;
+                font-weight: 600;
+            }
+            
+            .split-divider {
+                width: 2px;
+                height: 30px;
+                background: #e2e8f0;
+                border-radius: 1px;
+            }
+            
+            /* Query Analysis Tabs */
+            .query-analysis-tabs {
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .query-tab-nav {
+                display: flex;
+                background: #f8fafc;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            
+            .query-tab-btn {
+                flex: 1;
+                padding: 16px 20px;
+                border: none;
+                background: none;
+                cursor: pointer;
+                color: #64748b;
+                border-bottom: 3px solid transparent;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-family: inherit;
+                font-weight: 600;
+                position: relative;
+            }
+            
+            .query-tab-btn:hover:not(.active) {
+                color: #475569;
+                background: rgba(0,0,0,0.02);
+            }
+            
+            .query-tab-btn.active {
+                color: #1e293b;
+                border-bottom-color: #3b82f6;
+                background: white;
+            }
+            
+            .tab-badge {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: #ef4444;
+                color: white;
+                border-radius: 10px;
+                padding: 2px 6px;
+                font-size: 0.7rem;
+                font-weight: 700;
+                min-width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .query-tab-content {
+                background: white;
+            }
+            
+            .query-tab-panel {
+                display: none;
+                padding: 24px;
+            }
+            
+            .query-tab-panel.active {
+                display: block;
+            }
+            
+            /* Intent Analysis Styles */
+            .intent-queries-list {
+                display: grid;
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            
+            .intent-query-item {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 16px;
+                transition: all 0.2s ease;
+            }
+            
+            .intent-query-item:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+            
+            .intent-query-item.transactional {
+                border-left: 4px solid #f59e0b;
+            }
+            
+            .intent-query-item.informational {
+                border-left: 4px solid #3b82f6;
+            }
+            
+            .intent-query-item.mixed {
+                border-left: 4px solid #8b5cf6;
+            }
+            
+            .intent-query-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 12px;
+                gap: 16px;
+            }
+            
+            .query-text {
+                font-weight: 600;
+                color: #1f2937;
+                font-size: 0.95rem;
+                flex-grow: 1;
+            }
+            
+            .intent-badges {
+                display: flex;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+            
+            .intent-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            
+            .intent-badge.transactional {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            
+            .intent-badge.informational {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+            
+            .intent-badge.mixed {
+                background: #ede9fe;
+                color: #6b21a8;
+            }
+            
+            .confidence-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                background: #f1f5f9;
+                color: #475569;
+            }
+            
+            .intent-metrics {
+                display: flex;
+                gap: 16px;
+                font-size: 0.85rem;
+                color: #64748b;
+            }
+            
+            .recommendations-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 16px;
+                margin-top: 16px;
+            }
+            
+            .recommendation-card {
+                background: #f8fafc;
+                padding: 16px;
+                border-radius: 8px;
+                border-left: 3px solid #3b82f6;
+            }
+            
+            /* Mismatch Detection Styles */
+            .no-mismatch-message {
+                text-align: center;
+                padding: 40px;
+                color: #059669;
+            }
+            
+            .success-icon {
+                font-size: 3rem;
+                margin-bottom: 16px;
+            }
+            
+            .success-title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                margin-bottom: 8px;
+            }
+            
+            .mismatch-queries-list {
+                display: grid;
+                gap: 20px;
+            }
+            
+            .mismatch-query-item {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            
+            .mismatch-query-item.high {
+                border-left: 4px solid #ef4444;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            }
+            
+            .mismatch-query-item.medium {
+                border-left: 4px solid #f59e0b;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            }
+            
+            .mismatch-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 16px;
+                gap: 16px;
+            }
+            
+            .severity-badge {
+                padding: 6px 12px;
+                border-radius: 16px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            
+            .severity-badge.high {
+                background: #ef4444;
+                color: white;
+            }
+            
+            .severity-badge.medium {
+                background: #f59e0b;
+                color: white;
+            }
+            
+            .mismatch-metrics {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 12px;
+                margin-bottom: 16px;
+                padding: 12px;
+                background: rgba(255,255,255,0.5);
+                border-radius: 6px;
+            }
+            
+            .metric-item {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.85rem;
+            }
+            
+            .metric-label {
+                color: #64748b;
+                font-weight: 500;
+            }
+            
+            .metric-value {
+                font-weight: 600;
+                color: #1f2937;
+            }
+            
+            .mismatch-reasons {
+                margin-bottom: 16px;
+                font-size: 0.9rem;
+            }
+            
+            .mismatch-reasons strong {
+                color: #374151;
+                display: block;
+                margin-bottom: 8px;
+            }
+            
+            .mismatch-reasons ul {
+                margin: 0;
+                padding-left: 20px;
+                color: #64748b;
+            }
+            
+            .mismatch-reasons li {
+                margin-bottom: 4px;
+            }
+            
+            .mismatch-recommendations strong {
+                color: #374151;
+                display: block;
+                margin-bottom: 8px;
+            }
+            
+            .action-items {
+                display: grid;
+                gap: 6px;
+            }
+            
+            .action-item {
+                color: #059669;
+                font-size: 0.85rem;
+                font-weight: 500;
+            }
+            
+            /* Long-tail Opportunities Styles */
+            .no-opportunities-message {
+                text-align: center;
+                padding: 40px;
+                color: #6366f1;
+            }
+            
+            .info-icon {
+                font-size: 3rem;
+                margin-bottom: 16px;
+            }
+            
+            .info-title {
+                font-size: 1.2rem;
+                font-weight: 700;
+                margin-bottom: 8px;
+            }
+            
+            .opportunities-list {
+                display: grid;
+                gap: 24px;
+            }
+            
+            .opportunity-item {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            
+            .opportunity-item.high {
+                border-left: 4px solid #ef4444;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            }
+            
+            .opportunity-item.medium {
+                border-left: 4px solid #f59e0b;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            }
+            
+            .opportunity-item.low {
+                border-left: 4px solid #6366f1;
+                background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            }
+            
+            .opportunity-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 16px;
+                gap: 16px;
+            }
+            
+            .priority-badges {
+                display: flex;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+            
+            .priority-badge {
+                padding: 6px 12px;
+                border-radius: 16px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+            
+            .priority-badge.high {
+                background: #ef4444;
+                color: white;
+            }
+            
+            .priority-badge.medium {
+                background: #f59e0b;
+                color: white;
+            }
+            
+            .priority-badge.low {
+                background: #6366f1;
+                color: white;
+            }
+            
+            .score-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                background: #f1f5f9;
+                color: #475569;
+            }
+            
+            .opportunity-metrics {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                margin-bottom: 16px;
+                padding: 12px;
+                background: rgba(255,255,255,0.5);
+                border-radius: 6px;
+            }
+            
+            .metric-group {
+                display: grid;
+                gap: 8px;
+            }
+            
+            .opportunity-factors {
+                margin-bottom: 16px;
+                font-size: 0.9rem;
+            }
+            
+            .opportunity-factors strong {
+                color: #374151;
+                display: block;
+                margin-bottom: 8px;
+            }
+            
+            .opportunity-factors ul {
+                margin: 0;
+                padding-left: 20px;
+                color: #64748b;
+            }
+            
+            .opportunity-potential strong {
+                color: #374151;
+                display: block;
+                margin-bottom: 12px;
+            }
+            
+            .potential-metrics {
+                display: grid;
+                gap: 8px;
+            }
+            
+            .potential-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                background: rgba(16, 185, 129, 0.1);
+                border-radius: 6px;
+                font-size: 0.85rem;
+            }
+            
+            .highlight {
+                font-weight: 700;
+                color: #059669;
+            }
+            
+            /* Responsive Design */
+            @media (max-width: 768px) {
+                .query-summary-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                
+                .query-tab-nav {
+                    flex-direction: column;
+                }
+                
+                .query-tab-btn {
+                    flex: none;
+                    justify-content: flex-start;
+                }
+                
+                .intent-query-header,
+                .mismatch-header,
+                .opportunity-header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                }
+                
+                .opportunity-metrics {
+                    grid-template-columns: 1fr;
+                }
+                
+                .recommendations-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    `;
+}
+
+// Initialize Enhanced Query Analysis Tabs
+function initializeEnhancedQueryAnalysisTabs() {
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.query-tab-btn')) {
+            const button = e.target.closest('.query-tab-btn');
+            const targetTab = button.getAttribute('data-query-tab');
+            const container = button.closest('.query-analysis-tabs');
+            
+            // Remove active class from all buttons and panels in this container
+            container.querySelectorAll('.query-tab-btn').forEach(btn => btn.classList.remove('active'));
+            container.querySelectorAll('.query-tab-panel').forEach(panel => panel.classList.remove('active'));
+            
+            // Activate clicked button and corresponding panel
+            button.classList.add('active');
+            const targetPanel = container.querySelector(`[data-query-panel="${targetTab}"]`);
+            if (targetPanel) {
+                targetPanel.classList.add('active');
+            }
+        }
+    });
+}
+
+// AUTO-INITIALIZATION
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEnhancedQueryAnalysisTabs();
+});
+
+// If already loaded, initialize immediately
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEnhancedQueryAnalysisTabs);
+} else {
+    initializeEnhancedQueryAnalysisTabs();
+}
+
+
+
+    
 
 // ===========================================
 // GLOBAL EXPORTS
