@@ -5070,6 +5070,309 @@ function hexToRgb(hex) {
 }
 
 
+
+// ADD this function to your dashboard code:
+function createGeographicServiceIntelligence(gscData, ga4Data) {
+    const geoData = ga4Data?.geographic || {};
+    const trafficData = ga4Data?.trafficSources || {};
+    const gscGeoData = gscData?.geographic || {};
+    
+    // Calculate insights
+    const dublinTraffic = geoData.regions?.find(r => r.region.includes('Dublin'))?.percentage || 0;
+    const internationalTraffic = geoData.internationalTraffic || 0;
+    const organicPercent = trafficData.organicPercent || 0;
+    const topCountry = geoData.topCountry || 'Ireland';
+    
+    // Service allocation recommendations
+    const serviceRecommendations = generateServiceRecommendations(geoData, trafficData, dublinTraffic, internationalTraffic);
+    
+    return `
+        <!-- Geographic Service Intelligence Section -->
+        <div class="section geographic-intelligence">
+            <h2 class="section-title">🌍 Geographic Service Intelligence</h2>
+            <div class="geo-explanation">
+                <p>Real-time analysis of where citizens need services and how they access government information across Ireland and internationally.</p>
+            </div>
+            
+            <!-- Regional Service Demand -->
+            <div class="geo-analysis-grid">
+                
+                <!-- Regional Demand Card -->
+                <div class="geo-card regional-demand">
+                    <div class="geo-card-header">
+                        <h3>🏛️ Regional Service Demand</h3>
+                        <span class="geo-priority ${dublinTraffic > 35 ? 'high' : dublinTraffic > 20 ? 'medium' : 'low'}">
+                            ${dublinTraffic > 35 ? 'HIGH DEMAND' : dublinTraffic > 20 ? 'MODERATE' : 'DISTRIBUTED'}
+                        </span>
+                    </div>
+                    
+                    ${geoData.regions && geoData.regions.length > 0 ? `
+                        <div class="regional-breakdown">
+                            ${geoData.regions.slice(0, 4).map((region, index) => `
+                                <div class="region-item ${index === 0 ? 'primary' : ''}">
+                                    <div class="region-header">
+                                        <span class="region-name">${region.region.replace('County ', '')}</span>
+                                        <span class="region-percentage">${region.percentage.toFixed(1)}%</span>
+                                    </div>
+                                    <div class="region-bar">
+                                        <div class="region-fill" style="width: ${region.percentage}%; background: ${getRegionColor(region.percentage)}"></div>
+                                    </div>
+                                    <div class="region-users">${region.users} monthly users</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="service-recommendation">
+                            <strong>📍 Resource Allocation:</strong> 
+                            ${dublinTraffic > 40 ? 
+                                `Dublin-centric approach recommended (${dublinTraffic.toFixed(1)}% of demand)` : 
+                                'Distributed service model across multiple regions'
+                            }
+                        </div>
+                    ` : `
+                        <div class="no-geo-data">
+                            <div style="text-align: center; color: #64748b; padding: 20px;">
+                                📍 Connect GA4 to see regional service demand patterns
+                            </div>
+                        </div>
+                    `}
+                </div>
+                
+                <!-- International Access Card -->
+                <div class="geo-card international-access">
+                    <div class="geo-card-header">
+                        <h3>🗺️ International Access Analysis</h3>
+                        <span class="international-indicator ${internationalTraffic > 30 ? 'critical' : internationalTraffic > 15 ? 'high' : internationalTraffic > 5 ? 'moderate' : 'low'}">
+                            ${internationalTraffic.toFixed(1)}% INTERNATIONAL
+                        </span>
+                    </div>
+                    
+                    ${geoData.countries && geoData.countries.length > 0 ? `
+                        <div class="country-breakdown">
+                            ${geoData.countries.slice(0, 4).map((country, index) => `
+                                <div class="country-item ${country.country === 'Ireland' ? 'domestic' : 'international'}">
+                                    <div class="country-flag">${getCountryFlag(country.country)}</div>
+                                    <div class="country-details">
+                                        <div class="country-name">${country.country}</div>
+                                        <div class="country-stats">${country.users} users (${country.percentage.toFixed(1)}%)</div>
+                                    </div>
+                                    ${country.country !== 'Ireland' ? `
+                                        <div class="country-insight">
+                                            ${getCountryInsight(country.country, country.percentage)}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        ${internationalTraffic > 15 ? `
+                            <div class="international-alert">
+                                <strong>🌍 Multilingual Opportunity:</strong> 
+                                ${internationalTraffic.toFixed(1)}% international usage suggests multilingual content could significantly expand service reach.
+                            </div>
+                        ` : ''}
+                    ` : `
+                        <div class="no-geo-data">
+                            <div style="text-align: center; color: #64748b; padding: 20px;">
+                                🌍 Geographic data loading...
+                            </div>
+                        </div>
+                    `}
+                </div>
+                
+                <!-- Traffic Intelligence Card -->
+                <div class="geo-card traffic-intelligence">
+                    <div class="geo-card-header">
+                        <h3>📊 Citizen Discovery Patterns</h3>
+                        <span class="organic-indicator ${organicPercent > 70 ? 'excellent' : organicPercent > 50 ? 'good' : 'needs-work'}">
+                            ${organicPercent.toFixed(1)}% ORGANIC
+                        </span>
+                    </div>
+                    
+                    ${trafficData.channels && trafficData.channels.length > 0 ? `
+                        <div class="traffic-breakdown">
+                            ${trafficData.channels.slice(0, 4).map((channel, index) => `
+                                <div class="traffic-item">
+                                    <div class="traffic-icon">${getChannelIcon(channel.channel)}</div>
+                                    <div class="traffic-details">
+                                        <div class="traffic-channel">${channel.channel}</div>
+                                        <div class="traffic-percentage">${channel.percentage.toFixed(1)}%</div>
+                                    </div>
+                                    <div class="traffic-bar">
+                                        <div class="traffic-fill" style="width: ${Math.min(channel.percentage, 100)}%; background: ${getChannelColor(channel.channel)}"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="discovery-insights">
+                            ${generateDiscoveryInsights(trafficData, organicPercent)}
+                        </div>
+                    ` : `
+                        <div class="no-traffic-data">
+                            <div style="text-align: center; color: #64748b; padding: 20px;">
+                                📊 Traffic source analysis loading...
+                            </div>
+                        </div>
+                    `}
+                </div>
+                
+                <!-- Government Action Intelligence -->
+                <div class="geo-card action-intelligence">
+                    <div class="geo-card-header">
+                        <h3>🎯 Government Action Intelligence</h3>
+                        <span class="priority-level high">STRATEGIC</span>
+                    </div>
+                    
+                    <div class="government-recommendations">
+                        ${serviceRecommendations.map((rec, index) => `
+                            <div class="gov-recommendation ${rec.priority}">
+                                <div class="rec-header">
+                                    <span class="rec-icon">${rec.icon}</span>
+                                    <span class="rec-title">${rec.title}</span>
+                                    <span class="rec-priority">${rec.priority.toUpperCase()}</span>
+                                </div>
+                                <div class="rec-description">${rec.description}</div>
+                                <div class="rec-impact">${rec.impact}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Supporting functions for the geographic section:
+function generateServiceRecommendations(geoData, trafficData, dublinTraffic, internationalTraffic) {
+    const recommendations = [];
+    
+    // Dublin concentration analysis
+    if (dublinTraffic > 40) {
+        recommendations.push({
+            icon: '🏛️',
+            title: 'Dublin Service Hub Strategy',
+            description: `${dublinTraffic.toFixed(1)}% of demand originates from Dublin region. Consider centralizing specialized services while maintaining national coverage.`,
+            impact: `Could serve ${dublinTraffic.toFixed(1)}% of citizens more efficiently`,
+            priority: 'high'
+        });
+    }
+    
+    // International access patterns
+    if (internationalTraffic > 15) {
+        recommendations.push({
+            icon: '🌍',
+            title: 'Multilingual Content Strategy',
+            description: `${internationalTraffic.toFixed(1)}% international usage indicates significant cross-border service demand requiring multilingual support.`,
+            impact: `Could expand service reach by ${internationalTraffic.toFixed(1)}%`,
+            priority: 'medium'
+        });
+    }
+    
+    // Organic search dominance
+    const organicPercent = trafficData.organicPercent || 0;
+    if (organicPercent > 70) {
+        recommendations.push({
+            icon: '📊',
+            title: 'SEO-Critical Service Delivery',
+            description: `${organicPercent.toFixed(1)}% organic search dependency means SEO performance directly impacts citizen service access.`,
+            impact: 'SEO optimization could significantly improve service accessibility',
+            priority: 'high'
+        });
+    }
+    
+    // AI referral emergence
+    const aiTraffic = trafficData.sources?.find(s => s.source.includes('chatgpt') || s.source.includes('ai'));
+    if (aiTraffic) {
+        recommendations.push({
+            icon: '🤖',
+            title: 'AI-Optimized Content Strategy',
+            description: 'AI platforms are directing citizens to government services. Optimize content for AI discoverability.',
+            impact: 'Future-proof citizen service discovery',
+            priority: 'medium'
+        });
+    }
+    
+    return recommendations;
+}
+
+function getRegionColor(percentage) {
+    if (percentage > 30) return '#ef4444';
+    if (percentage > 15) return '#f59e0b';
+    if (percentage > 5) return '#3b82f6';
+    return '#64748b';
+}
+
+function getCountryFlag(country) {
+    const flags = {
+        'Ireland': '🇮🇪',
+        'Ukraine': '🇺🇦', 
+        'United Kingdom': '🇬🇧',
+        'Poland': '🇵🇱',
+        'Germany': '🇩🇪',
+        'France': '🇫🇷',
+        'United States': '🇺🇸'
+    };
+    return flags[country] || '🌍';
+}
+
+function getCountryInsight(country, percentage) {
+    const insights = {
+        'Ukraine': 'Refugee information access',
+        'United Kingdom': 'Irish diaspora services',
+        'Poland': 'EU migration services',
+        'United States': 'International Irish services'
+    };
+    return insights[country] || 'International service access';
+}
+
+function getChannelIcon(channel) {
+    const icons = {
+        'Organic Search': '🔍',
+        'Direct': '🔗',
+        'Social': '📱',
+        'Referral': '↗️',
+        'Email': '📧',
+        'Paid Search': '💰'
+    };
+    return icons[channel] || '📊';
+}
+
+function getChannelColor(channel) {
+    const colors = {
+        'Organic Search': '#10b981',
+        'Direct': '#3b82f6', 
+        'Social': '#f59e0b',
+        'Referral': '#8b5cf6',
+        'Email': '#ef4444',
+        'Paid Search': '#06b6d4'
+    };
+    return colors[channel] || '#64748b';
+}
+
+function generateDiscoveryInsights(trafficData, organicPercent) {
+    const insights = [];
+    
+    if (organicPercent > 75) {
+        insights.push('🎯 SEO-dependent service delivery - search optimization is critical for citizen access');
+    }
+    
+    const directPercent = trafficData.channels?.find(c => c.channel === 'Direct')?.percentage || 0;
+    if (directPercent > 15) {
+        insights.push('🔖 High direct traffic indicates citizens bookmarking essential services');
+    }
+    
+    const socialPercent = trafficData.channels?.find(c => c.channel.includes('Social'))?.percentage || 0;
+    if (socialPercent > 5) {
+        insights.push('📱 Social media effectively spreading government information');
+    }
+    
+    return insights.length > 0 ? 
+        `<div class="insight-item">${insights.join('</div><div class="insight-item">')}</div>` : 
+        '<div class="insight-item">📊 Monitor citizen discovery patterns for service optimization</div>';
+}
+
+
 function calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends) {
     const benchmarks = {};
     
@@ -6067,6 +6370,66 @@ function createEnhancedDashboardStyles() {
                 .surge-header { flex-direction: column; gap: 12px; text-align: center; }
                 .surge-alert-banner { flex-direction: column; gap: 16px; text-align: center; }
             }
+
+
+            /* Geographic Intelligence Styles */
+.geographic-intelligence { 
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+    border-left: 4px solid #0ea5e9; 
+}
+
+.geo-analysis-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+    gap: 24px; 
+}
+
+.geo-card { 
+    background: white; 
+    border-radius: 16px; 
+    padding: 24px; 
+    border: 1px solid #e0f2fe; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+}
+
+.geo-card-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
+}
+
+.region-item, .country-item, .traffic-item { 
+    padding: 12px 0; 
+    border-bottom: 1px solid #f1f5f9; 
+}
+
+.region-bar, .traffic-bar { 
+    height: 8px; 
+    background: #f1f5f9; 
+    border-radius: 4px; 
+    margin: 6px 0; 
+    overflow: hidden; 
+}
+
+.gov-recommendation { 
+    background: #f8fafc; 
+    padding: 16px; 
+    border-radius: 8px; 
+    margin-bottom: 12px; 
+    border-left: 3px solid #3b82f6; 
+}
+
+.international-alert, .service-recommendation { 
+    background: #fff7ed; 
+    padding: 12px; 
+    border-radius: 8px; 
+    border-left: 3px solid #f59e0b; 
+    margin-top: 16px; 
+    font-size: 0.9rem; 
+}
+
+
         </style>
     `;
 }
