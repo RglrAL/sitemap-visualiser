@@ -5944,8 +5944,83 @@ function addClickableIndicators() {
     });
 }
 
-// JOURNEY FILTERING FUNCTIONS
+// JOURNEY AND SERVICE FILTERING FUNCTIONS
 let originalQueryData = null; // Store original data for filter clearing
+
+// Clear functions defined first
+function clearJourneyFilter() {
+    const panel = document.querySelector('[data-citizen-panel="journey"]');
+    if (!panel || !originalQueryData) return;
+    
+    // Clear active filter styling
+    document.querySelectorAll('.intent-bar.active-filter').forEach(bar => {
+        bar.classList.remove('active-filter');
+    });
+    
+    // Hide filter status
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const clearFilterBtn = document.getElementById('clearJourneyFilter');
+    if (filterStatus) filterStatus.style.display = 'none';
+    if (clearFilterBtn) clearFilterBtn.style.display = 'none';
+    
+    // Restore original query data
+    const queriesList = document.getElementById('citizenQueriesList');
+    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
+    
+    if (queriesList && originalQueryData.mainQueries) {
+        queriesList.innerHTML = originalQueryData.mainQueries;
+    }
+    
+    if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+        hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+    }
+    
+    // Show pagination controls again
+    const paginationControls = panel.querySelector('.pagination-controls');
+    if (paginationControls) {
+        paginationControls.style.display = 'block';
+    }
+    
+    // Reset original data
+    originalQueryData = null;
+}
+
+function clearServiceFilter() {
+    const panel = document.querySelector('[data-citizen-panel="journey"]');
+    if (!panel || !originalQueryData) return;
+    
+    // Clear active filter styling
+    document.querySelectorAll('.service-bar.active-filter').forEach(bar => {
+        bar.classList.remove('active-filter');
+    });
+    
+    // Hide filter status
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const clearServiceBtn = document.getElementById('clearServiceFilter');
+    if (filterStatus) filterStatus.style.display = 'none';
+    if (clearServiceBtn) clearServiceBtn.style.display = 'none';
+    
+    // Restore original query data
+    const queriesList = document.getElementById('citizenQueriesList');
+    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
+    
+    if (queriesList && originalQueryData.mainQueries) {
+        queriesList.innerHTML = originalQueryData.mainQueries;
+    }
+    
+    if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+        hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+    }
+    
+    // Show pagination controls again
+    const paginationControls = panel.querySelector('.pagination-controls');
+    if (paginationControls) {
+        paginationControls.style.display = 'block';
+    }
+    
+    // Reset original data
+    originalQueryData = null;
+}
 
 function filterQueriesByIntent(filterIntent) {
     console.log('filterQueriesByIntent called with:', filterIntent); // Debug log
@@ -6130,7 +6205,6 @@ if (document.readyState === 'loading') {
 } else {
     initializeCitizenQueryIntelligence();
 }
-
     
 
 // ===========================================
