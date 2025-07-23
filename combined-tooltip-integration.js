@@ -1211,8 +1211,8 @@
                 }
                 break;
             case 'detailed':
-    if (window.showEnhancedDashboardReport && url && url !== 'undefined') {
-        window.showEnhancedDashboardReport(url);  // <- Updated
+    if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
+        window.showUnifiedDashboardReport(url);  // <- NEW CALL
     }
     break;
         }
@@ -1259,6 +1259,166 @@
             };
         }
     }
+
+
+
+// New unified dashboard integration function
+window.showUnifiedDashboardReport = async function(url) {
+    console.log('🚀 Opening Unified Citizens Dashboard for:', url);
+    
+    try {
+        // Gather data (same pattern as your tooltip system)
+        const promises = [];
+        let gscData = null, ga4Data = null, gscTrends = null, ga4Trends = null;
+        
+        // Fetch GSC data if connected
+        if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
+            promises.push(
+                window.GSCIntegration.fetchNodeData({ url }).then(data => { gscData = data; }),
+                window.GSCIntegration.fetchPreviousPeriodData({ url }).then(data => { gscTrends = { trends: data }; })
+            );
+        } else {
+            gscData = { noDataFound: true };
+        }
+        
+        // Fetch GA4 data if connected  
+        if (window.GA4Integration && window.GA4Integration.isConnected()) {
+            promises.push(
+                window.GA4Integration.fetchData(url).then(data => { ga4Data = data; }),
+                window.GA4Integration.fetchPreviousPeriodData(url).then(data => { ga4Trends = { trends: data }; })
+            );
+        } else {
+            ga4Data = { noDataFound: true };
+        }
+        
+        // Wait for all data
+        await Promise.allSettled(promises);
+        
+        // Create the unified dashboard
+        const dashboardHtml = createUnifiedCitizensDashboard(
+            url, 
+            gscData, 
+            ga4Data, 
+            gscTrends, 
+            ga4Trends
+        );
+        
+        // Show in modal/overlay (reuse your existing modal system or create new one)
+        showDashboardModal(dashboardHtml);
+        
+    } catch (error) {
+        console.error('Error loading unified dashboard:', error);
+        alert('Failed to load dashboard data. Please try again.');
+    }
+};
+
+// Modal display function (customize to match your UI style)
+function showDashboardModal(htmlContent) {
+    // Remove existing modal if present
+    const existingModal = document.getElementById('unified-dashboard-modal');
+    if (existingModal) existingModal.remove();
+    
+    // Create modal backdrop
+    const modal = document.createElement('div');
+    modal.id = 'unified-dashboard-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+    
+    // Create modal content container
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        width: 100%;
+        max-width: 1200px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    `;
+    
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10001;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    
+    closeBtn.addEventListener('click', () => {
+        modal.style.opacity = '0';
+        modalContent.style.transform = 'scale(0.9)';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.background = 'rgba(239, 68, 68, 0.9)';
+        closeBtn.style.transform = 'scale(1.1)';
+    });
+    
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+        closeBtn.style.transform = 'scale(1)';
+    });
+    
+    // Add dashboard content
+    modalContent.innerHTML = htmlContent;
+    modalContent.appendChild(closeBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Show with animation
+    requestAnimationFrame(() => {
+        modal.style.opacity = '1';
+        modalContent.style.transform = 'scale(1)';
+    });
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
+        }
+    });
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeBtn.click();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
+
+
+
+    
 
     function getFreshnessInfoSafe(data) {
         try {
