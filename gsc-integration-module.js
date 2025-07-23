@@ -1131,6 +1131,27 @@ function formatDuration(seconds) {
                 });
             });
 
+            // 5. NEW: Get geographic performance data
+const geoResponse = await robustGSCApiCall(async () => {
+    return await gapi.client.request({
+        path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+        method: 'POST',
+        body: {
+            startDate: thirtyDaysAgo.toISOString().split('T')[0],
+            endDate: today.toISOString().split('T')[0],
+            dimensions: ['query', 'country'],
+            dimensionFilterGroups: [{
+                filters: [{
+                    dimension: 'page',
+                    operator: 'equals',
+                    expression: variation
+                }]
+            }],
+            rowLimit: 15
+        }
+    });
+});
+
             const row = pageResponse.result.rows[0];
             const queries = queriesResponse.result.rows || [];
             const opportunityQueries = opportunityResponse.result.rows || [];
@@ -1179,12 +1200,50 @@ function formatDuration(seconds) {
                 })),
                 
                 trend: trend,
-                
-                // Content insights
-                insights: generateContentInsights(queries, opportunities, row)
-            };
-            
-            return gscData;
+
+// Content insights
+insights: generateContentInsights(queries, opportunities, row),
+
+// NEW: Geographic data
+geographic: {
+    countries: [],
+    international: false,
+    topCountries: []
+}
+};
+
+// NEW: Process geographic GSC data
+if (geoResponse.result.rows && geoResponse.result.rows.length > 0) {
+    const countries = {};
+    
+    geoResponse.result.rows.forEach(row => {
+        const query = row.keys[0];
+        const country = row.keys[1];
+        const clicks = row.clicks;
+        const impressions = row.impressions;
+        
+        if (!countries[country]) {
+            countries[country] = { clicks: 0, impressions: 0, queries: [] };
+        }
+        countries[country].clicks += clicks;
+        countries[country].impressions += impressions;
+        countries[country].queries.push({ query, clicks, impressions });
+    });
+    
+    gscData.geographic.countries = Object.entries(countries)
+        .map(([country, data]) => ({
+            country,
+            clicks: data.clicks,
+            impressions: data.impressions,
+            queries: data.queries.slice(0, 3) // Top 3 queries per country
+        }))
+        .sort((a, b) => b.clicks - a.clicks);
+    
+    gscData.geographic.topCountries = gscData.geographic.countries.slice(0, 5);
+    gscData.geographic.international = gscData.geographic.countries.some(c => c.country !== 'irl');
+}
+
+return gscData;
         } catch (error) {
             console.error('Error fetching enhanced GSC data:', error);
             return null;
