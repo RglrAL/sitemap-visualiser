@@ -1663,105 +1663,89 @@
     // ===========================================
 
     function createEnhancedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData) {
-        const dashboardId = 'dashboard-' + Date.now();
+    const dashboardId = 'dashboard-' + Date.now();
+    
+    // Schedule initialization after DOM insertion
+    setTimeout(() => {
+        const dashboard = document.getElementById(dashboardId);
+        if (dashboard) {
+            console.log('🚀 Auto-initializing dashboard:', dashboardId);
+            initializeEnhancedDashboard(dashboardId);
+        } else {
+            console.log('⏳ Dashboard not ready, trying again...');
+            setTimeout(() => {
+                if (document.getElementById(dashboardId)) {
+                    initializeEnhancedDashboard(dashboardId);
+                }
+            }, 50);
+        }
+    }, 10);
+    
+    return `
+        ${createEnhancedDashboardStyles()}
         
-        return `
-            ${createEnhancedDashboardStyles()}
+        <div id="${dashboardId}" class="citizens-dashboard-container">
+            ${createEnhancedHeader(url, gscData, ga4Data)}
+            ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
             
-            <div id="${dashboardId}" class="citizens-dashboard-container">
-                ${createEnhancedHeader(url, gscData, ga4Data)}
-                ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
+            <div class="dashboard-tabs">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="overview">
+                        <span class="tab-icon">📊</span>
+                        <span class="tab-label">Overview</span>
+                    </button>
+                    <button class="tab-btn" data-tab="search">
+                        <span class="tab-icon">🔍</span>
+                        <span class="tab-label">Search Performance</span>
+                    </button>
+                    <button class="tab-btn" data-tab="content">
+                        <span class="tab-icon">📝</span>
+                        <span class="tab-label">Content Analysis</span>
+                    </button>
+                    <button class="tab-btn" data-tab="users">
+                        <span class="tab-icon">👥</span>
+                        <span class="tab-label">User Behavior</span>
+                    </button>
+                    <button class="tab-btn" data-tab="trends">
+                        <span class="tab-icon">📈</span>
+                        <span class="tab-label">Trends</span>
+                    </button>
+                    <button class="tab-btn" data-tab="actions">
+                        <span class="tab-icon">⚡</span>
+                        <span class="tab-label">Action Items</span>
+                    </button>
+                </div>
                 
-                <div class="dashboard-tabs">
-                    <div class="tab-nav">
-                        <button class="tab-btn active" data-tab="overview">
-                            <span class="tab-icon">📊</span>
-                            <span class="tab-label">Overview</span>
-                        </button>
-                        <button class="tab-btn" data-tab="search">
-                            <span class="tab-icon">🔍</span>
-                            <span class="tab-label">Search Performance</span>
-                        </button>
-                        <button class="tab-btn" data-tab="content">
-                            <span class="tab-icon">📝</span>
-                            <span class="tab-label">Content Analysis</span>
-                        </button>
-                        <button class="tab-btn" data-tab="users">
-                            <span class="tab-icon">👥</span>
-                            <span class="tab-label">User Behavior</span>
-                        </button>
-                        <button class="tab-btn" data-tab="trends">
-                            <span class="tab-icon">📈</span>
-                            <span class="tab-label">Trends</span>
-                        </button>
-                        <button class="tab-btn" data-tab="actions">
-                            <span class="tab-icon">⚡</span>
-                            <span class="tab-label">Action Items</span>
-                        </button>
+                <div class="tab-content">
+                    <div class="tab-panel active" data-panel="overview">
+                        ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends)}
                     </div>
                     
-                    <div class="tab-content">
-                        <div class="tab-panel active" data-panel="overview">
-                            ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends)}
-                        </div>
-                        
-                        <div class="tab-panel" data-panel="search">
-                            ${createSearchPerformancePanel(gscData, gscTrends)}
-                        </div>
-                        
-                        <div class="tab-panel" data-panel="content">
-                            ${createContentAnalysisPanel(gscData, ga4Data)}
-                        </div>
-                        
-                        <div class="tab-panel" data-panel="users">
-                            ${createUserBehaviorPanel(ga4Data, ga4Trends, gscData)}
-                        </div>
-                        
-                        <div class="tab-panel" data-panel="trends">
-                            ${createTrendAnalysisPanel(gscTrends, ga4Trends)}
-                        </div>
-                        
-                        <div class="tab-panel" data-panel="actions">
-                            ${createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends)}
-                        </div>
+                    <div class="tab-panel" data-panel="search">
+                        ${createSearchPerformancePanel(gscData, gscTrends)}
+                    </div>
+                    
+                    <div class="tab-panel" data-panel="content">
+                        ${createContentAnalysisPanel(gscData, ga4Data)}
+                    </div>
+                    
+                    <div class="tab-panel" data-panel="users">
+                        ${createUserBehaviorPanel(ga4Data, ga4Trends, gscData)}
+                    </div>
+                    
+                    <div class="tab-panel" data-panel="trends">
+                        ${createTrendAnalysisPanel(gscTrends, ga4Trends)}
+                    </div>
+                    
+                    <div class="tab-panel" data-panel="actions">
+                        ${createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends)}
                     </div>
                 </div>
-
-                ${createActionCenter(url)}
             </div>
-
-            <script>
-    (function() {
-        console.log('🚀 Dashboard script executing for ID: ${dashboardId}');
-        
-        function tryInit() {
-            if (document.getElementById('${dashboardId}')) {
-                console.log('🎯 Dashboard found, initializing...');
-                initializeEnhancedDashboard('${dashboardId}');
-                return true;
-            }
-            return false;
-        }
-        
-        // Try immediate initialization
-        if (!tryInit()) {
-            console.log('🕐 Dashboard not ready, using fallbacks...');
-            // Multiple attempts with different timings
-            setTimeout(tryInit, 10);
-            setTimeout(tryInit, 50);
-            setTimeout(tryInit, 100);
-            setTimeout(tryInit, 200);
-            setTimeout(tryInit, 500);
-        }
-        
-        // Also try when DOM is fully ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', tryInit);
-        }
-    })();
-</script>
-        `;
-    }
+            ${createActionCenter(url)}
+        </div>
+    `;
+}
 
     // ===========================================
     // PANEL CREATION FUNCTIONS
