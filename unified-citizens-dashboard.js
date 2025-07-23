@@ -4152,12 +4152,10 @@ function performCitizenQueryAnalysis(gscData, pageUrl) {
     if (!gscData || !gscData.topQueries || gscData.topQueries.length === 0) {
         return {
             intentAnalysis: [],
-            mismatchDetection: [],
             citizenOpportunities: [],
             summary: {
                 totalQueries: 0,
                 byIntent: {},
-                mismatchedQueries: 0,
                 opportunities: 0,
                 citizensImpacted: 0,
                 urgentQueries: 0
@@ -4166,9 +4164,7 @@ function performCitizenQueryAnalysis(gscData, pageUrl) {
     }
     
     const intentAnalysis = [];
-    const mismatchDetection = [];
     let intentCounts = {};
-    let mismatchCount = 0;
     let urgentCount = 0;
     let totalCitizensImpacted = 0;
     
@@ -4199,31 +4195,6 @@ function performCitizenQueryAnalysis(gscData, pageUrl) {
         intentCounts[intent.primaryIntent]++;
         if (intent.hasUrgency) urgentCount++;
         totalCitizensImpacted += queryData.impressions;
-        
-        // Content mismatch detection
-        const mismatch = detectContentMismatch(
-            queryData.query, 
-            pageUrl, 
-            queryData.impressions, 
-            queryData.ctr, 
-            queryData.position
-        );
-        
-        if (mismatch.isMismatch) {
-            mismatchDetection.push({
-                query: queryData.query,
-                severity: mismatch.severity,
-                reasons: mismatch.reasons,
-                recommendations: mismatch.recommendations,
-                overlap: mismatch.overlapPercentage,
-                impressions: queryData.impressions,
-                ctr: queryData.ctr,
-                position: queryData.position,
-                queryIntent: mismatch.queryIntent,
-                plainEnglishIntent: mismatch.plainEnglishIntent
-            });
-            mismatchCount++;
-        }
     });
     
     // Citizen opportunity analysis
@@ -4231,12 +4202,10 @@ function performCitizenQueryAnalysis(gscData, pageUrl) {
     
     return {
         intentAnalysis: intentAnalysis,
-        mismatchDetection: mismatchDetection,
         citizenOpportunities: citizenOpportunities,
         summary: {
             totalQueries: gscData.topQueries.length,
             byIntent: intentCounts,
-            mismatchedQueries: mismatchCount,
             opportunities: citizenOpportunities.length,
             citizensImpacted: totalCitizensImpacted,
             urgentQueries: urgentCount
@@ -4274,10 +4243,10 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                         <div class="summary-label">Improvement Opportunities</div>
                         <div class="summary-subtitle">Ways to better serve citizens</div>
                     </div>
-                    <div class="summary-card content-issues">
-                        <div class="summary-number">${analysis.summary.mismatchedQueries}</div>
-                        <div class="summary-label">Content Alignment Issues</div>
-                        <div class="summary-subtitle">Citizens searching for X but finding Y</div>
+                    <div class="summary-card journey-stages">
+                        <div class="summary-number">${Object.keys(analysis.summary.byIntent).filter(intent => analysis.summary.byIntent[intent] > 0).length}</div>
+                        <div class="summary-label">Active Journey Stages</div>
+                        <div class="summary-subtitle">Different citizen needs identified</div>
                     </div>
                 </div>
             </div>
@@ -4288,11 +4257,6 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                     <button class="citizen-tab-btn active" data-citizen-tab="journey">
                         <span class="tab-icon">🛤️</span>
                         <span>Citizen Journey Stages</span>
-                    </button>
-                    <button class="citizen-tab-btn" data-citizen-tab="mismatches">
-                        <span class="tab-icon">🔍</span>
-                        <span>Content Misalignment</span>
-                        ${analysis.summary.mismatchedQueries > 0 ? '<span class="tab-badge">' + analysis.summary.mismatchedQueries + '</span>' : ''}
                     </button>
                     <button class="citizen-tab-btn" data-citizen-tab="opportunities">
                         <span class="tab-icon">🎯</span>
@@ -4305,11 +4269,6 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                     <!-- Citizen Journey Panel -->
                     <div class="citizen-tab-panel active" data-citizen-panel="journey">
                         ${createCitizenJourneyPanel(analysis.intentAnalysis, analysis.summary.byIntent)}
-                    </div>
-                    
-                    <!-- Content Mismatches Panel -->
-                    <div class="citizen-tab-panel" data-citizen-panel="mismatches">
-                        ${createContentMismatchPanel(analysis.mismatchDetection)}
                     </div>
                     
                     <!-- Opportunities Panel -->
@@ -4393,13 +4352,6 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
         <div class="citizen-journey-panel">
             <div class="journey-explanation">
                 <p><strong>Citizen Journey Analysis:</strong> Understanding what stage citizens are at when they search helps tailor content to their specific needs and urgency levels.</p>
-            </div>
-            
-            <!-- Debug Information (can be removed in production) -->
-            <div class="debug-info" style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.8rem; color: #6b7280;">
-                <strong>Debug:</strong> Total queries in analysis: ${intentAnalysis.length} | 
-                Total in corrected counts: ${Object.values(correctedIntentCounts).reduce((sum, count) => sum + count, 0)} |
-                Queries with data-intent will be: ${intentAnalysis.length}
             </div>
             
             <!-- Irish Service Detection Analysis -->
@@ -4563,159 +4515,6 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                     </div>
                 ` : ''}
             </div>
-        </div>
-    `;
-}
-
-// CONTENT MISMATCH PANEL
-function createContentMismatchPanel(mismatchDetection) {
-    if (mismatchDetection.length === 0) {
-        return `
-            <div class="no-mismatch-message">
-                <div class="success-icon">✅</div>
-                <div class="success-title">Great News! No Major Content Misalignment</div>
-                <div class="success-description">Your content appears well-aligned with what citizens are looking for</div>
-            </div>
-        `;
-    }
-    
-    const initialDisplayCount = 8;
-    const showPagination = mismatchDetection.length > initialDisplayCount;
-    
-    return `
-        <div class="content-mismatch-panel">
-            <div class="mismatch-explanation">
-                <p><strong>Content Misalignment Issues:</strong> These are cases where citizens are searching for something but your content doesn't quite match their needs - leading to missed opportunities to help them.</p>
-                <div class="mismatch-stats">
-                    <span class="stat-item">Found <strong>${mismatchDetection.length}</strong> alignment issues</span>
-                    <span class="stat-item">Affecting <strong>${mismatchDetection.reduce((sum, item) => sum + item.impressions, 0)}</strong> monthly citizen searches</span>
-                </div>
-            </div>
-            
-            <div class="mismatch-list" data-citizen-list="mismatches">
-                ${mismatchDetection.slice(0, initialDisplayCount).map(item => `
-                    <div class="mismatch-item ${item.severity}">
-                        <div class="mismatch-header">
-                            <div class="query-text">"${escapeHtml(item.query)}"</div>
-                            <div class="severity-indicator ${item.severity}">
-                                ${item.severity === 'high' ? '🚨 High Priority Fix' : '⚠️ Needs Attention'}
-                            </div>
-                        </div>
-                        
-                        <div class="citizen-impact">
-                            <div class="impact-metrics">
-                                <div class="metric-item">
-                                    <span class="metric-label">Citizens searching monthly:</span>
-                                    <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Actually clicking through:</span>
-                                    <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">Content match with search:</span>
-                                    <span class="metric-value">${item.overlap}%</span>
-                                </div>
-                                <div class="metric-item">
-                                    <span class="metric-label">What citizens want:</span>
-                                    <span class="metric-value">${item.plainEnglishIntent}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="problem-analysis">
-                            <h5>🔍 What's Going Wrong:</h5>
-                            <ul class="problem-reasons">
-                                ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
-                            </ul>
-                        </div>
-                        
-                        <div class="fix-recommendations">
-                            <h5>💡 How to Fix This for Citizens:</h5>
-                            <div class="recommendation-list">
-                                ${item.recommendations.map(rec => `
-                                    <div class="recommendation-item">
-                                        <span class="rec-icon">→</span>
-                                        <span class="rec-text">${rec}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        
-                        <div class="potential-impact">
-                            <strong>📈 Expected Improvement:</strong>
-                            <span class="impact-estimate">Could help ${Math.round(item.impressions * 0.15)} more citizens monthly find what they need</span>
-                        </div>
-                    </div>
-                `).join('')}
-                
-                <!-- Hidden items for pagination -->
-                <div class="hidden-queries" style="display: none;">
-                    ${mismatchDetection.slice(initialDisplayCount).map(item => `
-                        <div class="mismatch-item ${item.severity}">
-                            <div class="mismatch-header">
-                                <div class="query-text">"${escapeHtml(item.query)}"</div>
-                                <div class="severity-indicator ${item.severity}">
-                                    ${item.severity === 'high' ? '🚨 High Priority Fix' : '⚠️ Needs Attention'}
-                                </div>
-                            </div>
-                            
-                            <div class="citizen-impact">
-                                <div class="impact-metrics">
-                                    <div class="metric-item">
-                                        <span class="metric-label">Citizens searching monthly:</span>
-                                        <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">Actually clicking through:</span>
-                                        <span class="metric-value">${(item.ctr * 100).toFixed(1)}%</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">Content match with search:</span>
-                                        <span class="metric-value">${item.overlap}%</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">What citizens want:</span>
-                                        <span class="metric-value">${item.plainEnglishIntent}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="problem-analysis">
-                                <h5>🔍 What's Going Wrong:</h5>
-                                <ul class="problem-reasons">
-                                    ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
-                                </ul>
-                            </div>
-                            
-                            <div class="fix-recommendations">
-                                <h5>💡 How to Fix This for Citizens:</h5>
-                                <div class="recommendation-list">
-                                    ${item.recommendations.map(rec => `
-                                        <div class="recommendation-item">
-                                            <span class="rec-icon">→</span>
-                                            <span class="rec-text">${rec}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                            
-                            <div class="potential-impact">
-                                <strong>📈 Expected Improvement:</strong>
-                                <span class="impact-estimate">Could help ${Math.round(item.impressions * 0.15)} more citizens monthly find what they need</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            ${showPagination ? `
-                <div class="pagination-controls">
-                    <button class="show-more-btn" data-target="mismatches" data-remaining="${mismatchDetection.length - initialDisplayCount}">
-                        Show ${mismatchDetection.length - initialDisplayCount} More Content Issues
-                    </button>
-                </div>
-            ` : ''}
         </div>
     `;
 }
@@ -5092,9 +4891,9 @@ function createCitizenQueryIntelligenceStyles() {
                 border-color: #f59e0b;
             }
             
-            .summary-card.content-issues {
-                background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
-                border-color: #a855f7;
+            .summary-card.journey-stages {
+                background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+                border-color: #8b5cf6;
             }
             
             .summary-number {
@@ -5758,6 +5557,135 @@ function createCitizenQueryIntelligenceStyles() {
                 box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
             }
             
+            /* Opportunity Specific Styles */
+            .opportunity-item.high {
+                border-left: 4px solid #ef4444;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            }
+            
+            .opportunity-item.medium {
+                border-left: 4px solid #f59e0b;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            }
+            
+            .opportunity-item.low {
+                border-left: 4px solid #6366f1;
+                background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            }
+            
+            .citizen-impact-badge.high {
+                background: #dcfce7;
+                color: #166534;
+            }
+            
+            .citizen-impact-badge.medium {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            
+            .citizen-impact-badge.low {
+                background: #f1f5f9;
+                color: #475569;
+            }
+            
+            .citizen-journey-context {
+                background: rgba(59, 130, 246, 0.05);
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 16px;
+            }
+            
+            .journey-info, .secondary-journey {
+                font-size: 0.85rem;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
+            
+            .journey-label, .secondary-label {
+                color: #6b7280;
+                font-weight: 500;
+            }
+            
+            .journey-stage, .secondary-stages {
+                color: #374151;
+                font-weight: 600;
+            }
+            
+            .current-performance {
+                margin-bottom: 16px;
+            }
+            
+            .performance-metrics {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                padding: 12px;
+                background: rgba(255,255,255,0.7);
+                border-radius: 6px;
+            }
+            
+            .metric-group {
+                display: grid;
+                gap: 8px;
+            }
+            
+            .metric-item {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.85rem;
+            }
+            
+            .metric-label {
+                color: #64748b;
+                font-weight: 500;
+            }
+            
+            .metric-value {
+                font-weight: 600;
+                color: #1f2937;
+            }
+            
+            .opportunity-factors, .potential-results {
+                margin-bottom: 16px;
+            }
+            
+            .opportunity-factors h5, .potential-results h5 {
+                color: #374151;
+                margin-bottom: 8px;
+                font-size: 0.9rem;
+            }
+            
+            .factor-list {
+                margin: 0;
+                padding-left: 20px;
+                color: #64748b;
+            }
+            
+            .factor-list li {
+                margin-bottom: 4px;
+                font-size: 0.85rem;
+            }
+            
+            .results-grid {
+                display: grid;
+                gap: 8px;
+                margin-top: 8px;
+            }
+            
+            .result-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 0.85rem;
+                color: #059669;
+                font-weight: 500;
+            }
+            
+            .result-icon {
+                font-size: 1rem;
+            }
+            
             /* No Data Messages */
             .no-data-message, .no-mismatch-message, .no-opportunities-message {
                 text-align: center;
@@ -5879,7 +5807,7 @@ function initializeCitizenQueryIntelligence() {
                 
                 // Smooth scroll to newly revealed content
                 setTimeout(() => {
-                    const allItems = queryList.querySelectorAll('.citizen-query-item, .mismatch-item, .opportunity-item');
+                    const allItems = queryList.querySelectorAll('.citizen-query-item, .opportunity-item');
                     if (allItems.length > 12) {
                         allItems[12].scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
@@ -6131,6 +6059,9 @@ if (document.readyState === 'loading') {
 } else {
     initializeCitizenQueryIntelligence();
 }
+
+
+
     
 
 // ===========================================
