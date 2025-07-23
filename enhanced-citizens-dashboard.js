@@ -1731,49 +1731,91 @@
             </div>
 
             <script>
-                (function() {
-                    const dashboardId = '${dashboardId}';
-                    console.log('🚀 Starting dashboard initialization for:', dashboardId);
+                // ULTRA-SIMPLE TAB SOLUTION - Direct approach
+                console.log('🔥 STARTING ULTRA-SIMPLE TABS FOR: ${dashboardId}');
+                
+                // Wait a bit for DOM, then initialize
+                setTimeout(function() {
+                    console.log('🔥 Attempting tab initialization...');
                     
-                    function initWhenReady() {
-                        if (typeof initializeEnhancedDashboard === 'function') {
-                            initializeEnhancedDashboard(dashboardId);
-                        } else {
-                            setTimeout(initWhenReady, 50);
-                        }
+                    const container = document.getElementById('${dashboardId}');
+                    console.log('🔥 Container found:', !!container);
+                    
+                    if (!container) {
+                        console.log('❌ No container found with ID: ${dashboardId}');
+                        return;
                     }
                     
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', initWhenReady);
-                    } else {
-                        setTimeout(initWhenReady, 100);
+                    const buttons = container.querySelectorAll('.tab-btn');
+                    const panels = container.querySelectorAll('.tab-panel');
+                    
+                    console.log('🔥 Found buttons:', buttons.length, 'panels:', panels.length);
+                    
+                    if (buttons.length === 0 || panels.length === 0) {
+                        console.log('❌ No buttons or panels found');
+                        return;
                     }
-                })();
-            </script>
-            
-            <!-- Fallback tab functionality -->
-            <script>
-                window.switchTab = function(tabName) {
-                    console.log('Fallback tab switch to:', tabName);
                     
-                    const container = document.querySelector('.citizens-dashboard-container');
-                    if (!container) return;
-                    
-                    container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                    container.querySelectorAll('.tab-panel').forEach(panel => {
-                        panel.classList.remove('active');
-                        panel.style.display = 'none';
+                    // Add click handlers to each button
+                    buttons.forEach(function(button, index) {
+                        console.log('🔥 Adding handler to button:', button.dataset.tab);
+                        
+                        button.onclick = function(e) {
+                            console.log('🎯 CLICKED TAB:', this.dataset.tab);
+                            e.preventDefault();
+                            
+                            const targetTab = this.dataset.tab;
+                            
+                            // Remove active from all buttons
+                            buttons.forEach(function(btn) {
+                                btn.classList.remove('active');
+                            });
+                            
+                            // Remove active from all panels and hide them
+                            panels.forEach(function(panel) {
+                                panel.classList.remove('active');
+                                panel.style.display = 'none';
+                            });
+                            
+                            // Activate clicked button
+                            this.classList.add('active');
+                            
+                            // Show target panel
+                            const targetPanel = container.querySelector('[data-panel="' + targetTab + '"]');
+                            console.log('🎯 Target panel found:', !!targetPanel);
+                            
+                            if (targetPanel) {
+                                targetPanel.style.display = 'block';
+                                targetPanel.classList.add('active');
+                                console.log('✅ Panel activated:', targetTab);
+                            } else {
+                                console.log('❌ Panel not found for:', targetTab);
+                            }
+                        };
                     });
                     
-                    const activeTab = container.querySelector(\`[data-tab="\${tabName}"]\`);
-                    const activePanel = container.querySelector(\`[data-panel="\${tabName}"]\`);
-                    
-                    if (activeTab) activeTab.classList.add('active');
-                    if (activePanel) {
-                        activePanel.style.display = 'block';
-                        activePanel.classList.add('active');
+                    // Initialize first tab
+                    if (buttons.length > 0 && panels.length > 0) {
+                        // Hide all panels first
+                        panels.forEach(function(panel) {
+                            panel.style.display = 'none';
+                            panel.classList.remove('active');
+                        });
+                        
+                        // Remove active from all buttons
+                        buttons.forEach(function(btn) {
+                            btn.classList.remove('active');
+                        });
+                        
+                        // Activate first button and panel
+                        buttons[0].classList.add('active');
+                        panels[0].style.display = 'block';
+                        panels[0].classList.add('active');
+                        
+                        console.log('✅ TABS INITIALIZED SUCCESSFULLY!');
                     }
-                };
+                    
+                }, 500); // Wait 500ms for DOM to be ready
             </script>
         `;
     }
