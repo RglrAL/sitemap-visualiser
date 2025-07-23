@@ -6190,10 +6190,16 @@ function clearJourneyFilter() {
     originalQueryData = null;
 }
 
-// ALIAS FOR BACKWARD COMPATIBILITY
+// ALIAS FOR BACKWARD COMPATIBILITY + GLOBAL SCOPE
 const createEnhancedQueryAnalysisStyles = createCitizenQueryIntelligenceStyles;
 const createEnhancedQueryAnalysisSection = createCitizenQueryIntelligenceSection;
 const performEnhancedQueryAnalysis = performCitizenQueryAnalysis;
+
+// Make filtering functions globally accessible
+window.filterQueriesByIntent = filterQueriesByIntent;
+window.filterQueriesByService = filterQueriesByService;
+window.clearJourneyFilter = clearJourneyFilter;
+window.clearServiceFilter = clearServiceFilter;
 
 // AUTO-INITIALIZATION
 document.addEventListener('DOMContentLoaded', function() {
@@ -6205,7 +6211,6 @@ if (document.readyState === 'loading') {
 } else {
     initializeCitizenQueryIntelligence();
 }
-
 
 
 
