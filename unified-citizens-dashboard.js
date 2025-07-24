@@ -423,16 +423,20 @@
             .join(' ');
     }
 
-    // REPLACE the entire getLastModifiedInfo function with this:
+    
 // REPLACE your entire getLastModifiedInfo function with this working version:
 
+// REPLACE your entire getLastModifiedInfo function with this working version:
 function getLastModifiedInfo(url, nodeData) {
     let actualLastModified = null;
     
-    // Search tree data for the URL
-    if (window.treeData) {
+    // First try to use nodeData if it's provided (same as tooltip)
+    if (nodeData && nodeData.lastModified) {
+        actualLastModified = nodeData.lastModified;
+    }
+    // Fallback: Search tree data for the URL (existing logic)
+    else if (window.treeData) {
         function searchNode(node, targetUrl) {
-            // Try multiple URL matching strategies
             if (node.url === targetUrl || 
                 (node.url && targetUrl && node.url.includes(targetUrl.split('/').pop())) ||
                 (node.url && targetUrl && targetUrl.includes(node.url))) {
@@ -454,7 +458,7 @@ function getLastModifiedInfo(url, nodeData) {
         }
     }
     
-    // Format the date if found
+    // Format the date if found (same logic as tooltip)
     if (actualLastModified) {
         const lastMod = new Date(actualLastModified);
         
