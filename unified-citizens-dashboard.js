@@ -5826,6 +5826,22 @@ function filterQueriesByIntent(filterIntent) {
     
     // Show success message
     showFilterSuccessMessage(`✓ Filtered to show ${filteredItems.length} queries`, '#10b981');
+
+     // ADD THIS: Smooth scroll to the filtered results
+    setTimeout(() => {
+        const queriesAnalysisSection = document.querySelector('.queries-analysis') || 
+                                     document.querySelector('.citizen-queries-list') ||
+                                     document.getElementById('citizenQueriesList');
+        
+        if (queriesAnalysisSection) {
+            queriesAnalysisSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+            console.log('📍 Scrolled to filtered results');
+        }
+    }, 100); // Small delay to ensure DOM is updated
 }
 
 
@@ -5953,6 +5969,22 @@ function filterQueriesByService(filterService) {
     
     // Show success message
     showFilterSuccessMessage(`✓ Filtered to show ${filteredItems.length} ${displayName} queries`, '#10b981');
+
+    // ADD THIS: Smooth scroll to the filtered results
+    setTimeout(() => {
+        const queriesAnalysisSection = document.querySelector('.queries-analysis') || 
+                                     document.querySelector('.citizen-queries-list') ||
+                                     document.getElementById('citizenQueriesList');
+        
+        if (queriesAnalysisSection) {
+            queriesAnalysisSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+            console.log('📍 Scrolled to filtered service results');
+        }
+    }, 100);
 }
 
 function filterQueriesByUrgency() {
@@ -6062,6 +6094,25 @@ function filterQueriesByUrgency() {
     
     // Show success message
     showFilterSuccessMessage(`🚨 Filtered to show ${filteredItems.length} urgent queries`, '#ef4444');
+
+    // Show success message
+    showFilterSuccessMessage(`🚨 Filtered to show ${filteredItems.length} urgent queries`, '#ef4444');
+    
+    // ADD THIS: Smooth scroll to the filtered results
+    setTimeout(() => {
+        const queriesAnalysisSection = document.querySelector('.queries-analysis') || 
+                                     document.querySelector('.citizen-queries-list') ||
+                                     document.getElementById('citizenQueriesList');
+        
+        if (queriesAnalysisSection) {
+            queriesAnalysisSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+            console.log('📍 Scrolled to filtered urgent results');
+        }
+    }, 100);
 }
 
 
