@@ -3306,29 +3306,41 @@
             }
 
             /* Impact card enhancements */
+/* Enhanced Impact card trends with better contrast */
 .impact-trend {
     font-size: 0.75rem;
     font-weight: 600;
-    margin-top: 4px;
+    margin-top: 6px;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .impact-explanation {
     font-size: 0.7rem;
-    color: rgba(0, 0, 0, 0.6);
-    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 6px;
     font-style: italic;
 }
 
 .trend-positive {
-    color: #10b981;
+    background: rgba(255, 255, 255, 0.9);
+    color: #059669;
+    border-color: rgba(5, 150, 105, 0.2);
 }
 
 .trend-negative {
-    color: #ef4444;
+    background: rgba(255, 255, 255, 0.9);
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.2);
 }
 
 .trend-neutral {
-    color: #6b7280;
+    background: rgba(255, 255, 255, 0.8);
+    color: #374151;
+    border-color: rgba(55, 65, 81, 0.2);
 }
 
 
