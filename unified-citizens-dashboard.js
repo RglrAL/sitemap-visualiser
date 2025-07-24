@@ -1944,6 +1944,7 @@
                 }
                 
                 .impact-label {
+                    color: #000000;
                     font-size: 0.85rem;
                     opacity: 0.9;
                     font-weight: 500;
