@@ -424,63 +424,101 @@
     }
 
     // REPLACE the entire getLastModifiedInfo function with this:
+// REPLACE your entire getLastModifiedInfo function with this working version:
+
 function getLastModifiedInfo(url, nodeData) {
-    // Try to get real page data from the same source as tooltip
+    console.log('🔍 getLastModifiedInfo called with:', { url, nodeData });
+    
     let actualLastModified = null;
     
-    // Option 1: Use nodeData if passed
-    if (nodeData && nodeData.lastModified) {
-        actualLastModified = nodeData.lastModified;
-    }
-    // Option 2: Try to find it in global tree data (same as tooltip)
-    else if (window.treeData && typeof findNodeInTreeStructure === 'function') {
-        const nodeInfo = findNodeInTreeStructure(window.treeData, url);
-        if (nodeInfo.found && nodeInfo.node && nodeInfo.node.lastModified) {
-            actualLastModified = nodeInfo.node.lastModified;
+    // Try to find the page data in tree
+    if (window.treeData || window.treeData) {
+        const tree = window.treeData || treeData;
+        console.log('🌳 Searching tree for URL:', url);
+        
+        // Simple recursive search function (since findNodeInTreeStructure doesn't exist)
+        function searchTree(node, targetUrl) {
+            // Check current node
+            if (node.url === targetUrl || (node.url && targetUrl && node.url.includes(targetUrl.split('/').pop()))) {
+                return node;
+            }
+            
+            // Search children
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    const found = searchTree(child, targetUrl);
+                    if (found) return found;
+                }
+            }
+            
+            return null;
+        }
+        
+        const foundNode = searchTree(tree, url);
+        console.log('🔍 Search result:', foundNode);
+        
+        if (foundNode && foundNode.lastModified) {
+            actualLastModified = foundNode.lastModified;
+            console.log('✅ Found lastModified:', actualLastModified);
         }
     }
     
-    // If we found real data, use it
+    // If we found real data, format it
     if (actualLastModified) {
         let lastMod;
+        
+        // Handle different date formats
         if (typeof actualLastModified === 'string') {
             lastMod = new Date(actualLastModified);
         } else if (actualLastModified instanceof Date) {
             lastMod = actualLastModified;
+        } else if (typeof actualLastModified === 'number') {
+            lastMod = new Date(actualLastModified);
         }
+        
+        console.log('📅 Parsed date:', lastMod);
         
         if (lastMod && !isNaN(lastMod.getTime())) {
             const formatted = lastMod.toLocaleDateString('en-IE', {
                 year: 'numeric',
-                month: 'short',
+                month: 'short', 
                 day: 'numeric'
             });
             
             const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+            console.log('📊 Days since last modified:', daysSince);
             
             let freshnessClass = 'fresh';
             let freshnessLabel = 'Fresh';
             
-            // Use same logic as tooltip's getFreshnessInfoSafe
             if (daysSince < 30) {
-                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
+                freshnessClass = 'fresh'; 
+                freshnessLabel = 'Fresh';
             } else if (daysSince < 90) {
-                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
+                freshnessClass = 'fresh'; 
+                freshnessLabel = 'Fresh';
             } else if (daysSince < 180) {
-                freshnessClass = 'aging'; freshnessLabel = 'Recent';
+                freshnessClass = 'aging'; 
+                freshnessLabel = 'Recent';
             } else if (daysSince < 365) {
-                freshnessClass = 'aging'; freshnessLabel = 'Aging';
+                freshnessClass = 'aging'; 
+                freshnessLabel = 'Aging';
             } else if (daysSince < 730) {
-                freshnessClass = 'stale'; freshnessLabel = 'Old';
+                freshnessClass = 'stale'; 
+                freshnessLabel = 'Old';
             } else {
-                freshnessClass = 'stale'; freshnessLabel = 'Stale';
+                freshnessClass = 'stale'; 
+                freshnessLabel = 'Stale';
             }
             
-            return { formatted, freshnessClass, freshnessLabel };
+            const result = { formatted, freshnessClass, freshnessLabel };
+            console.log('✅ Final result:', result);
+            return result;
         }
     }
     
-    // Fallback if no real data available
+    // Fallback
+    console.log('❌ No valid date found, using fallback');
     return { 
         formatted: 'Date Unknown', 
         freshnessClass: 'stale', 
