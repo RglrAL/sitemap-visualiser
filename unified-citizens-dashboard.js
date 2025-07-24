@@ -532,19 +532,18 @@ function getRelativeTime(lastModified) {
     // ENHANCED COMPONENT CREATORS
     // ===========================================
 
-    function createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends) {
+    function createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData = null) {
     const pageInfo = extractPageInfo(url);
     
-    // Try to get the same node data that the tooltip uses
-    let nodeData = null;
-    if (window.treeData && typeof findNodeInTreeStructure === 'function') {
+    // Use the passed nodeData first, then fallback to tree search if needed
+    if (!nodeData && window.treeData && typeof findNodeInTreeStructure === 'function') {
         const nodeInfo = findNodeInTreeStructure(window.treeData, url);
         if (nodeInfo.found && nodeInfo.node) {
             nodeData = nodeInfo.node;
         }
     }
     
-    // If findNodeInTreeStructure doesn't exist, try direct tree search
+    // If still no nodeData, try direct tree search
     if (!nodeData && window.treeData) {
         function findNode(node, targetUrl) {
             if (node.url === targetUrl || 
@@ -565,7 +564,9 @@ function getRelativeTime(lastModified) {
         nodeData = findNode(window.treeData, url);
     }
     
-    // Use the simplified date logic (pass nodeData directly, not url)
+    console.log('📅 Using node data for header:', nodeData);
+    
+    // Use the simplified date logic (pass nodeData directly)
     const lastModified = getLastModifiedInfo(nodeData);
     const citizenImpact = calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends);
     
@@ -3940,7 +3941,7 @@ function getRelativeTime(lastModified) {
 // MAIN UNIFIED DASHBOARD CREATION FUNCTION
 // ===========================================
 
-function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData) {
+function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData = null) {
     const dashboardId = 'unified-dashboard-' + Date.now();
     
     // Schedule initialization after DOM insertion
@@ -3963,7 +3964,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         ${createUnifiedDashboardStyles()}
         
         <div id="${dashboardId}" class="unified-dashboard-container">
-            ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends)}
+            ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
             ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
             
             
