@@ -752,25 +752,122 @@
 }
 
     function createImpactDisplay(gscData, ga4Data) {
-        const impact = calculateImpactMetrics(gscData, ga4Data);
-        
-        return `
-            <div class="impact-metrics">
-                <div class="impact-metric">
-                    <span class="impact-label">Information Seekers:</span>
-                    <span class="impact-value">${impact.seekers}</span>
+    const impact = calculateEnhancedImpactMetrics(gscData, ga4Data);
+    
+    return `
+        <div class="impact-metrics">
+            <div class="impact-metric">
+                <span class="impact-label">Information Seekers:</span>
+                <span class="impact-value">${impact.seekers}</span>
+                <span class="impact-explain" title="Search clicks + unique visitors in last 30 days">ℹ️</span>
+            </div>
+            <div class="impact-metric">
+                <span class="impact-label">Query Types Found:</span>
+                <span class="impact-value">${impact.queryTypes}</span>
+                <span class="impact-explain" title="Different search queries leading to this page">ℹ️</span>
+            </div>
+            <div class="impact-metric">
+                <span class="impact-label">Content Success Rate:</span>
+                <span class="impact-value">${impact.successRate}%</span>
+                <span class="impact-explain" title="Citizens who stayed and engaged (didn't immediately leave)">ℹ️</span>
+            </div>
+            
+            <!-- Detailed Breakdown Toggle -->
+            <div class="impact-breakdown-toggle">
+                <button class="impact-breakdown-btn" data-action="toggle-impact-breakdown">
+                    <span>📊 Show Calculation Details</span>
+                </button>
+            </div>
+            
+            <!-- Detailed Breakdown -->
+            <div class="impact-breakdown-details" id="impactBreakdown" style="display: none;">
+                <div class="impact-breakdown-section">
+                    <h5>🔍 Information Seekers Breakdown</h5>
+                    <div class="impact-calculation">
+                        <div class="calc-item">
+                            <span class="calc-label">Search Clicks:</span>
+                            <span class="calc-value">${formatNumber(gscData?.clicks || 0)}</span>
+                            <span class="calc-source">(Google Search Console)</span>
+                        </div>
+                        <div class="calc-item">
+                            <span class="calc-label">Unique Visitors:</span>
+                            <span class="calc-value">${formatNumber(ga4Data?.users || 0)}</span>
+                            <span class="calc-source">(Google Analytics)</span>
+                        </div>
+                        <div class="calc-total">
+                            <span class="calc-label"><strong>Total Information Seekers:</strong></span>
+                            <span class="calc-value"><strong>${impact.seekers}</strong></span>
+                        </div>
+                        <div class="calc-note">
+                            <small>📝 Note: Some overlap between search clicks and direct visitors is possible</small>
+                        </div>
+                    </div>
                 </div>
-                <div class="impact-metric">
-                    <span class="impact-label">Questions Answered:</span>
-                    <span class="impact-value">${impact.questionsAnswered}</span>
+                
+                <div class="impact-breakdown-section">
+                    <h5>❓ Query Types Analysis</h5>
+                    <div class="impact-calculation">
+                        <div class="calc-item">
+                            <span class="calc-label">Different Search Queries:</span>
+                            <span class="calc-value">${impact.queryTypes}</span>
+                            <span class="calc-source">(Top queries from GSC)</span>
+                        </div>
+                        <div class="calc-note">
+                            <small>📝 This shows the variety of information needs this page serves</small>
+                        </div>
+                        ${gscData?.topQueries?.length > 0 ? `
+                            <div class="top-queries-preview">
+                                <strong>Top citizen questions:</strong>
+                                <ul>
+                                    ${gscData.topQueries.slice(0, 3).map(q => 
+                                        `<li>"${q.query}" (${q.clicks} citizens)`
+                                    ).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-                <div class="impact-metric">
-                    <span class="impact-label">Success Rate:</span>
-                    <span class="impact-value">${impact.successRate}%</span>
+                
+                <div class="impact-breakdown-section">
+                    <h5>✅ Content Success Rate Breakdown</h5>
+                    <div class="impact-calculation">
+                        ${ga4Data && !ga4Data.noDataFound ? `
+                            <div class="calc-item">
+                                <span class="calc-label">Bounce Rate:</span>
+                                <span class="calc-value">${(ga4Data.bounceRate * 100).toFixed(0)}%</span>
+                                <span class="calc-source">(Citizens who left immediately)</span>
+                            </div>
+                            <div class="calc-item">
+                                <span class="calc-label">Engagement Rate:</span>
+                                <span class="calc-value">${((1 - ga4Data.bounceRate) * 100).toFixed(0)}%</span>
+                                <span class="calc-source">(Citizens who stayed and engaged)</span>
+                            </div>
+                            <div class="calc-item">
+                                <span class="calc-label">Average Time on Page:</span>
+                                <span class="calc-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
+                                <span class="calc-source">(Time citizens spend reading)</span>
+                            </div>
+                        ` : `
+                            <div class="calc-item">
+                                <span class="calc-label">Success Rate:</span>
+                                <span class="calc-value">70% (estimated)</span>
+                                <span class="calc-source">(Default when no analytics data)</span>
+                            </div>
+                        `}
+                        <div class="calc-note">
+                            <small>📝 Success = Citizens who didn't immediately leave (bounce)</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="impact-summary">
+                    <h5>📊 Impact Summary</h5>
+                    <p>${getImpactSummary(impact, gscData, ga4Data)}</p>
                 </div>
             </div>
-        `;
-    }
+        </div>
+    `;
+}
 
     function calculateImpactMetrics(gscData, ga4Data) {
         const seekers = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
@@ -3535,6 +3632,142 @@
     line-height: 1.4;
 }
 
+/* Impact Breakdown Styles */
+.impact-explain {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-left: 4px;
+    cursor: help;
+}
+
+.impact-breakdown-toggle {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.impact-breakdown-btn {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.impact-breakdown-btn:hover {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.impact-breakdown-details {
+    margin-top: 12px;
+    padding: 16px;
+    background: #f0fdf4;
+    border-radius: 8px;
+    border: 1px solid #bbf7d0;
+}
+
+.impact-breakdown-section {
+    margin-bottom: 20px;
+}
+
+.impact-breakdown-section:last-child {
+    margin-bottom: 0;
+}
+
+.impact-breakdown-section h5 {
+    margin: 0 0 12px 0;
+    color: #166534;
+    font-size: 0.9rem;
+}
+
+.impact-calculation {
+    display: grid;
+    gap: 8px;
+}
+
+.calc-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.calc-label {
+    color: #374151;
+}
+
+.calc-value {
+    font-weight: 600;
+    color: #059669;
+}
+
+.calc-source {
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+.calc-total {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid #bbf7d0;
+    margin-top: 8px;
+    font-size: 0.85rem;
+}
+
+.calc-note {
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(16, 185, 129, 0.05);
+    border-radius: 4px;
+    color: #059669;
+}
+
+.top-queries-preview {
+    margin-top: 12px;
+    font-size: 0.8rem;
+}
+
+.top-queries-preview ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.top-queries-preview li {
+    margin-bottom: 4px;
+    color: #374151;
+}
+
+.impact-summary {
+    background: #fffbeb;
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid #f59e0b;
+    margin-top: 16px;
+}
+
+.impact-summary h5 {
+    margin: 0 0 8px 0;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+.impact-summary p {
+    margin: 0;
+    color: #78350f;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
 
 
             ${createEnhancedQueryAnalysisStyles()}
@@ -3694,10 +3927,11 @@ function initializeUnifiedDashboard(dashboardId) {
         });
     });
     
-    // ADD THIS: Handle quality breakdown toggle
+    // Handle both quality and impact breakdown toggles
     dashboard.addEventListener('click', function(e) {
-        const toggleBtn = e.target.closest('[data-action="toggle-quality-breakdown"]');
-        if (toggleBtn) {
+        // Handle quality breakdown toggle
+        const qualityToggleBtn = e.target.closest('[data-action="toggle-quality-breakdown"]');
+        if (qualityToggleBtn) {
             e.preventDefault();
             console.log('🎯 Quality breakdown toggle clicked');
             
@@ -3715,6 +3949,30 @@ function initializeUnifiedDashboard(dashboardId) {
                     console.log('✅ Quality breakdown hidden');
                 }
             }
+            return; // Exit early to prevent other handlers
+        }
+        
+        // Handle impact breakdown toggle
+        const impactToggleBtn = e.target.closest('[data-action="toggle-impact-breakdown"]');
+        if (impactToggleBtn) {
+            e.preventDefault();
+            console.log('🎯 Impact breakdown toggle clicked');
+            
+            const breakdown = dashboard.querySelector('#impactBreakdown');
+            const btn = impactToggleBtn;
+            
+            if (breakdown && btn) {
+                if (breakdown.style.display === 'none' || !breakdown.style.display) {
+                    breakdown.style.display = 'block';
+                    btn.innerHTML = '<span>📊 Hide Calculation Details</span>';
+                    console.log('✅ Impact breakdown shown');
+                } else {
+                    breakdown.style.display = 'none';
+                    btn.innerHTML = '<span>📊 Show Calculation Details</span>';
+                    console.log('✅ Impact breakdown hidden');
+                }
+            }
+            return; // Exit early to prevent other handlers
         }
     });
     
@@ -6958,7 +7216,45 @@ function getOverallRecommendation(score, scores) {
 
 
 
+function calculateEnhancedImpactMetrics(gscData, ga4Data) {
+    // Information seekers (same as before but more transparent)
+    const seekers = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
+    
+    // Query types (renamed from "Questions Answered" to be more accurate)
+    const queryTypes = gscData?.topQueries?.length || 0;
+    
+    // Success rate (more transparent calculation)
+    let successRate = 70; // Default fallback
+    if (ga4Data && !ga4Data.noDataFound && ga4Data.bounceRate !== undefined) {
+        successRate = Math.round((1 - ga4Data.bounceRate) * 100);
+    }
+    
+    return { 
+        seekers, 
+        queryTypes, 
+        successRate,
+        rawClicks: gscData?.clicks || 0,
+        rawUsers: ga4Data?.users || 0,
+        rawBounceRate: ga4Data?.bounceRate || null
+    };
+}
 
+function getImpactSummary(impact, gscData, ga4Data) {
+    const totalSeekers = (gscData?.clicks || 0) + (ga4Data?.users || 0);
+    const successfulSeekers = Math.round(totalSeekers * (impact.successRate / 100));
+    
+    if (totalSeekers === 0) {
+        return "This page currently has no recorded citizen traffic. Connect your analytics tools to see impact data.";
+    }
+    
+    if (impact.successRate >= 80) {
+        return `Excellent citizen service! ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens successfully found what they needed. The page serves ${impact.queryTypes} different types of information needs.`;
+    } else if (impact.successRate >= 60) {
+        return `Good citizen service. ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens found what they needed, though there's room for improvement. Consider optimizing for the ${impact.queryTypes} different information needs.`;
+    } else {
+        return `Citizens are struggling to find what they need. Only ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens successfully engaged with the content. Focus on improving content clarity and relevance for the ${impact.queryTypes} different query types.`;
+    }
+}
     
     
 
