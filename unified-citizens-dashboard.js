@@ -2445,16 +2445,7 @@ function formatDuration(seconds) {
                 <div class="metric-trend neutral">Search clicks → GA4 users</div>
             </div>
             
-            <div class="metric-card" style="border-left: 4px solid #8b5cf6;">
-                <div class="metric-header">
-                    <span class="metric-icon">⭐</span>
-                    <span class="metric-label">Content Quality Score</span>
-                </div>
-                <div class="metric-value" style="color: #8b5cf6;">${qualityScore}/100</div>
-                <div class="metric-trend ${qualityScore >= 75 ? 'up' : qualityScore >= 50 ? 'neutral' : 'down'}">
-                    ${qualityScore >= 75 ? 'Excellent' : qualityScore >= 50 ? 'Good' : 'Needs Work'}
-                </div>
-            </div>
+            
         `;
     }
 
