@@ -3827,12 +3827,28 @@
     color: #374151;
 }
 
-.impact-summary {
-    
+.impact-summary-section {
+    background: #fffbeb;
     padding: 16px;
     border-radius: 8px;
+    border-left: 4px solid #f59e0b;
     margin-top: 16px;
 }
+
+.impact-summary-section h5 {
+    margin: 0 0 8px 0;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+.impact-summary-section p {
+    margin: 0;
+    color: #78350f;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+
 
 .impact-summary h5 {
     margin: 0 0 8px 0;
@@ -3847,6 +3863,59 @@
     line-height: 1.4;
 }
 
+/* Complete the missing responsive styles */
+@media (max-width: 768px) {
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        min-height: auto;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+    }
+    
+    .card-icon {
+        font-size: 1.3rem;
+        margin-right: 8px;
+    }
+    
+    .metric-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        min-height: auto;
+    }
+    
+    .metric-value {
+        text-align: left;
+        min-width: auto;
+    }
+    
+    .impact-metrics {
+        gap: 8px;
+    }
+    
+    .impact-metric {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        min-height: auto;
+        text-align: left;
+    }
+    
+    .impact-value {
+        text-align: left;
+        min-width: auto;
+    }
+}
+
+/* Fix any potential conflicts */
+.impact-summary .impact-summary {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+}
 
 
             ${createEnhancedQueryAnalysisStyles()}
