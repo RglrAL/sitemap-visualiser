@@ -1002,27 +1002,24 @@ function getRelativeTime(lastModified) {
         return { seekers, questionsAnswered, successRate };
     }
 
-    // ===========================================
-    // GEOGRAPHIC SERVICE INTELLIGENCE
-    // ===========================================
-
-    // COMPLETE ENHANCED GEOGRAPHIC INTELLIGENCE IMPLEMENTATION
+   // COMPLETE ENHANCED GEOGRAPHIC INTELLIGENCE IMPLEMENTATION
 // This replaces and enhances the basic geographic intelligence in your dashboard
 
-function createEnhancedGeographicServiceIntelligence(gscData, ga4Data) {
+function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl) {
     const geoData = ga4Data?.geographic || {};
     const trafficData = ga4Data?.trafficSources || {};
     
-    // Enhanced data processing
+    // Enhanced data processing with page context
     const geoInsights = processGeographicData(geoData, gscData);
     const servicePatterns = analyzeServicePatterns(geoData, gscData);
     const accessibilityInsights = calculateAccessibilityMetrics(geoData);
+    const pageContext = analyzePageContext(pageUrl);
     
     return `
         <div class="section enhanced-geographic-intelligence">
-            <h2 class="section-title">🌍 Geographic Service Intelligence</h2>
+            <h2 class="section-title">🌍 Geographic Service Intelligence: ${pageContext.serviceType}</h2>
             <div class="geo-explanation">
-                <p><strong>Advanced Geographic Analysis:</strong> Understanding citizen needs, service accessibility, and optimization opportunities across Ireland and internationally.</p>
+                <p><strong>Page-Specific Geographic Analysis:</strong> Understanding where citizens need <em>${pageContext.serviceType}</em> and how they access this information across Ireland and internationally.</p>
             </div>
             
             <!-- Executive Geographic Summary -->
@@ -1141,7 +1138,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data) {
                                                 <div class="region-bar-fill" style="width: ${region.percentage}%; background: ${getRegionColor(region.percentage)}"></div>
                                             </div>
                                             <div class="region-insights">
-                                                ${generateRegionInsights(region, index, geoInsights)}
+                                                ${generateRegionInsights(region, index, geoInsights, pageUrl)}
                                             </div>
                                         </div>
                                     </div>
@@ -1153,7 +1150,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data) {
                         <div class="regional-recommendations">
                             <h4>💡 Regional Service Strategy</h4>
                             <div class="recommendations-grid">
-                                ${generateRegionalRecommendations(geoData.regions, geoInsights)}
+                                ${generateRegionalRecommendations(geoData.regions, geoInsights, pageUrl)}
                             </div>
                         </div>
                     ` : `
@@ -1223,7 +1220,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data) {
                                                 ${generateCountryInsightTags(country, geoInsights)}
                                             </div>
                                             <div class="service-implications">
-                                                ${generateServiceImplications(country)}
+                                                ${generateServiceImplications(country, pageUrl)}
                                             </div>
                                         </div>
                                         <div class="country-bar-visual">
@@ -1294,7 +1291,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data) {
                 <div class="geo-search-intelligence">
                     <h3>🔍 Geographic Search Patterns</h3>
                     <div class="search-geo-analysis">
-                        ${analyzeGeographicSearchPatterns(gscData, geoData)}
+                        ${analyzeGeographicSearchPatterns(gscData, geoData, pageUrl)}
                     </div>
                 </div>
             ` : ''}
@@ -1322,11 +1319,11 @@ function processGeographicData(geoData, gscData) {
     
     const countiesCovered = Math.min(32, regions.length);
     
-    let demandLevel = { class: 'low', label: 'Distributed Demand' };
+    let demandLevel = { class: 'low', label: 'Distributed Access' };
     if (dublinPercentage > 40) {
-        demandLevel = { class: 'high', label: 'Dublin-Centric' };
+        demandLevel = { class: 'high', label: 'Capital Concentrated' };
     } else if (dublinPercentage > 25) {
-        demandLevel = { class: 'medium', label: 'Regional Hub Model' };
+        demandLevel = { class: 'medium', label: 'Regional Hub Pattern' };
     }
     
     const opportunityScore = Math.round(70 + (internationalCountries.length * 2) + (regions.length * 1.5));
@@ -1509,11 +1506,73 @@ function getCountryFlag(country) {
     return flags[country] || '🌍';
 }
 
-function generateRegionInsights(region, index, geoInsights) {
-    if (index === 0) return 'Primary service region';
-    if (region.percentage > 10) return 'High demand area';
-    if (region.percentage > 5) return 'Growing usage';
-    return 'Monitor for growth';
+function generateRegionInsights(region, index, geoInsights, pageUrl) {
+    const pageContext = analyzePageContext(pageUrl);
+    
+    if (index === 0) {
+        return `Highest ${pageContext.serviceType} usage region`;
+    }
+    
+    // Generate region-specific insights based on page content
+    const regionName = region.region.toLowerCase();
+    
+    if (regionName.includes('dublin')) {
+        return generateDublinInsights(pageContext, region.percentage);
+    }
+    if (regionName.includes('cork')) {
+        return generateCorkInsights(pageContext, region.percentage);
+    }
+    if (regionName.includes('galway')) {
+        return generateGalwayInsights(pageContext, region.percentage);
+    }
+    
+    // Generic insights based on percentage and service type - neutral tone
+    if (region.percentage > 10) {
+        return `Strong ${pageContext.serviceType} usage in region`;
+    }
+    if (region.percentage > 5) {
+        return `Moderate ${pageContext.serviceType} engagement`;
+    }
+    return `Growing ${pageContext.serviceType} awareness`;
+}
+
+function generateDublinInsights(pageContext, percentage) {
+    // Neutral observations, not promotional recommendations
+    const insights = {
+        'passport services': percentage > 30 ? 'High Dublin concentration - monitor regional alternatives' : 'Balanced passport service distribution',
+        'driving licenses': percentage > 30 ? 'Dublin test center pressure - promote regional options' : 'Good regional distribution of demand',
+        'birth certificates': percentage > 30 ? 'High Dublin registration volume - encourage online services' : 'Balanced registration distribution',
+        'marriage services': percentage > 30 ? 'Dublin wedding concentration - highlight regional venues' : 'Good regional marriage service spread',
+        'immigration services': percentage > 30 ? 'Dublin immigration concentration - develop regional capacity' : 'Balanced immigration service access',
+        'tax services': percentage > 30 ? 'High Dublin tax queries - strengthen regional support' : 'Good regional tax service distribution',
+        'social welfare': percentage > 30 ? 'Dublin welfare concentration - ensure regional parity' : 'Balanced social protection access',
+        'health services': percentage > 30 ? 'High Dublin health queries - promote local HSE services' : 'Good regional health service awareness',
+        'housing services': percentage > 30 ? 'Dublin housing pressure - highlight national opportunities' : 'Balanced housing inquiry distribution',
+        'education services': percentage > 30 ? 'Dublin education concentration - promote regional institutions' : 'Good regional education awareness',
+        'business services': percentage > 30 ? 'Dublin business concentration - support regional enterprise' : 'Balanced business service access'
+    };
+    return insights[pageContext.serviceType] || (percentage > 30 ? 'High Dublin concentration - ensure regional balance' : 'Good regional service distribution');
+}
+
+function generateCorkInsights(pageContext, percentage) {
+    const insights = {
+        'passport services': 'Strong regional passport service usage - good regional access',
+        'driving licenses': 'Major regional driving service center - serving Munster well',
+        'immigration services': 'Growing regional immigration hub - developing capacity',
+        'business services': 'Regional business activity center - supporting local enterprise',
+        'education services': 'Strong educational activity - UCC and CIT student population'
+    };
+    return insights[pageContext.serviceType] || 'Strong regional service engagement';
+}
+
+function generateGalwayInsights(pageContext, percentage) {
+    const insights = {
+        'passport services': 'Key western regional passport access point - serving wide catchment',
+        'education services': 'Major western educational hub - NUIG student community',
+        'immigration services': 'Growing western regional immigration services - expanding access',
+        'business services': 'Regional business growth center - supporting innovation ecosystem'
+    };
+    return insights[pageContext.serviceType] || 'Important western regional service center';
 }
 
 function generateRegionalRecommendations(regions, insights) {
@@ -1583,19 +1642,156 @@ function generateCountryInsightTags(country, geoInsights) {
     return tags.join('');
 }
 
-function generateServiceImplications(country) {
-    const implications = {
-        'Ireland': 'Primary service audience - optimize for Irish terminology and processes',
-        'United Kingdom': 'Post-Brexit information needs - visa, residency, and rights queries',
-        'United States': 'Irish diaspora - consider heritage services and documentation needs',
-        'Canada': 'Irish diaspora - focus on citizenship and ancestry services',
-        'Australia': 'Irish diaspora - working holiday and ancestry documentation',
-        'Poland': 'EU citizens in Ireland - residency, work rights, and social services',
-        'Germany': 'EU citizens and business travelers - employment and tax information',
-        'France': 'EU citizens and tourists - temporary residence and travel information'
+function generateServiceImplications(country, pageUrl) {
+    // Extract page context from URL to provide specific insights
+    const pageContext = analyzePageContext(pageUrl);
+    
+    if (country.country === 'Ireland') {
+        return `Primary audience for this ${pageContext.serviceType} - optimize for local Irish terminology and regional variations`;
+    }
+    
+    // Generate country-specific implications based on page content
+    const countryImplications = {
+        'United Kingdom': generateUKImplications(pageContext),
+        'United States': generateUSImplications(pageContext),
+        'Canada': generateCanadaImplications(pageContext),
+        'Australia': generateAustraliaImplications(pageContext),
+        'Poland': generatePolandImplications(pageContext),
+        'Germany': generateGermanyImplications(pageContext),
+        'France': generateFranceImplications(pageContext)
     };
     
-    return implications[country.country] || 'International visitors - tourism and temporary stay information';
+    return countryImplications[country.country] || 
+           `International users seeking ${pageContext.serviceType} - consider translation and international context`;
+}
+
+function analyzePageContext(pageUrl) {
+    if (!pageUrl) return { serviceType: 'government information', category: 'general' };
+    
+    const url = pageUrl.toLowerCase();
+    
+    // Analyze URL path to determine page context
+    if (url.includes('passport')) {
+        return { serviceType: 'passport services', category: 'identity', keywords: ['passport', 'travel', 'identity'] };
+    }
+    if (url.includes('driving') || url.includes('licence')) {
+        return { serviceType: 'driving licenses', category: 'transport', keywords: ['driving', 'license', 'test'] };
+    }
+    if (url.includes('birth') || url.includes('certificate')) {
+        return { serviceType: 'birth certificates', category: 'identity', keywords: ['birth', 'certificate', 'registration'] };
+    }
+    if (url.includes('marriage')) {
+        return { serviceType: 'marriage services', category: 'family', keywords: ['marriage', 'civil', 'ceremony'] };
+    }
+    if (url.includes('visa') || url.includes('immigration')) {
+        return { serviceType: 'immigration services', category: 'immigration', keywords: ['visa', 'immigration', 'residency'] };
+    }
+    if (url.includes('tax') || url.includes('revenue')) {
+        return { serviceType: 'tax services', category: 'finance', keywords: ['tax', 'revenue', 'PAYE'] };
+    }
+    if (url.includes('social') || url.includes('welfare') || url.includes('benefit')) {
+        return { serviceType: 'social welfare', category: 'benefits', keywords: ['benefit', 'allowance', 'payment'] };
+    }
+    if (url.includes('health') || url.includes('medical')) {
+        return { serviceType: 'health services', category: 'health', keywords: ['medical', 'health', 'doctor'] };
+    }
+    if (url.includes('housing')) {
+        return { serviceType: 'housing services', category: 'housing', keywords: ['housing', 'rent', 'accommodation'] };
+    }
+    if (url.includes('education') || url.includes('school')) {
+        return { serviceType: 'education services', category: 'education', keywords: ['education', 'school', 'student'] };
+    }
+    if (url.includes('business') || url.includes('company')) {
+        return { serviceType: 'business services', category: 'business', keywords: ['business', 'company', 'registration'] };
+    }
+    
+    return { serviceType: 'government information', category: 'general', keywords: ['information', 'service'] };
+}
+
+function generateUKImplications(pageContext) {
+    const implications = {
+        'passport services': 'UK citizens may need Irish passport info for post-Brexit travel rights',
+        'driving licenses': 'UK residents converting licenses after moving to Ireland',
+        'birth certificates': 'Northern Ireland citizens accessing Irish birth certificates',
+        'marriage services': 'UK couples planning to marry in Ireland or Irish citizens in UK',
+        'immigration services': 'Post-Brexit residency and visa requirements for UK citizens',
+        'tax services': 'UK citizens working in Ireland or cross-border tax obligations',
+        'social welfare': 'UK citizens accessing Irish social protection after Brexit',
+        'health services': 'UK citizens accessing Irish healthcare post-Brexit',
+        'housing services': 'UK citizens seeking housing in Ireland',
+        'education services': 'UK students or families accessing Irish education',
+        'business services': 'UK businesses establishing Irish operations post-Brexit'
+    };
+    return implications[pageContext.serviceType] || 'UK citizens accessing Irish services post-Brexit';
+}
+
+function generateUSImplications(pageContext) {
+    const implications = {
+        'passport services': 'Irish-Americans applying for Irish passports through ancestry',
+        'birth certificates': 'US citizens of Irish heritage accessing ancestral birth records',
+        'marriage services': 'Irish-Americans getting married in Ireland or registering Irish marriages',
+        'immigration services': 'US citizens moving to Ireland or claiming Irish citizenship',
+        'tax services': 'US-Ireland tax treaty obligations for American citizens in Ireland',
+        'social welfare': 'US citizens in Ireland accessing social protection',
+        'health services': 'American tourists or residents accessing Irish healthcare',
+        'housing services': 'US citizens relocating to Ireland seeking accommodation',
+        'education services': 'American students studying in Ireland',
+        'business services': 'US companies establishing Irish subsidiaries'
+    };
+    return implications[pageContext.serviceType] || 'Irish diaspora accessing heritage services from the US';
+}
+
+function generateCanadaImplications(pageContext) {
+    const implications = {
+        'passport services': 'Irish-Canadians claiming Irish citizenship through ancestry',
+        'birth certificates': 'Canadians accessing Irish birth records for citizenship applications',
+        'immigration services': 'Canadians using Irish citizenship for EU access',
+        'education services': 'Canadian students on exchange programs in Ireland',
+        'business services': 'Canadian companies accessing EU market through Ireland'
+    };
+    return implications[pageContext.serviceType] || 'Irish diaspora in Canada accessing citizenship services';
+}
+
+function generateAustraliaImplications(pageContext) {
+    const implications = {
+        'passport services': 'Irish-Australians applying for Irish passports for EU travel',
+        'immigration services': 'Australians on working holiday visas in Ireland',
+        'education services': 'Australian students studying in Irish universities',
+        'birth certificates': 'Australians tracing Irish ancestry for citizenship claims'
+    };
+    return implications[pageContext.serviceType] || 'Irish diaspora in Australia seeking EU access through Ireland';
+}
+
+function generatePolandImplications(pageContext) {
+    const implications = {
+        'immigration services': 'Polish citizens living in Ireland accessing residency services',
+        'social welfare': 'Polish workers in Ireland accessing social protection',
+        'tax services': 'Polish citizens understanding Irish tax obligations',
+        'health services': 'Polish residents accessing Irish healthcare system',
+        'education services': 'Polish families accessing Irish schools for their children',
+        'business services': 'Polish entrepreneurs starting businesses in Ireland'
+    };
+    return implications[pageContext.serviceType] || 'Polish EU citizens living and working in Ireland';
+}
+
+function generateGermanyImplications(pageContext) {
+    const implications = {
+        'business services': 'German companies establishing Irish operations',
+        'tax services': 'German citizens understanding Irish tax for business or employment',
+        'immigration services': 'German professionals moving to Ireland for work',
+        'education services': 'German students in Irish universities or exchange programs'
+    };
+    return implications[pageContext.serviceType] || 'German EU citizens accessing Irish services';
+}
+
+function generateFranceImplications(pageContext) {
+    const implications = {
+        'immigration services': 'French citizens moving to Ireland for work or study',
+        'business services': 'French companies accessing Irish business environment',
+        'education services': 'French students studying in Ireland',
+        'tax services': 'French citizens understanding Irish tax obligations'
+    };
+    return implications[pageContext.serviceType] || 'French EU citizens accessing Irish services';
 }
 
 function generateMultilingualInsights(countries, accessibilityInsights) {
@@ -1635,10 +1831,10 @@ function generateMultilingualInsights(countries, accessibilityInsights) {
 
 function generateQuickWins(servicePatterns, geoInsights) {
     const wins = [
-        '🎯 Add Dublin-specific service hours and contact information',
-        '📱 Optimize mobile experience for high-usage regions',
-        '🔍 Implement regional search filters and location-based results',
-        '📧 Create region-specific newsletter segments'
+        '⚖️ Add regional office information to balance Dublin dependency',
+        '📱 Optimize mobile experience for rural and regional users',
+        '🔍 Implement county-specific search filters and local results',
+        '💻 Promote online services to reduce regional travel needs'
     ];
     
     return wins.map(win => `<div class="win-item">${win}</div>`).join('');
@@ -1646,10 +1842,10 @@ function generateQuickWins(servicePatterns, geoInsights) {
 
 function generateStrategicOpportunities(servicePatterns, accessibilityInsights) {
     const opportunities = [
-        '🌍 Develop multilingual content strategy for EU citizens',
-        '📊 Implement advanced geographic tracking and personalization',
-        '🏛️ Partner with local government offices for service integration',
-        '📱 Create location-aware mobile app features'
+        '🌍 Develop multilingual content strategy for EU citizens nationwide',
+        '📊 Implement regional analytics to ensure balanced service delivery',
+        '🏛️ Strengthen partnerships with county councils and regional offices',
+        '📱 Create location-aware services that promote local options first'
     ];
     
     return opportunities.map(opp => `<div class="opportunity-item">${opp}</div>`).join('');
@@ -1721,7 +1917,6 @@ function formatNumber(num) {
 
 
 
-
     
 
     function getRegionColor(percentage) {
@@ -1767,7 +1962,7 @@ function formatNumber(num) {
                     </div>
                 </div>
                 
-                ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data)}
+                ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl)}
                 
                 <div class="section">
                     <h2 class="section-title">🎯 Citizens Impact Summary</h2>
@@ -2827,7 +3022,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             }
 
 
-        /* ENHANCED GEOGRAPHIC INTELLIGENCE STYLES */
+       /* ENHANCED GEOGRAPHIC INTELLIGENCE STYLES */
 .enhanced-geographic-intelligence {
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     border-left: 4px solid #0ea5e9;
@@ -3738,6 +3933,46 @@ function createPerformanceMatrix(gscData, ga4Data) {
     margin-top: 12px;
 }
 
+.pattern-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.pattern-stat {
+    text-align: center;
+}
+
+.pattern-stat .stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.pattern-stat .stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.location-queries {
+    margin-top: 16px;
+}
+
+.location-queries h6 {
+    margin: 0 0 12px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+}
+
 .location-queries {
     display: grid;
     gap: 8px;
@@ -3745,25 +3980,79 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .location-query {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
     align-items: center;
+    gap: 12px;
     padding: 8px 12px;
     background: white;
     border-radius: 6px;
     border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
 }
 
 .query-text {
     font-weight: 500;
     color: #374151;
-    font-size: 0.85rem;
 }
 
 .query-stats {
-    font-size: 0.8rem;
     color: #6b7280;
     font-weight: 500;
+    text-align: center;
+}
+
+.query-insight {
+    color: #059669;
+    font-weight: 500;
+    font-size: 0.8rem;
+    text-align: right;
+    font-style: italic;
+}
+
+.local-search-opportunity {
+    margin-top: 16px;
+    padding: 12px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-radius: 8px;
+    border-left: 3px solid #10b981;
+}
+
+.local-search-opportunity h6 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #166534;
+}
+
+.local-search-opportunity p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #166534;
+}
+
+/* Responsive updates for new elements */
+@media (max-width: 768px) {
+    .pattern-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .location-query {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        text-align: left;
+    }
+    
+    .query-stats,
+    .query-insight {
+        text-align: left;
+    }
+}
+
+@media (max-width: 480px) {
+    .pattern-summary {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* No Data States */
