@@ -2237,7 +2237,7 @@
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(2, 1fr);
     gap: 20px;
-    max-width: 800px; /* Prevents cards from getting too wide */
+    max-width: 1100px; /* Prevents cards from getting too wide */
     margin: 0 auto; /* Centers the grid */
 }
                 
