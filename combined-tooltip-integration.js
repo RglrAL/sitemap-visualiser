@@ -1197,27 +1197,35 @@
     }
 
     function handleEnhancedAction(action, url, tooltip) {
-        console.log('🎯 Enhanced action:', action);
-        
-        switch (action) {
-            case 'visit':
-                if (url && url !== 'undefined') {
-                    window.open(url, '_blank');
-                }
-                break;
-            case 'refresh':
-                if (tooltip && tooltip._nodeData) {
-                    loadEnhancedAnalytics(tooltip, tooltip._nodeData);
-                }
-                break;
-            case 'detailed':
-    if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
-        window.showUnifiedDashboardReport(url);  // <- NEW CALL
+    console.log('🎯 Enhanced action:', action);
+    
+    switch (action) {
+        case 'visit':
+            if (url && url !== 'undefined') {
+                window.open(url, '_blank');
+            }
+            break;
+            
+        case 'refresh':
+            if (tooltip && tooltip._nodeData) {
+                loadEnhancedAnalytics(tooltip, tooltip._nodeData);
+            }
+            break;
+            
+        case 'detailed':
+            if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
+                // Pass the node data from the tooltip to the dashboard
+                const nodeData = tooltip._nodeData;
+                console.log('📊 Opening dashboard with node data:', nodeData);
+                window.showUnifiedDashboardReport(url, nodeData);  // Pass nodeData
+            }
+            break;
     }
-    break;
-        }
-    }
+}
 
+
+
+    
     // Safe fallback functions from your original code
     function getPageInfoSafe(data) {
         try {
@@ -1265,14 +1273,14 @@
 // New unified dashboard integration function
 // REPLACE your showUnifiedDashboardReport function with this corrected version:
 
-window.showUnifiedDashboardReport = async function(url) {
+window.showUnifiedDashboardReport = async function(url, nodeData = null) {
     console.log('🚀 Opening Unified Citizens Dashboard for:', url);
+    console.log('📄 Using node data:', nodeData);
 
     // RESET FILTERS WHEN OPENING NEW DASHBOARD
     if (window.resetDashboardFilters) {
         window.resetDashboardFilters();
     }
-
     
     try {
         // Initialize data objects
@@ -1332,15 +1340,16 @@ window.showUnifiedDashboardReport = async function(url) {
             ga4Data = { noDataFound: true };
         }
         
-        console.log('📊 Dashboard data prepared:', { gscData, ga4Data, gscTrends, ga4Trends });
+        console.log('📊 Dashboard data prepared:', { gscData, ga4Data, gscTrends, ga4Trends, nodeData });
         
-        // Create the unified dashboard
+        // Create the unified dashboard WITH nodeData
         const dashboardHtml = createUnifiedCitizensDashboard(
             url, 
             gscData, 
             ga4Data, 
             gscTrends, 
-            ga4Trends
+            ga4Trends,
+            nodeData  // Pass the node data to the dashboard
         );
         
         // Show in modal
@@ -1351,6 +1360,7 @@ window.showUnifiedDashboardReport = async function(url) {
         alert('Failed to load dashboard data. Please try again.');
     }
 };
+
 
 // Helper function to calculate trend data in the format the dashboard expects
 function calculateTrend(currentValue, previousValue, inverted = false) {
