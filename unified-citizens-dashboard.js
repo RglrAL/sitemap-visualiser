@@ -1,4 +1,4 @@
-search performance// unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
+// unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
 
 (function() {
