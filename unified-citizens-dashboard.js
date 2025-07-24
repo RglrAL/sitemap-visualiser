@@ -452,10 +452,10 @@
     // ENHANCED COMPONENT CREATORS
     // ===========================================
 
-    function createEnhancedHeader(url, gscData, ga4Data) {
+    function createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends) {
     const pageInfo = extractPageInfo(url);
     const lastModified = getLastModifiedInfo(url);
-    const citizenImpact = calculateCitizenImpact(gscData, ga4Data);
+    const citizenImpact = calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends);
     
     return `
         <div class="dashboard-header">
@@ -491,7 +491,7 @@
                         </div>
                     </div>
                     
-                    <!-- Refresh Button - NOW BELOW URL -->
+                    <!-- Refresh Button - BELOW URL -->
                     <div class="header-actions">
                         <button class="header-refresh-btn" onclick="refreshUnifiedDashboard('${escapeHtml(url)}')" title="Refresh all dashboard data from Google Search Console and Analytics">
                             <span class="refresh-icon">🔄</span>
@@ -503,15 +503,21 @@
                 <div class="impact-summary">
                     <div class="impact-card">
                         <div class="impact-number">${citizenImpact.monthlyReach}</div>
-                        <div class="impact-label">Citizens Reached Monthly</div>
+                        <div class="impact-label">Citizens Reached (Last 30 Days)</div>
+                        <div class="impact-trend">${citizenImpact.reachTrend}</div>
+                        <div class="impact-explanation">Search clicks + unique visitors</div>
                     </div>
                     <div class="impact-card">
                         <div class="impact-number">${citizenImpact.helpfulnessScore}%</div>
-                        <div class="impact-label">Helpfulness Score</div>
+                        <div class="impact-label">Content Helpfulness</div>
+                        <div class="impact-trend">${citizenImpact.helpfulnessTrend}</div>
+                        <div class="impact-explanation">Based on engagement & time spent</div>
                     </div>
                     <div class="impact-card">
                         <div class="impact-number">${citizenImpact.avgTimeToInfo}</div>
-                        <div class="impact-label">Time to Find Info</div>
+                        <div class="impact-label">Avg. Time on Page</div>
+                        <div class="impact-trend">${citizenImpact.timeTrend}</div>
+                        <div class="impact-explanation">How long citizens spend reading</div>
                     </div>
                 </div>
             </div>
@@ -3299,6 +3305,34 @@
                 }
             }
 
+            /* Impact card enhancements */
+.impact-trend {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.impact-explanation {
+    font-size: 0.7rem;
+    color: rgba(0, 0, 0, 0.6);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.trend-positive {
+    color: #10b981;
+}
+
+.trend-negative {
+    color: #ef4444;
+}
+
+.trend-neutral {
+    color: #6b7280;
+}
+
+
+
             ${createEnhancedQueryAnalysisStyles()}
         </style>
     `;
@@ -3331,8 +3365,9 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         ${createUnifiedDashboardStyles()}
         
         <div id="${dashboardId}" class="unified-dashboard-container">
-            ${createEnhancedHeader(url, gscData, ga4Data)}
+            ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends)}
             ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
+            
             
             <div class="dashboard-tabs">
                 <div class="tab-nav">
@@ -6539,6 +6574,97 @@ function resetDashboardFilters() {
     
     console.log('✅ Dashboard filters reset');
 }
+
+
+
+
+function calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends) {
+    // Current period data
+    const currentReach = (gscData?.clicks || 0) + (ga4Data?.users || 0);
+    const monthlyReach = formatNumber(currentReach);
+    
+    // Calculate helpfulness score
+    let helpfulnessScore = 65; // Default fallback
+    if (ga4Data && !ga4Data.noDataFound) {
+        const engagementScore = (1 - (ga4Data.bounceRate || 0.5)) * 100;
+        const timeScore = Math.min(100, (ga4Data.avgSessionDuration || 60) / 180 * 100);
+        helpfulnessScore = Math.round((engagementScore + timeScore) / 2);
+    }
+    
+    // Time to find info
+    const avgTimeToInfo = ga4Data?.avgSessionDuration ? 
+        formatDuration(ga4Data.avgSessionDuration) : '2:15';
+    
+    // Calculate trends
+    let reachTrend = '<span class="trend-neutral">—</span>';
+    let helpfulnessTrend = '<span class="trend-neutral">—</span>';
+    let timeTrend = '<span class="trend-neutral">—</span>';
+    
+    // Reach trend (clicks + users combined)
+    if (gscTrends?.trends?.clicks && ga4Trends?.trends?.users) {
+        const clicksChange = gscTrends.trends.clicks.percentChange || 0;
+        const usersChange = ga4Trends.trends.users.percentChange || 0;
+        const avgChange = (clicksChange + usersChange) / 2;
+        
+        if (avgChange > 2) {
+            reachTrend = `<span class="trend-positive">↗ ${Math.round(avgChange)}%</span>`;
+        } else if (avgChange < -2) {
+            reachTrend = `<span class="trend-negative">↘ ${Math.round(Math.abs(avgChange))}%</span>`;
+        } else {
+            reachTrend = `<span class="trend-neutral">→ ${Math.round(Math.abs(avgChange))}%</span>`;
+        }
+    }
+    
+    // Helpfulness trend (based on bounce rate and session duration trends)
+    if (ga4Trends?.trends?.bounceRate && ga4Trends?.trends?.avgSessionDuration) {
+        // Lower bounce rate = better, longer session = better
+        const bounceChange = ga4Trends.trends.bounceRate.percentChange || 0;
+        const sessionChange = ga4Trends.trends.avgSessionDuration.percentChange || 0;
+        
+        // Bounce rate decrease is good, session increase is good
+        const bounceDirection = ga4Trends.trends.bounceRate.direction === 'down' ? 1 : 
+                               ga4Trends.trends.bounceRate.direction === 'up' ? -1 : 0;
+        const sessionDirection = ga4Trends.trends.avgSessionDuration.direction === 'up' ? 1 : 
+                                ga4Trends.trends.avgSessionDuration.direction === 'down' ? -1 : 0;
+        
+        const overallDirection = bounceDirection + sessionDirection;
+        const avgChange = (bounceChange + sessionChange) / 2;
+        
+        if (overallDirection > 0) {
+            helpfulnessTrend = `<span class="trend-positive">↗ Improving</span>`;
+        } else if (overallDirection < 0) {
+            helpfulnessTrend = `<span class="trend-negative">↘ Declining</span>`;
+        } else {
+            helpfulnessTrend = `<span class="trend-neutral">→ Stable</span>`;
+        }
+    }
+    
+    // Time trend (session duration)
+    if (ga4Trends?.trends?.avgSessionDuration) {
+        const timeChange = ga4Trends.trends.avgSessionDuration.percentChange || 0;
+        const direction = ga4Trends.trends.avgSessionDuration.direction;
+        
+        if (direction === 'up' && timeChange > 2) {
+            timeTrend = `<span class="trend-positive">↗ ${Math.round(timeChange)}%</span>`;
+        } else if (direction === 'down' && timeChange > 2) {
+            timeTrend = `<span class="trend-negative">↘ ${Math.round(timeChange)}%</span>`;
+        } else {
+            timeTrend = `<span class="trend-neutral">→ ${Math.round(timeChange)}%</span>`;
+        }
+    }
+    
+    return { 
+        monthlyReach, 
+        helpfulnessScore, 
+        avgTimeToInfo,
+        reachTrend,
+        helpfulnessTrend,
+        timeTrend
+    };
+}
+
+
+    
     
 
 // ===========================================
