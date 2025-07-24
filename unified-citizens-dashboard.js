@@ -5704,6 +5704,12 @@ function clearServiceFilter() {
     originalQueryData = null;
 }
 
+
+
+
+
+    
+
 function filterQueriesByIntent(filterIntent) {
     console.log('filterQueriesByIntent called with:', filterIntent);
     
@@ -5753,11 +5759,20 @@ function filterQueriesByIntent(filterIntent) {
         clickedBar.classList.add('active-filter');
     }
     
-    // Get all query items from CURRENT data (including hidden ones)
-    let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    // FIXED: Get ALL items from BOTH lists but avoid duplicates
+    let allQueryItems = [];
+    
+    // Get visible items
+    const visibleItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    allQueryItems = allQueryItems.concat(visibleItems);
+    
+    // Get hidden items (these are different items, not duplicates of visible ones)
     if (hiddenQueriesList) {
-        allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
+        const hiddenItems = Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item'));
+        allQueryItems = allQueryItems.concat(hiddenItems);
     }
+    
+    console.log(`🔍 Total available items to filter: ${allQueryItems.length}`);
     
     // Filter items by intent
     const filteredItems = allQueryItems.filter(item => {
@@ -5776,11 +5791,19 @@ function filterQueriesByIntent(filterIntent) {
                 </button>
             </div>
         `;
-    } else {
-        // Clear current display
-        queriesList.innerHTML = '';
         
-        // Show filtered items
+        // Clear hidden list when showing no results
+        if (hiddenQueriesList) {
+            hiddenQueriesList.innerHTML = '';
+        }
+    } else {
+        // Clear both lists
+        queriesList.innerHTML = '';
+        if (hiddenQueriesList) {
+            hiddenQueriesList.innerHTML = '';
+        }
+        
+        // Show all filtered items in the main list (no pagination when filtered)
         filteredItems.forEach(item => {
             queriesList.appendChild(item.cloneNode(true));
         });
@@ -5804,6 +5827,11 @@ function filterQueriesByIntent(filterIntent) {
     // Show success message
     showFilterSuccessMessage(`✓ Filtered to show ${filteredItems.length} queries`, '#10b981');
 }
+
+
+
+
+    
 
 function filterQueriesByService(filterService) {
     console.log('filterQueriesByService called with:', filterService);
@@ -5854,11 +5882,20 @@ function filterQueriesByService(filterService) {
         clickedBar.classList.add('active-filter');
     }
     
-    // Get all query items from CURRENT data (including hidden ones)
-    let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    // FIXED: Get ALL items from BOTH lists
+    let allQueryItems = [];
+    
+    // Get visible items
+    const visibleItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    allQueryItems = allQueryItems.concat(visibleItems);
+    
+    // Get hidden items
     if (hiddenQueriesList) {
-        allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
+        const hiddenItems = Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item'));
+        allQueryItems = allQueryItems.concat(hiddenItems);
     }
+    
+    console.log(`🔍 Total available items to filter: ${allQueryItems.length}`);
     
     // Filter items by detected service types
     const filteredItems = allQueryItems.filter(item => {
@@ -5882,11 +5919,19 @@ function filterQueriesByService(filterService) {
                 </button>
             </div>
         `;
-    } else {
-        // Clear current display
-        queriesList.innerHTML = '';
         
-        // Show filtered items
+        // Clear hidden list when showing no results
+        if (hiddenQueriesList) {
+            hiddenQueriesList.innerHTML = '';
+        }
+    } else {
+        // Clear both lists
+        queriesList.innerHTML = '';
+        if (hiddenQueriesList) {
+            hiddenQueriesList.innerHTML = '';
+        }
+        
+        // Show all filtered items in the main list (no pagination when filtered)
         filteredItems.forEach(item => {
             queriesList.appendChild(item.cloneNode(true));
         });
@@ -5953,11 +5998,20 @@ function filterQueriesByUrgency() {
         }
     });
     
-    // Get all query items from CURRENT data (including hidden ones)
-    let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    // FIXED: Get ALL items from BOTH lists
+    let allQueryItems = [];
+    
+    // Get visible items
+    const visibleItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    allQueryItems = allQueryItems.concat(visibleItems);
+    
+    // Get hidden items
     if (hiddenQueriesList) {
-        allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
+        const hiddenItems = Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item'));
+        allQueryItems = allQueryItems.concat(hiddenItems);
     }
+    
+    console.log(`🔍 Total available items to filter: ${allQueryItems.length}`);
     
     // Filter items by urgency - look for urgency badge
     const filteredItems = allQueryItems.filter(item => {
@@ -5976,11 +6030,19 @@ function filterQueriesByUrgency() {
                 </button>
             </div>
         `;
-    } else {
-        // Clear current display
-        queriesList.innerHTML = '';
         
-        // Show filtered items
+        // Clear hidden list when showing no results
+        if (hiddenQueriesList) {
+            hiddenQueriesList.innerHTML = '';
+        }
+    } else {
+        // Clear both lists
+        queriesList.innerHTML = '';
+        if (hiddenQueriesList) {
+            hiddenQueriesList.innerHTML = '';
+        }
+        
+        // Show all filtered items in the main list (no pagination when filtered)
         filteredItems.forEach(item => {
             queriesList.appendChild(item.cloneNode(true));
         });
@@ -6001,6 +6063,12 @@ function filterQueriesByUrgency() {
     // Show success message
     showFilterSuccessMessage(`🚨 Filtered to show ${filteredItems.length} urgent queries`, '#ef4444');
 }
+
+
+
+
+
+    
 
 // Helper function to show filter success messages
 function showFilterSuccessMessage(message, backgroundColor) {
