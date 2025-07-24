@@ -424,79 +424,109 @@
     }
 
     
-// REPLACE your entire getLastModifiedInfo function with this working version:
+
 
 // REPLACE your entire getLastModifiedInfo function with this working version:
-function getLastModifiedInfo(url, nodeData) {
-    let actualLastModified = null;
-    
-    // First try to use nodeData if it's provided (same as tooltip)
-    if (nodeData && nodeData.lastModified) {
-        actualLastModified = nodeData.lastModified;
-    }
-    // Fallback: Search tree data for the URL (existing logic)
-    else if (window.treeData) {
-        function searchNode(node, targetUrl) {
-            if (node.url === targetUrl || 
-                (node.url && targetUrl && node.url.includes(targetUrl.split('/').pop())) ||
-                (node.url && targetUrl && targetUrl.includes(node.url))) {
-                return node;
-            }
-            
-            if (node.children) {
-                for (const child of node.children) {
-                    const found = searchNode(child, targetUrl);
-                    if (found) return found;
-                }
-            }
-            return null;
-        }
-        
-        const foundNode = searchNode(window.treeData, url);
-        if (foundNode && foundNode.lastModified) {
-            actualLastModified = foundNode.lastModified;
-        }
+function getLastModifiedInfo(data) {
+    // Use the same logic as the tooltip
+    if (!data || !data.lastModified) {
+        return { 
+            formatted: 'Date Unknown', 
+            freshnessClass: 'stale', 
+            freshnessLabel: 'No Date Available' 
+        };
     }
     
-    // Format the date if found (same logic as tooltip)
-    if (actualLastModified) {
-        const lastMod = new Date(actualLastModified);
-        
-        if (!isNaN(lastMod.getTime())) {
-            const formatted = lastMod.toLocaleDateString('en-IE', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-            
-            const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
-            
-            let freshnessClass = 'fresh';
-            let freshnessLabel = 'Fresh';
-            
-            if (daysSince < 30) {
-                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
-            } else if (daysSince < 90) {
-                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
-            } else if (daysSince < 180) {
-                freshnessClass = 'aging'; freshnessLabel = 'Recent';
-            } else if (daysSince < 365) {
-                freshnessClass = 'aging'; freshnessLabel = 'Aging';
-            } else {
-                freshnessClass = 'stale'; freshnessLabel = 'Old';
-            }
-            
-            return { formatted, freshnessClass, freshnessLabel };
-        }
+    let lastMod;
+    if (typeof data.lastModified === 'string') {
+        lastMod = new Date(data.lastModified);
+    } else if (data.lastModified instanceof Date) {
+        lastMod = data.lastModified;
     }
     
-    // Fallback if no date found
-    return { 
-        formatted: 'Date Unknown', 
-        freshnessClass: 'stale', 
-        freshnessLabel: 'No Date Available' 
-    };
+    if (!lastMod || isNaN(lastMod.getTime())) {
+        return { 
+            formatted: 'Date Unknown', 
+            freshnessClass: 'stale', 
+            freshnessLabel: 'No Date Available' 
+        };
+    }
+    
+    // Format exactly like the tooltip
+    const formatted = lastMod.toLocaleDateString('en-IE', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    
+    // Calculate relative time like tooltip
+    const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+    
+    let freshnessClass, freshnessLabel;
+    if (daysSince < 30) {
+        freshnessClass = 'fresh'; 
+        freshnessLabel = 'Fresh';
+    } else if (daysSince < 90) {
+        freshnessClass = 'fresh'; 
+        freshnessLabel = 'Fresh';
+    } else if (daysSince < 180) {
+        freshnessClass = 'aging'; 
+        freshnessLabel = 'Recent';
+    } else if (daysSince < 365) {
+        freshnessClass = 'aging'; 
+        freshnessLabel = 'Aging';
+    } else {
+        freshnessClass = 'stale'; 
+        freshnessLabel = 'Old';
+    }
+    
+    return { formatted, freshnessClass, freshnessLabel };
 }
+
+
+// Add the same helper functions from the tooltip:
+function getFormattedDate(lastModified) {
+    if (!lastModified) return '';
+    
+    let lastMod;
+    if (typeof lastModified === 'string') {
+        lastMod = new Date(lastModified);
+    } else if (lastModified instanceof Date) {
+        lastMod = lastModified;
+    }
+    
+    if (!lastMod || isNaN(lastMod.getTime())) return '';
+    
+    return lastMod.toLocaleDateString('en-IE', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+function getRelativeTime(lastModified) {
+    if (!lastModified) return '';
+    
+    let lastMod;
+    if (typeof lastModified === 'string') {
+        lastMod = new Date(lastModified);
+    } else if (lastModified instanceof Date) {
+        lastMod = lastModified;
+    }
+    
+    if (!lastMod || isNaN(lastMod.getTime())) return '';
+    
+    const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+    if (daysSince === 0) return 'today';
+    if (daysSince === 1) return 'yesterday';
+    if (daysSince < 7) return `${daysSince}d ago`;
+    if (daysSince < 30) return `${Math.floor(daysSince / 7)}w ago`;
+    if (daysSince < 365) return `${Math.floor(daysSince / 30)}mo ago`;
+    return `${Math.floor(daysSince / 365)}y ago`;
+}
+
+
+    
 
     // ===========================================
     // ENHANCED COMPONENT CREATORS
@@ -514,7 +544,29 @@ function getLastModifiedInfo(url, nodeData) {
         }
     }
     
-    const lastModified = getLastModifiedInfo(url, nodeData); // ← Pass nodeData
+    // If findNodeInTreeStructure doesn't exist, try direct tree search
+    if (!nodeData && window.treeData) {
+        function findNode(node, targetUrl) {
+            if (node.url === targetUrl || 
+                (node.url && targetUrl && node.url.includes(targetUrl.split('/').pop())) ||
+                (node.url && targetUrl && targetUrl.includes(node.url))) {
+                return node;
+            }
+            
+            if (node.children) {
+                for (const child of node.children) {
+                    const found = findNode(child, targetUrl);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        
+        nodeData = findNode(window.treeData, url);
+    }
+    
+    // Use the simplified date logic (pass nodeData directly, not url)
+    const lastModified = getLastModifiedInfo(nodeData);
     const citizenImpact = calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends);
     
     return `
