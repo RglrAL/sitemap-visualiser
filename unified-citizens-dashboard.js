@@ -1440,7 +1440,8 @@ function getRelativeTime(lastModified) {
     // COMPONENT HELPER FUNCTIONS
     // ===========================================
 
-    // REPLACE your createPerformanceMatrix function with this enhanced version:
+    // REPLACE the axis labels and benchmark sections in your enhanced matrix with this fixed version:
+
 function createPerformanceMatrix(gscData, ga4Data) {
     const searchScore = calculateSearchScore(gscData);
     const engagementScore = calculateEngagementScore(ga4Data);
@@ -1469,41 +1470,39 @@ function createPerformanceMatrix(gscData, ga4Data) {
             <!-- Main Matrix Chart -->
             <div class="matrix-container">
                 <!-- Background Grid -->
-                <div class="matrix-grid">
-                    ${createMatrixGrid()}
-                </div>
+                <div class="matrix-grid"></div>
                 
                 <!-- Quadrant Backgrounds -->
                 <div class="matrix-quadrants">
-                    <div class="quadrant quadrant-champion" data-quadrant="champion">
-                        <div class="quadrant-icon">🏆</div>
-                        <div class="quadrant-title">Champion</div>
-                        <div class="quadrant-desc">High Search × High Engagement</div>
-                    </div>
                     <div class="quadrant quadrant-potential" data-quadrant="potential">
                         <div class="quadrant-icon">💎</div>
                         <div class="quadrant-title">Hidden Gem</div>
                         <div class="quadrant-desc">Low Search × High Engagement</div>
                     </div>
-                    <div class="quadrant quadrant-opportunity" data-quadrant="opportunity">
-                        <div class="quadrant-icon">🎯</div>
-                        <div class="quadrant-title">Opportunity</div>
-                        <div class="quadrant-desc">High Search × Low Engagement</div>
+                    <div class="quadrant quadrant-champion" data-quadrant="champion">
+                        <div class="quadrant-icon">🏆</div>
+                        <div class="quadrant-title">Champion</div>
+                        <div class="quadrant-desc">High Search × High Engagement</div>
                     </div>
                     <div class="quadrant quadrant-needs-work" data-quadrant="needs-work">
                         <div class="quadrant-icon">🔧</div>
                         <div class="quadrant-title">Needs Focus</div>
                         <div class="quadrant-desc">Low Search × Low Engagement</div>
                     </div>
+                    <div class="quadrant quadrant-opportunity" data-quadrant="opportunity">
+                        <div class="quadrant-icon">🎯</div>
+                        <div class="quadrant-title">Opportunity</div>
+                        <div class="quadrant-desc">High Search × Low Engagement</div>
+                    </div>
                 </div>
                 
                 <!-- Benchmark Lines -->
                 <div class="benchmark-lines">
-                    <div class="benchmark-line horizontal" style="bottom: 50%;" data-tooltip="50% Engagement Benchmark">
-                        <div class="benchmark-label">Avg Engagement</div>
+                    <div class="benchmark-line horizontal" style="bottom: 50%;">
+                        <div class="benchmark-label-horizontal">Average Engagement</div>
                     </div>
-                    <div class="benchmark-line vertical" style="left: 50%;" data-tooltip="50% Search Performance Benchmark">
-                        <div class="benchmark-label">Avg Search</div>
+                    <div class="benchmark-line vertical" style="left: 50%;">
+                        <div class="benchmark-label-vertical">Average Search</div>
                     </div>
                 </div>
                 
@@ -1532,22 +1531,25 @@ function createPerformanceMatrix(gscData, ga4Data) {
                     </div>
                 </div>
                 
-                <!-- Axis Labels -->
-                <div class="axis-labels">
-                    <div class="axis-label x-axis">
-                        <span class="axis-title">Search Performance</span>
-                        <div class="axis-scale">
-                            <span class="scale-min">Poor</span>
-                            <span class="scale-mid">Average</span>
-                            <span class="scale-max">Excellent</span>
+                <!-- Fixed Axis Labels -->
+                <div class="axis-system">
+                    <!-- X-Axis (Bottom) -->
+                    <div class="x-axis-container">
+                        <div class="x-axis-title">Search Performance</div>
+                        <div class="x-axis-scale">
+                            <span class="scale-point scale-left">Poor</span>
+                            <span class="scale-point scale-center">Average</span>
+                            <span class="scale-point scale-right">Excellent</span>
                         </div>
                     </div>
-                    <div class="axis-label y-axis">
-                        <span class="axis-title">User Engagement</span>
-                        <div class="axis-scale">
-                            <span class="scale-min">Low</span>
-                            <span class="scale-mid">Medium</span>
-                            <span class="scale-max">High</span>
+                    
+                    <!-- Y-Axis (Left) -->
+                    <div class="y-axis-container">
+                        <div class="y-axis-title">User Engagement</div>
+                        <div class="y-axis-scale">
+                            <span class="scale-point scale-top">High</span>
+                            <span class="scale-point scale-middle">Medium</span>
+                            <span class="scale-point scale-bottom">Low</span>
                         </div>
                     </div>
                 </div>
@@ -1571,7 +1573,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                         <div class="metric-details">
                             <div class="metric-title">Search Performance</div>
                             <div class="metric-breakdown">
-                                ${metrics.clicks} clicks • #${metrics.position} position • ${metrics.ctr}% CTR
+                                ${formatNumber(metrics.clicks)} clicks • #${metrics.position} position • ${metrics.ctr}% CTR
                             </div>
                         </div>
                         <div class="metric-score ${getScoreClass(searchScore)}">${searchScore}</div>
@@ -1582,7 +1584,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                         <div class="metric-details">
                             <div class="metric-title">User Engagement</div>
                             <div class="metric-breakdown">
-                                ${metrics.users} users • ${metrics.sessionDuration} avg time • ${metrics.bounceRate}% bounce
+                                ${formatNumber(metrics.users)} users • ${metrics.sessionDuration} avg time • ${metrics.bounceRate}% bounce
                             </div>
                         </div>
                         <div class="metric-score ${getScoreClass(engagementScore)}">${engagementScore}</div>
@@ -1649,21 +1651,22 @@ function createPerformanceMatrix(gscData, ga4Data) {
             /* Matrix Container */
             .matrix-container {
                 position: relative;
-                height: 350px;
+                height: 380px;
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 border-radius: 16px;
                 border: 1px solid #e2e8f0;
                 margin-bottom: 24px;
                 overflow: hidden;
+                padding: 40px 60px 60px 60px; /* Space for labels */
             }
             
             /* Grid Background */
             .matrix-grid {
                 position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
+                top: 40px;
+                left: 60px;
+                right: 60px;
+                bottom: 60px;
                 background-image: 
                     linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px),
                     linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
@@ -1671,13 +1674,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 pointer-events: none;
             }
             
-            /* Quadrants */
+            /* Quadrants - FIXED ORDER */
             .matrix-quadrants {
                 position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
+                top: 40px;
+                left: 60px;
+                right: 60px;
+                bottom: 60px;
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 grid-template-rows: 1fr 1fr;
@@ -1696,7 +1699,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             }
             
             .quadrant:hover {
-                background: rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.15);
                 backdrop-filter: blur(10px);
             }
             
@@ -1735,13 +1738,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 line-height: 1.3;
             }
             
-            /* Benchmark Lines */
+            /* Benchmark Lines - FIXED */
             .benchmark-lines {
                 position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
+                top: 40px;
+                left: 60px;
+                right: 60px;
+                bottom: 60px;
                 pointer-events: none;
             }
             
@@ -1765,24 +1768,34 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 background: linear-gradient(0deg, transparent, #94a3b8, transparent);
             }
             
-            .benchmark-label {
+            .benchmark-label-horizontal {
                 position: absolute;
+                top: -25px;
+                left: 50%;
+                transform: translateX(-50%);
                 font-size: 0.7rem;
                 color: #64748b;
                 font-weight: 600;
                 background: rgba(255,255,255,0.9);
-                padding: 2px 6px;
+                padding: 4px 8px;
                 border-radius: 4px;
-                top: -20px;
-                left: 50%;
-                transform: translateX(-50%);
                 white-space: nowrap;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             
-            .benchmark-line.vertical .benchmark-label {
+            .benchmark-label-vertical {
+                position: absolute;
                 top: 50%;
-                left: -50px;
-                transform: translateY(-50%) rotate(-90deg);
+                left: -80px;
+                transform: translateY(-50%);
+                font-size: 0.7rem;
+                color: #64748b;
+                font-weight: 600;
+                background: rgba(255,255,255,0.9);
+                padding: 4px 8px;
+                border-radius: 4px;
+                white-space: nowrap;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             
             /* Performance Point */
@@ -1881,8 +1894,8 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 color: #374151;
             }
             
-            /* Axis Labels */
-            .axis-labels {
+            /* FIXED Axis System */
+            .axis-system {
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -1891,50 +1904,111 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 pointer-events: none;
             }
             
-            .axis-label {
+            /* X-Axis (Bottom) */
+            .x-axis-container {
                 position: absolute;
+                bottom: 0;
+                left: 60px;
+                right: 60px;
+                height: 60px;
                 display: flex;
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                font-size: 0.8rem;
-                color: #64748b;
+            }
+            
+            .x-axis-title {
+                font-size: 0.9rem;
                 font-weight: 600;
+                color: #374151;
+                margin-bottom: 8px;
             }
             
-            .axis-label.x-axis {
-                bottom: 8px;
-                left: 0;
-                right: 0;
-                height: 30px;
-                flex-direction: column;
-            }
-            
-            .axis-label.y-axis {
-                left: 8px;
-                top: 0;
-                bottom: 0;
-                width: 30px;
-                writing-mode: vertical-rl;
-                text-orientation: mixed;
-            }
-            
-            .axis-scale {
+            .x-axis-scale {
                 display: flex;
                 justify-content: space-between;
                 width: 100%;
-                font-size: 0.7rem;
-                color: #94a3b8;
-                margin-top: 4px;
+                position: relative;
             }
             
-            .axis-label.y-axis .axis-scale {
+            .x-axis-scale .scale-point {
+                font-size: 0.75rem;
+                color: #6b7280;
+                font-weight: 500;
+                position: absolute;
+            }
+            
+            .x-axis-scale .scale-left {
+                left: 0;
+                transform: translateX(-50%);
+            }
+            
+            .x-axis-scale .scale-center {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            
+            .x-axis-scale .scale-right {
+                right: 0;
+                transform: translateX(50%);
+            }
+            
+            /* Y-Axis (Left) */
+            .y-axis-container {
+                position: absolute;
+                left: 0;
+                top: 40px;
+                bottom: 60px;
+                width: 60px;
+                display: flex;
                 flex-direction: column;
-                height: 100%;
-                margin-top: 0;
-                margin-left: 4px;
+                align-items: center;
+                justify-content: center;
             }
             
-            /* Performance Insights */
+            .y-axis-title {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #374151;
+                transform: rotate(-90deg);
+                white-space: nowrap;
+                margin-bottom: 20px;
+            }
+            
+            .y-axis-scale {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 100%;
+                position: relative;
+                margin-left: 20px;
+            }
+            
+            .y-axis-scale .scale-point {
+                font-size: 0.75rem;
+                color: #6b7280;
+                font-weight: 500;
+                position: absolute;
+                white-space: nowrap;
+                right: 0;
+            }
+            
+            .y-axis-scale .scale-top {
+                top: 0;
+                transform: translateY(-50%);
+            }
+            
+            .y-axis-scale .scale-middle {
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            
+            .y-axis-scale .scale-bottom {
+                bottom: 0;
+                transform: translateY(50%);
+            }
+            
+            /* Rest of the styles remain the same... */
             .performance-insights {
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 border-radius: 16px;
@@ -2079,7 +2153,41 @@ function createPerformanceMatrix(gscData, ga4Data) {
             /* Responsive */
             @media (max-width: 768px) {
                 .matrix-container {
-                    height: 300px;
+                    height: 320px;
+                    padding: 30px 40px 40px 40px;
+                }
+                
+                .matrix-grid {
+                    top: 30px;
+                    left: 40px;
+                    right: 40px;
+                    bottom: 40px;
+                }
+                
+                .matrix-quadrants {
+                    top: 30px;
+                    left: 40px;
+                    right: 40px;
+                    bottom: 40px;
+                }
+                
+                .benchmark-lines {
+                    top: 30px;
+                    left: 40px;
+                    right: 40px;
+                    bottom: 40px;
+                }
+                
+                .x-axis-container {
+                    left: 40px;
+                    right: 40px;
+                    height: 40px;
+                }
+                
+                .y-axis-container {
+                    top: 30px;
+                    bottom: 40px;
+                    width: 40px;
                 }
                 
                 .quadrant-desc {
@@ -2098,7 +2206,6 @@ function createPerformanceMatrix(gscData, ga4Data) {
         </style>
     `;
 }
-
 // Helper function to create matrix grid
 function createMatrixGrid() {
     return '<!-- Grid is created via CSS background -->';
