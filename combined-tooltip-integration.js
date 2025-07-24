@@ -1267,6 +1267,12 @@
 
 window.showUnifiedDashboardReport = async function(url) {
     console.log('🚀 Opening Unified Citizens Dashboard for:', url);
+
+    // RESET FILTERS WHEN OPENING NEW DASHBOARD
+    if (window.resetDashboardFilters) {
+        window.resetDashboardFilters();
+    }
+
     
     try {
         // Initialize data objects
