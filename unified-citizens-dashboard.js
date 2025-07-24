@@ -713,8 +713,10 @@ function getRelativeTime(lastModified) {
                     
                     <div class="overview-card analytics-card">
                         <div class="card-header">
-                            <div class="card-icon">📈</div>
-                            <div class="card-title">User Analytics</div>
+                            <div class="card-icon"><svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                            </svg></div>
+                            <div class="card-title">Google Analytics</div>
                             <div class="card-status ${ga4Data && !ga4Data.noDataFound ? 'connected' : 'disconnected'}">
                                 ${ga4Data && !ga4Data.noDataFound ? '●' : '○'}
                             </div>
@@ -1269,7 +1271,10 @@ function getRelativeTime(lastModified) {
         return `
             <div class="panel-content">
                 <div class="section">
-                    <h2 class="section-title">👥 User Analytics Metrics</h2>
+                    <h2 class="section-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                            </svg>Google Analytics Metrics</h2>
                     <div class="metrics-grid">
                         ${createGA4Metrics(ga4Data, ga4Trends)}
                     </div>
