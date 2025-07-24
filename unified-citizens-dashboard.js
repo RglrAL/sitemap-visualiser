@@ -2233,20 +2233,34 @@
                 }
                 
                 .overview-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                    gap: 20px;
-                }
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 20px;
+    max-width: 800px; /* Prevents cards from getting too wide */
+    margin: 0 auto; /* Centers the grid */
+}
                 
                 .overview-card {
-                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-                    border-radius: 16px;
-                    padding: 24px;
-                    border: 1px solid #e2e8f0;
-                    transition: all 0.3s ease;
-                    position: relative;
-                    overflow: hidden;
-                }
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 200px; /* Ensures consistent card height */
+    display: flex;
+    flex-direction: column;
+}
+
+
+.card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
                 
                 .overview-card:hover {
                     transform: translateY(-2px);
@@ -3368,6 +3382,36 @@
                 .btn-icon {
                     font-size: 1.1rem;
                 }
+
+                @media (max-width: 1024px) {
+    .overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        max-width: 600px;
+    }
+}
+
+@media (max-width: 768px) {
+    .overview-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        max-width: none;
+    }
+    
+    .overview-card {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .overview-grid {
+        gap: 16px;
+    }
+    
+    .overview-card {
+        padding: 20px;
+    }
+}
                 
                 /* Responsive Design */
                 @media (max-width: 768px) {
