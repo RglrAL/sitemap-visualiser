@@ -453,63 +453,71 @@
     // ===========================================
 
     function createEnhancedHeader(url, gscData, ga4Data) {
-        const pageInfo = extractPageInfo(url);
-        const lastModified = getLastModifiedInfo(url);
-        const citizenImpact = calculateCitizenImpact(gscData, ga4Data);
-        
-        return `
-            <div class="dashboard-header">
-                <div class="header-content">
-                    <div class="page-info">
-                        <div class="page-breadcrumb">
-                            <span class="breadcrumb-item">Citizens Information</span>
+    const pageInfo = extractPageInfo(url);
+    const lastModified = getLastModifiedInfo(url);
+    const citizenImpact = calculateCitizenImpact(gscData, ga4Data);
+    
+    return `
+        <div class="dashboard-header">
+            <div class="header-content">
+                <div class="page-info">
+                    <div class="page-breadcrumb">
+                        <span class="breadcrumb-item">Citizens Information</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item">${pageInfo.section}</span>
+                        ${pageInfo.subsection ? `
                             <span class="breadcrumb-separator">›</span>
-                            <span class="breadcrumb-item">${pageInfo.section}</span>
-                            ${pageInfo.subsection ? `
-                                <span class="breadcrumb-separator">›</span>
-                                <span class="breadcrumb-item">${pageInfo.subsection}</span>
-                            ` : ''}
-                        </div>
-                        
+                            <span class="breadcrumb-item">${pageInfo.subsection}</span>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="header-title-row">
                         <h1 class="page-title">${pageInfo.title}</h1>
                         
-                        <div class="page-metadata">
-                            <div class="metadata-grid">
-                                <div class="metadata-item">
-                                    <span class="metadata-label">Page Type:</span>
-                                    <span class="metadata-value">${pageInfo.type}</span>
-                                </div>
-                                <div class="metadata-item">
-                                    <span class="metadata-label">Last Updated:</span>
-                                    <span class="metadata-value">${lastModified.formatted}</span>
-                                    <span class="metadata-badge ${lastModified.freshnessClass}">${lastModified.freshnessLabel}</span>
-                                </div>
-                                <div class="metadata-item">
-                                    <span class="metadata-label">URL:</span>
-                                    <a href="${url}" target="_blank" class="url-link">${url}</a>
-                                </div>
+                        <!-- Refresh Button -->
+                        <button class="header-refresh-btn" onclick="refreshUnifiedDashboard('${escapeHtml(url)}')" title="Refresh dashboard data">
+                            <span class="refresh-icon">🔄</span>
+                            <span class="refresh-text">Refresh</span>
+                        </button>
+                    </div>
+                    
+                    <div class="page-metadata">
+                        <div class="metadata-grid">
+                            <div class="metadata-item">
+                                <span class="metadata-label">Page Type:</span>
+                                <span class="metadata-value">${pageInfo.type}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Last Updated:</span>
+                                <span class="metadata-value">${lastModified.formatted}</span>
+                                <span class="metadata-badge ${lastModified.freshnessClass}">${lastModified.freshnessLabel}</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">URL:</span>
+                                <a href="${url}" target="_blank" class="url-link">${url}</a>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="impact-summary">
-                        <div class="impact-card">
-                            <div class="impact-number">${citizenImpact.monthlyReach}</div>
-                            <div class="impact-label">Citizens Reached Monthly</div>
-                        </div>
-                        <div class="impact-card">
-                            <div class="impact-number">${citizenImpact.helpfulnessScore}%</div>
-                            <div class="impact-label">Helpfulness Score</div>
-                        </div>
-                        <div class="impact-card">
-                            <div class="impact-number">${citizenImpact.avgTimeToInfo}</div>
-                            <div class="impact-label">Time to Find Info</div>
-                        </div>
+                </div>
+                
+                <div class="impact-summary">
+                    <div class="impact-card">
+                        <div class="impact-number">${citizenImpact.monthlyReach}</div>
+                        <div class="impact-label">Citizens Reached Monthly</div>
+                    </div>
+                    <div class="impact-card">
+                        <div class="impact-number">${citizenImpact.helpfulnessScore}%</div>
+                        <div class="impact-label">Helpfulness Score</div>
+                    </div>
+                    <div class="impact-card">
+                        <div class="impact-number">${citizenImpact.avgTimeToInfo}</div>
+                        <div class="impact-label">Time to Find Info</div>
                     </div>
                 </div>
             </div>
-        `;
-    }
+        </div>
+    `;
+}
 
     function calculateCitizenImpact(gscData, ga4Data) {
         const monthlyReach = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
@@ -1849,12 +1857,107 @@
                     margin: 0 8px;
                     opacity: 0.7;
                 }
+
+                .header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 20px;
+}
+
+
+                /* Header Refresh Button */
+.header-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.header-refresh-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.header-refresh-btn:hover::before {
+    left: 100%;
+}
+
+.header-refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.header-refresh-btn:active {
+    transform: translateY(0);
+}
+
+.header-refresh-btn.refreshing {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.header-refresh-btn.refreshing .refresh-icon {
+    animation: spin 1s linear infinite;
+}
+
+.refresh-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.refresh-text {
+    font-weight: 600;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .header-title-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .header-refresh-btn {
+        align-self: stretch;
+        justify-content: center;
+    }
+}
+
                 
                 .page-title {
                     font-size: 1.8rem;
                     font-weight: 700;
                     margin: 0 0 16px 0;
                     line-height: 1.3;
+                    flex: 1;
                 }
                 
                 .page-metadata {
@@ -6149,6 +6252,188 @@ window.initializeUnifiedDashboard = initializeUnifiedDashboard;
 window.exportUnifiedReport = exportUnifiedReport;
 window.copyUnifiedSummary = copyUnifiedSummary;
 window.scheduleUnifiedReview = scheduleUnifiedReview;
+
+// Add to the GLOBAL EXPORTS section
+window.refreshUnifiedDashboard = async function(url) {
+    console.log('🔄 Refreshing Unified Citizens Dashboard for:', url);
+    
+    const refreshBtn = document.querySelector('.header-refresh-btn');
+    const modal = document.getElementById('unified-dashboard-modal');
+    
+    if (!modal) {
+        console.error('Dashboard modal not found');
+        return;
+    }
+    
+    // Show loading state
+    if (refreshBtn) {
+        refreshBtn.classList.add('refreshing');
+        refreshBtn.querySelector('.refresh-text').textContent = 'Refreshing...';
+    }
+    
+    // Add loading overlay to modal
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10002;
+        backdrop-filter: blur(4px);
+    `;
+    loadingOverlay.innerHTML = `
+        <div style="
+            background: white;
+            padding: 24px 32px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            color: #374151;
+        ">
+            <div style="
+                width: 20px;
+                height: 20px;
+                border: 2px solid #e5e7eb;
+                border-top-color: #3b82f6;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            "></div>
+            <span>Refreshing dashboard data...</span>
+        </div>
+    `;
+    
+    const dashboardContainer = modal.querySelector('.unified-dashboard-container');
+    if (dashboardContainer) {
+        dashboardContainer.style.position = 'relative';
+        dashboardContainer.appendChild(loadingOverlay);
+    }
+    
+    try {
+        // Re-fetch all data (same logic as showUnifiedDashboardReport)
+        let gscData = null, ga4Data = null, gscTrends = null, ga4Trends = null;
+        let gscPrevious = null, ga4Previous = null;
+        
+        // Fetch GSC data if connected
+        if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
+            try {
+                gscData = await window.GSCIntegration.fetchNodeData({ url });
+                gscPrevious = await window.GSCIntegration.fetchPreviousPeriodData({ url });
+                
+                if (gscData && gscPrevious && !gscData.noDataFound && !gscPrevious.noDataFound) {
+                    gscTrends = {
+                        trends: {
+                            clicks: calculateTrend(gscData.clicks, gscPrevious.clicks),
+                            impressions: calculateTrend(gscData.impressions, gscPrevious.impressions),
+                            ctr: calculateTrend(gscData.ctr, gscPrevious.ctr),
+                            position: calculateTrend(gscData.position, gscPrevious.position, true)
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('GSC refresh error:', error);
+                gscData = { noDataFound: true };
+            }
+        } else {
+            gscData = { noDataFound: true };
+        }
+        
+        // Fetch GA4 data if connected
+        if (window.GA4Integration && window.GA4Integration.isConnected()) {
+            try {
+                ga4Data = await window.GA4Integration.fetchData(url);
+                ga4Previous = await window.GA4Integration.fetchPreviousPeriodData(url);
+                
+                if (ga4Data && ga4Previous && !ga4Data.noDataFound && !ga4Previous.noDataFound) {
+                    ga4Trends = {
+                        trends: {
+                            users: calculateTrend(ga4Data.users, ga4Previous.users),
+                            pageViews: calculateTrend(ga4Data.pageViews, ga4Previous.pageViews),
+                            sessions: calculateTrend(ga4Data.sessions, ga4Previous.sessions),
+                            avgSessionDuration: calculateTrend(ga4Data.avgSessionDuration, ga4Previous.avgSessionDuration),
+                            bounceRate: calculateTrend(ga4Data.bounceRate, ga4Previous.bounceRate, true)
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('GA4 refresh error:', error);
+                ga4Data = { noDataFound: true };
+            }
+        } else {
+            ga4Data = { noDataFound: true };
+        }
+        
+        // Generate new dashboard HTML
+        const newDashboardHtml = createUnifiedCitizensDashboard(
+            url, 
+            gscData, 
+            ga4Data, 
+            gscTrends, 
+            ga4Trends
+        );
+        
+        // Replace the dashboard content
+        if (dashboardContainer) {
+            dashboardContainer.outerHTML = newDashboardHtml;
+        }
+        
+        // Show success message
+        showUnifiedNotification('✅ Dashboard refreshed successfully!');
+        
+    } catch (error) {
+        console.error('Dashboard refresh failed:', error);
+        showUnifiedNotification('❌ Failed to refresh dashboard. Please try again.');
+    } finally {
+        // Remove loading overlay
+        if (loadingOverlay && loadingOverlay.parentNode) {
+            loadingOverlay.remove();
+        }
+        
+        // Reset refresh button
+        if (refreshBtn) {
+            refreshBtn.classList.remove('refreshing');
+            refreshBtn.querySelector('.refresh-text').textContent = 'Refresh';
+        }
+    }
+};
+
+// Helper function for calculateTrend (if not already present)
+function calculateTrend(currentValue, previousValue, inverted = false) {
+    const current = parseFloat(currentValue) || 0;
+    const previous = parseFloat(previousValue) || 0;
+    
+    if (previous === 0) {
+        return {
+            percentChange: 0,
+            direction: 'neutral'
+        };
+    }
+    
+    let percentChange = ((current - previous) / previous) * 100;
+    const actualChange = inverted ? -percentChange : percentChange;
+    
+    let direction = 'neutral';
+    if (Math.abs(actualChange) < 2) {
+        direction = 'neutral';
+    } else if (actualChange > 0) {
+        direction = 'up';
+    } else {
+        direction = 'down';
+    }
+    
+    return {
+        percentChange: Math.abs(percentChange),
+        direction: direction
+    };
+}
 
 // Debug function for tabs
 window.debugUnifiedTabs = function(dashboardId) {
