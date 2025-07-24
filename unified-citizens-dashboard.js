@@ -3793,10 +3793,9 @@
 }
 
 .impact-summary {
-    background: #fffbeb;
+    
     padding: 16px;
     border-radius: 8px;
-    border-left: 4px solid #f59e0b;
     margin-top: 16px;
 }
 
