@@ -427,98 +427,66 @@
 // REPLACE your entire getLastModifiedInfo function with this working version:
 
 function getLastModifiedInfo(url, nodeData) {
-    console.log('🔍 getLastModifiedInfo called with:', { url, nodeData });
-    
     let actualLastModified = null;
     
-    // Try to find the page data in tree
-    if (window.treeData || window.treeData) {
-        const tree = window.treeData || treeData;
-        console.log('🌳 Searching tree for URL:', url);
-        
-        // Simple recursive search function (since findNodeInTreeStructure doesn't exist)
-        function searchTree(node, targetUrl) {
-            // Check current node
-            if (node.url === targetUrl || (node.url && targetUrl && node.url.includes(targetUrl.split('/').pop()))) {
+    // Search tree data for the URL
+    if (window.treeData) {
+        function searchNode(node, targetUrl) {
+            // Try multiple URL matching strategies
+            if (node.url === targetUrl || 
+                (node.url && targetUrl && node.url.includes(targetUrl.split('/').pop())) ||
+                (node.url && targetUrl && targetUrl.includes(node.url))) {
                 return node;
             }
             
-            // Search children
-            if (node.children && node.children.length > 0) {
+            if (node.children) {
                 for (const child of node.children) {
-                    const found = searchTree(child, targetUrl);
+                    const found = searchNode(child, targetUrl);
                     if (found) return found;
                 }
             }
-            
             return null;
         }
         
-        const foundNode = searchTree(tree, url);
-        console.log('🔍 Search result:', foundNode);
-        
+        const foundNode = searchNode(window.treeData, url);
         if (foundNode && foundNode.lastModified) {
             actualLastModified = foundNode.lastModified;
-            console.log('✅ Found lastModified:', actualLastModified);
         }
     }
     
-    // If we found real data, format it
+    // Format the date if found
     if (actualLastModified) {
-        let lastMod;
+        const lastMod = new Date(actualLastModified);
         
-        // Handle different date formats
-        if (typeof actualLastModified === 'string') {
-            lastMod = new Date(actualLastModified);
-        } else if (actualLastModified instanceof Date) {
-            lastMod = actualLastModified;
-        } else if (typeof actualLastModified === 'number') {
-            lastMod = new Date(actualLastModified);
-        }
-        
-        console.log('📅 Parsed date:', lastMod);
-        
-        if (lastMod && !isNaN(lastMod.getTime())) {
+        if (!isNaN(lastMod.getTime())) {
             const formatted = lastMod.toLocaleDateString('en-IE', {
                 year: 'numeric',
-                month: 'short', 
+                month: 'short',
                 day: 'numeric'
             });
             
             const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
-            console.log('📊 Days since last modified:', daysSince);
             
             let freshnessClass = 'fresh';
             let freshnessLabel = 'Fresh';
             
             if (daysSince < 30) {
-                freshnessClass = 'fresh'; 
-                freshnessLabel = 'Fresh';
+                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
             } else if (daysSince < 90) {
-                freshnessClass = 'fresh'; 
-                freshnessLabel = 'Fresh';
+                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
             } else if (daysSince < 180) {
-                freshnessClass = 'aging'; 
-                freshnessLabel = 'Recent';
+                freshnessClass = 'aging'; freshnessLabel = 'Recent';
             } else if (daysSince < 365) {
-                freshnessClass = 'aging'; 
-                freshnessLabel = 'Aging';
-            } else if (daysSince < 730) {
-                freshnessClass = 'stale'; 
-                freshnessLabel = 'Old';
+                freshnessClass = 'aging'; freshnessLabel = 'Aging';
             } else {
-                freshnessClass = 'stale'; 
-                freshnessLabel = 'Stale';
+                freshnessClass = 'stale'; freshnessLabel = 'Old';
             }
             
-            const result = { formatted, freshnessClass, freshnessLabel };
-            console.log('✅ Final result:', result);
-            return result;
+            return { formatted, freshnessClass, freshnessLabel };
         }
     }
     
-    // Fallback
-    console.log('❌ No valid date found, using fallback');
+    // Fallback if no date found
     return { 
         formatted: 'Date Unknown', 
         freshnessClass: 'stale', 
