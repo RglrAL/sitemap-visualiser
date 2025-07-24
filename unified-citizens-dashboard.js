@@ -781,6 +781,7 @@
             
             <!-- Detailed Breakdown -->
             <div class="impact-breakdown-details" id="impactBreakdown" style="display: none;">
+              
                 <div class="impact-breakdown-section">
                     <h5>🔍 Information Seekers Breakdown</h5>
                     <div class="impact-calculation">
@@ -860,7 +861,7 @@
                     </div>
                 </div>
                 
-                <div class="impact-summary">
+                <div class="impact-summary-section">
                     <h5>📊 Impact Summary</h5>
                     <p>${getImpactSummary(impact, gscData, ga4Data)}</p>
                 </div>
@@ -5356,6 +5357,50 @@ function getCTRBenchmark(position) {
 function createCitizenQueryIntelligenceStyles() {
     return `
         <style>
+            /* HEADER KPI Card Trends - More Specific Selectors */
+.impact-summary .impact-trend {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 6px;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.impact-summary .impact-explanation {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.impact-summary .trend-positive {
+    background: rgba(255, 255, 255, 0.9);
+    color: #059669;
+    border-color: rgba(5, 150, 105, 0.2);
+}
+
+.impact-summary .trend-negative {
+    background: rgba(255, 255, 255, 0.9);
+    color: #dc2626;
+    border-color: rgba(220, 38, 38, 0.2);
+}
+
+.impact-summary .trend-neutral {
+    background: rgba(255, 255, 255, 0.8);
+    color: #374151;
+    border-color: rgba(55, 65, 81, 0.2);
+}
+
+.impact-metrics .impact-explain {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-left: 4px;
+    cursor: help;
+}
+        
             /* Citizen Query Intelligence Styles */
             .citizen-query-intelligence {
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
