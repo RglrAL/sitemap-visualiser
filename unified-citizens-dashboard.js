@@ -423,30 +423,70 @@
             .join(' ');
     }
 
-    function getLastModifiedInfo(url) {
-        const daysAgo = Math.floor(Math.random() * 90);
-        const lastModified = new Date();
-        lastModified.setDate(lastModified.getDate() - daysAgo);
-        
-        const formatted = lastModified.toLocaleDateString('en-IE', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-        
-        let freshnessClass = 'fresh';
-        let freshnessLabel = 'Fresh';
-        
-        if (daysAgo > 60) {
-            freshnessClass = 'stale';
-            freshnessLabel = 'Needs Update';
-        } else if (daysAgo > 30) {
-            freshnessClass = 'aging';
-            freshnessLabel = 'Aging';
+    // REPLACE the entire getLastModifiedInfo function with this:
+function getLastModifiedInfo(url, nodeData) {
+    // Try to get real page data from the same source as tooltip
+    let actualLastModified = null;
+    
+    // Option 1: Use nodeData if passed
+    if (nodeData && nodeData.lastModified) {
+        actualLastModified = nodeData.lastModified;
+    }
+    // Option 2: Try to find it in global tree data (same as tooltip)
+    else if (window.treeData && typeof findNodeInTreeStructure === 'function') {
+        const nodeInfo = findNodeInTreeStructure(window.treeData, url);
+        if (nodeInfo.found && nodeInfo.node && nodeInfo.node.lastModified) {
+            actualLastModified = nodeInfo.node.lastModified;
+        }
+    }
+    
+    // If we found real data, use it
+    if (actualLastModified) {
+        let lastMod;
+        if (typeof actualLastModified === 'string') {
+            lastMod = new Date(actualLastModified);
+        } else if (actualLastModified instanceof Date) {
+            lastMod = actualLastModified;
         }
         
-        return { formatted, freshnessClass, freshnessLabel };
+        if (lastMod && !isNaN(lastMod.getTime())) {
+            const formatted = lastMod.toLocaleDateString('en-IE', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
+            
+            let freshnessClass = 'fresh';
+            let freshnessLabel = 'Fresh';
+            
+            // Use same logic as tooltip's getFreshnessInfoSafe
+            if (daysSince < 30) {
+                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
+            } else if (daysSince < 90) {
+                freshnessClass = 'fresh'; freshnessLabel = 'Fresh';
+            } else if (daysSince < 180) {
+                freshnessClass = 'aging'; freshnessLabel = 'Recent';
+            } else if (daysSince < 365) {
+                freshnessClass = 'aging'; freshnessLabel = 'Aging';
+            } else if (daysSince < 730) {
+                freshnessClass = 'stale'; freshnessLabel = 'Old';
+            } else {
+                freshnessClass = 'stale'; freshnessLabel = 'Stale';
+            }
+            
+            return { formatted, freshnessClass, freshnessLabel };
+        }
     }
+    
+    // Fallback if no real data available
+    return { 
+        formatted: 'Date Unknown', 
+        freshnessClass: 'stale', 
+        freshnessLabel: 'No Date Available' 
+    };
+}
 
     // ===========================================
     // ENHANCED COMPONENT CREATORS
@@ -454,7 +494,17 @@
 
     function createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends) {
     const pageInfo = extractPageInfo(url);
-    const lastModified = getLastModifiedInfo(url);
+    
+    // Try to get the same node data that the tooltip uses
+    let nodeData = null;
+    if (window.treeData && typeof findNodeInTreeStructure === 'function') {
+        const nodeInfo = findNodeInTreeStructure(window.treeData, url);
+        if (nodeInfo.found && nodeInfo.node) {
+            nodeData = nodeInfo.node;
+        }
+    }
+    
+    const lastModified = getLastModifiedInfo(url, nodeData); // ← Pass nodeData
     const citizenImpact = calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends);
     
     return `
