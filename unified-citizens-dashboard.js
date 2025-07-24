@@ -4252,6 +4252,20 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                 <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused) 
                     <br><small style="color: #6b7280;">Look for the 👆 cursor icon when hovering - if bars aren't clickable, check browser console for errors</small>
                 </p>
+                
+                <!-- Urgent Queries Filter -->
+                ${intentAnalysis.filter(item => item.hasUrgency).length > 0 ? `
+                    <div class="urgent-filter-section" style="margin-bottom: 16px;">
+                        <div class="urgent-filter-bar clickable" data-filter-urgent="true" role="button" tabindex="0" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 2px solid #f87171; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s ease; position: relative;">
+                            <div style="display: flex; align-items: center; gap: 12px; color: #dc2626; font-weight: 600;">
+                                <span style="font-size: 1.2rem; animation: pulse 2s infinite;">🚨</span>
+                                <span style="font-size: 0.95rem; flex-grow: 1;">All Urgent Citizen Needs</span>
+                                <span style="font-size: 0.8rem; background: rgba(220, 38, 38, 0.1); padding: 4px 8px; border-radius: 12px; border: 1px solid rgba(220, 38, 38, 0.2);">${intentAnalysis.filter(item => item.hasUrgency).length} urgent queries</span>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                
                 <div class="intent-bars">
                     ${topIntents.map(([intent, count]) => {
                         const percentage = Math.round((count / intentAnalysis.length) * 100);
@@ -5504,9 +5518,13 @@ function clearJourneyFilter() {
     const panel = document.querySelector('[data-citizen-panel="journey"]');
     if (!panel || !originalQueryData) return;
     
-    // Clear active filter styling
-    document.querySelectorAll('.intent-bar.active-filter').forEach(bar => {
+    // Clear active filter styling for all filter types
+    document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
+        if (bar.classList.contains('urgent-filter-bar')) {
+            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.borderColor = '#f87171';
+        }
     });
     
     // Hide filter status
@@ -5541,9 +5559,13 @@ function clearServiceFilter() {
     const panel = document.querySelector('[data-citizen-panel="journey"]');
     if (!panel || !originalQueryData) return;
     
-    // Clear active filter styling
-    document.querySelectorAll('.service-bar.active-filter').forEach(bar => {
+    // Clear active filter styling for all filter types
+    document.querySelectorAll('.service-bar.active-filter, .intent-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
+        if (bar.classList.contains('urgent-filter-bar')) {
+            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.borderColor = '#f87171';
+        }
     });
     
     // Hide filter status
@@ -5584,15 +5606,12 @@ function filterQueriesByIntent(filterIntent) {
     const filterCountDisplay = document.getElementById('filterCountDisplay');
     const clearFilterBtn = document.getElementById('clearJourneyFilter');
     
-    console.log('Found elements:', { queriesList, hiddenQueriesList, filterStatus }); // Debug log
-    
     if (!queriesList) {
         console.error('citizenQueriesList not found!');
-        alert('Filtering not available - query list not found. Please try refreshing the page.');
         return;
     }
     
-    // ALWAYS reset to original data first (this fixes the consecutive filtering issue)
+    // ALWAYS reset to original data first
     if (originalQueryData) {
         queriesList.innerHTML = originalQueryData.mainQueries;
         if (hiddenQueriesList && originalQueryData.hiddenQueries) {
@@ -5604,19 +5623,21 @@ function filterQueriesByIntent(filterIntent) {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
-        console.log('Stored original query data'); // Debug log
     }
     
     // Clear any existing active filter styling
-    document.querySelectorAll('.intent-bar.active-filter').forEach(bar => {
+    document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
+        if (bar.classList.contains('urgent-filter-bar')) {
+            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.borderColor = '#f87171';
+        }
     });
     
     // Add active filter styling to clicked bar
     const clickedBar = document.querySelector(`[data-filter-intent="${filterIntent}"]`);
     if (clickedBar) {
         clickedBar.classList.add('active-filter');
-        console.log('Added active filter to bar:', clickedBar); // Debug log
     }
     
     // Get all query items from ORIGINAL data (including hidden ones)
@@ -5625,27 +5646,16 @@ function filterQueriesByIntent(filterIntent) {
         allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
     }
     
-    console.log('Total query items found:', allQueryItems.length); // Debug log
-    
-    // Debug: Check what data-intent values we actually have
-    const intentValues = allQueryItems.map(item => item.getAttribute('data-intent')).filter(Boolean);
-    const uniqueIntents = [...new Set(intentValues)];
-    console.log('Available data-intent values:', uniqueIntents);
-    console.log('Looking for intent:', filterIntent);
-    
     // Filter items by intent
     const filteredItems = allQueryItems.filter(item => {
         const itemIntent = item.getAttribute('data-intent');
         return itemIntent === filterIntent;
     });
     
-    console.log('Filtered items count:', filteredItems.length); // Debug log
-    
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
             <div style="text-align: center; padding: 40px; color: #6b7280;">
                 <p>No queries found for this journey stage: <strong>${filterIntent}</strong></p>
-                <p><em>Available intents: ${uniqueIntents.join(', ')}</em></p>
                 <button onclick="clearJourneyFilter()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
                     Show All Queries
                 </button>
@@ -5675,11 +5685,6 @@ function filterQueriesByIntent(filterIntent) {
     if (paginationControls) {
         paginationControls.style.display = 'none';
     }
-    
-    // Scroll to queries list
-    setTimeout(() => {
-        queriesList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
     
     // Show success message
     const successMsg = document.createElement('div');
@@ -5715,11 +5720,8 @@ function filterQueriesByService(filterService) {
     const filterCountDisplay = document.getElementById('filterCountDisplay');
     const clearServiceBtn = document.getElementById('clearServiceFilter');
     
-    console.log('Found elements for service filtering:', { queriesList, hiddenQueriesList, filterStatus }); // Debug log
-    
     if (!queriesList) {
         console.error('citizenQueriesList not found!');
-        alert('Filtering not available - query list not found. Please try refreshing the page.');
         return;
     }
     
@@ -5735,19 +5737,21 @@ function filterQueriesByService(filterService) {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
-        console.log('Stored original query data for service filtering'); // Debug log
     }
     
     // Clear any existing active filter styling
-    document.querySelectorAll('.service-bar.active-filter').forEach(bar => {
+    document.querySelectorAll('.service-bar.active-filter, .intent-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
+        if (bar.classList.contains('urgent-filter-bar')) {
+            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.borderColor = '#f87171';
+        }
     });
     
     // Add active filter styling to clicked bar
     const clickedBar = document.querySelector(`[data-filter-service="${filterService}"]`);
     if (clickedBar) {
         clickedBar.classList.add('active-filter');
-        console.log('Added active filter to service bar:', clickedBar); // Debug log
     }
     
     // Get all query items from ORIGINAL data (including hidden ones)
@@ -5756,23 +5760,16 @@ function filterQueriesByService(filterService) {
         allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
     }
     
-    console.log('Total query items found for service filtering:', allQueryItems.length); // Debug log
-    
     // Filter items by detected service types
     const filteredItems = allQueryItems.filter(item => {
-        // Get the detected services from the item's HTML content
         const detectedServicesElement = item.querySelector('.detected-services');
         if (!detectedServicesElement) return false;
         
         const detectedServicesText = detectedServicesElement.textContent;
         const serviceDisplayName = getServiceDisplayName(filterService);
         
-        console.log('Checking item for service:', serviceDisplayName, 'in text:', detectedServicesText); // Debug log
-        
         return detectedServicesText.includes(serviceDisplayName);
     });
-    
-    console.log('Filtered items count for service:', filteredItems.length); // Debug log
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -5807,11 +5804,6 @@ function filterQueriesByService(filterService) {
         paginationControls.style.display = 'none';
     }
     
-    // Scroll to queries list
-    setTimeout(() => {
-        queriesList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-    
     // Show success message
     const successMsg = document.createElement('div');
     successMsg.style.cssText = `
@@ -5827,6 +5819,112 @@ function filterQueriesByService(filterService) {
         font-size: 0.9rem;
     `;
     successMsg.textContent = `✓ Filtered to show ${filteredItems.length} ${displayName} queries`;
+    document.body.appendChild(successMsg);
+    
+    setTimeout(() => {
+        if (document.body.contains(successMsg)) {
+            document.body.removeChild(successMsg);
+        }
+    }, 3000);
+}
+
+function filterQueriesByUrgency() {
+    console.log('filterQueriesByUrgency called');
+    
+    const queriesList = document.getElementById('citizenQueriesList');
+    const hiddenQueriesList = document.getElementById('hiddenQueriesList');
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const filterValueDisplay = document.getElementById('filterValueDisplay');
+    const filterCountDisplay = document.getElementById('filterCountDisplay');
+    const clearFilterBtn = document.getElementById('clearJourneyFilter');
+    
+    if (!queriesList) {
+        console.error('citizenQueriesList not found!');
+        return;
+    }
+    
+    // ALWAYS reset to original data first
+    if (originalQueryData) {
+        queriesList.innerHTML = originalQueryData.mainQueries;
+        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+        }
+    } else {
+        // Store original data if not already stored
+        originalQueryData = {
+            mainQueries: queriesList.innerHTML,
+            hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
+        };
+    }
+    
+    // Clear any existing active filter styling and set urgent filter as active
+    document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
+        bar.classList.remove('active-filter');
+        if (bar.classList.contains('urgent-filter-bar')) {
+            bar.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            bar.style.borderColor = '#991b1b';
+            bar.querySelector('div').style.color = 'white';
+        }
+    });
+    
+    // Get all query items from ORIGINAL data (including hidden ones)
+    let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
+    if (hiddenQueriesList) {
+        allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
+    }
+    
+    // Filter items by urgency - look for urgency badge
+    const filteredItems = allQueryItems.filter(item => {
+        const urgencyBadge = item.querySelector('.urgency-badge');
+        return urgencyBadge !== null;
+    });
+    
+    if (filteredItems.length === 0) {
+        queriesList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <p>No urgent queries found.</p>
+                <button onclick="clearJourneyFilter()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
+                    Show All Queries
+                </button>
+            </div>
+        `;
+    } else {
+        // Clear current display
+        queriesList.innerHTML = '';
+        
+        // Show filtered items
+        filteredItems.forEach(item => {
+            queriesList.appendChild(item.cloneNode(true));
+        });
+    }
+    
+    // Update filter status
+    if (filterValueDisplay) filterValueDisplay.textContent = "Urgent Citizen Needs";
+    if (filterCountDisplay) filterCountDisplay.textContent = `(${filteredItems.length} queries)`;
+    if (filterStatus) filterStatus.style.display = 'flex';
+    if (clearFilterBtn) clearFilterBtn.style.display = 'block';
+    
+    // Hide pagination controls when filtering
+    const paginationControls = queriesList.closest('.citizen-tab-panel').querySelector('.pagination-controls');
+    if (paginationControls) {
+        paginationControls.style.display = 'none';
+    }
+    
+    // Show success message
+    const successMsg = document.createElement('div');
+    successMsg.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ef4444;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        z-index: 1000;
+        font-weight: 600;
+        font-size: 0.9rem;
+    `;
+    successMsg.textContent = `🚨 Filtered to show ${filteredItems.length} urgent queries`;
     document.body.appendChild(successMsg);
     
     setTimeout(() => {
@@ -5856,6 +5954,12 @@ function initializeCitizenQueryIntelligence() {
             if (targetPanel) {
                 targetPanel.classList.add('active');
             }
+        }
+        
+        // Handle urgent queries filtering
+        if (e.target.closest('.urgent-filter-bar')) {
+            console.log('Urgent filter clicked!');
+            filterQueriesByUrgency();
         }
         
         // Handle journey stage filtering - improved detection
@@ -5933,27 +6037,29 @@ function initializeCitizenQueryIntelligence() {
     document.addEventListener('keydown', function(e) {
         const intentBarElement = e.target.closest('.intent-bar');
         const serviceBarElement = e.target.closest('.service-bar');
+        const urgentFilterElement = e.target.closest('.urgent-filter-bar');
         
         if ((intentBarElement && intentBarElement.classList.contains('clickable')) || 
-            (serviceBarElement && serviceBarElement.classList.contains('clickable'))) {
+            (serviceBarElement && serviceBarElement.classList.contains('clickable')) ||
+            (urgentFilterElement && urgentFilterElement.classList.contains('clickable'))) {
             
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 
                 if (intentBarElement) {
-                    console.log('Intent bar keyboard activated!', intentBarElement); // Debug log
                     const filterIntent = intentBarElement.getAttribute('data-filter-intent');
                     if (filterIntent) {
                         clearServiceFilter();
                         filterQueriesByIntent(filterIntent);
                     }
                 } else if (serviceBarElement) {
-                    console.log('Service bar keyboard activated!', serviceBarElement); // Debug log
                     const filterService = serviceBarElement.getAttribute('data-filter-service');
                     if (filterService) {
                         clearJourneyFilter();
                         filterQueriesByService(filterService);
                     }
+                } else if (urgentFilterElement) {
+                    filterQueriesByUrgency();
                 }
             }
         }
@@ -5967,7 +6073,7 @@ function initializeCitizenQueryIntelligence() {
 
 // Add visual indicators to make clickability obvious
 function addClickableIndicators() {
-    const clickableBars = document.querySelectorAll('.intent-bar.clickable, .service-bar.clickable');
+    const clickableBars = document.querySelectorAll('.intent-bar.clickable, .service-bar.clickable, .urgent-filter-bar.clickable');
     console.log('Found clickable bars:', clickableBars.length); // Debug log
     
     clickableBars.forEach(bar => {
@@ -6003,7 +6109,7 @@ function addClickableIndicators() {
     });
 }
 
-// ALIAS FOR BACKWARD COMPATIBILITY + GLOBAL SCOPE
+// ALIAS FOR BACKWARD COMPATIBILITY
 const createEnhancedQueryAnalysisStyles = createCitizenQueryIntelligenceStyles;
 const createEnhancedQueryAnalysisSection = createCitizenQueryIntelligenceSection;
 const performEnhancedQueryAnalysis = performCitizenQueryAnalysis;
@@ -6011,6 +6117,7 @@ const performEnhancedQueryAnalysis = performCitizenQueryAnalysis;
 // Make filtering functions globally accessible
 window.filterQueriesByIntent = filterQueriesByIntent;
 window.filterQueriesByService = filterQueriesByService;
+window.filterQueriesByUrgency = filterQueriesByUrgency;
 window.clearJourneyFilter = clearJourneyFilter;
 window.clearServiceFilter = clearServiceFilter;
 
