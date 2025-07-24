@@ -1440,35 +1440,744 @@ function getRelativeTime(lastModified) {
     // COMPONENT HELPER FUNCTIONS
     // ===========================================
 
-    function createPerformanceMatrix(gscData, ga4Data) {
-        const searchScore = calculateSearchScore(gscData);
-        const engagementScore = calculateEngagementScore(ga4Data);
-        
-        return `
-            <div class="performance-matrix">
-                <div class="matrix-chart">
-                    <div class="matrix-point" style="left: ${searchScore}%; bottom: ${engagementScore}%;">
-                        <div class="point-dot"></div>
-                        <div class="point-label">This Page</div>
+    // REPLACE your createPerformanceMatrix function with this enhanced version:
+function createPerformanceMatrix(gscData, ga4Data) {
+    const searchScore = calculateSearchScore(gscData);
+    const engagementScore = calculateEngagementScore(ga4Data);
+    
+    // Calculate actual metrics for display
+    const metrics = {
+        clicks: gscData?.clicks || 0,
+        ctr: ((gscData?.ctr || 0) * 100).toFixed(1),
+        position: gscData?.position?.toFixed(1) || 'N/A',
+        users: ga4Data?.users || 0,
+        sessionDuration: formatDuration(ga4Data?.avgSessionDuration || 0),
+        bounceRate: ((ga4Data?.bounceRate || 0) * 100).toFixed(0)
+    };
+    
+    // Determine quadrant and status
+    const quadrant = getPerformanceQuadrant(searchScore, engagementScore);
+    
+    return `
+        <div class="enhanced-performance-matrix">
+            <!-- Matrix Header -->
+            <div class="matrix-header">
+                <h3 class="matrix-title">Performance Positioning</h3>
+                <div class="matrix-subtitle">Where your page stands in the performance landscape</div>
+            </div>
+            
+            <!-- Main Matrix Chart -->
+            <div class="matrix-container">
+                <!-- Background Grid -->
+                <div class="matrix-grid">
+                    ${createMatrixGrid()}
+                </div>
+                
+                <!-- Quadrant Backgrounds -->
+                <div class="matrix-quadrants">
+                    <div class="quadrant quadrant-champion" data-quadrant="champion">
+                        <div class="quadrant-icon">🏆</div>
+                        <div class="quadrant-title">Champion</div>
+                        <div class="quadrant-desc">High Search × High Engagement</div>
                     </div>
-                    <div class="matrix-quadrants">
-                        <div class="quadrant top-right">High Traffic<br>High Engagement</div>
-                        <div class="quadrant top-left">Low Traffic<br>High Engagement</div>
-                        <div class="quadrant bottom-right">High Traffic<br>Low Engagement</div>
-                        <div class="quadrant bottom-left">Low Traffic<br>Low Engagement</div>
+                    <div class="quadrant quadrant-potential" data-quadrant="potential">
+                        <div class="quadrant-icon">💎</div>
+                        <div class="quadrant-title">Hidden Gem</div>
+                        <div class="quadrant-desc">Low Search × High Engagement</div>
+                    </div>
+                    <div class="quadrant quadrant-opportunity" data-quadrant="opportunity">
+                        <div class="quadrant-icon">🎯</div>
+                        <div class="quadrant-title">Opportunity</div>
+                        <div class="quadrant-desc">High Search × Low Engagement</div>
+                    </div>
+                    <div class="quadrant quadrant-needs-work" data-quadrant="needs-work">
+                        <div class="quadrant-icon">🔧</div>
+                        <div class="quadrant-title">Needs Focus</div>
+                        <div class="quadrant-desc">Low Search × Low Engagement</div>
                     </div>
                 </div>
-                <div class="matrix-legend">
-                    <div class="legend-axis">
-                        <span>Search Performance →</span>
+                
+                <!-- Benchmark Lines -->
+                <div class="benchmark-lines">
+                    <div class="benchmark-line horizontal" style="bottom: 50%;" data-tooltip="50% Engagement Benchmark">
+                        <div class="benchmark-label">Avg Engagement</div>
                     </div>
-                    <div class="legend-axis vertical">
-                        <span>User Engagement ↑</span>
+                    <div class="benchmark-line vertical" style="left: 50%;" data-tooltip="50% Search Performance Benchmark">
+                        <div class="benchmark-label">Avg Search</div>
+                    </div>
+                </div>
+                
+                <!-- Performance Point -->
+                <div class="performance-point" style="left: ${searchScore}%; bottom: ${engagementScore}%;">
+                    <div class="point-pulse"></div>
+                    <div class="point-core ${quadrant.class}"></div>
+                    <div class="point-tooltip">
+                        <div class="tooltip-header">
+                            <strong>Your Page Performance</strong>
+                        </div>
+                        <div class="tooltip-metrics">
+                            <div class="metric-row">
+                                <span class="metric-label">Search Score:</span>
+                                <span class="metric-value">${searchScore}/100</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Engagement Score:</span>
+                                <span class="metric-value">${engagementScore}/100</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Status:</span>
+                                <span class="metric-value ${quadrant.class}">${quadrant.name}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Axis Labels -->
+                <div class="axis-labels">
+                    <div class="axis-label x-axis">
+                        <span class="axis-title">Search Performance</span>
+                        <div class="axis-scale">
+                            <span class="scale-min">Poor</span>
+                            <span class="scale-mid">Average</span>
+                            <span class="scale-max">Excellent</span>
+                        </div>
+                    </div>
+                    <div class="axis-label y-axis">
+                        <span class="axis-title">User Engagement</span>
+                        <div class="axis-scale">
+                            <span class="scale-min">Low</span>
+                            <span class="scale-mid">Medium</span>
+                            <span class="scale-max">High</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        `;
+            
+            <!-- Performance Insights Panel -->
+            <div class="performance-insights">
+                <div class="insights-header">
+                    <div class="current-status ${quadrant.class}">
+                        <div class="status-icon">${quadrant.icon}</div>
+                        <div class="status-info">
+                            <div class="status-title">${quadrant.name}</div>
+                            <div class="status-description">${quadrant.description}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="insights-metrics">
+                    <div class="insight-metric">
+                        <div class="metric-icon">🔍</div>
+                        <div class="metric-details">
+                            <div class="metric-title">Search Performance</div>
+                            <div class="metric-breakdown">
+                                ${metrics.clicks} clicks • #${metrics.position} position • ${metrics.ctr}% CTR
+                            </div>
+                        </div>
+                        <div class="metric-score ${getScoreClass(searchScore)}">${searchScore}</div>
+                    </div>
+                    
+                    <div class="insight-metric">
+                        <div class="metric-icon">👥</div>
+                        <div class="metric-details">
+                            <div class="metric-title">User Engagement</div>
+                            <div class="metric-breakdown">
+                                ${metrics.users} users • ${metrics.sessionDuration} avg time • ${metrics.bounceRate}% bounce
+                            </div>
+                        </div>
+                        <div class="metric-score ${getScoreClass(engagementScore)}">${engagementScore}</div>
+                    </div>
+                </div>
+                
+                <div class="next-actions">
+                    <div class="actions-title">💡 Recommended Actions</div>
+                    <div class="actions-list">
+                        ${generateMatrixRecommendations(quadrant, searchScore, engagementScore)}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            /* Enhanced Performance Matrix Styles */
+            .enhanced-performance-matrix {
+                background: white;
+                border-radius: 20px;
+                padding: 24px;
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .enhanced-performance-matrix::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+                background-size: 300% 100%;
+                animation: gradient-shift 6s ease-in-out infinite;
+            }
+            
+            @keyframes gradient-shift {
+                0%, 100% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+            }
+            
+            /* Header */
+            .matrix-header {
+                text-align: center;
+                margin-bottom: 24px;
+            }
+            
+            .matrix-title {
+                font-size: 1.4rem;
+                font-weight: 700;
+                color: #1f2937;
+                margin: 0 0 8px 0;
+            }
+            
+            .matrix-subtitle {
+                font-size: 0.9rem;
+                color: #6b7280;
+                font-style: italic;
+            }
+            
+            /* Matrix Container */
+            .matrix-container {
+                position: relative;
+                height: 350px;
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                margin-bottom: 24px;
+                overflow: hidden;
+            }
+            
+            /* Grid Background */
+            .matrix-grid {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-image: 
+                    linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+                background-size: 25px 25px;
+                pointer-events: none;
+            }
+            
+            /* Quadrants */
+            .matrix-quadrants {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+            
+            .quadrant {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 20px;
+                transition: all 0.3s ease;
+                position: relative;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            
+            .quadrant:hover {
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+            }
+            
+            .quadrant-champion {
+                background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+            }
+            
+            .quadrant-potential {
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%);
+            }
+            
+            .quadrant-opportunity {
+                background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%);
+            }
+            
+            .quadrant-needs-work {
+                background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%);
+            }
+            
+            .quadrant-icon {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+                opacity: 0.8;
+            }
+            
+            .quadrant-title {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: #374151;
+                margin-bottom: 4px;
+            }
+            
+            .quadrant-desc {
+                font-size: 0.75rem;
+                color: #6b7280;
+                line-height: 1.3;
+            }
+            
+            /* Benchmark Lines */
+            .benchmark-lines {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                pointer-events: none;
+            }
+            
+            .benchmark-line {
+                position: absolute;
+                opacity: 0.6;
+                transition: opacity 0.3s ease;
+            }
+            
+            .benchmark-line.horizontal {
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, #94a3b8, transparent);
+            }
+            
+            .benchmark-line.vertical {
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: linear-gradient(0deg, transparent, #94a3b8, transparent);
+            }
+            
+            .benchmark-label {
+                position: absolute;
+                font-size: 0.7rem;
+                color: #64748b;
+                font-weight: 600;
+                background: rgba(255,255,255,0.9);
+                padding: 2px 6px;
+                border-radius: 4px;
+                top: -20px;
+                left: 50%;
+                transform: translateX(-50%);
+                white-space: nowrap;
+            }
+            
+            .benchmark-line.vertical .benchmark-label {
+                top: 50%;
+                left: -50px;
+                transform: translateY(-50%) rotate(-90deg);
+            }
+            
+            /* Performance Point */
+            .performance-point {
+                position: absolute;
+                transform: translate(-50%, 50%);
+                z-index: 10;
+                cursor: pointer;
+            }
+            
+            .point-pulse {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: rgba(59, 130, 246, 0.2);
+                animation: pulse-effect 2s ease-in-out infinite;
+            }
+            
+            @keyframes pulse-effect {
+                0%, 100% { 
+                    transform: translate(-50%, -50%) scale(1);
+                    opacity: 0.7;
+                }
+                50% { 
+                    transform: translate(-50%, -50%) scale(1.2);
+                    opacity: 0.3;
+                }
+            }
+            
+            .point-core {
+                position: relative;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #3b82f6;
+                border: 4px solid white;
+                box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+                z-index: 2;
+            }
+            
+            .point-core.champion { background: #10b981; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); }
+            .point-core.potential { background: #8b5cf6; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); }
+            .point-core.opportunity { background: #f59e0b; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4); }
+            .point-core.needs-work { background: #ef4444; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+            
+            .point-tooltip {
+                position: absolute;
+                top: -120px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                border-radius: 12px;
+                padding: 12px 16px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                border: 1px solid #e2e8f0;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.3s ease;
+                min-width: 200px;
+                z-index: 20;
+            }
+            
+            .performance-point:hover .point-tooltip {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-10px);
+            }
+            
+            .tooltip-header {
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+                text-align: center;
+                color: #374151;
+            }
+            
+            .tooltip-metrics {
+                display: grid;
+                gap: 4px;
+            }
+            
+            .metric-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.8rem;
+            }
+            
+            .metric-label {
+                color: #6b7280;
+            }
+            
+            .metric-value {
+                font-weight: 600;
+                color: #374151;
+            }
+            
+            /* Axis Labels */
+            .axis-labels {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                pointer-events: none;
+            }
+            
+            .axis-label {
+                position: absolute;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+                color: #64748b;
+                font-weight: 600;
+            }
+            
+            .axis-label.x-axis {
+                bottom: 8px;
+                left: 0;
+                right: 0;
+                height: 30px;
+                flex-direction: column;
+            }
+            
+            .axis-label.y-axis {
+                left: 8px;
+                top: 0;
+                bottom: 0;
+                width: 30px;
+                writing-mode: vertical-rl;
+                text-orientation: mixed;
+            }
+            
+            .axis-scale {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+                font-size: 0.7rem;
+                color: #94a3b8;
+                margin-top: 4px;
+            }
+            
+            .axis-label.y-axis .axis-scale {
+                flex-direction: column;
+                height: 100%;
+                margin-top: 0;
+                margin-left: 4px;
+            }
+            
+            /* Performance Insights */
+            .performance-insights {
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                border-radius: 16px;
+                padding: 20px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .insights-header {
+                margin-bottom: 20px;
+            }
+            
+            .current-status {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 16px;
+                background: white;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .status-icon {
+                font-size: 2rem;
+                width: 60px;
+                height: 60px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 12px;
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            }
+            
+            .current-status.champion .status-icon { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); }
+            .current-status.potential .status-icon { background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)); }
+            .current-status.opportunity .status-icon { background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05)); }
+            .current-status.needs-work .status-icon { background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05)); }
+            
+            .status-info {
+                flex: 1;
+            }
+            
+            .status-title {
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 4px;
+            }
+            
+            .status-description {
+                font-size: 0.9rem;
+                color: #6b7280;
+                line-height: 1.4;
+            }
+            
+            .insights-metrics {
+                display: grid;
+                gap: 16px;
+                margin-bottom: 20px;
+            }
+            
+            .insight-metric {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 16px;
+                background: white;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .metric-icon {
+                font-size: 1.5rem;
+                width: 48px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            }
+            
+            .metric-details {
+                flex: 1;
+            }
+            
+            .metric-title {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 4px;
+            }
+            
+            .metric-breakdown {
+                font-size: 0.8rem;
+                color: #6b7280;
+            }
+            
+            .metric-score {
+                font-size: 1.4rem;
+                font-weight: 800;
+                padding: 8px 16px;
+                border-radius: 12px;
+                color: white;
+                text-align: center;
+                min-width: 60px;
+            }
+            
+            .metric-score.excellent { background: linear-gradient(135deg, #10b981, #059669); }
+            .metric-score.good { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+            .metric-score.fair { background: linear-gradient(135deg, #f59e0b, #d97706); }
+            .metric-score.poor { background: linear-gradient(135deg, #ef4444, #dc2626); }
+            
+            /* Next Actions */
+            .next-actions {
+                background: white;
+                border-radius: 12px;
+                padding: 16px;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .actions-title {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 12px;
+            }
+            
+            .actions-list {
+                display: grid;
+                gap: 8px;
+            }
+            
+            .action-item {
+                font-size: 0.85rem;
+                color: #6b7280;
+                padding: 8px 12px;
+                background: #f8fafc;
+                border-radius: 8px;
+                border-left: 3px solid #3b82f6;
+            }
+            
+            /* Responsive */
+            @media (max-width: 768px) {
+                .matrix-container {
+                    height: 300px;
+                }
+                
+                .quadrant-desc {
+                    display: none;
+                }
+                
+                .insights-metrics {
+                    grid-template-columns: 1fr;
+                }
+                
+                .insight-metric {
+                    flex-direction: column;
+                    text-align: center;
+                }
+            }
+        </style>
+    `;
+}
+
+// Helper function to create matrix grid
+function createMatrixGrid() {
+    return '<!-- Grid is created via CSS background -->';
+}
+
+// Helper function to determine quadrant
+function getPerformanceQuadrant(searchScore, engagementScore) {
+    if (searchScore >= 50 && engagementScore >= 50) {
+        return {
+            name: 'Champion',
+            class: 'champion',
+            icon: '🏆',
+            description: 'Your page excels in both search performance and user engagement. Keep up the excellent work!'
+        };
+    } else if (searchScore < 50 && engagementScore >= 50) {
+        return {
+            name: 'Hidden Gem',
+            class: 'potential',
+            icon: '💎',
+            description: 'Great user engagement but low search visibility. Focus on SEO to unlock more traffic.'
+        };
+    } else if (searchScore >= 50 && engagementScore < 50) {
+        return {
+            name: 'Opportunity',
+            class: 'opportunity',
+            icon: '🎯',
+            description: 'Good search performance but users aren\'t fully engaged. Improve content quality and UX.'
+        };
+    } else {
+        return {
+            name: 'Needs Focus',
+            class: 'needs-work',
+            icon: '🔧',
+            description: 'Both search and engagement need improvement. Start with content quality and basic SEO.'
+        };
     }
+}
+
+// Helper function to generate recommendations
+function generateMatrixRecommendations(quadrant, searchScore, engagementScore) {
+    const recommendations = [];
+    
+    if (quadrant.class === 'champion') {
+        recommendations.push('🚀 Scale successful strategies to other pages');
+        recommendations.push('📊 Monitor performance to maintain position');
+        recommendations.push('🔍 Identify opportunities for related content');
+    } else if (quadrant.class === 'potential') {
+        recommendations.push('🔍 Improve search ranking and visibility');
+        recommendations.push('📝 Optimize title tags and meta descriptions');
+        recommendations.push('🔗 Build internal and external links');
+    } else if (quadrant.class === 'opportunity') {
+        recommendations.push('📚 Improve content quality and depth');
+        recommendations.push('⚡ Optimize page loading speed');
+        recommendations.push('🎨 Enhance user experience design');
+    } else {
+        recommendations.push('🎯 Start with basic SEO optimization');
+        recommendations.push('📝 Rewrite content for better user value');
+        recommendations.push('📱 Ensure mobile-friendly design');
+    }
+    
+    return recommendations.map(rec => `<div class="action-item">${rec}</div>`).join('');
+}
+
+// Helper function for score classes (if not already defined)
+function getScoreClass(score) {
+    if (score >= 80) return 'excellent';
+    if (score >= 60) return 'good';
+    if (score >= 40) return 'fair';
+    return 'poor';
+}
+
+// Helper function for duration formatting (if not already defined)
+function formatDuration(seconds) {
+    if (!seconds || seconds < 1) return '0s';
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
 
     function createSearchConsoleMetrics(gscData, gscTrends) {
         if (!gscData || gscData.noDataFound) {
