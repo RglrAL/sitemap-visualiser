@@ -675,9 +675,9 @@
             </div>
             <div class="score-grade">Grade: ${grade}</div>
             
-            <!-- Detailed Breakdown Toggle -->
+            <!-- Detailed Breakdown Toggle - REMOVED onclick -->
             <div class="score-breakdown-toggle">
-                <button class="breakdown-btn" onclick="toggleQualityBreakdown()" id="qualityBreakdownBtn">
+                <button class="breakdown-btn" data-action="toggle-quality-breakdown" id="qualityBreakdownBtn">
                     <span>📊 Show Breakdown</span>
                 </button>
             </div>
@@ -3663,33 +3663,27 @@ function initializeUnifiedDashboard(dashboardId) {
     
     console.log('✅ Found', tabButtons.length, 'buttons and', tabPanels.length, 'panels');
     
-    // Remove any existing event listeners and add new ones
+    // Handle tab clicks
     tabButtons.forEach((button, index) => {
-        // Clone the button to remove all existing event listeners
         const newButton = button.cloneNode(true);
         button.parentNode.replaceChild(newButton, button);
         
-        // Add click handler to the new button
         newButton.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('🎯 Tab clicked:', this.dataset.tab);
             
             const targetTab = this.dataset.tab;
             
-            // Remove active class from all buttons
             dashboard.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Remove active class from all panels
             dashboard.querySelectorAll('.tab-panel').forEach(panel => {
                 panel.classList.remove('active');
             });
             
-            // Activate clicked button
             this.classList.add('active');
             
-            // Show target panel
             const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
             if (targetPanel) {
                 targetPanel.classList.add('active');
@@ -3698,6 +3692,30 @@ function initializeUnifiedDashboard(dashboardId) {
                 console.error('❌ Target panel not found:', targetTab);
             }
         });
+    });
+    
+    // ADD THIS: Handle quality breakdown toggle
+    dashboard.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('[data-action="toggle-quality-breakdown"]');
+        if (toggleBtn) {
+            e.preventDefault();
+            console.log('🎯 Quality breakdown toggle clicked');
+            
+            const breakdown = dashboard.querySelector('#qualityBreakdown');
+            const btn = dashboard.querySelector('#qualityBreakdownBtn');
+            
+            if (breakdown && btn) {
+                if (breakdown.style.display === 'none' || !breakdown.style.display) {
+                    breakdown.style.display = 'block';
+                    btn.innerHTML = '<span>📊 Hide Breakdown</span>';
+                    console.log('✅ Quality breakdown shown');
+                } else {
+                    breakdown.style.display = 'none';
+                    btn.innerHTML = '<span>📊 Show Breakdown</span>';
+                    console.log('✅ Quality breakdown hidden');
+                }
+            }
+        }
     });
     
     // Initialize first tab
@@ -3719,6 +3737,11 @@ function initializeUnifiedDashboard(dashboardId) {
         console.log('✅ Unified dashboard tabs initialized successfully!');
     }
 }
+
+
+
+
+    
 
 // ===========================================
 // EXPORT FUNCTIONS
@@ -6933,21 +6956,7 @@ function getOverallRecommendation(score, scores) {
     return "This page needs urgent attention. Poor performance across multiple areas is limiting its effectiveness in serving citizens.";
 }
 
-// Toggle function for breakdown
-function toggleQualityBreakdown() {
-    const breakdown = document.getElementById('qualityBreakdown');
-    const btn = document.getElementById('qualityBreakdownBtn');
-    
-    if (breakdown && btn) {
-        if (breakdown.style.display === 'none') {
-            breakdown.style.display = 'block';
-            btn.innerHTML = '<span>📊 Hide Breakdown</span>';
-        } else {
-            breakdown.style.display = 'none';
-            btn.innerHTML = '<span>📊 Show Breakdown</span>';
-        }
-    }
-}
+
 
 
     
