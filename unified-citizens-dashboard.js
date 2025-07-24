@@ -397,7 +397,7 @@
                 } else if (pathParts.length === 2) {
                     type = 'Subcategory Page';
                 } else {
-                    type = 'Information Page';
+                    type = 'Content Page';
                 }
                 
                 title = formatPageTitle(pathParts[pathParts.length - 1]);
