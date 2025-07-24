@@ -5608,7 +5608,9 @@ function createCitizenQueryIntelligenceStyles() {
     `;
 }
 
+// ===========================================
 // JOURNEY AND SERVICE FILTERING FUNCTIONS
+// ===========================================
 let originalQueryData = null; // Store original data for filter clearing
 
 // Clear functions defined first
@@ -5622,6 +5624,10 @@ function clearJourneyFilter() {
         if (bar.classList.contains('urgent-filter-bar')) {
             bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
             bar.style.borderColor = '#f87171';
+            const divElement = bar.querySelector('div');
+            if (divElement) {
+                divElement.style.color = '#dc2626';
+            }
         }
     });
     
@@ -5635,11 +5641,11 @@ function clearJourneyFilter() {
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
     
-    if (queriesList && originalQueryData.mainQueries) {
+    if (queriesList && originalQueryData && originalQueryData.mainQueries) {
         queriesList.innerHTML = originalQueryData.mainQueries;
     }
     
-    if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+    if (hiddenQueriesList && originalQueryData && originalQueryData.hiddenQueries) {
         hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
     }
     
@@ -5663,6 +5669,10 @@ function clearServiceFilter() {
         if (bar.classList.contains('urgent-filter-bar')) {
             bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
             bar.style.borderColor = '#f87171';
+            const divElement = bar.querySelector('div');
+            if (divElement) {
+                divElement.style.color = '#dc2626';
+            }
         }
     });
     
@@ -5676,11 +5686,11 @@ function clearServiceFilter() {
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
     
-    if (queriesList && originalQueryData.mainQueries) {
+    if (queriesList && originalQueryData && originalQueryData.mainQueries) {
         queriesList.innerHTML = originalQueryData.mainQueries;
     }
     
-    if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+    if (hiddenQueriesList && originalQueryData && originalQueryData.hiddenQueries) {
         hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
     }
     
@@ -5695,7 +5705,7 @@ function clearServiceFilter() {
 }
 
 function filterQueriesByIntent(filterIntent) {
-    console.log('filterQueriesByIntent called with:', filterIntent); // Debug log
+    console.log('filterQueriesByIntent called with:', filterIntent);
     
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
@@ -5709,18 +5719,19 @@ function filterQueriesByIntent(filterIntent) {
         return;
     }
     
-    // ALWAYS reset to original data first
-    if (originalQueryData) {
-        queriesList.innerHTML = originalQueryData.mainQueries;
-        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
-            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
-        }
-    } else {
-        // Store original data if not already stored
+    // Store original data if not already stored (fresh dashboard data)
+    if (!originalQueryData) {
         originalQueryData = {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
+        console.log('📦 Stored fresh original query data for filtering');
+    } else {
+        // Reset to original data if already stored
+        queriesList.innerHTML = originalQueryData.mainQueries;
+        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+        }
     }
     
     // Clear any existing active filter styling
@@ -5729,6 +5740,10 @@ function filterQueriesByIntent(filterIntent) {
         if (bar.classList.contains('urgent-filter-bar')) {
             bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
             bar.style.borderColor = '#f87171';
+            const divElement = bar.querySelector('div');
+            if (divElement) {
+                divElement.style.color = '#dc2626';
+            }
         }
     });
     
@@ -5738,7 +5753,7 @@ function filterQueriesByIntent(filterIntent) {
         clickedBar.classList.add('active-filter');
     }
     
-    // Get all query items from ORIGINAL data (including hidden ones)
+    // Get all query items from CURRENT data (including hidden ones)
     let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
     if (hiddenQueriesList) {
         allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
@@ -5749,6 +5764,8 @@ function filterQueriesByIntent(filterIntent) {
         const itemIntent = item.getAttribute('data-intent');
         return itemIntent === filterIntent;
     });
+    
+    console.log(`🔍 Found ${filteredItems.length} items for intent: ${filterIntent}`);
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -5779,37 +5796,17 @@ function filterQueriesByIntent(filterIntent) {
     if (clearFilterBtn) clearFilterBtn.style.display = 'block';
     
     // Hide pagination controls when filtering
-    const paginationControls = queriesList.closest('.citizen-tab-panel').querySelector('.pagination-controls');
+    const paginationControls = queriesList.closest('.citizen-tab-panel')?.querySelector('.pagination-controls');
     if (paginationControls) {
         paginationControls.style.display = 'none';
     }
     
     // Show success message
-    const successMsg = document.createElement('div');
-    successMsg.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #10b981;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 1000;
-        font-weight: 600;
-        font-size: 0.9rem;
-    `;
-    successMsg.textContent = `✓ Filtered to show ${filteredItems.length} queries`;
-    document.body.appendChild(successMsg);
-    
-    setTimeout(() => {
-        if (document.body.contains(successMsg)) {
-            document.body.removeChild(successMsg);
-        }
-    }, 3000);
+    showFilterSuccessMessage(`✓ Filtered to show ${filteredItems.length} queries`, '#10b981');
 }
 
 function filterQueriesByService(filterService) {
-    console.log('filterQueriesByService called with:', filterService); // Debug log
+    console.log('filterQueriesByService called with:', filterService);
     
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
@@ -5823,18 +5820,19 @@ function filterQueriesByService(filterService) {
         return;
     }
     
-    // ALWAYS reset to original data first
-    if (originalQueryData) {
-        queriesList.innerHTML = originalQueryData.mainQueries;
-        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
-            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
-        }
-    } else {
-        // Store original data if not already stored
+    // Store original data if not already stored (fresh dashboard data)
+    if (!originalQueryData) {
         originalQueryData = {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
+        console.log('📦 Stored fresh original query data for service filtering');
+    } else {
+        // Reset to original data if already stored
+        queriesList.innerHTML = originalQueryData.mainQueries;
+        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+        }
     }
     
     // Clear any existing active filter styling
@@ -5843,6 +5841,10 @@ function filterQueriesByService(filterService) {
         if (bar.classList.contains('urgent-filter-bar')) {
             bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
             bar.style.borderColor = '#f87171';
+            const divElement = bar.querySelector('div');
+            if (divElement) {
+                divElement.style.color = '#dc2626';
+            }
         }
     });
     
@@ -5852,7 +5854,7 @@ function filterQueriesByService(filterService) {
         clickedBar.classList.add('active-filter');
     }
     
-    // Get all query items from ORIGINAL data (including hidden ones)
+    // Get all query items from CURRENT data (including hidden ones)
     let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
     if (hiddenQueriesList) {
         allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
@@ -5868,6 +5870,8 @@ function filterQueriesByService(filterService) {
         
         return detectedServicesText.includes(serviceDisplayName);
     });
+    
+    console.log(`🔍 Found ${filteredItems.length} items for service: ${filterService}`);
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -5897,33 +5901,13 @@ function filterQueriesByService(filterService) {
     if (clearServiceBtn) clearServiceBtn.style.display = 'block';
     
     // Hide pagination controls when filtering
-    const paginationControls = queriesList.closest('.citizen-tab-panel').querySelector('.pagination-controls');
+    const paginationControls = queriesList.closest('.citizen-tab-panel')?.querySelector('.pagination-controls');
     if (paginationControls) {
         paginationControls.style.display = 'none';
     }
     
     // Show success message
-    const successMsg = document.createElement('div');
-    successMsg.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #10b981;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 1000;
-        font-weight: 600;
-        font-size: 0.9rem;
-    `;
-    successMsg.textContent = `✓ Filtered to show ${filteredItems.length} ${displayName} queries`;
-    document.body.appendChild(successMsg);
-    
-    setTimeout(() => {
-        if (document.body.contains(successMsg)) {
-            document.body.removeChild(successMsg);
-        }
-    }, 3000);
+    showFilterSuccessMessage(`✓ Filtered to show ${filteredItems.length} ${displayName} queries`, '#10b981');
 }
 
 function filterQueriesByUrgency() {
@@ -5941,18 +5925,19 @@ function filterQueriesByUrgency() {
         return;
     }
     
-    // ALWAYS reset to original data first
-    if (originalQueryData) {
-        queriesList.innerHTML = originalQueryData.mainQueries;
-        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
-            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
-        }
-    } else {
-        // Store original data if not already stored
+    // Store original data if not already stored (fresh dashboard data)
+    if (!originalQueryData) {
         originalQueryData = {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
+        console.log('📦 Stored fresh original query data for urgency filtering');
+    } else {
+        // Reset to original data if already stored
+        queriesList.innerHTML = originalQueryData.mainQueries;
+        if (hiddenQueriesList && originalQueryData.hiddenQueries) {
+            hiddenQueriesList.innerHTML = originalQueryData.hiddenQueries;
+        }
     }
     
     // Clear any existing active filter styling and set urgent filter as active
@@ -5961,11 +5946,14 @@ function filterQueriesByUrgency() {
         if (bar.classList.contains('urgent-filter-bar')) {
             bar.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
             bar.style.borderColor = '#991b1b';
-            bar.querySelector('div').style.color = 'white';
+            const divElement = bar.querySelector('div');
+            if (divElement) {
+                divElement.style.color = 'white';
+            }
         }
     });
     
-    // Get all query items from ORIGINAL data (including hidden ones)
+    // Get all query items from CURRENT data (including hidden ones)
     let allQueryItems = Array.from(queriesList.querySelectorAll('.citizen-query-item'));
     if (hiddenQueriesList) {
         allQueryItems = allQueryItems.concat(Array.from(hiddenQueriesList.querySelectorAll('.citizen-query-item')));
@@ -5976,6 +5964,8 @@ function filterQueriesByUrgency() {
         const urgencyBadge = item.querySelector('.urgency-badge');
         return urgencyBadge !== null;
     });
+    
+    console.log(`🔍 Found ${filteredItems.length} urgent items`);
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -6003,35 +5993,58 @@ function filterQueriesByUrgency() {
     if (clearFilterBtn) clearFilterBtn.style.display = 'block';
     
     // Hide pagination controls when filtering
-    const paginationControls = queriesList.closest('.citizen-tab-panel').querySelector('.pagination-controls');
+    const paginationControls = queriesList.closest('.citizen-tab-panel')?.querySelector('.pagination-controls');
     if (paginationControls) {
         paginationControls.style.display = 'none';
     }
     
     // Show success message
+    showFilterSuccessMessage(`🚨 Filtered to show ${filteredItems.length} urgent queries`, '#ef4444');
+}
+
+// Helper function to show filter success messages
+function showFilterSuccessMessage(message, backgroundColor) {
+    // Remove any existing success messages first
+    const existingMsg = document.querySelector('.filter-success-message');
+    if (existingMsg) existingMsg.remove();
+    
     const successMsg = document.createElement('div');
+    successMsg.className = 'filter-success-message';
     successMsg.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #ef4444;
+        background: ${backgroundColor};
         color: white;
         padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 1000;
+        border-radius: 8px;
+        z-index: 10000;
         font-weight: 600;
         font-size: 0.9rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
     `;
-    successMsg.textContent = `🚨 Filtered to show ${filteredItems.length} urgent queries`;
+    successMsg.textContent = message;
     document.body.appendChild(successMsg);
     
+    // Animate in
+    requestAnimationFrame(() => {
+        successMsg.style.transform = 'translateX(0)';
+    });
+    
+    // Remove after delay
     setTimeout(() => {
         if (document.body.contains(successMsg)) {
-            document.body.removeChild(successMsg);
+            successMsg.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (document.body.contains(successMsg)) {
+                    document.body.removeChild(successMsg);
+                }
+            }, 300);
         }
     }, 3000);
 }
-
 // INITIALIZATION
 function initializeCitizenQueryIntelligence() {
     // Use event delegation to handle clicks on dynamically created elements
@@ -6372,7 +6385,41 @@ function showDashboardModal(htmlContent) {
 }
 
 
+// ===========================================
+// FILTER STATE MANAGEMENT
+// ===========================================
 
+// Function to reset all filter states when loading new dashboard
+function resetDashboardFilters() {
+    console.log('🧹 Resetting dashboard filters...');
+    
+    // Clear the original query data
+    originalQueryData = null;
+    
+    // Clear any active filter styling
+    document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
+        bar.classList.remove('active-filter');
+        if (bar.classList.contains('urgent-filter-bar')) {
+            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.borderColor = '#f87171';
+            const divElement = bar.querySelector('div');
+            if (divElement) {
+                divElement.style.color = '#dc2626';
+            }
+        }
+    });
+    
+    // Hide any active filter status displays
+    const filterStatus = document.getElementById('journeyFilterStatus');
+    const clearJourneyBtn = document.getElementById('clearJourneyFilter');
+    const clearServiceBtn = document.getElementById('clearServiceFilter');
+    
+    if (filterStatus) filterStatus.style.display = 'none';
+    if (clearJourneyBtn) clearJourneyBtn.style.display = 'none';
+    if (clearServiceBtn) clearServiceBtn.style.display = 'none';
+    
+    console.log('✅ Dashboard filters reset');
+}
     
 
 // ===========================================
@@ -6384,11 +6431,15 @@ window.initializeUnifiedDashboard = initializeUnifiedDashboard;
 window.exportUnifiedReport = exportUnifiedReport;
 window.copyUnifiedSummary = copyUnifiedSummary;
 window.scheduleUnifiedReview = scheduleUnifiedReview;
+window.resetDashboardFilters = resetDashboardFilters;
 
 // Add to the GLOBAL EXPORTS section
 // REPLACE the existing refreshUnifiedDashboard function with this fixed version:
 window.refreshUnifiedDashboard = async function(url) {
     console.log('🔄 Refreshing Unified Citizens Dashboard for:', url);
+
+    // RESET FILTERS FIRST
+    resetDashboardFilters();
     
     const refreshBtn = document.querySelector('.header-refresh-btn');
     const modal = document.getElementById('unified-dashboard-modal');
