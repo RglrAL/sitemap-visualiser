@@ -6232,7 +6232,144 @@ if (document.readyState === 'loading') {
 }
 
 
+// ===========================================
+// MISSING HELPER FUNCTIONS FOR REFRESH
+// ===========================================
 
+// Helper function to calculate trend data in the format the dashboard expects
+function calculateTrend(currentValue, previousValue, inverted = false) {
+    const current = parseFloat(currentValue) || 0;
+    const previous = parseFloat(previousValue) || 0;
+    
+    if (previous === 0) {
+        return {
+            percentChange: 0,
+            direction: 'neutral'
+        };
+    }
+    
+    let percentChange = ((current - previous) / previous) * 100;
+    
+    // For inverted metrics (position, bounce rate), flip the direction
+    const actualChange = inverted ? -percentChange : percentChange;
+    
+    let direction = 'neutral';
+    if (Math.abs(actualChange) < 2) {
+        direction = 'neutral';
+    } else if (actualChange > 0) {
+        direction = 'up';
+    } else {
+        direction = 'down';
+    }
+    
+    return {
+        percentChange: Math.abs(percentChange), // Always positive number
+        direction: direction
+    };
+}
+
+// Modal display function for dashboard refresh
+function showDashboardModal(htmlContent) {
+    // Remove existing modal if present
+    const existingModal = document.getElementById('unified-dashboard-modal');
+    if (existingModal) existingModal.remove();
+    
+    // Create modal backdrop
+    const modal = document.createElement('div');
+    modal.id = 'unified-dashboard-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+    
+    // Create modal content container
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        width: 100%;
+        max-width: 1200px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    `;
+    
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10001;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    `;
+    
+    closeBtn.addEventListener('click', () => {
+        modal.style.opacity = '0';
+        modalContent.style.transform = 'scale(0.9)';
+        setTimeout(() => modal.remove(), 300);
+    });
+    
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.background = 'rgba(239, 68, 68, 0.9)';
+        closeBtn.style.transform = 'scale(1.1)';
+    });
+    
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+        closeBtn.style.transform = 'scale(1)';
+    });
+    
+    // Add dashboard content
+    modalContent.innerHTML = htmlContent;
+    modalContent.appendChild(closeBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Show with animation
+    requestAnimationFrame(() => {
+        modal.style.opacity = '1';
+        modalContent.style.transform = 'scale(1)';
+    });
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeBtn.click();
+        }
+    });
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeBtn.click();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
 
 
 
