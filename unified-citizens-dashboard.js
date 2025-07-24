@@ -663,19 +663,93 @@
     }
 
     function createQualityScoreDisplay(gscData, ga4Data) {
-        const score = calculateQualityScore(gscData, ga4Data);
-        const grade = score >= 85 ? 'A' : score >= 75 ? 'B' : score >= 65 ? 'C' : score >= 55 ? 'D' : 'F';
-        
-        return `
-            <div class="quality-score-display">
-                <div class="score-circle ${getScoreClass(score)}">
-                    <div class="score-number">${score}</div>
-                    <div class="score-label">Quality Score</div>
-                </div>
-                <div class="score-grade">Grade: ${grade}</div>
+    const scores = calculateDetailedQualityScore(gscData, ga4Data);
+    const overallScore = scores.overall;
+    const grade = overallScore >= 85 ? 'A' : overallScore >= 75 ? 'B' : overallScore >= 65 ? 'C' : overallScore >= 55 ? 'D' : 'F';
+    
+    return `
+        <div class="quality-score-display">
+            <div class="score-circle ${getScoreClass(overallScore)}">
+                <div class="score-number">${overallScore}</div>
+                <div class="score-label">Quality Score</div>
             </div>
-        `;
-    }
+            <div class="score-grade">Grade: ${grade}</div>
+            
+            <!-- Detailed Breakdown Toggle -->
+            <div class="score-breakdown-toggle">
+                <button class="breakdown-btn" onclick="toggleQualityBreakdown()" id="qualityBreakdownBtn">
+                    <span>📊 Show Breakdown</span>
+                </button>
+            </div>
+            
+            <!-- Hidden Breakdown Details -->
+            <div class="quality-breakdown" id="qualityBreakdown" style="display: none;">
+                <div class="breakdown-explanation">
+                    <p><strong>Quality Score Components:</strong></p>
+                </div>
+                
+                <div class="breakdown-components">
+                    <div class="breakdown-item">
+                        <div class="breakdown-header">
+                            <span class="breakdown-icon">🔍</span>
+                            <span class="breakdown-name">Search Performance</span>
+                            <span class="breakdown-score ${getScoreClass(scores.search)}">${scores.search}/100</span>
+                        </div>
+                        <div class="breakdown-details">
+                            <div class="breakdown-metric">Ranking Position: ${scores.details.position ? '#' + scores.details.position.toFixed(0) : 'No data'}</div>
+                            <div class="breakdown-metric">Click Rate: ${scores.details.ctr ? (scores.details.ctr * 100).toFixed(1) + '%' : 'No data'}</div>
+                            <div class="breakdown-improvement">${getSearchImprovement(scores.search, scores.details)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <div class="breakdown-header">
+                            <span class="breakdown-icon">👥</span>
+                            <span class="breakdown-name">User Engagement</span>
+                            <span class="breakdown-score ${getScoreClass(scores.engagement)}">${scores.engagement}/100</span>
+                        </div>
+                        <div class="breakdown-details">
+                            <div class="breakdown-metric">Time on Page: ${scores.details.duration ? formatDuration(scores.details.duration) : 'No data'}</div>
+                            <div class="breakdown-metric">Bounce Rate: ${scores.details.bounceRate ? (scores.details.bounceRate * 100).toFixed(0) + '%' : 'No data'}</div>
+                            <div class="breakdown-improvement">${getEngagementImprovement(scores.engagement, scores.details)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <div class="breakdown-header">
+                            <span class="breakdown-icon">🎯</span>
+                            <span class="breakdown-name">Content Relevance</span>
+                            <span class="breakdown-score ${getScoreClass(scores.relevance)}">${scores.relevance}/100</span>
+                        </div>
+                        <div class="breakdown-details">
+                            <div class="breakdown-metric">Expected CTR: ${scores.details.expectedCtr ? (scores.details.expectedCtr * 100).toFixed(1) + '%' : 'No data'}</div>
+                            <div class="breakdown-metric">Actual CTR: ${scores.details.ctr ? (scores.details.ctr * 100).toFixed(1) + '%' : 'No data'}</div>
+                            <div class="breakdown-improvement">${getRelevanceImprovement(scores.relevance, scores.details)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <div class="breakdown-header">
+                            <span class="breakdown-icon">⭐</span>
+                            <span class="breakdown-name">User Experience</span>
+                            <span class="breakdown-score ${getScoreClass(scores.ux)}">${scores.ux}/100</span>
+                        </div>
+                        <div class="breakdown-details">
+                            <div class="breakdown-metric">Engagement Rate: ${scores.details.engagementRate ? (scores.details.engagementRate * 100).toFixed(0) + '%' : 'No data'}</div>
+                            <div class="breakdown-metric">Pages/Session: ${scores.details.pagesPerSession ? scores.details.pagesPerSession.toFixed(1) : 'No data'}</div>
+                            <div class="breakdown-improvement">${getUXImprovement(scores.ux, scores.details)}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overall-recommendation">
+                    <h4>💡 Overall Recommendation</h4>
+                    <p>${getOverallRecommendation(overallScore, scores)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
     function createImpactDisplay(gscData, ga4Data) {
         const impact = calculateImpactMetrics(gscData, ga4Data);
@@ -3340,6 +3414,125 @@
 .trend-neutral {
     color: #6b7280;
     background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+
+/* Quality Score Breakdown Styles */
+.score-breakdown-toggle {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.breakdown-btn {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.breakdown-btn:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.quality-breakdown {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.breakdown-explanation {
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.breakdown-components {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.breakdown-item {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.breakdown-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.breakdown-icon {
+    font-size: 1rem;
+}
+
+.breakdown-name {
+    flex: 1;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.breakdown-score {
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.breakdown-score.excellent { background: #dcfce7; color: #166534; }
+.breakdown-score.good { background: #dbeafe; color: #1e40af; }
+.breakdown-score.fair { background: #fef3c7; color: #92400e; }
+.breakdown-score.poor { background: #fee2e2; color: #991b1b; }
+
+.breakdown-details {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-left: 24px;
+}
+
+.breakdown-metric {
+    margin-bottom: 4px;
+}
+
+.breakdown-improvement {
+    margin-top: 8px;
+    font-weight: 500;
+    color: #374151;
+    font-style: italic;
+}
+
+.overall-recommendation {
+    background: #fffbeb;
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid #f59e0b;
+}
+
+.overall-recommendation h4 {
+    margin: 0 0 8px 0;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+.overall-recommendation p {
+    margin: 0;
+    color: #78350f;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
 
@@ -6672,6 +6865,88 @@ function calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends
         helpfulnessTrend,
         timeTrend
     };
+}
+
+
+function calculateDetailedQualityScore(gscData, ga4Data) {
+    // Calculate individual scores with detailed breakdown
+    const searchScore = calculateSearchScore(gscData);
+    const engagementScore = calculateEngagementScore(ga4Data);
+    const relevanceScore = calculateRelevanceScore(gscData);
+    const uxScore = calculateUXScore(ga4Data);
+    
+    const overall = Math.round((searchScore + engagementScore + relevanceScore + uxScore) / 4);
+    
+    // Store detailed metrics for transparency
+    const details = {
+        position: gscData?.position,
+        ctr: gscData?.ctr,
+        duration: ga4Data?.avgSessionDuration,
+        bounceRate: ga4Data?.bounceRate,
+        engagementRate: ga4Data?.engagementRate,
+        pagesPerSession: ga4Data?.sessions > 0 ? (ga4Data?.pageViews / ga4Data?.sessions) : null,
+        expectedCtr: gscData?.position ? getCTRBenchmark(gscData.position) : null
+    };
+    
+    return {
+        overall,
+        search: searchScore,
+        engagement: engagementScore,
+        relevance: relevanceScore,
+        ux: uxScore,
+        details
+    };
+}
+
+// Improvement suggestion functions
+function getSearchImprovement(score, details) {
+    if (score >= 75) return "✅ Good search performance";
+    if (details.position > 10) return "📈 Focus on improving search ranking";
+    if (details.ctr < 0.03) return "📝 Optimize title and meta description";
+    return "🔍 Work on both ranking and click-through rate";
+}
+
+function getEngagementImprovement(score, details) {
+    if (score >= 75) return "✅ Users are highly engaged";
+    if (details.bounceRate > 0.7) return "📚 Improve content relevance and readability";
+    if (details.duration < 60) return "⏱️ Make content more engaging to increase time spent";
+    return "👥 Focus on better user engagement";
+}
+
+function getRelevanceImprovement(score, details) {
+    if (score >= 75) return "✅ Content matches user intent well";
+    if (details.ctr < details.expectedCtr) return "🎯 Better align title/description with search intent";
+    return "🔍 Improve content relevance for target keywords";
+}
+
+function getUXImprovement(score, details) {
+    if (score >= 75) return "✅ Excellent user experience";
+    if (details.engagementRate < 0.4) return "📱 Improve page loading and usability";
+    if (details.pagesPerSession < 1.2) return "🔗 Add better internal linking";
+    return "⭐ Focus on overall user experience improvements";
+}
+
+function getOverallRecommendation(score, scores) {
+    if (score >= 85) return "Your content is performing excellently across all quality metrics. Keep up the great work!";
+    if (score >= 65) return "Good performance overall. Focus on the lowest-scoring areas for maximum improvement.";
+    if (score >= 45) return "There's significant room for improvement. Start with search performance and user engagement.";
+    return "This page needs urgent attention. Poor performance across multiple areas is limiting its effectiveness in serving citizens.";
+}
+
+// Toggle function for breakdown
+function toggleQualityBreakdown() {
+    const breakdown = document.getElementById('qualityBreakdown');
+    const btn = document.getElementById('qualityBreakdownBtn');
+    
+    if (breakdown && btn) {
+        if (breakdown.style.display === 'none') {
+            breakdown.style.display = 'block';
+            btn.innerHTML = '<span>📊 Hide Breakdown</span>';
+        } else {
+            breakdown.style.display = 'none';
+            btn.innerHTML = '<span>📊 Show Breakdown</span>';
+        }
+    }
 }
 
 
