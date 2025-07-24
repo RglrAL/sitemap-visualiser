@@ -1871,7 +1871,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 font-size: 0.85rem;
                 margin-bottom: 8px;
                 text-align: center;
-                color: #374151;
+                
             }
             
             .tooltip-metrics {
