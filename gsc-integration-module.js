@@ -1631,13 +1631,17 @@ if (reportsDropdown) {
     }
     
     // Insert after reports dropdown + separator
-    if (insertionPoint) {
-        navBar.insertBefore(gscButton, insertionPoint);
-        debugLog('GSC button inserted after reports dropdown and separator');
-    } else {
-        navBar.appendChild(gscButton);
-        debugLog('GSC button appended after reports dropdown');
-    }
+    const ga4Button = document.getElementById('ga4ConnectBtn');
+if (ga4Button) {
+    navBar.insertBefore(gscButton, ga4Button.nextSibling);
+    debugLog('GSC button inserted after GA4 button');
+} else if (insertionPoint) {
+    navBar.insertBefore(gscButton, insertionPoint);
+    debugLog('GSC button inserted after reports dropdown and separator');
+} else {
+    navBar.appendChild(gscButton);
+    debugLog('GSC button appended after reports dropdown');
+}
     
 } else if (firstButton) {
     navBar.insertBefore(gscButton, firstButton.nextSibling);
