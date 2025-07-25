@@ -134,7 +134,7 @@ onmouseout="
                             -webkit-box-orient: vertical;
                             overflow: hidden;
                             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                            padding-right: 40px;
+                            padding-right: 20px;
                         ">
                             ${data.name || 'Page'}
                         </h3>
@@ -154,7 +154,7 @@ onmouseout="
                                    border-radius: 6px;
                                    backdrop-filter: blur(10px);
                                    transition: all 0.2s ease;
-                                   margin-right: 40px;
+                                   margin-right: 20px;
                                " 
                                onmouseover="this.style.background='rgba(255,255,255,0.25)'" 
                                onmouseout="this.style.background='rgba(255,255,255,0.15)'">
