@@ -1037,9 +1037,9 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                     <div class="view-toggle">
                         <button class="toggle-btn active" data-view="overview">📊 Overview</button>
                         <button class="toggle-btn" data-view="detailed">🔍 Detailed Analysis</button>
-                        <button class="toggle-btn" data-view="opportunities">🎯 Opportunities</button>
+                        
                     </div>
-                    <button class="export-geo-btn" onclick="exportGeographicReport()">📄 Export Report</button>
+                    
                 </div>
             </div>
             
