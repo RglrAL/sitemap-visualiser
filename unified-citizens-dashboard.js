@@ -7726,6 +7726,8 @@ function createCitizenOpportunitiesPanel(opportunities) {
 }
 
 // UI CREATION FUNCTION
+// FIXED VERSION - Replace your existing createCitizenQueryIntelligenceSection function with this:
+
 function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
     const analysis = performCitizenQueryAnalysis(gscData, pageUrl);
     
@@ -7763,61 +7765,31 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                 </div>
             </div>
             
-            <div class="geo-unified-content">
-    <!-- KPI Cards stay the same -->
-    <div class="geo-executive-summary">
-        <!-- Keep existing KPI cards -->
-    </div>
-    
-    <!-- Main Geographic Analysis - Single Flow -->
-    <div class="geo-main-analysis">
-        <div class="geo-section-grid">
-            <!-- Ireland Analysis -->
-            <div class="geo-analysis-card ireland-card">
-                <div class="card-header">
-                    <h3>🇮🇪 Irish Regional Intelligence</h3>
-                    <div class="concentration-alert ${geoInsights.demandLevel.class}">
-                        ${geoInsights.demandLevel.label}
-                    </div>
+            <!-- Citizen Analysis Tabs -->
+            <div class="citizen-analysis-tabs">
+                <div class="citizen-tab-nav">
+                    <button class="citizen-tab-btn active" data-citizen-tab="journey">
+                        <span class="tab-icon">🗺️</span>
+                        <span class="tab-label">Journey Analysis</span>
+                        ${analysis.summary.urgentQueries > 0 ? `<span class="tab-badge">${analysis.summary.urgentQueries}</span>` : ''}
+                    </button>
+                    <button class="citizen-tab-btn" data-citizen-tab="opportunities">
+                        <span class="tab-icon">🎯</span>
+                        <span class="tab-label">Opportunities</span>
+                        ${analysis.summary.opportunities > 0 ? `<span class="tab-badge">${analysis.summary.opportunities}</span>` : ''}
+                    </button>
                 </div>
                 
-                <div class="ireland-content">
-                    ${createInteractiveIrelandMap(geoData.regions, geoInsights)}
+                <div class="citizen-tab-content">
+                    <div class="citizen-tab-panel active" data-citizen-panel="journey">
+                        ${createCitizenJourneyPanel(analysis.intentAnalysis, analysis.summary.byIntent)}
+                    </div>
                     
-                    <div class="regional-insights">
-                        <h4>📊 Regional Breakdown</h4>
-                        ${createTopRegionsTable(geoData.regions)}
+                    <div class="citizen-tab-panel" data-citizen-panel="opportunities">
+                        ${createCitizenOpportunitiesPanel(analysis.citizenOpportunities)}
                     </div>
                 </div>
             </div>
-            
-            <!-- International Analysis -->
-            <div class="geo-analysis-card international-card">
-                <div class="card-header">
-                    <h3>🌍 International Reach</h3>
-                    <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
-                        ${geoInsights.diasporaIndicator} Diaspora Engagement
-                    </div>
-                </div>
-                
-                <div class="international-content">
-                    ${createInteractiveWorldMap(geoData.countries)}
-                    
-                    <div class="international-insights">
-                        <h4>🌐 International Patterns</h4>
-                        ${generateInternationalInsights(geoData.countries, pageContext)}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Opportunities Section -->
-        <div class="geo-opportunities-section">
-            <h3>🎯 Geographic Optimization Opportunities</h3>
-            ${createStreamlinedOpportunities(servicePatterns, accessibilityInsights, pageContext)}
-        </div>
-    </div>
-</div>
         </div>
     `;
 }
