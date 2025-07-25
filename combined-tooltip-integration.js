@@ -341,7 +341,7 @@
                 overflow-y: auto;
             ">
                 <!-- Search Console Tab -->
-                <div class="tab-panel active" data-panel="search">
+                <div class="tab-panel" data-panel="search" style="display: none;>
                     <div id="gsc-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
                     </div>
@@ -369,7 +369,7 @@
                 </div>
                 
                 <!-- Analytics Tab -->
-                <div class="tab-panel" data-panel="analytics" style="display: none;">
+                <div class="tab-panel active" data-panel="analytics">
                     <div id="ga4-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
                     </div>
