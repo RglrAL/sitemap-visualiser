@@ -253,6 +253,35 @@
                     margin: 0;
                     padding: 0;
                 ">
+                    
+                    <button class="tab-btn" data-tab="analytics" style="
+                        flex: 1;
+                        padding: 12px 16px;
+                        border: none;
+                        background: none;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        color: #64748b;
+                        border-bottom: 3px solid transparent;
+                        transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+                        position: relative;
+                        font-family: inherit;
+                    ">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                            </svg>
+                            <span>Analytics</span>
+                            <div class="connection-dot" id="ga4-dot" style="
+                                width: 6px; 
+                                height: 6px; 
+                                border-radius: 50%; 
+                                background: #94a3b8;
+                                transition: background 0.2s ease;
+                            "></div>
+                        </div>
+                    </button>
                     <button class="tab-btn active" data-tab="search" style="
                         flex: 1;
                         padding: 12px 16px;
@@ -276,34 +305,6 @@
                             </svg>
                             <span>Search Console</span>
                             <div class="connection-dot" id="gsc-dot" style="
-                                width: 6px; 
-                                height: 6px; 
-                                border-radius: 50%; 
-                                background: #94a3b8;
-                                transition: background 0.2s ease;
-                            "></div>
-                        </div>
-                    </button>
-                    <button class="tab-btn" data-tab="analytics" style="
-                        flex: 1;
-                        padding: 12px 16px;
-                        border: none;
-                        background: none;
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                        cursor: pointer;
-                        color: #64748b;
-                        border-bottom: 3px solid transparent;
-                        transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
-                        position: relative;
-                        font-family: inherit;
-                    ">
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                            </svg>
-                            <span>Analytics</span>
-                            <div class="connection-dot" id="ga4-dot" style="
                                 width: 6px; 
                                 height: 6px; 
                                 border-radius: 50%; 
