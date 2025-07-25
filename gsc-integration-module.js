@@ -1611,23 +1611,64 @@ return gscData;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             `;
             
-            const reportsDropdown = document.getElementById('reportsDropdown');
-            const firstButton = navBar.querySelector('button');
-            
-            if (reportsDropdown) {
-                navBar.insertBefore(gscButton, reportsDropdown);
-                debugLog('GSC button inserted before reports dropdown');
-            } else if (firstButton) {
-                navBar.insertBefore(gscButton, firstButton.nextSibling);
-                debugLog('GSC button inserted after first button');
-            } else {
-                navBar.appendChild(gscButton);
-                debugLog('GSC button appended to navigation bar');
-            }
-        };
+            // Smart positioning logic - AFTER reports dropdown and separator
+const reportsDropdown = document.getElementById('reportsDropdown');
+let insertTarget = null;
+
+if (reportsDropdown) {
+    // Look for separator after reports dropdown
+    let nextElement = reportsDropdown.nextElementSibling;
+    
+    // Check for common separator patterns
+    while (nextElement) {
+        const classList = nextElement.classList;
+        const tagName = nextElement.tagName.toLowerCase();
         
-        checkAndAdd();
+        // Check if this looks like a separator
+        if (tagName === 'hr' || 
+            classList.contains('separator') || 
+            classList.contains('divider') || 
+            classList.contains('nav-separator') ||
+            classList.contains('nav-divider') ||
+            nextElement.textContent.trim() === '|' ||
+            nextElement.style.borderRight ||
+            nextElement.style.borderLeft) {
+            
+            // Found separator, insert after it
+            insertTarget = nextElement.nextElementSibling;
+            break;
+        } else if (nextElement.nodeType === Node.ELEMENT_NODE && 
+                   nextElement.tagName.toLowerCase() === 'button') {
+            // Hit another button, stop looking
+            break;
+        }
+        
+        nextElement = nextElement.nextElementSibling;
     }
+    
+    // If no separator found, just insert after reports dropdown
+    if (!insertTarget) {
+        insertTarget = reportsDropdown.nextElementSibling;
+    }
+    
+    if (insertTarget) {
+        navBar.insertBefore(gscButton, insertTarget);
+        debugLog('GSC button inserted after reports dropdown and separator');
+    } else {
+        navBar.insertBefore(gscButton, reportsDropdown.nextSibling);
+        debugLog('GSC button inserted after reports dropdown');
+    }
+} else {
+    // Fallback positioning if no reports dropdown found
+    const firstButton = navBar.querySelector('button');
+    if (firstButton) {
+        navBar.insertBefore(gscButton, firstButton.nextSibling);
+        debugLog('GSC button inserted after first button (fallback)');
+    } else {
+        navBar.appendChild(gscButton);
+        debugLog('GSC button appended to navigation bar (fallback)');
+    }
+}
 
     // Additional helper functions
     function formatNumber(num) {
