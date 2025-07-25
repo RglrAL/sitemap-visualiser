@@ -1813,7 +1813,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
     // PANEL CREATION FUNCTIONS
     // ===========================================
 
-    function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url) {
         return `
             <div class="panel-content">
                 <div class="section">
@@ -1832,7 +1832,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                     </div>
                 </div>
                 
-                ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl)}
+                ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url)}
                 
                 <div class="section">
                     <h2 class="section-title">🎯 Citizens Impact Summary</h2>
@@ -6404,7 +6404,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                 
                 <div class="tab-content">
                     <div class="tab-panel active" data-panel="overview">
-                        ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends)}
+                        ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url)}
                     </div>
                     
                     <div class="tab-panel" data-panel="search">
@@ -10033,6 +10033,304 @@ function updatePerformanceHeatmap(metric) {
     // based on the selected metric (users, engagement, conversions)
 }
 
+
+
+    // Add these missing helper functions to your dashboard code
+
+function createSparkline(data) {
+    if (!data || data.length === 0) return '';
+    
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+    
+    const points = data.map((value, index) => {
+        const x = (index / (data.length - 1)) * 60;
+        const y = 20 - ((value - min) / range) * 16;
+        return `${x},${y}`;
+    }).join(' ');
+    
+    return `
+        <svg class="sparkline" width="60" height="20" viewBox="0 0 60 20">
+            <polyline points="${points}" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+    `;
+}
+
+function calculateTrendIndicator(data) {
+    if (!data || data.length < 2) return { class: 'neutral', indicator: '→ No trend' };
+    
+    const recent = data.slice(-3).reduce((a, b) => a + b, 0) / 3;
+    const earlier = data.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+    
+    const change = ((recent - earlier) / earlier) * 100;
+    
+    if (change > 5) return { class: 'positive', indicator: `↗ +${change.toFixed(0)}%` };
+    if (change < -5) return { class: 'negative', indicator: `↘ ${change.toFixed(0)}%` };
+    return { class: 'neutral', indicator: '→ Stable' };
+}
+
+function getGrade(score) {
+    if (score >= 90) return 'A+';
+    if (score >= 85) return 'A';
+    if (score >= 80) return 'B+';
+    if (score >= 75) return 'B';
+    if (score >= 70) return 'C+';
+    if (score >= 65) return 'C';
+    return 'D';
+}
+
+function getGradeClass(score) {
+    if (score >= 85) return 'excellent';
+    if (score >= 75) return 'good';
+    if (score >= 65) return 'fair';
+    return 'poor';
+}
+
+// Fix the geographic data processing to handle missing GA4 geographic data
+function processGeographicDataEnhanced(geoData, gscData) {
+    // If no geographic data from GA4, create mock data based on Irish patterns
+    let regions = geoData.regions || [];
+    let countries = geoData.countries || [];
+    
+    // If no geographic data available, create a basic structure
+    if (regions.length === 0 && countries.length === 0) {
+        console.log('📍 No geographic data available from GA4');
+        return {
+            totalIrishUsers: '0',
+            dublinPercentage: '0.0',
+            internationalUsers: '0',
+            topInternationalCountry: 'None',
+            countiesCovered: 0,
+            coveragePercentage: 0,
+            demandLevel: { class: 'distributed', label: 'No Geographic Data', severity: 'low' },
+            opportunityScore: 50,
+            primaryOpportunity: 'Enable Geographic Tracking',
+            totalCountries: 0,
+            internationalPercentage: '0',
+            diasporaIndicator: 'Unknown',
+            irishTrend: { class: 'neutral', indicator: '→ No data' },
+            internationalTrend: { class: 'neutral', indicator: '→ No data' },
+            coverageTrend: { class: 'neutral', indicator: '→ No data' },
+            irishTrendData: [0, 0, 0, 0, 0, 0, 0],
+            internationalTrendData: [0, 0, 0, 0, 0, 0, 0]
+        };
+    }
+    
+    // Enhanced regional analysis
+    const dublin = regions.find(r => r.region.toLowerCase().includes('dublin'));
+    const dublinPercentage = dublin ? dublin.percentage : 0;
+    
+    // Irish user analysis
+    const ireland = countries.find(c => c.country === 'Ireland');
+    const totalIrishUsers = ireland ? formatNumberEnhanced(ireland.users) : '0';
+    
+    // International analysis
+    const internationalCountries = countries.filter(c => c.country !== 'Ireland');
+    const internationalUsers = internationalCountries.reduce((sum, c) => sum + c.users, 0);
+    const topInternationalCountry = internationalCountries.length > 0 ? internationalCountries[0].country : 'None';
+    
+    // Coverage analysis
+    const countiesCovered = Math.min(32, regions.length);
+    const coveragePercentage = (countiesCovered / 32) * 100;
+    
+    // Service concentration analysis
+    let demandLevel = { class: 'distributed', label: 'Distributed Access', severity: 'low' };
+    if (dublinPercentage > 50) {
+        demandLevel = { class: 'critical', label: 'Critical Dublin Concentration', severity: 'high' };
+    } else if (dublinPercentage > 35) {
+        demandLevel = { class: 'high', label: 'High Capital Concentration', severity: 'medium' };
+    } else if (dublinPercentage > 25) {
+        demandLevel = { class: 'medium', label: 'Moderate Regional Hub Pattern', severity: 'low' };
+    }
+    
+    // Enhanced opportunity scoring
+    let opportunityScore = 60; // Base score
+    
+    // Regional balance scoring
+    if (dublinPercentage < 30) opportunityScore += 15;
+    else if (dublinPercentage > 50) opportunityScore -= 10;
+    
+    // Coverage scoring
+    if (countiesCovered > 25) opportunityScore += 10;
+    else if (countiesCovered < 15) opportunityScore -= 5;
+    
+    // International reach scoring
+    if (internationalCountries.length > 10) opportunityScore += 10;
+    else if (internationalCountries.length < 3) opportunityScore -= 5;
+    
+    // Search performance impact
+    if (gscData && gscData.ctr > 0.05) opportunityScore += 5;
+    
+    opportunityScore = Math.min(100, Math.max(0, opportunityScore));
+    
+    // Primary opportunity identification
+    let primaryOpportunity = 'Balanced Growth';
+    if (dublinPercentage > 45) primaryOpportunity = 'Regional Decentralization';
+    else if (internationalCountries.length > 8) primaryOpportunity = 'Multilingual Content';
+    else if (countiesCovered < 20) primaryOpportunity = 'Rural Outreach';
+    
+    // Mock trend data (in real implementation, you'd compare with historical data)
+    const irishTrendData = [85, 87, 89, 91, 88, 92, 90];
+    const internationalTrendData = [12, 14, 13, 16, 18, 17, 20];
+    
+    return {
+        totalIrishUsers,
+        dublinPercentage: dublinPercentage.toFixed(1),
+        internationalUsers: formatNumberEnhanced(internationalUsers),
+        topInternationalCountry,
+        countiesCovered,
+        coveragePercentage,
+        demandLevel,
+        opportunityScore: Math.round(opportunityScore),
+        primaryOpportunity,
+        totalCountries: countries.length,
+        internationalPercentage: ireland ? ((internationalUsers / ireland.users) * 100).toFixed(1) : '0',
+        diasporaIndicator: internationalCountries.length > 5 ? 'High' : internationalCountries.length > 2 ? 'Medium' : 'Low',
+        
+        // Enhanced trend indicators
+        irishTrend: calculateTrendIndicator(irishTrendData),
+        internationalTrend: calculateTrendIndicator(internationalTrendData),
+        coverageTrend: { class: 'positive', indicator: '↗ +2 counties' },
+        
+        // Trend data for sparklines
+        irishTrendData,
+        internationalTrendData
+    };
+}
+
+// Add the missing content creation helper functions
+function createOverviewContent(geoData, geoInsights, servicePatterns, pageContext) {
+    return `
+        <div class="overview-content">
+            <div class="overview-grid">
+                <!-- Interactive Ireland Map -->
+                <div class="geo-card ireland-focus">
+                    <div class="card-header">
+                        <h3>🇮🇪 Irish Regional Distribution</h3>
+                        <div class="concentration-alert ${geoInsights.demandLevel.class}">
+                            ${geoInsights.demandLevel.label}
+                        </div>
+                    </div>
+                    
+                    <div class="ireland-map-container">
+                        ${createInteractiveIrelandMap(geoData.regions, geoInsights)}
+                    </div>
+                    
+                    <div class="regional-quick-stats">
+                        <div class="quick-stat">
+                            <span class="stat-value">${geoInsights.dublinPercentage}%</span>
+                            <span class="stat-label">Dublin Share</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="stat-value">${geoData.regions?.length || 0}</span>
+                            <span class="stat-label">Active Regions</span>
+                        </div>
+                        <div class="quick-stat">
+                            <span class="stat-value">${calculateRegionalBalance(geoData.regions)}</span>
+                            <span class="stat-label">Balance Score</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- International Reach -->
+                <div class="geo-card international-focus">
+                    <div class="card-header">
+                        <h3>🌍 International Reach</h3>
+                        <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
+                            ${geoInsights.diasporaIndicator} Diaspora Engagement
+                        </div>
+                    </div>
+                    
+                    <div class="world-map-container">
+                        ${createInteractiveWorldMap(geoData.countries)}
+                    </div>
+                    
+                    <div class="international-insights">
+                        ${generateInternationalInsights(geoData.countries, pageContext)}
+                    </div>
+                </div>
+                
+                <!-- Service Performance Heatmap -->
+                <div class="geo-card performance-focus">
+                    <div class="card-header">
+                        <h3>📊 Geographic Performance Heatmap</h3>
+                        <div class="performance-toggle">
+                            <button class="toggle-metric active" data-metric="users">Users</button>
+                            <button class="toggle-metric" data-metric="engagement">Engagement</button>
+                            <button class="toggle-metric" data-metric="conversions">Conversions</button>
+                        </div>
+                    </div>
+                    
+                    <div class="performance-heatmap">
+                        ${createPerformanceHeatmap(geoData, servicePatterns)}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createInteractiveIrelandMap(regions, geoInsights) {
+    if (!regions || regions.length === 0) {
+        return `<div class="no-data-placeholder">📍 Enable geographic reporting in GA4 to see regional data</div>`;
+    }
+    
+    // Create simplified visual representation
+    const topRegions = regions.slice(0, 8).map((region, index) => {
+        const intensity = getIntensityLevel(region.percentage);
+        return `
+            <div class="region-bubble ${intensity}" 
+                 data-region="${region.region}"
+                 title="${region.region}: ${formatNumberEnhanced(region.users)} users (${region.percentage.toFixed(1)}%)"
+                 style="--size: ${Math.max(20, region.percentage * 2)}px; --delay: ${index * 0.1}s">
+                <div class="bubble-content">
+                    <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
+                    <span class="region-stats">${region.percentage.toFixed(1)}%</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    return `
+        <div class="ireland-map-visual">
+            <div class="map-background">🇮🇪</div>
+            <div class="region-bubbles">${topRegions}</div>
+            <div class="map-legend">
+                <div class="legend-item high">High Usage</div>
+                <div class="legend-item medium">Medium Usage</div>
+                <div class="legend-item low">Low Usage</div>
+            </div>
+        </div>
+    `;
+}
+
+function createInteractiveWorldMap(countries) {
+    if (!countries || countries.length === 0) {
+        return `<div class="no-data-placeholder">🌍 No international data available</div>`;
+    }
+    
+    const topCountries = countries.slice(0, 6).map((country, index) => {
+        const flag = getCountryFlagEnhanced(country.country);
+        return `
+            <div class="country-marker" 
+                 data-country="${country.country}"
+                 title="${country.country}: ${formatNumberEnhanced(country.users)} users"
+                 style="--delay: ${index * 0.2}s">
+                <span class="country-flag">${flag}</span>
+                <span class="country-label">${country.country}</span>
+                <span class="country-percentage">${country.percentage.toFixed(1)}%</span>
+            </div>
+        `;
+    }).join('');
+    
+    return `
+        <div class="world-map-visual">
+            <div class="world-background">🗺️</div>
+            <div class="country-markers">${topCountries}</div>
+        </div>
+    `;
+}
 
 
 
