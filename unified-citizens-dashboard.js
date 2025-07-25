@@ -1820,7 +1820,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                     </div>
                 </div>
                 
-                ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url)}
+                
                 
                 <div class="section">
                     <h2 class="section-title">🎯 Citizens Impact Summary</h2>
@@ -6378,9 +6378,9 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         <span class="tab-icon">🏛️</span>
                         <span class="tab-label">Government Intelligence</span>
                     </button>
-                    <button class="tab-btn" data-tab="actions">
-                        <span class="tab-icon">⚡</span>
-                        <span class="tab-label">Action Items</span>
+                    <button class="tab-btn" data-tab="geographic">
+                        <span class="tab-icon">🌍</span>
+                        <span class="tab-label">Geographic Intelligence</span>
                     </button>
                 </div>
                 
@@ -6409,8 +6409,10 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         ${createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends)}
                     </div>
                     
-                    <div class="tab-panel" data-panel="actions">
-                        ${createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends)}
+                    <div class="tab-panel" data-panel="geographic">
+                        <div class="panel-content">
+                            ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url)}
+                        </div>
                     </div>
                 </div>
             </div>
