@@ -818,7 +818,7 @@ ga4Log('Enhanced GA4 data processed for:', pagePath, ga4Data);
             
             const gscButton = document.getElementById('gscConnectBtn');
             if (gscButton) {
-                navBar.insertBefore(ga4Button, gscButton.nextSibling);
+                navBar.insertBefore(ga4Button, gscButton);
             } else {
                 navBar.appendChild(ga4Button);
             }
