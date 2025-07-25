@@ -5402,7 +5402,7 @@ function formatDuration(seconds) {
                 }
                 
                 .metric-value {
-                    font-size: .8rem;
+                    font-size: 1.8rem;
                     font-weight: 800;
                     margin-bottom: 8px;
                     line-height: 1;
