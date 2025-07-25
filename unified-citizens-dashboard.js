@@ -1419,21 +1419,7 @@ function createDetailedAnalysisContent(geoData, geoInsights, searchPatterns, pag
                 </div>
             </div>
             
-            <!-- Search Pattern Analysis -->
-            <div class="detailed-section">
-                <h3>🔍 Geographic Search Intelligence</h3>
-                <div class="search-patterns-container">
-                    ${createSearchPatternsAnalysis(searchPatterns, pageContext)}
-                </div>
-            </div>
-            
-            <!-- Service Accessibility Matrix -->
-            <div class="detailed-section">
-                <h3>♿ Service Accessibility Analysis</h3>
-                <div class="accessibility-matrix">
-                    ${createAccessibilityMatrix(geoData, pageContext)}
-                </div>
-            </div>
+           
             
             <!-- Demographic Insights -->
             <div class="detailed-section">
