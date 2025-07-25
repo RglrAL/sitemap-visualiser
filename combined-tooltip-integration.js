@@ -254,7 +254,7 @@
                     padding: 0;
                 ">
                     
-                    <button class="tab-btn" data-tab="analytics" style="
+                    <button class="tab-btn active" data-tab="analytics" style="
                         flex: 1;
                         padding: 12px 16px;
                         border: none;
@@ -282,7 +282,7 @@
                             "></div>
                         </div>
                     </button>
-                    <button class="tab-btn active" data-tab="search" style="
+                    <button class="tab-btn" data-tab="search" style="
                         flex: 1;
                         padding: 12px 16px;
                         border: none;
