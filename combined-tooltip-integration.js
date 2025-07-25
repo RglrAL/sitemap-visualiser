@@ -341,7 +341,7 @@
                 overflow-y: auto;
             ">
                 <!-- Search Console Tab -->
-                <div class="tab-panel" data-panel="search" style="display: none;>
+                <div class="tab-panel" data-panel="search" style="display: none;">
                     <div id="gsc-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
                     </div>
