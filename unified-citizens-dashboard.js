@@ -1030,20 +1030,9 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             <div class="geo-header">
                 <h2 class="section-title">🌍 Geographic Service Intelligence: ${pageContext.serviceType}</h2>
                 <div class="geo-explanation">
-                <p><strong>Intelligent Geographic Analysis:</strong> Understanding where citizens need <em>${pageContext.serviceType}</em> and how they access this information across Ireland and internationally, with actionable optimization insights.</p>
-            </div>
-            
-                <div class="geo-controls">
-                    <div class="view-toggle">
-                        <button class="toggle-btn active" data-view="overview">📊 Overview</button>
-                        <button class="toggle-btn" data-view="detailed">🔍 Detailed Analysis</button>
-                        
-                    </div>
-                    
+                    <p><strong>Intelligent Geographic Analysis:</strong> Understanding where citizens need <em>${pageContext.serviceType}</em> and how they access this information across Ireland and internationally, with actionable optimization insights.</p>
                 </div>
             </div>
-            
-            
             
             <!-- Executive Geographic Summary -->
             <div class="geo-executive-summary">
@@ -1095,22 +1084,73 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 </div>
             </div>
             
-            <!-- Dynamic Content Views -->
-            <div class="geo-content-views">
-                <!-- Overview View -->
-                <div class="geo-view active" data-view-content="overview">
-                    ${createOverviewContent(geoData, geoInsights, servicePatterns, pageContext)}
+            <!-- Main Geographic Analysis (Side by Side) -->
+            <div class="geo-main-analysis">
+                <div class="geo-section-grid">
+                    <!-- Interactive Ireland Map -->
+                    <div class="geo-analysis-card ireland-card">
+                        <div class="card-header">
+                            <h3>🇮🇪 Irish Regional Distribution</h3>
+                            <div class="concentration-alert ${geoInsights.demandLevel.class}">
+                                ${geoInsights.demandLevel.label}
+                            </div>
+                        </div>
+                        
+                        <div class="ireland-content">
+                            <div class="ireland-map-container">
+                                ${createInteractiveIrelandMap(geoData.regions, geoInsights)}
+                            </div>
+                            
+                            <div class="regional-insights">
+                                <h4>🏘️ Top Regions</h4>
+                                ${createTopRegionsTable(geoData.regions)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- International Reach -->
+                    <div class="geo-analysis-card international-card">
+                        <div class="card-header">
+                            <h3>🌍 International Reach</h3>
+                            <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
+                                ${geoInsights.diasporaIndicator} Diaspora Engagement
+                            </div>
+                        </div>
+                        
+                        <div class="international-content">
+                            <div class="world-map-container">
+                                ${createInteractiveWorldMap(geoData.countries)}
+                            </div>
+                            
+                            <div class="international-insights">
+                                <h4>🌎 International Breakdown</h4>
+                                ${generateInternationalInsights(geoData.countries, pageContext)}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <!-- Detailed Analysis View -->
-                <div class="geo-view" data-view-content="detailed">
-                    ${createDetailedAnalysisContent(geoData, geoInsights, searchPatterns, pageContext)}
+            </div>
+            
+            <!-- County-by-County Service Analysis -->
+            <div class="geo-detailed-section">
+                <h3>📍 County-by-County Service Analysis</h3>
+                <div class="county-analysis-container">
+                    ${createCountyAnalysisTable(geoData.regions, geoInsights, pageContext)}
                 </div>
-                
-                <!-- Opportunities View -->
-                <div class="geo-view" data-view-content="opportunities">
-                    ${createOpportunitiesContent(servicePatterns, accessibilityInsights, trendAnalysis, pageContext)}
+            </div>
+            
+            <!-- Demographic Service Patterns -->
+            <div class="geo-detailed-section">
+                <h3>👥 Demographic Service Patterns</h3>
+                <div class="demographic-analysis-container">
+                    ${createDemographicInsights(geoData, geoInsights)}
                 </div>
+            </div>
+            
+            <!-- Geographic Optimization Opportunities -->
+            <div class="geo-opportunities-section">
+                <h3>🚀 Geographic Optimization Opportunities</h3>
+                ${createStreamlinedOpportunities(servicePatterns, accessibilityInsights, pageContext)}
             </div>
         </div>
     `;
@@ -1693,19 +1733,8 @@ function createOpportunityCard(opportunity, type) {
 
 function initializeEnhancedGeographicIntelligence() {
     document.addEventListener('click', function(e) {
-        // View toggle handling
-        if (e.target.classList.contains('toggle-btn')) {
-            const view = e.target.dataset.view;
-            const container = e.target.closest('.enhanced-geographic-intelligence');
-            
-            // Update buttons
-            container.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
-            e.target.classList.add('active');
-            
-            // Update views
-            container.querySelectorAll('.geo-view').forEach(view => view.classList.remove('active'));
-            container.querySelector(`[data-view-content="${view}"]`).classList.add('active');
-        }
+       
+        
         
         // Performance metric toggle
         if (e.target.classList.contains('toggle-metric')) {
@@ -3384,6 +3413,254 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .legend-item.low::before {
     background: #10b981;
 }
+
+
+
+
+
+/* ==================================================
+   SIMPLIFIED GEOGRAPHIC INTELLIGENCE STYLES
+   ================================================== */
+
+/* Main geographic sections below the side-by-side layout */
+.geo-detailed-section {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    margin: 32px 0;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.geo-detailed-section h3 {
+    margin: 0 0 24px 0;
+    color: #0f172a;
+    font-size: 1.3rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.county-analysis-container,
+.demographic-analysis-container {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    min-height: 200px;
+}
+
+/* Enhanced layout for main analysis */
+.geo-main-analysis {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    margin: 32px 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.geo-section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+}
+
+.geo-analysis-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+.geo-analysis-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.ireland-card::before {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.international-card::before {
+    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+}
+
+.ireland-content,
+.international-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+}
+
+.ireland-map-container,
+.world-map-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    flex: 1;
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.regional-insights,
+.international-insights {
+    background: rgba(255,255,255,0.8);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.regional-insights h4,
+.international-insights h4 {
+    margin: 0 0 16px 0;
+    color: #374151;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* County analysis table styles */
+.top-regions-table {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.region-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.region-row:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.region-row.top-region {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    border-color: #16a34a;
+    font-weight: 600;
+}
+
+.region-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.region-name {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.region-percentage {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1.2rem;
+}
+
+.region-users {
+    font-size: 0.85rem;
+    color: #6b7280;
+    text-align: right;
+}
+
+.region-bar {
+    width: 80px;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.region-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* Opportunities section styling */
+.geo-opportunities-section {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 32px 0;
+    border-left: 4px solid #f59e0b;
+    border: 1px solid #fbbf24;
+}
+
+.geo-opportunities-section h3 {
+    margin: 0 0 24px 0;
+    color: #92400e;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+/* Responsive design for the simplified layout */
+@media (max-width: 1024px) {
+    .geo-section-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .geo-analysis-card {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .geo-main-analysis,
+    .geo-detailed-section,
+    .geo-opportunities-section {
+        padding: 20px;
+    }
+    
+    .region-row {
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+    }
+    
+    .region-bar {
+        grid-column: 1 / -1;
+        margin-top: 8px;
+        width: 100%;
+    }
+}
+
+/* Remove the old tab-related styles since we no longer use them */
+.geo-controls,
+.view-toggle,
+.geo-content-views,
+.geo-view {
+    display: none !important;
+}
+
+
+
+
+
 
 /* ==================================================
    QUICK STATS
