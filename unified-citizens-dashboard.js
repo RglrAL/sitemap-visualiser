@@ -2009,7 +2009,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                             benchmarks.engagement.status,
                             benchmarks.engagement.message)}
                         
-                        ${createBenchmarkCard('Average Engagement Time', 
+                        ${createBenchmarkCard('Avg Engagement Time', 
                             formatDuration(ga4Data?.avgSessionDuration || 0), 
                             '52 seconds', 
                             benchmarks.engagementTime.status,
