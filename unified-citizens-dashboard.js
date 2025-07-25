@@ -1029,6 +1029,10 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         <div class="section enhanced-geographic-intelligence">
             <div class="geo-header">
                 <h2 class="section-title">🌍 Geographic Service Intelligence: ${pageContext.serviceType}</h2>
+                <div class="geo-explanation">
+                <p><strong>Intelligent Geographic Analysis:</strong> Understanding where citizens need <em>${pageContext.serviceType}</em> and how they access this information across Ireland and internationally, with actionable optimization insights.</p>
+            </div>
+            
                 <div class="geo-controls">
                     <div class="view-toggle">
                         <button class="toggle-btn active" data-view="overview">📊 Overview</button>
@@ -1039,9 +1043,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 </div>
             </div>
             
-            <div class="geo-explanation">
-                <p><strong>Intelligent Geographic Analysis:</strong> Understanding where citizens need <em>${pageContext.serviceType}</em> and how they access this information across Ireland and internationally, with actionable optimization insights.</p>
-            </div>
+            
             
             <!-- Executive Geographic Summary -->
             <div class="geo-executive-summary">
