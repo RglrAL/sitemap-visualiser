@@ -1048,19 +1048,10 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                         <div class="kpi-spark">${createSparkline(geoInsights.irishTrendData)}</div>
                     </div>
                     
-                    <div class="geo-kpi-card international">
-                        <div class="kpi-icon">🌍</div>
-                        <div class="kpi-content">
-                            <div class="kpi-number">${geoInsights.internationalUsers}</div>
-                            <div class="kpi-label">International Users</div>
-                            <div class="kpi-detail">${geoInsights.topInternationalCountry}</div>
-                            <div class="kpi-trend ${geoInsights.internationalTrend.class}">${geoInsights.internationalTrend.indicator}</div>
-                        </div>
-                        <div class="kpi-spark">${createSparkline(geoInsights.internationalTrendData)}</div>
-                    </div>
+                   
                     
                     <div class="geo-kpi-card coverage">
-                        <div class="kpi-icon">📍</div>
+                        <div class="kpi-icon">🇮🇪</div>
                         <div class="kpi-content">
                             <div class="kpi-number">${geoInsights.countiesCovered}</div>
                             <div class="kpi-label">Counties Reached</div>
@@ -1070,6 +1061,17 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                         <div class="coverage-bar">
                             <div class="coverage-fill" style="width: ${(geoInsights.countiesCovered / 32) * 100}%"></div>
                         </div>
+                    </div>
+
+                     <div class="geo-kpi-card international">
+                        <div class="kpi-icon">🌍</div>
+                        <div class="kpi-content">
+                            <div class="kpi-number">${geoInsights.internationalUsers}</div>
+                            <div class="kpi-label">International Users</div>
+                            <div class="kpi-detail">${geoInsights.topInternationalCountry}</div>
+                            <div class="kpi-trend ${geoInsights.internationalTrend.class}">${geoInsights.internationalTrend.indicator}</div>
+                        </div>
+                        <div class="kpi-spark">${createSparkline(geoInsights.internationalTrendData)}</div>
                     </div>
                     
                     <div class="geo-kpi-card opportunity">
