@@ -11623,192 +11623,344 @@ function formatRegionNameEnhanced(region) {
 }
 
 function getCountryFlagEnhanced(country) {
-    const flags = {
+    if (!country) return '🌍';
+    
+    // Convert to lowercase for consistent matching
+    const countryLower = country.toLowerCase();
+    
+    // Country codes mapping (what GSC typically returns)
+    const countryCodes = {
         // Europe
-        'Ireland': '🇮🇪',
-        'United Kingdom': '🇬🇧',
-        'Germany': '🇩🇪',
-        'France': '🇫🇷',
-        'Spain': '🇪🇸',
-        'Italy': '🇮🇹',
-        'Netherlands': '🇳🇱',
-        'Belgium': '🇧🇪',
-        'Poland': '🇵🇱',
-        'Romania': '🇷🇴',
-        'Portugal': '🇵🇹',
-        'Greece': '🇬🇷',
-        'Austria': '🇦🇹',
-        'Switzerland': '🇨🇭',
-        'Sweden': '🇸🇪',
-        'Norway': '🇳🇴',
-        'Denmark': '🇩🇰',
-        'Finland': '🇫🇮',
-        'Czech Republic': '🇨🇿',
-        'Hungary': '🇭🇺',
-        'Slovakia': '🇸🇰',
-        'Slovenia': '🇸🇮',
-        'Croatia': '🇭🇷',
-        'Bulgaria': '🇧🇬',
-        'Lithuania': '🇱🇹',
-        'Latvia': '🇱🇻',
-        'Estonia': '🇪🇪',
-        'Luxembourg': '🇱🇺',
-        'Malta': '🇲🇹',
-        'Cyprus': '🇨🇾',
-        'Iceland': '🇮🇸',
-        'Ukraine': '🇺🇦',
-        'Serbia': '🇷🇸',
-        'Montenegro': '🇲🇪',
-        'Bosnia and Herzegovina': '🇧🇦',
-        'North Macedonia': '🇲🇰',
-        'Albania': '🇦🇱',
-        'Moldova': '🇲🇩',
-        'Belarus': '🇧🇾',
-        'Russia': '🇷🇺',
-        'Turkey': '🇹🇷',
+        'irl': '🇮🇪', 'ie': '🇮🇪', // Ireland
+        'gbr': '🇬🇧', 'gb': '🇬🇧', 'uk': '🇬🇧', // United Kingdom
+        'deu': '🇩🇪', 'de': '🇩🇪', // Germany
+        'fra': '🇫🇷', 'fr': '🇫🇷', // France
+        'esp': '🇪🇸', 'es': '🇪🇸', // Spain
+        'ita': '🇮🇹', 'it': '🇮🇹', // Italy
+        'nld': '🇳🇱', 'nl': '🇳🇱', // Netherlands
+        'bel': '🇧🇪', 'be': '🇧🇪', // Belgium
+        'pol': '🇵🇱', 'pl': '🇵🇱', // Poland
+        'rou': '🇷🇴', 'ro': '🇷🇴', // Romania
+        'prt': '🇵🇹', 'pt': '🇵🇹', // Portugal
+        'grc': '🇬🇷', 'gr': '🇬🇷', // Greece
+        'aut': '🇦🇹', 'at': '🇦🇹', // Austria
+        'che': '🇨🇭', 'ch': '🇨🇭', // Switzerland
+        'swe': '🇸🇪', 'se': '🇸🇪', // Sweden
+        'nor': '🇳🇴', 'no': '🇳🇴', // Norway
+        'dnk': '🇩🇰', 'dk': '🇩🇰', // Denmark
+        'fin': '🇫🇮', 'fi': '🇫🇮', // Finland
+        'cze': '🇨🇿', 'cz': '🇨🇿', // Czech Republic
+        'hun': '🇭🇺', 'hu': '🇭🇺', // Hungary
+        'svk': '🇸🇰', 'sk': '🇸🇰', // Slovakia
+        'svn': '🇸🇮', 'si': '🇸🇮', // Slovenia
+        'hrv': '🇭🇷', 'hr': '🇭🇷', // Croatia
+        'bgr': '🇧🇬', 'bg': '🇧🇬', // Bulgaria
+        'ltu': '🇱🇹', 'lt': '🇱🇹', // Lithuania
+        'lva': '🇱🇻', 'lv': '🇱🇻', // Latvia
+        'est': '🇪🇪', 'ee': '🇪🇪', // Estonia
+        'lux': '🇱🇺', 'lu': '🇱🇺', // Luxembourg
+        'mlt': '🇲🇹', 'mt': '🇲🇹', // Malta
+        'cyp': '🇨🇾', 'cy': '🇨🇾', // Cyprus
+        'isl': '🇮🇸', 'is': '🇮🇸', // Iceland
+        'ukr': '🇺🇦', 'ua': '🇺🇦', // Ukraine
+        'srb': '🇷🇸', 'rs': '🇷🇸', // Serbia
+        'mne': '🇲🇪', 'me': '🇲🇪', // Montenegro
+        'bih': '🇧🇦', 'ba': '🇧🇦', // Bosnia and Herzegovina
+        'mkd': '🇲🇰', 'mk': '🇲🇰', // North Macedonia
+        'alb': '🇦🇱', 'al': '🇦🇱', // Albania
+        'mda': '🇲🇩', 'md': '🇲🇩', // Moldova
+        'blr': '🇧🇾', 'by': '🇧🇾', // Belarus
+        'rus': '🇷🇺', 'ru': '🇷🇺', // Russia
+        'tur': '🇹🇷', 'tr': '🇹🇷', // Turkey
         
         // North America
-        'United States': '🇺🇸',
-        'Canada': '🇨🇦',
-        'Mexico': '🇲🇽',
+        'usa': '🇺🇸', 'us': '🇺🇸', // United States
+        'can': '🇨🇦', 'ca': '🇨🇦', // Canada
+        'mex': '🇲🇽', 'mx': '🇲🇽', // Mexico
         
         // Asia Pacific
-        'Australia': '🇦🇺',
-        'New Zealand': '🇳🇿',
-        'Japan': '🇯🇵',
-        'South Korea': '🇰🇷',
-        'China': '🇨🇳',
-        'India': '🇮🇳',
-        'Singapore': '🇸🇬',
-        'Hong Kong': '🇭🇰',
-        'Taiwan': '🇹🇼',
-        'Thailand': '🇹🇭',
-        'Malaysia': '🇲🇾',
-        'Indonesia': '🇮🇩',
-        'Philippines': '🇵🇭',
-        'Vietnam': '🇻🇳',
-        'Pakistan': '🇵🇰',
-        'Bangladesh': '🇧🇩',
-        'Sri Lanka': '🇱🇰',
-        'Nepal': '🇳🇵',
-        'Myanmar': '🇲🇲',
-        'Cambodia': '🇰🇭',
-        'Laos': '🇱🇦',
+        'aus': '🇦🇺', 'au': '🇦🇺', // Australia
+        'nzl': '🇳🇿', 'nz': '🇳🇿', // New Zealand
+        'jpn': '🇯🇵', 'jp': '🇯🇵', // Japan
+        'kor': '🇰🇷', 'kr': '🇰🇷', // South Korea
+        'chn': '🇨🇳', 'cn': '🇨🇳', // China
+        'ind': '🇮🇳', 'in': '🇮🇳', // India
+        'sgp': '🇸🇬', 'sg': '🇸🇬', // Singapore
+        'hkg': '🇭🇰', 'hk': '🇭🇰', // Hong Kong
+        'twn': '🇹🇼', 'tw': '🇹🇼', // Taiwan
+        'tha': '🇹🇭', 'th': '🇹🇭', // Thailand
+        'mys': '🇲🇾', 'my': '🇲🇾', // Malaysia
+        'idn': '🇮🇩', 'id': '🇮🇩', // Indonesia
+        'phl': '🇵🇭', 'ph': '🇵🇭', // Philippines
+        'vnm': '🇻🇳', 'vn': '🇻🇳', // Vietnam
+        'pak': '🇵🇰', 'pk': '🇵🇰', // Pakistan
+        'bgd': '🇧🇩', 'bd': '🇧🇩', // Bangladesh
+        'lka': '🇱🇰', 'lk': '🇱🇰', // Sri Lanka
+        'npl': '🇳🇵', 'np': '🇳🇵', // Nepal
+        'mmr': '🇲🇲', 'mm': '🇲🇲', // Myanmar
+        'khm': '🇰🇭', 'kh': '🇰🇭', // Cambodia
+        'lao': '🇱🇦', 'la': '🇱🇦', // Laos
         
         // Middle East
-        'United Arab Emirates': '🇦🇪',
-        'Saudi Arabia': '🇸🇦',
-        'Israel': '🇮🇱',
-        'Qatar': '🇶🇦',
-        'Kuwait': '🇰🇼',
-        'Bahrain': '🇧🇭',
-        'Oman': '🇴🇲',
-        'Jordan': '🇯🇴',
-        'Lebanon': '🇱🇧',
-        'Iran': '🇮🇷',
-        'Iraq': '🇮🇶',
-        'Syria': '🇸🇾',
-        'Yemen': '🇾🇪',
+        'are': '🇦🇪', 'ae': '🇦🇪', // United Arab Emirates
+        'sau': '🇸🇦', 'sa': '🇸🇦', // Saudi Arabia
+        'isr': '🇮🇱', 'il': '🇮🇱', // Israel
+        'qat': '🇶🇦', 'qa': '🇶🇦', // Qatar
+        'kwt': '🇰🇼', 'kw': '🇰🇼', // Kuwait
+        'bhr': '🇧🇭', 'bh': '🇧🇭', // Bahrain
+        'omn': '🇴🇲', 'om': '🇴🇲', // Oman
+        'jor': '🇯🇴', 'jo': '🇯🇴', // Jordan
+        'lbn': '🇱🇧', 'lb': '🇱🇧', // Lebanon
+        'irn': '🇮🇷', 'ir': '🇮🇷', // Iran
+        'irq': '🇮🇶', 'iq': '🇮🇶', // Iraq
+        'syr': '🇸🇾', 'sy': '🇸🇾', // Syria
+        'yem': '🇾🇪', 'ye': '🇾🇪', // Yemen
         
         // Africa
-        'South Africa': '🇿🇦',
-        'Nigeria': '🇳🇬',
-        'Egypt': '🇪🇬',
-        'Kenya': '🇰🇪',
-        'Morocco': '🇲🇦',
-        'Ghana': '🇬🇭',
-        'Ethiopia': '🇪🇹',
-        'Uganda': '🇺🇬',
-        'Tanzania': '🇹🇿',
-        'Algeria': '🇩🇿',
-        'Tunisia': '🇹🇳',
-        'Libya': '🇱🇾',
-        'Sudan': '🇸🇩',
-        'Zimbabwe': '🇿🇼',
-        'Botswana': '🇧🇼',
-        'Namibia': '🇳🇦',
-        'Zambia': '🇿🇲',
-        'Malawi': '🇲🇼',
-        'Rwanda': '🇷🇼',
-        'Senegal': '🇸🇳',
-        'Ivory Coast': '🇨🇮',
-        'Mali': '🇲🇱',
-        'Burkina Faso': '🇧🇫',
-        'Niger': '🇳🇪',
-        'Chad': '🇹🇩',
-        'Cameroon': '🇨🇲',
-        'Central African Republic': '🇨🇫',
-        'Democratic Republic of the Congo': '🇨🇩',
-        'Republic of the Congo': '🇨🇬',
-        'Gabon': '🇬🇦',
-        'Equatorial Guinea': '🇬🇶',
-        'Angola': '🇦🇴',
-        'Mozambique': '🇲🇿',
-        'Madagascar': '🇲🇬',
-        'Mauritius': '🇲🇺',
-        'Seychelles': '🇸🇨',
+        'zaf': '🇿🇦', 'za': '🇿🇦', // South Africa
+        'nga': '🇳🇬', 'ng': '🇳🇬', // Nigeria
+        'egy': '🇪🇬', 'eg': '🇪🇬', // Egypt
+        'ken': '🇰🇪', 'ke': '🇰🇪', // Kenya
+        'mar': '🇲🇦', 'ma': '🇲🇦', // Morocco
+        'gha': '🇬🇭', 'gh': '🇬🇭', // Ghana
+        'eth': '🇪🇹', 'et': '🇪🇹', // Ethiopia
+        'uga': '🇺🇬', 'ug': '🇺🇬', // Uganda
+        'tza': '🇹🇿', 'tz': '🇹🇿', // Tanzania
+        'dza': '🇩🇿', 'dz': '🇩🇿', // Algeria
+        'tun': '🇹🇳', 'tn': '🇹🇳', // Tunisia
+        'lby': '🇱🇾', 'ly': '🇱🇾', // Libya
+        'sdn': '🇸🇩', 'sd': '🇸🇩', // Sudan
+        'zwe': '🇿🇼', 'zw': '🇿🇼', // Zimbabwe
+        'bwa': '🇧🇼', 'bw': '🇧🇼', // Botswana
+        'nam': '🇳🇦', 'na': '🇳🇦', // Namibia
+        'zmb': '🇿🇲', 'zm': '🇿🇲', // Zambia
+        'mwi': '🇲🇼', 'mw': '🇲🇼', // Malawi
+        'rwa': '🇷🇼', 'rw': '🇷🇼', // Rwanda
+        'sen': '🇸🇳', 'sn': '🇸🇳', // Senegal
+        'civ': '🇨🇮', 'ci': '🇨🇮', // Ivory Coast
+        'mli': '🇲🇱', 'ml': '🇲🇱', // Mali
+        'bfa': '🇧🇫', 'bf': '🇧🇫', // Burkina Faso
+        'ner': '🇳🇪', 'ne': '🇳🇪', // Niger
+        'tcd': '🇹🇩', 'td': '🇹🇩', // Chad
+        'cmr': '🇨🇲', 'cm': '🇨🇲', // Cameroon
+        'caf': '🇨🇫', 'cf': '🇨🇫', // Central African Republic
+        'cod': '🇨🇩', 'cd': '🇨🇩', // Democratic Republic of the Congo
+        'cog': '🇨🇬', 'cg': '🇨🇬', // Republic of the Congo
+        'gab': '🇬🇦', 'ga': '🇬🇦', // Gabon
+        'gnq': '🇬🇶', 'gq': '🇬🇶', // Equatorial Guinea
+        'ago': '🇦🇴', 'ao': '🇦🇴', // Angola
+        'moz': '🇲🇿', 'mz': '🇲🇿', // Mozambique
+        'mdg': '🇲🇬', 'mg': '🇲🇬', // Madagascar
+        'mus': '🇲🇺', 'mu': '🇲🇺', // Mauritius
+        'syc': '🇸🇨', 'sc': '🇸🇨', // Seychelles
         
         // South America
-        'Brazil': '🇧🇷',
-        'Argentina': '🇦🇷',
-        'Chile': '🇨🇱',
-        'Colombia': '🇨🇴',
-        'Peru': '🇵🇪',
-        'Venezuela': '🇻🇪',
-        'Ecuador': '🇪🇨',
-        'Bolivia': '🇧🇴',
-        'Paraguay': '🇵🇾',
-        'Uruguay': '🇺🇾',
-        'Guyana': '🇬🇾',
-        'Suriname': '🇸🇷',
-        'French Guiana': '🇬🇫',
+        'bra': '🇧🇷', 'br': '🇧🇷', // Brazil
+        'arg': '🇦🇷', 'ar': '🇦🇷', // Argentina
+        'chl': '🇨🇱', 'cl': '🇨🇱', // Chile
+        'col': '🇨🇴', 'co': '🇨🇴', // Colombia
+        'per': '🇵🇪', 'pe': '🇵🇪', // Peru
+        'ven': '🇻🇪', 've': '🇻🇪', // Venezuela
+        'ecu': '🇪🇨', 'ec': '🇪🇨', // Ecuador
+        'bol': '🇧🇴', 'bo': '🇧🇴', // Bolivia
+        'pry': '🇵🇾', 'py': '🇵🇾', // Paraguay
+        'ury': '🇺🇾', 'uy': '🇺🇾', // Uruguay
+        'guy': '🇬🇾', 'gy': '🇬🇾', // Guyana
+        'sur': '🇸🇷', 'sr': '🇸🇷', // Suriname
+        'guf': '🇬🇫', 'gf': '🇬🇫', // French Guiana
         
-        // Caribbean
-        'Jamaica': '🇯🇲',
-        'Cuba': '🇨🇺',
-        'Dominican Republic': '🇩🇴',
-        'Haiti': '🇭🇹',
-        'Puerto Rico': '🇵🇷',
-        'Trinidad and Tobago': '🇹🇹',
-        'Barbados': '🇧🇧',
-        'Bahamas': '🇧🇸',
-        'Belize': '🇧🇿',
-        'Costa Rica': '🇨🇷',
-        'El Salvador': '🇸🇻',
-        'Guatemala': '🇬🇹',
-        'Honduras': '🇭🇳',
-        'Nicaragua': '🇳🇮',
-        'Panama': '🇵🇦',
-        
-        // Other regions
-        'Fiji': '🇫🇯',
-        'Papua New Guinea': '🇵🇬',
-        'Samoa': '🇼🇸',
-        'Tonga': '🇹🇴',
-        'Vanuatu': '🇻🇺',
-        'Solomon Islands': '🇸🇧',
-        'Palau': '🇵🇼',
-        'Marshall Islands': '🇲🇭',
-        'Micronesia': '🇫🇲',
-        'Kiribati': '🇰🇮',
-        'Tuvalu': '🇹🇻',
-        'Nauru': '🇳🇷',
-        
-        // Special territories and regions
-        'Faroe Islands': '🇫🇴',
-        'Greenland': '🇬🇱',
-        'Gibraltar': '🇬🇮',
-        'Isle of Man': '🇮🇲',
-        'Jersey': '🇯🇪',
-        'Guernsey': '🇬🇬',
-        'Monaco': '🇲🇨',
-        'San Marino': '🇸🇲',
-        'Vatican City': '🇻🇦',
-        'Liechtenstein': '🇱🇮',
-        'Andorra': '🇦🇩'
+        // Caribbean & Central America
+        'jam': '🇯🇲', 'jm': '🇯🇲', // Jamaica
+        'cub': '🇨🇺', 'cu': '🇨🇺', // Cuba
+        'dom': '🇩🇴', 'do': '🇩🇴', // Dominican Republic
+        'hti': '🇭🇹', 'ht': '🇭🇹', // Haiti
+        'pri': '🇵🇷', 'pr': '🇵🇷', // Puerto Rico
+        'tto': '🇹🇹', 'tt': '🇹🇹', // Trinidad and Tobago
+        'brb': '🇧🇧', 'bb': '🇧🇧', // Barbados
+        'bhs': '🇧🇸', 'bs': '🇧🇸', // Bahamas
+        'blz': '🇧🇿', 'bz': '🇧🇿', // Belize
+        'cri': '🇨🇷', 'cr': '🇨🇷', // Costa Rica
+        'slv': '🇸🇻', 'sv': '🇸🇻', // El Salvador
+        'gtm': '🇬🇹', 'gt': '🇬🇹', // Guatemala
+        'hnd': '🇭🇳', 'hn': '🇭🇳', // Honduras
+        'nic': '🇳🇮', 'ni': '🇳🇮', // Nicaragua
+        'pan': '🇵🇦', 'pa': '🇵🇦', // Panama
     };
     
-    return flags[country] || '🌍';
+    // Full country names mapping (your existing one)
+    const countryNames = {
+        // Europe
+        'ireland': '🇮🇪',
+        'united kingdom': '🇬🇧',
+        'germany': '🇩🇪',
+        'france': '🇫🇷',
+        'spain': '🇪🇸',
+        'italy': '🇮🇹',
+        'netherlands': '🇳🇱',
+        'belgium': '🇧🇪',
+        'poland': '🇵🇱',
+        'romania': '🇷🇴',
+        'portugal': '🇵🇹',
+        'greece': '🇬🇷',
+        'austria': '🇦🇹',
+        'switzerland': '🇨🇭',
+        'sweden': '🇸🇪',
+        'norway': '🇳🇴',
+        'denmark': '🇩🇰',
+        'finland': '🇫🇮',
+        'czech republic': '🇨🇿',
+        'hungary': '🇭🇺',
+        'slovakia': '🇸🇰',
+        'slovenia': '🇸🇮',
+        'croatia': '🇭🇷',
+        'bulgaria': '🇧🇬',
+        'lithuania': '🇱🇹',
+        'latvia': '🇱🇻',
+        'estonia': '🇪🇪',
+        'luxembourg': '🇱🇺',
+        'malta': '🇲🇹',
+        'cyprus': '🇨🇾',
+        'iceland': '🇮🇸',
+        'ukraine': '🇺🇦',
+        'serbia': '🇷🇸',
+        'montenegro': '🇲🇪',
+        'bosnia and herzegovina': '🇧🇦',
+        'north macedonia': '🇲🇰',
+        'albania': '🇦🇱',
+        'moldova': '🇲🇩',
+        'belarus': '🇧🇾',
+        'russia': '🇷🇺',
+        'turkey': '🇹🇷',
+        
+        // North America
+        'united states': '🇺🇸',
+        'canada': '🇨🇦',
+        'mexico': '🇲🇽',
+        
+        // Asia Pacific
+        'australia': '🇦🇺',
+        'new zealand': '🇳🇿',
+        'japan': '🇯🇵',
+        'south korea': '🇰🇷',
+        'china': '🇨🇳',
+        'india': '🇮🇳',
+        'singapore': '🇸🇬',
+        'hong kong': '🇭🇰',
+        'taiwan': '🇹🇼',
+        'thailand': '🇹🇭',
+        'malaysia': '🇲🇾',
+        'indonesia': '🇮🇩',
+        'philippines': '🇵🇭',
+        'vietnam': '🇻🇳',
+        'pakistan': '🇵🇰',
+        'bangladesh': '🇧🇩',
+        'sri lanka': '🇱🇰',
+        'nepal': '🇳🇵',
+        'myanmar': '🇲🇲',
+        'cambodia': '🇰🇭',
+        'laos': '🇱🇦',
+        
+        // Middle East
+        'united arab emirates': '🇦🇪',
+        'saudi arabia': '🇸🇦',
+        'israel': '🇮🇱',
+        'qatar': '🇶🇦',
+        'kuwait': '🇰🇼',
+        'bahrain': '🇧🇭',
+        'oman': '🇴🇲',
+        'jordan': '🇯🇴',
+        'lebanon': '🇱🇧',
+        'iran': '🇮🇷',
+        'iraq': '🇮🇶',
+        'syria': '🇸🇾',
+        'yemen': '🇾🇪',
+        
+        // Africa
+        'south africa': '🇿🇦',
+        'nigeria': '🇳🇬',
+        'egypt': '🇪🇬',
+        'kenya': '🇰🇪',
+        'morocco': '🇲🇦',
+        'ghana': '🇬🇭',
+        'ethiopia': '🇪🇹',
+        'uganda': '🇺🇬',
+        'tanzania': '🇹🇿',
+        'algeria': '🇩🇿',
+        'tunisia': '🇹🇳',
+        'libya': '🇱🇾',
+        'sudan': '🇸🇩',
+        'zimbabwe': '🇿🇼',
+        'botswana': '🇧🇼',
+        'namibia': '🇳🇦',
+        'zambia': '🇿🇲',
+        'malawi': '🇲🇼',
+        'rwanda': '🇷🇼',
+        'senegal': '🇸🇳',
+        'ivory coast': '🇨🇮',
+        'mali': '🇲🇱',
+        'burkina faso': '🇧🇫',
+        'niger': '🇳🇪',
+        'chad': '🇹🇩',
+        'cameroon': '🇨🇲',
+        'central african republic': '🇨🇫',
+        'democratic republic of the congo': '🇨🇩',
+        'republic of the congo': '🇨🇬',
+        'gabon': '🇬🇦',
+        'equatorial guinea': '🇬🇶',
+        'angola': '🇦🇴',
+        'mozambique': '🇲🇿',
+        'madagascar': '🇲🇬',
+        'mauritius': '🇲🇺',
+        'seychelles': '🇸🇨',
+        
+        // South America
+        'brazil': '🇧🇷',
+        'argentina': '🇦🇷',
+        'chile': '🇨🇱',
+        'colombia': '🇨🇴',
+        'peru': '🇵🇪',
+        'venezuela': '🇻🇪',
+        'ecuador': '🇪🇨',
+        'bolivia': '🇧🇴',
+        'paraguay': '🇵🇾',
+        'uruguay': '🇺🇾',
+        'guyana': '🇬🇾',
+        'suriname': '🇸🇷',
+        'french guiana': '🇬🇫',
+        
+        // Caribbean & Central America
+        'jamaica': '🇯🇲',
+        'cuba': '🇨🇺',
+        'dominican republic': '🇩🇴',
+        'haiti': '🇭🇹',
+        'puerto rico': '🇵🇷',
+        'trinidad and tobago': '🇹🇹',
+        'barbados': '🇧🇧',
+        'bahamas': '🇧🇸',
+        'belize': '🇧🇿',
+        'costa rica': '🇨🇷',
+        'el salvador': '🇸🇻',
+        'guatemala': '🇬🇹',
+        'honduras': '🇭🇳',
+        'nicaragua': '🇳🇮',
+        'panama': '🇵🇦',
+    };
+    
+    // First try country code lookup
+    if (countryCodes[countryLower]) {
+        return countryCodes[countryLower];
+    }
+    
+    // Then try full name lookup
+    if (countryNames[countryLower]) {
+        return countryNames[countryLower];
+    }
+    
+    // Debug logging
+    console.log(`🌍 Unknown country: "${country}" (searched as: "${countryLower}")`);
+    
+    // Return default globe with the country code/name for debugging
+    return `🌍`;
 }
 
 function getIntensityLevel(percentage) {
