@@ -7763,32 +7763,61 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                 </div>
             </div>
             
-            <!-- Main Analysis Tabs -->
-            <div class="citizen-analysis-tabs">
-                <div class="citizen-tab-nav">
-                    <button class="citizen-tab-btn active" data-citizen-tab="journey">
-                        <span class="tab-icon">🛤️</span>
-                        <span>Citizen Journey Stages</span>
-                    </button>
-                    <button class="citizen-tab-btn" data-citizen-tab="opportunities">
-                        <span class="tab-icon">🎯</span>
-                        <span>Improvement Opportunities</span>
-                        ${analysis.summary.opportunities > 0 ? '<span class="tab-badge">' + analysis.summary.opportunities + '</span>' : ''}
-                    </button>
+            <div class="geo-unified-content">
+    <!-- KPI Cards stay the same -->
+    <div class="geo-executive-summary">
+        <!-- Keep existing KPI cards -->
+    </div>
+    
+    <!-- Main Geographic Analysis - Single Flow -->
+    <div class="geo-main-analysis">
+        <div class="geo-section-grid">
+            <!-- Ireland Analysis -->
+            <div class="geo-analysis-card ireland-card">
+                <div class="card-header">
+                    <h3>🇮🇪 Irish Regional Intelligence</h3>
+                    <div class="concentration-alert ${geoInsights.demandLevel.class}">
+                        ${geoInsights.demandLevel.label}
+                    </div>
                 </div>
                 
-                <div class="citizen-tab-content">
-                    <!-- Citizen Journey Panel -->
-                    <div class="citizen-tab-panel active" data-citizen-panel="journey">
-                        ${createCitizenJourneyPanel(analysis.intentAnalysis, analysis.summary.byIntent)}
-                    </div>
+                <div class="ireland-content">
+                    ${createInteractiveIrelandMap(geoData.regions, geoInsights)}
                     
-                    <!-- Opportunities Panel -->
-                    <div class="citizen-tab-panel" data-citizen-panel="opportunities">
-                        ${createCitizenOpportunitiesPanel(analysis.citizenOpportunities)}
+                    <div class="regional-insights">
+                        <h4>📊 Regional Breakdown</h4>
+                        ${createTopRegionsTable(geoData.regions)}
                     </div>
                 </div>
             </div>
+            
+            <!-- International Analysis -->
+            <div class="geo-analysis-card international-card">
+                <div class="card-header">
+                    <h3>🌍 International Reach</h3>
+                    <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
+                        ${geoInsights.diasporaIndicator} Diaspora Engagement
+                    </div>
+                </div>
+                
+                <div class="international-content">
+                    ${createInteractiveWorldMap(geoData.countries)}
+                    
+                    <div class="international-insights">
+                        <h4>🌐 International Patterns</h4>
+                        ${generateInternationalInsights(geoData.countries, pageContext)}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Opportunities Section -->
+        <div class="geo-opportunities-section">
+            <h3>🎯 Geographic Optimization Opportunities</h3>
+            ${createStreamlinedOpportunities(servicePatterns, accessibilityInsights, pageContext)}
+        </div>
+    </div>
+</div>
         </div>
     `;
 }
@@ -8716,6 +8745,255 @@ function createCitizenQueryIntelligenceStyles() {
                     justify-content: flex-start;
                 }
             }
+
+
+
+
+            /* Geographic Intelligence Enhanced Styles */
+.geo-unified-content {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.geo-main-analysis {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+.geo-section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 40px;
+}
+
+.geo-analysis-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+}
+
+.geo-analysis-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.ireland-card::before {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.international-card::before {
+    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Enhanced Maps */
+.ireland-content, .international-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
+}
+
+.ireland-map-container, .world-map-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    flex: 1;
+    min-height: 250px;
+}
+
+/* Regional Insights Tables */
+.regional-insights, .international-insights {
+    background: rgba(255,255,255,0.8);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.regional-insights h4, .international-insights h4 {
+    margin: 0 0 16px 0;
+    color: #374151;
+    font-size: 1.1rem;
+}
+
+/* Opportunities Section */
+.geo-opportunities-section {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-radius: 16px;
+    padding: 32px;
+    border-left: 4px solid #f59e0b;
+}
+
+.geo-opportunities-section h3 {
+    margin: 0 0 24px 0;
+    color: #92400e;
+    font-size: 1.4rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .geo-section-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .geo-analysis-card {
+        min-height: auto;
+    }
+}
+
+/* Enhanced Region Table */
+.top-regions-table {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.region-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.region-row:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.region-row.top-region {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    border-color: #16a34a;
+    font-weight: 600;
+}
+
+.region-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.region-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.region-percentage {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1.1rem;
+}
+
+.region-users {
+    font-size: 0.85rem;
+    color: #6b7280;
+    text-align: right;
+}
+
+/* Opportunities Grid */
+.opportunities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.opportunity-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    gap: 16px;
+    transition: all 0.2s ease;
+}
+
+.opportunity-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.opp-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.opp-content h4 {
+    margin: 0 0 16px 0;
+    color: #374151;
+}
+
+.opp-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #6b7280;
+}
+
+.opp-list li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.impact-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.impact-stat {
+    text-align: center;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #059669;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+
+
         </style>
     `;
 }
@@ -10306,7 +10584,77 @@ function createInteractiveWorldMap(countries) {
 
     
 
+function createTopRegionsTable(regions) {
+    if (!regions || regions.length === 0) {
+        return '<div class="no-data">📍 No regional data available</div>';
+    }
+    
+    return `
+        <div class="top-regions-table">
+            ${regions.slice(0, 6).map((region, index) => `
+                <div class="region-row ${index === 0 ? 'top-region' : ''}">
+                    <div class="region-info">
+                        <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
+                        <span class="region-percentage">${region.percentage.toFixed(1)}%</span>
+                    </div>
+                    <div class="region-bar">
+                        <div class="region-fill" style="width: ${(region.percentage / regions[0].percentage) * 100}%; background: ${getRegionColor(region.percentage)}"></div>
+                    </div>
+                    <div class="region-users">${formatNumberEnhanced(region.users)} users</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
 
+function createStreamlinedOpportunities(servicePatterns, accessibilityInsights, pageContext) {
+    return `
+        <div class="streamlined-opportunities">
+            <div class="opportunities-grid">
+                <div class="opportunity-card quick-action">
+                    <div class="opp-icon">⚡</div>
+                    <div class="opp-content">
+                        <h4>Quick Wins (1-2 weeks)</h4>
+                        <ul class="opp-list">
+                            <li>Optimize content for top-performing regions</li>
+                            <li>Add regional service contact information</li>
+                            <li>Improve mobile experience for rural users</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="opportunity-card strategic-action">
+                    <div class="opp-icon">🎯</div>
+                    <div class="opp-content">
+                        <h4>Strategic Opportunities (1-3 months)</h4>
+                        <ul class="opp-list">
+                            <li>Develop region-specific landing pages</li>
+                            <li>Create multilingual content for diaspora</li>
+                            <li>Partner with local service centers</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="opportunity-card impact-metrics">
+                    <div class="opp-icon">📊</div>
+                    <div class="opp-content">
+                        <h4>Expected Impact</h4>
+                        <div class="impact-stats">
+                            <div class="impact-stat">
+                                <span class="stat-number">+25%</span>
+                                <span class="stat-label">Regional Engagement</span>
+                            </div>
+                            <div class="impact-stat">
+                                <span class="stat-number">+15%</span>
+                                <span class="stat-label">International Reach</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 
 
