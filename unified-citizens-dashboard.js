@@ -3594,7 +3594,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: block;
     font-size: 1.5rem;
     font-weight: 800;
-    color: #f59e0b;
+    color: #000000;
     margin-bottom: 4px;
 }
 
