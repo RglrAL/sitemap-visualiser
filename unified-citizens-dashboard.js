@@ -1332,9 +1332,13 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
                 ${gscGeoData.topCountries.map(country => `
                     <div class="search-pattern-country">
                         <div class="country-header">
-                            <span class="country-flag">${getCountryFlagEnhanced(country.country)}</span>
-                            <span class="country-name">${country.country}</span>
-                            <span class="country-total">${formatNumber(country.clicks)} searches</span>
+                            <div class="country-flag-container">
+                                <span class="country-flag-large">${getCountryFlagEnhanced(country.country)}</span>
+                            </div>
+                            <div class="country-info">
+                                <span class="country-name">${country.country}</span>
+                                <span class="country-total">${formatNumber(country.clicks)} searches</span>
+                            </div>
                         </div>
                         
                         <div class="country-queries">
@@ -1343,7 +1347,10 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
                                     <div class="query-rank">#${index + 1}</div>
                                     <div class="query-content">
                                         <div class="query-text">"${escapeHtml(query.query)}"</div>
-                                        <div class="query-stats">${formatNumber(query.clicks)} clicks</div>
+                                        <div class="query-stats">
+                                            <span class="clicks-stat">${formatNumber(query.clicks)} clicks</span>
+                                            <span class="flag-mini">${getCountryFlagEnhanced(country.country)}</span>
+                                        </div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -1353,7 +1360,7 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
             </div>
             
             <div class="search-insights">
-                <h4>🧠 Key Insights</h4>
+                <h4>🧠 Key Geographic Insights</h4>
                 <div class="insights-grid">
                     ${generateSearchPatternInsights(gscGeoData)}
                 </div>
@@ -4211,50 +4218,119 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .search-patterns-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
 }
 
 .search-pattern-country {
-    background: #f8fafc;
-    border-radius: 12px;
+    background: white;
+    border-radius: 16px;
     border: 1px solid #e2e8f0;
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .search-pattern-country:hover {
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-color: #3b82f6;
 }
 
 .country-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    background: white;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-bottom: 1px solid #e2e8f0;
 }
+
+
+/* Mobile responsiveness for flags */
+@media (max-width: 768px) {
+    .country-header {
+        padding: 16px 20px;
+        gap: 12px;
+    }
+    
+    .country-flag-container {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .country-flag-large {
+        font-size: 1.5rem;
+    }
+    
+    .search-patterns-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .query-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    
+    .query-stats {
+        align-self: flex-end;
+    }
+}
+
+
+
+
+
+
 
 .country-flag {
     font-size: 1.3rem;
 }
 
-.country-name {
+.country-flag-container {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 2px solid #e2e8f0;
+}
+
+.country-flag-large {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.country-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+
+.country-name {
     font-weight: 700;
     color: #1f2937;
-    font-size: 1rem;
+    font-size: 1.1rem;
 }
+
 
 .country-total {
     font-size: 0.85rem;
     color: #0ea5e9;
     font-weight: 600;
-    background: #f0f9ff;
-    padding: 4px 8px;
+    background: rgba(14, 165, 233, 0.1);
+    padding: 4px 10px;
     border-radius: 12px;
+    align-self: flex-start;
 }
 
 .country-queries {
@@ -4268,9 +4344,18 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 0;
+    padding: 14px 0;
     border-bottom: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
 }
+
+.query-pattern-item:hover {
+    background: rgba(59, 130, 246, 0.02);
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 6px;
+}
+
 
 .query-pattern-item:last-child {
     border-bottom: none;
@@ -4280,14 +4365,15 @@ function createPerformanceMatrix(gscData, ga4Data) {
     font-size: 0.8rem;
     font-weight: 700;
     color: #6b7280;
-    background: #f1f5f9;
-    width: 24px;
-    height: 24px;
-    border-radius: 12px;
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border: 1px solid #e2e8f0;
 }
 
 .query-content {
@@ -4303,24 +4389,39 @@ function createPerformanceMatrix(gscData, ga4Data) {
     color: #374151;
     font-weight: 500;
     flex: 1;
+    line-height: 1.3;
 }
 
-.query-stats {
-    font-size: 0.8rem;
+.clicks-stat {
     color: #059669;
     font-weight: 600;
 }
 
+.flag-mini {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.query-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+}
+
+
+
+/* Enhanced insights styling */
 .search-insights {
-    background: #f8fafc;
-    padding: 20px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 24px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border-left: 4px solid #0ea5e9;
 }
 
 .search-insights h4 {
     margin: 0 0 16px 0;
-    color: #1f2937;
+    color: #0c4a6e;
     font-size: 1.1rem;
     font-weight: 700;
 }
@@ -4335,9 +4436,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: flex-start;
     gap: 12px;
     padding: 16px;
-    background: white;
+    background: rgba(255, 255, 255, 0.8);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(14, 165, 233, 0.1);
 }
 
 .insight-icon {
@@ -4352,14 +4453,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .insight-title {
     font-weight: 600;
-    color: #1f2937;
+    color: #0f172a;
     font-size: 0.95rem;
     margin-bottom: 4px;
 }
 
 .insight-description {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: #475569;
     line-height: 1.4;
 }
 
@@ -11523,23 +11624,190 @@ function formatRegionNameEnhanced(region) {
 
 function getCountryFlagEnhanced(country) {
     const flags = {
+        // Europe
         'Ireland': '🇮🇪',
         'United Kingdom': '🇬🇧',
-        'United States': '🇺🇸',
-        'Poland': '🇵🇱',
         'Germany': '🇩🇪',
         'France': '🇫🇷',
-        'Australia': '🇦🇺',
-        'Canada': '🇨🇦',
         'Spain': '🇪🇸',
         'Italy': '🇮🇹',
         'Netherlands': '🇳🇱',
         'Belgium': '🇧🇪',
+        'Poland': '🇵🇱',
         'Romania': '🇷🇴',
-        'Brazil': '🇧🇷',
+        'Portugal': '🇵🇹',
+        'Greece': '🇬🇷',
+        'Austria': '🇦🇹',
+        'Switzerland': '🇨🇭',
+        'Sweden': '🇸🇪',
+        'Norway': '🇳🇴',
+        'Denmark': '🇩🇰',
+        'Finland': '🇫🇮',
+        'Czech Republic': '🇨🇿',
+        'Hungary': '🇭🇺',
+        'Slovakia': '🇸🇰',
+        'Slovenia': '🇸🇮',
+        'Croatia': '🇭🇷',
+        'Bulgaria': '🇧🇬',
+        'Lithuania': '🇱🇹',
+        'Latvia': '🇱🇻',
+        'Estonia': '🇪🇪',
+        'Luxembourg': '🇱🇺',
+        'Malta': '🇲🇹',
+        'Cyprus': '🇨🇾',
+        'Iceland': '🇮🇸',
+        'Ukraine': '🇺🇦',
+        'Serbia': '🇷🇸',
+        'Montenegro': '🇲🇪',
+        'Bosnia and Herzegovina': '🇧🇦',
+        'North Macedonia': '🇲🇰',
+        'Albania': '🇦🇱',
+        'Moldova': '🇲🇩',
+        'Belarus': '🇧🇾',
+        'Russia': '🇷🇺',
+        'Turkey': '🇹🇷',
+        
+        // North America
+        'United States': '🇺🇸',
+        'Canada': '🇨🇦',
+        'Mexico': '🇲🇽',
+        
+        // Asia Pacific
+        'Australia': '🇦🇺',
+        'New Zealand': '🇳🇿',
+        'Japan': '🇯🇵',
+        'South Korea': '🇰🇷',
+        'China': '🇨🇳',
         'India': '🇮🇳',
-        'China': '🇨🇳'
+        'Singapore': '🇸🇬',
+        'Hong Kong': '🇭🇰',
+        'Taiwan': '🇹🇼',
+        'Thailand': '🇹🇭',
+        'Malaysia': '🇲🇾',
+        'Indonesia': '🇮🇩',
+        'Philippines': '🇵🇭',
+        'Vietnam': '🇻🇳',
+        'Pakistan': '🇵🇰',
+        'Bangladesh': '🇧🇩',
+        'Sri Lanka': '🇱🇰',
+        'Nepal': '🇳🇵',
+        'Myanmar': '🇲🇲',
+        'Cambodia': '🇰🇭',
+        'Laos': '🇱🇦',
+        
+        // Middle East
+        'United Arab Emirates': '🇦🇪',
+        'Saudi Arabia': '🇸🇦',
+        'Israel': '🇮🇱',
+        'Qatar': '🇶🇦',
+        'Kuwait': '🇰🇼',
+        'Bahrain': '🇧🇭',
+        'Oman': '🇴🇲',
+        'Jordan': '🇯🇴',
+        'Lebanon': '🇱🇧',
+        'Iran': '🇮🇷',
+        'Iraq': '🇮🇶',
+        'Syria': '🇸🇾',
+        'Yemen': '🇾🇪',
+        
+        // Africa
+        'South Africa': '🇿🇦',
+        'Nigeria': '🇳🇬',
+        'Egypt': '🇪🇬',
+        'Kenya': '🇰🇪',
+        'Morocco': '🇲🇦',
+        'Ghana': '🇬🇭',
+        'Ethiopia': '🇪🇹',
+        'Uganda': '🇺🇬',
+        'Tanzania': '🇹🇿',
+        'Algeria': '🇩🇿',
+        'Tunisia': '🇹🇳',
+        'Libya': '🇱🇾',
+        'Sudan': '🇸🇩',
+        'Zimbabwe': '🇿🇼',
+        'Botswana': '🇧🇼',
+        'Namibia': '🇳🇦',
+        'Zambia': '🇿🇲',
+        'Malawi': '🇲🇼',
+        'Rwanda': '🇷🇼',
+        'Senegal': '🇸🇳',
+        'Ivory Coast': '🇨🇮',
+        'Mali': '🇲🇱',
+        'Burkina Faso': '🇧🇫',
+        'Niger': '🇳🇪',
+        'Chad': '🇹🇩',
+        'Cameroon': '🇨🇲',
+        'Central African Republic': '🇨🇫',
+        'Democratic Republic of the Congo': '🇨🇩',
+        'Republic of the Congo': '🇨🇬',
+        'Gabon': '🇬🇦',
+        'Equatorial Guinea': '🇬🇶',
+        'Angola': '🇦🇴',
+        'Mozambique': '🇲🇿',
+        'Madagascar': '🇲🇬',
+        'Mauritius': '🇲🇺',
+        'Seychelles': '🇸🇨',
+        
+        // South America
+        'Brazil': '🇧🇷',
+        'Argentina': '🇦🇷',
+        'Chile': '🇨🇱',
+        'Colombia': '🇨🇴',
+        'Peru': '🇵🇪',
+        'Venezuela': '🇻🇪',
+        'Ecuador': '🇪🇨',
+        'Bolivia': '🇧🇴',
+        'Paraguay': '🇵🇾',
+        'Uruguay': '🇺🇾',
+        'Guyana': '🇬🇾',
+        'Suriname': '🇸🇷',
+        'French Guiana': '🇬🇫',
+        
+        // Caribbean
+        'Jamaica': '🇯🇲',
+        'Cuba': '🇨🇺',
+        'Dominican Republic': '🇩🇴',
+        'Haiti': '🇭🇹',
+        'Puerto Rico': '🇵🇷',
+        'Trinidad and Tobago': '🇹🇹',
+        'Barbados': '🇧🇧',
+        'Bahamas': '🇧🇸',
+        'Belize': '🇧🇿',
+        'Costa Rica': '🇨🇷',
+        'El Salvador': '🇸🇻',
+        'Guatemala': '🇬🇹',
+        'Honduras': '🇭🇳',
+        'Nicaragua': '🇳🇮',
+        'Panama': '🇵🇦',
+        
+        // Other regions
+        'Fiji': '🇫🇯',
+        'Papua New Guinea': '🇵🇬',
+        'Samoa': '🇼🇸',
+        'Tonga': '🇹🇴',
+        'Vanuatu': '🇻🇺',
+        'Solomon Islands': '🇸🇧',
+        'Palau': '🇵🇼',
+        'Marshall Islands': '🇲🇭',
+        'Micronesia': '🇫🇲',
+        'Kiribati': '🇰🇮',
+        'Tuvalu': '🇹🇻',
+        'Nauru': '🇳🇷',
+        
+        // Special territories and regions
+        'Faroe Islands': '🇫🇴',
+        'Greenland': '🇬🇱',
+        'Gibraltar': '🇬🇮',
+        'Isle of Man': '🇮🇲',
+        'Jersey': '🇯🇪',
+        'Guernsey': '🇬🇬',
+        'Monaco': '🇲🇨',
+        'San Marino': '🇸🇲',
+        'Vatican City': '🇻🇦',
+        'Liechtenstein': '🇱🇮',
+        'Andorra': '🇦🇩'
     };
+    
     return flags[country] || '🌍';
 }
 
