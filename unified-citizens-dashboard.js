@@ -1128,6 +1128,16 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 </div>
             </div>
             
+            <!-- Geographic Search Patterns Section -->
+            <div class="geo-clean-card search-patterns-card">
+                <div class="clean-card-header">
+                    <h3>🔍 Geographic Search Patterns</h3>
+                </div>
+                <div class="clean-card-content">
+                    ${createCleanSearchPatterns(gscData)}
+                </div>
+            </div>
+            
             <!-- Clean Opportunities Section -->
             <div class="geo-clean-card opportunities-card">
                 <div class="clean-card-header">
@@ -1263,7 +1273,6 @@ function createCleanCountyAnalysis(regions, geoInsights) {
         </div>
     `;
 }
-
 function createCleanDemographicAnalysis(geoData, geoInsights) {
     return `
         <div class="clean-demographic-analysis">
@@ -1298,6 +1307,126 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
         </div>
     `;
 }
+
+
+    function createCleanSearchPatterns(gscData) {
+    const gscGeoData = gscData?.geographic || {};
+    
+    if (!gscGeoData.topCountries || gscGeoData.topCountries.length === 0) {
+        return `
+            <div class="clean-empty-state">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-text">Geographic search patterns require enhanced GSC integration</div>
+                <div class="empty-detail">Connect advanced Search Console data to see what citizens search for by country</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="clean-search-patterns">
+            <div class="patterns-summary">
+                <p><strong>Search Intent by Geography:</strong> Understanding how citizens from different countries phrase their searches for your services.</p>
+            </div>
+            
+            <div class="search-patterns-grid">
+                ${gscGeoData.topCountries.map(country => `
+                    <div class="search-pattern-country">
+                        <div class="country-header">
+                            <span class="country-flag">${getCountryFlagEnhanced(country.country)}</span>
+                            <span class="country-name">${country.country}</span>
+                            <span class="country-total">${formatNumber(country.clicks)} searches</span>
+                        </div>
+                        
+                        <div class="country-queries">
+                            ${country.queries.slice(0, 4).map((query, index) => `
+                                <div class="query-pattern-item">
+                                    <div class="query-rank">#${index + 1}</div>
+                                    <div class="query-content">
+                                        <div class="query-text">"${escapeHtml(query.query)}"</div>
+                                        <div class="query-stats">${formatNumber(query.clicks)} clicks</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="search-insights">
+                <h4>🧠 Key Insights</h4>
+                <div class="insights-grid">
+                    ${generateSearchPatternInsights(gscGeoData)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateSearchPatternInsights(gscGeoData) {
+    const insights = [];
+    
+    // Analyze patterns across countries
+    if (gscGeoData.topCountries && gscGeoData.topCountries.length > 1) {
+        const totalCountries = gscGeoData.topCountries.length;
+        const irishQueries = gscGeoData.topCountries.find(c => c.country === 'Ireland');
+        const internationalQueries = gscGeoData.topCountries.filter(c => c.country !== 'Ireland');
+        
+        if (irishQueries && internationalQueries.length > 0) {
+            insights.push({
+                icon: '🇮🇪',
+                title: 'Irish vs International Queries',
+                description: `Irish citizens use ${irishQueries.queries?.length || 0} different search terms, while international users show ${internationalQueries.reduce((sum, c) => sum + (c.queries?.length || 0), 0)} variations across ${internationalQueries.length} countries.`
+            });
+        }
+        
+        // Find common themes
+        const allQueries = gscGeoData.topCountries.flatMap(c => c.queries || []);
+        const uniqueTerms = new Set(allQueries.map(q => q.query.toLowerCase()));
+        
+        if (uniqueTerms.size < allQueries.length * 0.7) {
+            insights.push({
+                icon: '🔄',
+                title: 'Similar Search Intent',
+                description: `Citizens across different countries use similar search terms, indicating consistent service needs globally.`
+            });
+        }
+        
+        // Check for urgency patterns
+        const urgentQueries = allQueries.filter(q => 
+            q.query.toLowerCase().includes('urgent') || 
+            q.query.toLowerCase().includes('emergency') ||
+            q.query.toLowerCase().includes('today')
+        );
+        
+        if (urgentQueries.length > 0) {
+            insights.push({
+                icon: '🚨',
+                title: 'Urgent Service Needs',
+                description: `${urgentQueries.length} search queries indicate urgent service needs across multiple countries.`
+            });
+        }
+    }
+    
+    // Default insight if no specific patterns found
+    if (insights.length === 0) {
+        insights.push({
+            icon: '📊',
+            title: 'Geographic Search Analysis',
+            description: 'Enable enhanced Search Console reporting to get detailed insights into how citizens from different countries search for your services.'
+        });
+    }
+    
+    return insights.map(insight => `
+        <div class="insight-item">
+            <div class="insight-icon">${insight.icon}</div>
+            <div class="insight-content">
+                <div class="insight-title">${insight.title}</div>
+                <div class="insight-description">${insight.description}</div>
+            </div>
+        </div>
+    `).join('');
+}
+    
 
 function createCleanOpportunities(servicePatterns, accessibilityInsights, pageContext) {
     return `
@@ -2079,10 +2208,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                     </div>
                 ` : ''}
                 
-                <div class="section">
-                    <h2 class="section-title">🌍 Geographic Query Breakdown</h2>
-                    ${createGeographicQueryBreakdown(gscData)}
-                </div>
+                
             </div>
         `;
     }
@@ -3613,6 +3739,747 @@ function createPerformanceMatrix(gscData, ga4Data) {
     }
     
     .opportunities-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .enhanced-geographic-intelligence {
+        padding: 20px;
+    }
+    
+    .regional-stats,
+    .international-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .county-performance-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .impact-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .clean-card-header,
+    .clean-card-content {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+
+
+
+/* ==================================================
+   CLEAN & SLEEK GEOGRAPHIC INTELLIGENCE STYLES
+   ================================================== */
+
+/* Main container - keep minimal styling */
+.enhanced-geographic-intelligence {
+    background: #fafbfc;
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 32px;
+    border: 1px solid #e2e8f0;
+}
+
+.geo-header {
+    margin-bottom: 32px;
+}
+
+.geo-explanation {
+    background: rgba(59, 130, 246, 0.05);
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-top: 16px;
+    border-left: 3px solid #3b82f6;
+}
+
+.geo-explanation p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* KPI Cards - keep existing styling since they look good */
+.geo-executive-summary {
+    margin-bottom: 40px;
+}
+
+/* Regional Grid - Side by side clean layout */
+.geo-regional-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+/* Analysis Grid - For county and demographic sections */
+.geo-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+/* Clean card styling */
+.geo-clean-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.geo-clean-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.opportunities-card,
+.search-patterns-card {
+    grid-column: 1 / -1; /* Full width for opportunities and search patterns */
+}
+
+/* Clean card headers */
+.clean-card-header {
+    padding: 24px 28px 0 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.clean-card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-badge.high {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-badge.medium {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.status-badge.distributed {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.status-badge.high, .status-badge.medium, .status-badge.low {
+    background: #f0f9ff;
+    color: #0ea5e9;
+}
+
+/* Clean card content */
+.clean-card-content {
+    padding: 0 28px 28px 28px;
+}
+
+/* Empty states */
+.clean-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+
+.empty-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.empty-detail {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Regional overview styling */
+.clean-regional-overview,
+.clean-international-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.regional-stats,
+.international-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Regional breakdown */
+.regional-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.region-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.region-item:last-child {
+    border-bottom: none;
+}
+
+.region-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
+}
+
+.region-name {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.region-percentage {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1rem;
+}
+
+.region-bar {
+    width: 80px;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.region-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}
+
+/* International breakdown */
+.international-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.country-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.country-item:last-child {
+    border-bottom: none;
+}
+
+.country-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.country-flag {
+    font-size: 1.2rem;
+}
+
+.country-name {
+    flex: 1;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.country-percentage {
+    font-weight: 700;
+    color: #3b82f6;
+    font-size: 0.95rem;
+}
+
+/* County analysis styling */
+.clean-county-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.analysis-summary {
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 3px solid #6366f1;
+}
+
+.analysis-summary p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.county-performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.county-performance-item {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.county-performance-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.county-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.county-metrics {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #059669;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.county-share {
+    font-size: 0.85rem;
+    color: #6366f1;
+    font-weight: 600;
+}
+
+/* Demographic analysis styling */
+.clean-demographic-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.demographic-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.demographic-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.demographic-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.demo-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+.demo-content {
+    flex: 1;
+}
+
+.demo-title {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.demo-value {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+}
+
+.demo-detail {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Search patterns styling */
+.clean-search-patterns {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.patterns-summary {
+    padding: 16px 20px;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border-left: 3px solid #0ea5e9;
+}
+
+.patterns-summary p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.search-patterns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.search-pattern-country {
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.search-pattern-country:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.country-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.country-flag {
+    font-size: 1.3rem;
+}
+
+.country-name {
+    flex: 1;
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1rem;
+}
+
+.country-total {
+    font-size: 0.85rem;
+    color: #0ea5e9;
+    font-weight: 600;
+    background: #f0f9ff;
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.country-queries {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.query-pattern-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.query-pattern-item:last-child {
+    border-bottom: none;
+}
+
+.query-rank {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    background: #f1f5f9;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.query-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.query-text {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+    flex: 1;
+}
+
+.query-stats {
+    font-size: 0.8rem;
+    color: #059669;
+    font-weight: 600;
+}
+
+.search-insights {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.search-insights h4 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.insights-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.insight-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.insight-content {
+    flex: 1;
+}
+
+.insight-title {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.insight-description {
+    font-size: 0.85rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* Opportunities styling */
+.clean-opportunities {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.opportunities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.opportunity-item {
+    padding: 24px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.opportunity-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.opportunity-item.quick {
+    border-left: 4px solid #10b981;
+}
+
+.opportunity-item.strategic {
+    border-left: 4px solid #3b82f6;
+}
+
+.opportunity-item.impact {
+    border-left: 4px solid #f59e0b;
+}
+
+.opp-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.opp-icon {
+    font-size: 1.4rem;
+}
+
+.opp-title {
+    font-weight: 700;
+    color: #1f2937;
+    flex: 1;
+}
+
+.opp-timeframe {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.opp-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #374151;
+}
+
+.opp-list li {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.impact-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.impact-item {
+    text-align: center;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.impact-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f59e0b;
+    margin-bottom: 4px;
+}
+
+.impact-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+    .geo-regional-grid,
+    .geo-analysis-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .opportunities-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-patterns-grid {
         grid-template-columns: 1fr;
     }
 }
