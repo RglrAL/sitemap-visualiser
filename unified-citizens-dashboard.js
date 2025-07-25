@@ -1051,7 +1051,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                    
                     
                     <div class="geo-kpi-card coverage">
-                        <div class="kpi-icon">🇮🇪</div>
+                        <div class="kpi-icon">🇮🇪📍</div>
                         <div class="kpi-content">
                             <div class="kpi-number">${geoInsights.countiesCovered}</div>
                             <div class="kpi-label">Counties Reached</div>
