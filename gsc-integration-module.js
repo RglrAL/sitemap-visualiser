@@ -1611,19 +1611,41 @@ return gscData;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             `;
             
-            const reportsDropdown = document.getElementById('reportsDropdown');
-            const firstButton = navBar.querySelector('button');
-            
-            if (reportsDropdown) {
-                navBar.insertBefore(gscButton, reportsDropdown);
-                debugLog('GSC button inserted before reports dropdown');
-            } else if (firstButton) {
-                navBar.insertBefore(gscButton, firstButton.nextSibling);
-                debugLog('GSC button inserted after first button');
-            } else {
-                navBar.appendChild(gscButton);
-                debugLog('GSC button appended to navigation bar');
-            }
+            // Enhanced positioning - after reports dropdown and separator
+const reportsDropdown = document.getElementById('reportsDropdown');
+const firstButton = navBar.querySelector('button');
+
+if (reportsDropdown) {
+    // Look for separator after reports dropdown
+    let insertionPoint = reportsDropdown.nextSibling;
+    
+    // Skip over potential separators (div, span, or elements with separator classes)
+    while (insertionPoint && 
+           (insertionPoint.nodeType === 3 || // Text nodes (whitespace)
+            insertionPoint.classList?.contains('separator') ||
+            insertionPoint.classList?.contains('nav-separator') ||
+            insertionPoint.classList?.contains('divider') ||
+            insertionPoint.tagName === 'HR' ||
+            (insertionPoint.tagName === 'DIV' && insertionPoint.offsetWidth < 10))) {
+        insertionPoint = insertionPoint.nextSibling;
+    }
+    
+    // Insert after reports dropdown + separator
+    if (insertionPoint) {
+        navBar.insertBefore(gscButton, insertionPoint);
+        debugLog('GSC button inserted after reports dropdown and separator');
+    } else {
+        navBar.appendChild(gscButton);
+        debugLog('GSC button appended after reports dropdown');
+    }
+    
+} else if (firstButton) {
+    navBar.insertBefore(gscButton, firstButton.nextSibling);
+    debugLog('GSC button inserted after first button (fallback)');
+} else {
+    navBar.appendChild(gscButton);
+    debugLog('GSC button appended to navigation bar (fallback)');
+}
         };
         
         checkAndAdd();
