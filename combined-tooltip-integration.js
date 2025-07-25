@@ -89,6 +89,38 @@
                 "></div>
                 
                 <div style="position: relative; z-index: 2;">
+
+                <!-- Close Button -->
+<button class="tooltip-close-btn" style="
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+" 
+onmouseover="
+    this.style.background='rgba(255, 255, 255, 0.3)';
+    this.style.transform='scale(1.1)';
+" 
+onmouseout="
+    this.style.background='rgba(255, 255, 255, 0.2)';
+    this.style.transform='scale(1)';
+">✕</button>
+                
                     <!-- Page Title and URL -->
                     <div style="margin-bottom: 16px;">
                         <h3 style="
@@ -102,6 +134,7 @@
                             -webkit-box-orient: vertical;
                             overflow: hidden;
                             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            padding-right: 40px;
                         ">
                             ${data.name || 'Page'}
                         </h3>
@@ -121,6 +154,7 @@
                                    border-radius: 6px;
                                    backdrop-filter: blur(10px);
                                    transition: all 0.2s ease;
+                                   margin-right: 40px;
                                " 
                                onmouseover="this.style.background='rgba(255,255,255,0.25)'" 
                                onmouseout="this.style.background='rgba(255,255,255,0.15)'">
@@ -1165,6 +1199,18 @@
             isHovering = false;
             hideEnhancedTooltip();
         });
+
+        // Handle close button click
+const closeBtn = tooltip.querySelector('.tooltip-close-btn');
+if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hideEnhancedTooltip(true); // Force immediate close
+    });
+}
+
+        
         
         tooltip.addEventListener('click', (e) => {
             const button = e.target.closest('.action-btn');
