@@ -1028,13 +1028,13 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
     return `
         <div class="section enhanced-geographic-intelligence">
             <div class="geo-header">
-                <h2 class="section-title">🌍 Geographic Service Intelligence: ${pageContext.serviceType}</h2>
+                <h2 class="section-title">🌍 Geographic Service Intelligence</h2>
                 <div class="geo-explanation">
-                    <p><strong>Intelligent Geographic Analysis:</strong> Understanding where citizens need <em>${pageContext.serviceType}</em> and how they access this information across Ireland and internationally, with actionable optimization insights.</p>
+                    <p><strong>Geographic Analysis:</strong> Understanding where citizens access <em>${pageContext.serviceType}</em> and optimizing for better regional service delivery.</p>
                 </div>
             </div>
             
-            <!-- Executive Geographic Summary -->
+            <!-- Executive Geographic Summary (KPI Cards) -->
             <div class="geo-executive-summary">
                 <div class="geo-kpi-grid">
                     <div class="geo-kpi-card primary">
@@ -1084,73 +1084,268 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 </div>
             </div>
             
-            <!-- Main Geographic Analysis (Side by Side) -->
-            <div class="geo-main-analysis">
-                <div class="geo-section-grid">
-                    <!-- Interactive Ireland Map -->
-                    <div class="geo-analysis-card ireland-card">
-                        <div class="card-header">
-                            <h3>🇮🇪 Irish Regional Distribution</h3>
-                            <div class="concentration-alert ${geoInsights.demandLevel.class}">
-                                ${geoInsights.demandLevel.label}
-                            </div>
-                        </div>
-                        
-                        <div class="ireland-content">
-                            <div class="ireland-map-container">
-                                ${createInteractiveIrelandMap(geoData.regions, geoInsights)}
-                            </div>
-                            
-                            <div class="regional-insights">
-                                <h4>🏘️ Top Regions</h4>
-                                ${createTopRegionsTable(geoData.regions)}
-                            </div>
-                        </div>
+            <!-- Clean Regional Analysis (Side by Side) -->
+            <div class="geo-regional-grid">
+                <div class="geo-clean-card">
+                    <div class="clean-card-header">
+                        <h3>🇮🇪 Irish Regional Distribution</h3>
+                        <span class="status-badge ${geoInsights.demandLevel.class}">${geoInsights.demandLevel.label}</span>
                     </div>
-                    
-                    <!-- International Reach -->
-                    <div class="geo-analysis-card international-card">
-                        <div class="card-header">
-                            <h3>🌍 International Reach</h3>
-                            <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
-                                ${geoInsights.diasporaIndicator} Diaspora Engagement
-                            </div>
-                        </div>
-                        
-                        <div class="international-content">
-                            <div class="world-map-container">
-                                ${createInteractiveWorldMap(geoData.countries)}
-                            </div>
-                            
-                            <div class="international-insights">
-                                <h4>🌎 International Breakdown</h4>
-                                ${generateInternationalInsights(geoData.countries, pageContext)}
-                            </div>
-                        </div>
+                    <div class="clean-card-content">
+                        ${createCleanIrelandView(geoData.regions, geoInsights)}
+                    </div>
+                </div>
+                
+                <div class="geo-clean-card">
+                    <div class="clean-card-header">
+                        <h3>🌍 International Reach</h3>
+                        <span class="status-badge ${geoInsights.diasporaIndicator.toLowerCase()}">${geoInsights.diasporaIndicator} Reach</span>
+                    </div>
+                    <div class="clean-card-content">
+                        ${createCleanInternationalView(geoData.countries, geoInsights)}
                     </div>
                 </div>
             </div>
             
-            <!-- County-by-County Service Analysis -->
-            <div class="geo-detailed-section">
-                <h3>📍 County-by-County Service Analysis</h3>
-                <div class="county-analysis-container">
-                    ${createCountyAnalysisTable(geoData.regions, geoInsights, pageContext)}
+            <!-- Clean Analysis Sections -->
+            <div class="geo-analysis-grid">
+                <div class="geo-clean-card">
+                    <div class="clean-card-header">
+                        <h3>📍 County-by-County Service Analysis</h3>
+                    </div>
+                    <div class="clean-card-content">
+                        ${createCleanCountyAnalysis(geoData.regions, geoInsights)}
+                    </div>
+                </div>
+                
+                <div class="geo-clean-card">
+                    <div class="clean-card-header">
+                        <h3>👥 Demographic Service Patterns</h3>
+                    </div>
+                    <div class="clean-card-content">
+                        ${createCleanDemographicAnalysis(geoData, geoInsights)}
+                    </div>
                 </div>
             </div>
             
-            <!-- Demographic Service Patterns -->
-            <div class="geo-detailed-section">
-                <h3>👥 Demographic Service Patterns</h3>
-                <div class="demographic-analysis-container">
-                    ${createDemographicInsights(geoData, geoInsights)}
+            <!-- Clean Opportunities Section -->
+            <div class="geo-clean-card opportunities-card">
+                <div class="clean-card-header">
+                    <h3>🚀 Geographic Optimization Opportunities</h3>
+                </div>
+                <div class="clean-card-content">
+                    ${createCleanOpportunities(servicePatterns, accessibilityInsights, pageContext)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Helper functions for clean views
+function createCleanIrelandView(regions, geoInsights) {
+    if (!regions || regions.length === 0) {
+        return `
+            <div class="clean-empty-state">
+                <div class="empty-icon">📊</div>
+                <div class="empty-text">Enable geographic reporting in GA4 to see regional breakdown</div>
+            </div>
+        `;
+    }
+    
+    const topRegions = regions.slice(0, 6);
+    
+    return `
+        <div class="clean-regional-overview">
+            <div class="regional-stats">
+                <div class="stat-item">
+                    <span class="stat-number">${geoInsights.dublinPercentage}%</span>
+                    <span class="stat-label">Dublin</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${regions.length}</span>
+                    <span class="stat-label">Regions</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${calculateRegionalBalance(regions)}</span>
+                    <span class="stat-label">Balance</span>
                 </div>
             </div>
             
-            <!-- Geographic Optimization Opportunities -->
-            <div class="geo-opportunities-section">
-                <h3>🚀 Geographic Optimization Opportunities</h3>
-                ${createStreamlinedOpportunities(servicePatterns, accessibilityInsights, pageContext)}
+            <div class="regional-breakdown">
+                ${topRegions.map((region, index) => `
+                    <div class="region-item">
+                        <div class="region-info">
+                            <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
+                            <span class="region-percentage">${region.percentage.toFixed(1)}%</span>
+                        </div>
+                        <div class="region-bar">
+                            <div class="region-fill" style="width: ${(region.percentage / topRegions[0].percentage) * 100}%"></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function createCleanInternationalView(countries, geoInsights) {
+    if (!countries || countries.length === 0) {
+        return `
+            <div class="clean-empty-state">
+                <div class="empty-icon">🌍</div>
+                <div class="empty-text">No international visitor data available</div>
+            </div>
+        `;
+    }
+    
+    const international = countries.filter(c => c.country !== 'Ireland').slice(0, 5);
+    
+    return `
+        <div class="clean-international-overview">
+            <div class="international-stats">
+                <div class="stat-item">
+                    <span class="stat-number">${geoInsights.internationalUsers}</span>
+                    <span class="stat-label">International</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${international.length}</span>
+                    <span class="stat-label">Countries</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${geoInsights.internationalPercentage}%</span>
+                    <span class="stat-label">Share</span>
+                </div>
+            </div>
+            
+            <div class="international-breakdown">
+                ${international.map(country => `
+                    <div class="country-item">
+                        <div class="country-info">
+                            <span class="country-flag">${getCountryFlagEnhanced(country.country)}</span>
+                            <span class="country-name">${country.country}</span>
+                            <span class="country-percentage">${country.percentage.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function createCleanCountyAnalysis(regions, geoInsights) {
+    if (!regions || regions.length === 0) {
+        return `
+            <div class="clean-empty-state">
+                <div class="empty-icon">📍</div>
+                <div class="empty-text">County analysis requires regional data from GA4</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="clean-county-analysis">
+            <div class="analysis-summary">
+                <p><strong>Coverage:</strong> Serving citizens across ${regions.length} regions with ${geoInsights.dublinPercentage}% concentration in Dublin.</p>
+            </div>
+            
+            <div class="county-performance-grid">
+                ${regions.slice(0, 8).map(region => `
+                    <div class="county-performance-item">
+                        <div class="county-name">${formatRegionNameEnhanced(region.region)}</div>
+                        <div class="county-metrics">
+                            <span class="metric-value">${formatNumberEnhanced(region.users)}</span>
+                            <span class="metric-label">users</span>
+                        </div>
+                        <div class="county-share">${region.percentage.toFixed(1)}%</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function createCleanDemographicAnalysis(geoData, geoInsights) {
+    return `
+        <div class="clean-demographic-analysis">
+            <div class="demographic-grid">
+                <div class="demographic-item">
+                    <div class="demo-icon">🏙️</div>
+                    <div class="demo-content">
+                        <div class="demo-title">Urban Distribution</div>
+                        <div class="demo-value">Dublin: ${geoInsights.dublinPercentage}%</div>
+                        <div class="demo-detail">Other urban: ${calculateOtherUrban(geoData)}%</div>
+                    </div>
+                </div>
+                
+                <div class="demographic-item">
+                    <div class="demo-icon">🌍</div>
+                    <div class="demo-content">
+                        <div class="demo-title">International Mix</div>
+                        <div class="demo-value">${geoInsights.totalCountries} countries</div>
+                        <div class="demo-detail">EU: ${calculateEUCitizens(geoData)}%</div>
+                    </div>
+                </div>
+                
+                <div class="demographic-item">
+                    <div class="demo-icon">🏘️</div>
+                    <div class="demo-content">
+                        <div class="demo-title">Rural Access</div>
+                        <div class="demo-value">${calculateRural(geoData)}%</div>
+                        <div class="demo-detail">Rural regions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createCleanOpportunities(servicePatterns, accessibilityInsights, pageContext) {
+    return `
+        <div class="clean-opportunities">
+            <div class="opportunities-grid">
+                <div class="opportunity-item quick">
+                    <div class="opp-header">
+                        <span class="opp-icon">⚡</span>
+                        <span class="opp-title">Quick Wins</span>
+                        <span class="opp-timeframe">1-2 weeks</span>
+                    </div>
+                    <ul class="opp-list">
+                        <li>Add regional contact information to content</li>
+                        <li>Optimize mobile experience for rural users</li>
+                        <li>Include location-specific service details</li>
+                    </ul>
+                </div>
+                
+                <div class="opportunity-item strategic">
+                    <div class="opp-header">
+                        <span class="opp-icon">🎯</span>
+                        <span class="opp-title">Strategic</span>
+                        <span class="opp-timeframe">1-3 months</span>
+                    </div>
+                    <ul class="opp-list">
+                        <li>Create region-specific landing pages</li>
+                        <li>Develop multilingual content for diaspora</li>
+                        <li>Partner with local service centers</li>
+                    </ul>
+                </div>
+                
+                <div class="opportunity-item impact">
+                    <div class="opp-header">
+                        <span class="opp-icon">📈</span>
+                        <span class="opp-title">Expected Impact</span>
+                        <span class="opp-timeframe">ROI</span>
+                    </div>
+                    <div class="impact-metrics">
+                        <div class="impact-item">
+                            <span class="impact-value">+25%</span>
+                            <span class="impact-label">Regional Engagement</span>
+                        </div>
+                        <div class="impact-item">
+                            <span class="impact-value">+15%</span>
+                            <span class="impact-label">International Reach</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -2897,103 +3092,555 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 
 
-         /* ENHANCED GEOGRAPHIC INTELLIGENCE - COMPLETE STYLING */
-
 /* ==================================================
-   MAIN CONTAINER & HEADER
+   CLEAN & SLEEK GEOGRAPHIC INTELLIGENCE STYLES
    ================================================== */
 
+/* Main container - keep minimal styling */
 .enhanced-geographic-intelligence {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border-left: 4px solid #0ea5e9;
+    background: #fafbfc;
     border-radius: 20px;
     padding: 32px;
     margin-bottom: 32px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.1);
-}
-
-.enhanced-geographic-intelligence::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.05) 0%, transparent 70%);
-    pointer-events: none;
+    border: 1px solid #e2e8f0;
 }
 
 .geo-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-}
-
-.geo-controls {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-}
-
-.view-toggle {
-    display: flex;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 12px;
-    padding: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.toggle-btn {
-    padding: 10px 16px;
-    border: none;
-    background: none;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.toggle-btn.active {
-    background: #0ea5e9;
-    color: white;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
-}
-
-.toggle-btn:hover:not(.active) {
-    background: rgba(14, 165, 233, 0.1);
-    color: #0ea5e9;
-}
-
-.export-geo-btn {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.export-geo-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+    margin-bottom: 32px;
 }
 
 .geo-explanation {
-    background: rgba(14, 165, 233, 0.1);
-    padding: 20px;
+    background: rgba(59, 130, 246, 0.05);
+    padding: 16px 20px;
     border-radius: 12px;
+    margin-top: 16px;
+    border-left: 3px solid #3b82f6;
+}
+
+.geo-explanation p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* KPI Cards - keep existing styling since they look good */
+.geo-executive-summary {
+    margin-bottom: 40px;
+}
+
+/* Regional Grid - Side by side clean layout */
+.geo-regional-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
     margin-bottom: 32px;
-    border-left: 3px solid #0ea5e9;
+}
+
+/* Analysis Grid - For county and demographic sections */
+.geo-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+/* Clean card styling */
+.geo-clean-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.geo-clean-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.opportunities-card {
+    grid-column: 1 / -1; /* Full width for opportunities */
+}
+
+/* Clean card headers */
+.clean-card-header {
+    padding: 24px 28px 0 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.clean-card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-badge.high {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-badge.medium {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.status-badge.distributed {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.status-badge.high, .status-badge.medium, .status-badge.low {
+    background: #f0f9ff;
+    color: #0ea5e9;
+}
+
+/* Clean card content */
+.clean-card-content {
+    padding: 0 28px 28px 28px;
+}
+
+/* Empty states */
+.clean-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+
+.empty-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Regional overview styling */
+.clean-regional-overview,
+.clean-international-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.regional-stats,
+.international-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Regional breakdown */
+.regional-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.region-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.region-item:last-child {
+    border-bottom: none;
+}
+
+.region-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 1;
+}
+
+.region-name {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.region-percentage {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1rem;
+}
+
+.region-bar {
+    width: 80px;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.region-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}
+
+/* International breakdown */
+.international-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.country-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.country-item:last-child {
+    border-bottom: none;
+}
+
+.country-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.country-flag {
+    font-size: 1.2rem;
+}
+
+.country-name {
+    flex: 1;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.country-percentage {
+    font-weight: 700;
+    color: #3b82f6;
+    font-size: 0.95rem;
+}
+
+/* County analysis styling */
+.clean-county-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.analysis-summary {
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 3px solid #6366f1;
+}
+
+.analysis-summary p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.county-performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.county-performance-item {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.county-performance-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.county-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.county-metrics {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #059669;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.county-share {
+    font-size: 0.85rem;
+    color: #6366f1;
+    font-weight: 600;
+}
+
+/* Demographic analysis styling */
+.clean-demographic-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.demographic-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.demographic-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.demographic-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.demo-icon {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+.demo-content {
+    flex: 1;
+}
+
+.demo-title {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.demo-value {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+}
+
+.demo-detail {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Opportunities styling */
+.clean-opportunities {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.opportunities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.opportunity-item {
+    padding: 24px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.opportunity-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.opportunity-item.quick {
+    border-left: 4px solid #10b981;
+}
+
+.opportunity-item.strategic {
+    border-left: 4px solid #3b82f6;
+}
+
+.opportunity-item.impact {
+    border-left: 4px solid #f59e0b;
+}
+
+.opp-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.opp-icon {
+    font-size: 1.4rem;
+}
+
+.opp-title {
+    font-weight: 700;
+    color: #1f2937;
+    flex: 1;
+}
+
+.opp-timeframe {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.opp-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #374151;
+}
+
+.opp-list li {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.impact-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.impact-item {
+    text-align: center;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.impact-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #f59e0b;
+    margin-bottom: 4px;
+}
+
+.impact-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+    .geo-regional-grid,
+    .geo-analysis-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .opportunities-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .enhanced-geographic-intelligence {
+        padding: 20px;
+    }
+    
+    .regional-stats,
+    .international-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .county-performance-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .impact-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .clean-card-header,
+    .clean-card-content {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
 }
 
 /* ==================================================
