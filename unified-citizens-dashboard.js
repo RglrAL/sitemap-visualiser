@@ -3430,7 +3430,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .metric-value {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #059669;
+    color: #000000;
 }
 
 .metric-label {
@@ -3600,7 +3600,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .impact-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: #ffffff;
     font-weight: 600;
 }
 
