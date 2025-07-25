@@ -6372,10 +6372,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         <span class="tab-icon">📝</span>
                         <span class="tab-label">Content Analysis</span>
                     </button>
-                    <button class="tab-btn" data-tab="users">
-                        <span class="tab-icon">👥</span>
-                        <span class="tab-label">User Behavior</span>
-                    </button>
+                    
                     <button class="tab-btn" data-tab="trends">
                         <span class="tab-icon">📈</span>
                         <span class="tab-label">Trends</span>
