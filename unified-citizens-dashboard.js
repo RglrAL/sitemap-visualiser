@@ -1402,21 +1402,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                     </div>
                 </div>
                 
-                <!-- Service Performance Heatmap -->
-                <div class="geo-card performance-focus">
-                    <div class="card-header">
-                        <h3>📊 Geographic Performance Heatmap</h3>
-                        <div class="performance-toggle">
-                            <button class="toggle-metric active" data-metric="users">Users</button>
-                            <button class="toggle-metric" data-metric="engagement">Engagement</button>
-                            <button class="toggle-metric" data-metric="conversions">Conversions</button>
-                        </div>
-                    </div>
-                    
-                    <div class="performance-heatmap">
-                        ${createPerformanceHeatmap(geoData, servicePatterns)}
-                    </div>
-                </div>
+                
             </div>
         </div>
     `;
@@ -10253,21 +10239,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                     </div>
                 </div>
                 
-                <!-- Service Performance Heatmap -->
-                <div class="geo-card performance-focus">
-                    <div class="card-header">
-                        <h3>📊 Geographic Performance Heatmap</h3>
-                        <div class="performance-toggle">
-                            <button class="toggle-metric active" data-metric="users">Users</button>
-                            <button class="toggle-metric" data-metric="engagement">Engagement</button>
-                            <button class="toggle-metric" data-metric="conversions">Conversions</button>
-                        </div>
-                    </div>
-                    
-                    <div class="performance-heatmap">
-                        ${createPerformanceHeatmap(geoData, servicePatterns)}
-                    </div>
-                </div>
+                
             </div>
         </div>
     `;
