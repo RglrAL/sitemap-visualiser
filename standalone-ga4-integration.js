@@ -117,40 +117,76 @@
     }
 
     async function showManualPropertyIdDialog() {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.8); z-index: 10000; display: flex;
-                align-items: center; justify-content: center; padding: 20px;
-            `;
+    return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 10000; display: flex;
+            align-items: center; justify-content: center; padding: 20px;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: white; padding: 30px; border-radius: 15px;
+            max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        `;
+        
+        // Configuration object for GA4 properties
+        const GA4_PROPERTIES = [
+            {
+                name: "Citizens Information",
+                description: "Main Citizens Information website",
+                propertyId: "341170035"
+            },
+            {
+                name: "Citizens Information Board",
+                description: "Citizens Information Board website",
+                propertyId: "384792858"
+            },
+            {
+                name: "MABS",
+                description: "Money Advice and Budgeting Service",
+                propertyId: "255956752"
+            },
+            {
+                name: "RISLI",
+                description: "Refugee Information Service Legal Initiative",
+                propertyId: "254639858"
+            }
+        ];
+        
+        content.innerHTML = `
+            <h3 style="margin-bottom: 20px; color: #ff6b35;">Select Your GA4 Property</h3>
             
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: white; padding: 30px; border-radius: 15px;
-                max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            `;
+            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #17a2b8;">
+                <strong>ℹ️ Quick Selection</strong><br>
+                Choose from your configured GA4 properties below, or enter a custom Property ID.
+            </div>
             
-            content.innerHTML = `
-                <h3 style="margin-bottom: 20px; color: #ff6b35;">Enter Your GA4 Property ID</h3>
-                
-                <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #17a2b8;">
-                    <strong>ℹ️ Manual Setup Required</strong><br>
-                    We'll connect directly using your GA4 Property ID. This is actually more reliable than auto-detection!
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    Choose Property:
+                </label>
+                <select id="propertySelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; background: white;">
+                    <option value="">-- Select a Property --</option>
+                    ${GA4_PROPERTIES.map(prop => 
+                        `<option value="${prop.propertyId}">${prop.name} - ${prop.description}</option>`
+                    ).join('')}
+                    <option value="custom">🔧 Enter Custom Property ID</option>
+                </select>
+            </div>
+            
+            <div id="customIdSection" style="margin-bottom: 20px; display: none;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    Custom GA4 Property ID:
+                </label>
+                <input type="text" id="propertyIdInput" placeholder="e.g., 123456789" 
+                       style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"/>
+                <div style="margin-top: 8px; font-size: 0.9rem; color: #666;">
+                    This is usually a 9-10 digit number
                 </div>
                 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">
-                        GA4 Property ID:
-                    </label>
-                    <input type="text" id="propertyIdInput" placeholder="e.g., 123456789" 
-                           style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"/>
-                    <div style="margin-top: 8px; font-size: 0.9rem; color: #666;">
-                        This is usually a 9-10 digit number
-                    </div>
-                </div>
-                
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
                     <strong>📍 How to find your Property ID:</strong>
                     <ol style="margin: 8px 0 0 20px; color: #666; font-size: 0.9rem; line-height: 1.4;">
                         <li>Go to <a href="https://analytics.google.com" target="_blank" style="color: #ff6b35;">analytics.google.com</a></li>
@@ -159,64 +195,94 @@
                         <li>Copy the Property ID from the top of the page</li>
                     </ol>
                 </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="cancelBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button id="connectBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Connect Property
+                </button>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        const propertySelect = content.querySelector('#propertySelect');
+        const customIdSection = content.querySelector('#customIdSection');
+        const customInput = content.querySelector('#propertyIdInput');
+        const cancelBtn = content.querySelector('#cancelBtn');
+        const connectBtn = content.querySelector('#connectBtn');
+        
+        // Show/hide custom input based on selection
+        propertySelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customIdSection.style.display = 'block';
+                setTimeout(() => customInput.focus(), 100);
+            } else {
+                customIdSection.style.display = 'none';
+            }
+        });
+        
+        // Handle enter key in custom input
+        customInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                connectBtn.click();
+            }
+        });
+        
+        cancelBtn.onclick = () => {
+            modal.remove();
+            resolve(null);
+        };
+        
+        connectBtn.onclick = () => {
+            const selectedValue = propertySelect.value;
+            
+            if (!selectedValue) {
+                alert('Please select a property or choose "Enter Custom Property ID"');
+                propertySelect.focus();
+                return;
+            }
+            
+            let propertyId;
+            
+            if (selectedValue === 'custom') {
+                propertyId = customInput.value.trim();
                 
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button id="cancelBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        Cancel
-                    </button>
-                    <button id="connectBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                        Connect Property
-                    </button>
-                </div>
-            `;
-            
-            modal.appendChild(content);
-            document.body.appendChild(modal);
-            
-            const input = content.querySelector('#propertyIdInput');
-            const cancelBtn = content.querySelector('#cancelBtn');
-            const connectBtn = content.querySelector('#connectBtn');
-            
-            setTimeout(() => input.focus(), 100);
-            
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    connectBtn.click();
-                }
-            });
-            
-            cancelBtn.onclick = () => {
-                modal.remove();
-                resolve(null);
-            };
-            
-            connectBtn.onclick = () => {
-                const propertyId = input.value.trim();
                 if (!propertyId) {
                     alert('Please enter a Property ID');
-                    input.focus();
+                    customInput.focus();
                     return;
                 }
                 
                 if (!/^\d{8,12}$/.test(propertyId)) {
                     alert('Property ID should be 8-12 digits (numbers only)');
-                    input.focus();
-                    input.select();
+                    customInput.focus();
+                    customInput.select();
                     return;
                 }
-                
-                modal.remove();
-                resolve(propertyId);
-            };
+            } else {
+                propertyId = selectedValue;
+            }
             
-            modal.onclick = () => {
-                modal.remove();
-                resolve(null);
-            };
-            
-            content.onclick = e => e.stopPropagation();
-        });
-    }
+            modal.remove();
+            resolve(propertyId);
+        };
+        
+        modal.onclick = () => {
+            modal.remove();
+            resolve(null);
+        };
+        
+        content.onclick = e => e.stopPropagation();
+        
+        // Focus the select dropdown initially
+        setTimeout(() => propertySelect.focus(), 100);
+    });
+}
 
     async function testGA4Property(propertyId) {
         try {
