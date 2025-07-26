@@ -340,7 +340,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         'Search Score': {
             category: 'Dashboard Calculations',
             definition: 'How well your page performs in search results.',
-            calculation: '(Position Score + CTR Score) ÷ 2',
+            calculation: '(Position Score + CTR Score) ÷ 2, where Position Score = max(0, 100 - position × 5) and CTR Score = min(100, CTR × 1000)',
             benchmark: '80+: Excellent, 60+: Good, 40+: Fair, <40: Poor',
             example: 'Search Score 72 indicates good search performance',
             relatedTerms: ['SEO Score', 'Search Performance', 'Visibility Score']
@@ -349,10 +349,277 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         'Engagement Score': {
             category: 'Dashboard Calculations',
             definition: 'How well your page engages visitors.',
-            calculation: '(Duration Score + Bounce Score) ÷ 2',
+            calculation: '(Duration Score + Bounce Score) ÷ 2, where Duration Score = min(100, session duration ÷ 300 × 100) and Bounce Score = max(0, (1 - bounce rate) × 100)',
             benchmark: '80+: Highly engaging, 60+: Good, 40+: Fair, <40: Poor',
             example: 'Engagement Score 68 shows good user engagement',
             relatedTerms: ['User Engagement', 'Content Engagement', 'Interaction Score']
+        },
+
+        'Relevance Score': {
+            category: 'Dashboard Calculations',
+            definition: 'How well your content matches user search intent.',
+            calculation: '(Actual CTR ÷ Expected CTR for position) × 100',
+            benchmark: '100+: Exceeds expectations, 80+: Good, 60+: Fair, <60: Poor relevance',
+            example: 'Relevance Score 110 means content exceeds user expectations',
+            relatedTerms: ['Content Relevance', 'Search Intent Match', 'User Satisfaction']
+        },
+
+        'UX Score': {
+            category: 'Dashboard Calculations',
+            definition: 'User experience quality based on engagement patterns.',
+            calculation: '(Engagement Rate × 60) + min(40, Pages per Session × 20)',
+            benchmark: '80+: Excellent UX, 60+: Good, 40+: Fair, <40: Poor UX',
+            example: 'UX Score 75 indicates good user experience',
+            relatedTerms: ['User Experience', 'Usability Score', 'Interface Quality']
+        },
+
+        // ===========================================
+        // CITIZEN IMPACT METRICS
+        // ===========================================
+        'Citizens Reached': {
+            category: 'Impact Metrics',
+            definition: 'Total number of citizens who accessed your content monthly.',
+            calculation: 'Search Clicks + Unique Users (with overlap consideration)',
+            benchmark: 'Varies by service type - aim for consistent monthly growth',
+            example: '2,850 citizens reached means your content helped 2,850 people find information',
+            relatedTerms: ['Monthly Reach', 'Citizen Engagement', 'Public Impact']
+        },
+
+        'Content Helpfulness': {
+            category: 'Impact Metrics',
+            definition: 'Percentage indicating how helpful your content is to citizens.',
+            calculation: '((1 - Bounce Rate) × 50) + (min(100, Session Duration ÷ 180) × 50)',
+            benchmark: '80+%: Very helpful, 65+%: Helpful, 50+%: Somewhat helpful, <50%: Needs improvement',
+            example: '72% helpfulness means most citizens find your content useful',
+            relatedTerms: ['Content Effectiveness', 'User Satisfaction', 'Service Quality']
+        },
+
+        'Information Seekers': {
+            category: 'Impact Metrics',
+            definition: 'Citizens actively searching for information you provide.',
+            calculation: 'Search Console Clicks + Direct Analytics Users',
+            benchmark: 'Growth month-over-month indicates improving service delivery',
+            example: '1,450 information seekers shows strong citizen demand for your content',
+            relatedTerms: ['Active Users', 'Service Demand', 'Citizen Need']
+        },
+
+        'Content Success Rate': {
+            category: 'Impact Metrics',
+            definition: 'Percentage of citizens who successfully engaged with your content.',
+            calculation: '(1 - Bounce Rate) × 100',
+            benchmark: 'Government services: 60%+ good, 70%+ excellent',
+            example: '68% success rate means 68 out of 100 citizens found what they needed',
+            relatedTerms: ['Success Percentage', 'Effectiveness Rate', 'Completion Rate']
+        },
+
+        // ===========================================
+        // GOVERNMENT BENCHMARKS
+        // ===========================================
+        'Government Engagement Benchmark': {
+            category: 'Government Standards',
+            definition: 'Public sector standard for user engagement with government content.',
+            calculation: 'Based on GOV.UK, Canada.ca, and Irish government research',
+            benchmark: '50%+ engagement rate for government services',
+            example: 'Your 45% engagement is below the 50% government benchmark',
+            relatedTerms: ['Public Sector Standard', 'Digital Government KPI', 'Service Standard']
+        },
+
+        'Government Time Benchmark': {
+            category: 'Government Standards',
+            definition: 'Expected time citizens spend finding government information.',
+            calculation: 'Research-based standard for public service digital content',
+            benchmark: '52+ seconds average session duration',
+            example: 'Your 1:45 duration exceeds the 52-second government benchmark',
+            relatedTerms: ['Service Efficiency', 'Information Access Time', 'Digital Service Standard']
+        },
+
+        'Discovery Benchmark': {
+            category: 'Government Standards',
+            definition: 'How easily citizens can find government services through search.',
+            calculation: '(Sessions ÷ Page Views) × 100 (Entrance Rate)',
+            benchmark: '30%+ entrance rate indicates good discoverability',
+            example: '35% discovery rate means citizens easily find your service',
+            relatedTerms: ['Findability', 'Service Discovery', 'Search Visibility']
+        },
+
+        // ===========================================
+        // GEOGRAPHIC INTELLIGENCE
+        // ===========================================
+        'Regional Distribution': {
+            category: 'Geographic Intelligence',
+            definition: 'How your users are spread across Irish counties and regions.',
+            calculation: 'Percentage breakdown from GA4 geographic data',
+            benchmark: 'Balanced: <40% Dublin, Concentrated: >50% Dublin',
+            example: '38% Dublin distribution shows good regional balance',
+            relatedTerms: ['Geographic Spread', 'Regional Access', 'County Coverage']
+        },
+
+        'Dublin Concentration': {
+            category: 'Geographic Intelligence',
+            definition: 'Percentage of your users located in Dublin metropolitan area.',
+            calculation: '(Dublin Users ÷ Total Irish Users) × 100',
+            benchmark: '<30%: Distributed, 30-50%: Moderate, >50%: High concentration',
+            example: '42% Dublin concentration suggests service accessibility focus needed',
+            relatedTerms: ['Capital Concentration', 'Urban Focus', 'Metropolitan Bias']
+        },
+
+        'International Reach': {
+            category: 'Geographic Intelligence',
+            definition: 'Number of countries from which citizens access your services.',
+            calculation: 'Count of distinct countries in GA4 geographic data',
+            benchmark: '5+: Good reach, 10+: Excellent, 15+: Global service',
+            example: '12 countries shows good international Irish service reach',
+            relatedTerms: ['Global Access', 'Diaspora Engagement', 'Cross-border Service']
+        },
+
+        'Coverage Percentage': {
+            category: 'Geographic Intelligence',
+            definition: 'Percentage of Irish counties your service reaches.',
+            calculation: '(Counties with Users ÷ 32 total counties) × 100',
+            benchmark: '75%+: Excellent coverage, 50%+: Good, <50%: Limited reach',
+            example: '78% coverage means you serve citizens in 25 of 32 counties',
+            relatedTerms: ['Geographic Coverage', 'Service Reach', 'National Access']
+        },
+
+        // ===========================================
+        // CITIZEN JOURNEY INTELLIGENCE
+        // ===========================================
+        'Immediate Action Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens who need to take urgent action or meet deadlines.',
+            calculation: 'Query analysis for urgency keywords (urgent, today, deadline, expires)',
+            benchmark: 'High priority - requires immediate response capability',
+            example: '"apply today" queries indicate citizens with urgent application needs',
+            relatedTerms: ['Urgent Needs', 'Time-sensitive Queries', 'Critical Actions']
+        },
+
+        'Eligibility Research Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens checking if they qualify for government services.',
+            calculation: 'Query analysis for eligibility keywords (entitled, qualify, eligible, criteria)',
+            benchmark: 'Common for government services - optimize for clear eligibility info',
+            example: '"am I entitled to" queries show citizens researching service eligibility',
+            relatedTerms: ['Qualification Queries', 'Entitlement Research', 'Criteria Checking']
+        },
+
+        'Process Learning Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens learning how to complete government processes.',
+            calculation: 'Query analysis for process keywords (how to, step by step, application process)',
+            benchmark: 'Optimize for clear, step-by-step guidance',
+            example: '"how to apply" queries indicate need for process clarification',
+            relatedTerms: ['Process Queries', 'Application Help', 'Procedure Learning']
+        },
+
+        'Problem Solving Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens with issues, appeals, or complaints needing resolution.',
+            calculation: 'Query analysis for problem keywords (appeal, complaint, problem, rejected)',
+            benchmark: 'High priority - indicates service delivery issues',
+            example: '"appeal decision" queries show citizens facing process problems',
+            relatedTerms: ['Issue Resolution', 'Complaint Handling', 'Appeal Process']
+        },
+
+        // ===========================================
+        // OPPORTUNITY SCORING
+        // ===========================================
+        'Priority Score': {
+            category: 'Optimization',
+            definition: 'Government framework score for content optimization priority.',
+            calculation: '(Traffic Score × 0.4) + (Growth Score × 0.25) + (Search Score × 0.2) + (Discovery Score × 0.15)',
+            benchmark: '80+: Critical, 60+: High, 40+: Medium, <40: Low priority',
+            example: 'Priority Score 75 indicates high-priority optimization opportunity',
+            relatedTerms: ['Optimization Priority', 'Improvement Potential', 'Resource Allocation']
+        },
+
+        'Citizen Opportunity Score': {
+            category: 'Optimization',
+            definition: 'Potential for improving citizen service delivery through content optimization.',
+            calculation: 'Weighted score based on search volume, engagement gaps, and citizen impact potential',
+            benchmark: '8+: High impact, 5+: Medium impact, 3+: Low impact',
+            example: 'Opportunity Score 9 suggests high potential for citizen service improvement',
+            relatedTerms: ['Service Improvement Potential', 'Citizen Impact Score', 'Optimization Value']
+        },
+
+        'Expected CTR Benchmark': {
+            category: 'Optimization',
+            definition: 'Expected click-through rate based on search result position.',
+            calculation: 'Position-based CTR benchmarks from industry research',
+            benchmark: 'Pos 1: 28.4%, Pos 2: 15.5%, Pos 3: 11.0%, Pos 4: 7.7%, Pos 5: 6.1%',
+            example: 'Position 3 with 8% CTR exceeds 11% benchmark (underperforming)',
+            relatedTerms: ['CTR Expectation', 'Position Performance', 'Click Rate Standard']
+        },
+
+        // ===========================================
+        // TREND ANALYSIS
+        // ===========================================
+        'Trend Direction': {
+            category: 'Performance Trends',
+            definition: 'Whether a metric is improving, declining, or stable over time.',
+            calculation: 'Comparison of current vs previous period performance',
+            benchmark: 'Up: >2% improvement, Down: >2% decline, Stable: ±2%',
+            example: 'CTR trend ↗ +15% shows improving click-through performance',
+            relatedTerms: ['Performance Direction', 'Change Indicator', 'Progress Tracking']
+        },
+
+        'Growth Rate': {
+            category: 'Performance Trends',
+            definition: 'Rate of change in performance metrics over time.',
+            calculation: '((Current Period - Previous Period) ÷ Previous Period) × 100',
+            benchmark: 'Positive growth indicates improving service delivery',
+            example: '+12% growth in users shows increasing citizen engagement',
+            relatedTerms: ['Change Rate', 'Performance Growth', 'Improvement Rate']
+        },
+
+        // ===========================================
+        // PROBLEM DETECTION
+        // ===========================================
+        'Position Anomaly': {
+            category: 'Problem Detection',
+            definition: 'Query ranking in unexpected position relative to click volume.',
+            calculation: 'Based on GOV.UK framework: position 4/5 clicks shouldnt exceed 50% of position 1',
+            benchmark: 'Indicates technical SEO or content relevance issues',
+            example: 'Position 6 query getting more clicks than position 2 suggests ranking problem',
+            relatedTerms: ['Ranking Issues', 'Search Anomalies', 'Performance Inconsistencies']
+        },
+
+        'CTR Gap': {
+            category: 'Problem Detection',
+            definition: 'Difference between actual and expected click-through rate.',
+            calculation: 'Expected CTR (position-based) - Actual CTR',
+            benchmark: '>2% gap indicates title/description optimization opportunity',
+            example: 'Position 3 with 5% CTR has 6% gap (expected 11%) needs title optimization',
+            relatedTerms: ['Click Rate Gap', 'Performance Shortfall', 'Optimization Gap']
+        },
+
+        'High Impression Low Click': {
+            category: 'Problem Detection',
+            definition: 'Pages appearing in search frequently but getting few clicks.',
+            calculation: 'Impressions >1000 AND CTR <2%',
+            benchmark: 'Indicates poor title/meta description or content mismatch',
+            example: '5,000 impressions with 1.2% CTR suggests title optimization needed',
+            relatedTerms: ['Visibility Without Engagement', 'Poor Click Performance', 'Title Issues']
+        },
+
+        // ===========================================
+        // CONTENT GAPS
+        // ===========================================
+        'High Opportunity Gap': {
+            category: 'Content Gaps',
+            definition: 'Search queries with high volume but low click-through, indicating content optimization opportunity.',
+            calculation: 'Impressions ≥1000 AND CTR <2%',
+            benchmark: 'High-priority optimization targets',
+            example: '"passport renewal" with 2,000 impressions, 1.5% CTR needs content improvement',
+            relatedTerms: ['Content Optimization Opportunity', 'Search Demand Gap', 'Click Deficit']
+        },
+
+        'Missing Content Gap': {
+            category: 'Content Gaps',
+            definition: 'Search queries showing demand but minimal content coverage.',
+            calculation: 'Impressions ≥100 AND Clicks <5',
+            benchmark: 'Indicates need for dedicated content creation',
+            example: '"emergency passport" with 300 impressions, 2 clicks needs dedicated content',
+            relatedTerms: ['Content Creation Opportunity', 'Unmet Search Demand', 'Service Gap']
         }
     };
     
@@ -368,6 +635,38 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         'Dashboard Calculations': {
             icon: '🧮',
             description: 'Composite scores and calculated metrics for content quality assessment'
+        },
+        'Impact Metrics': {
+            icon: '🎯',
+            description: 'Measurements of real-world citizen service impact and effectiveness'
+        },
+        'Government Standards': {
+            icon: '🏛️',
+            description: 'Public sector benchmarks and standards for digital government services'
+        },
+        'Geographic Intelligence': {
+            icon: '🌍',
+            description: 'Location-based analysis of service usage across Ireland and internationally'
+        },
+        'Citizen Journey': {
+            icon: '🗺️',
+            description: 'Understanding citizen intent and needs at different service stages'
+        },
+        'Optimization': {
+            icon: '💡',
+            description: 'Priority scoring and opportunity identification for content improvement'
+        },
+        'Performance Trends': {
+            icon: '📈',
+            description: 'How metrics change over time and growth rate analysis'
+        },
+        'Problem Detection': {
+            icon: '⚠️',
+            description: 'Identification of performance issues and optimization opportunities'
+        },
+        'Content Gaps': {
+            icon: '🔍',
+            description: 'Missing or underperforming content areas with citizen demand'
         }
     };
     
