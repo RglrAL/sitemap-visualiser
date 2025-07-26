@@ -1,6 +1,137 @@
 // dashboard-glossary.js - IMPROVED with debug fixes and enhancements
 // Sliding panel glossary with better error handling and performance
 
+// ===========================================
+// IMMEDIATE SAFE API - PREVENTS TIMING ISSUES
+// ===========================================
+console.log('📚 Creating safe DashboardGlossary API...');
+
+// Create safe wrapper that works immediately, even before initialization
+window.DashboardGlossary = window.DashboardGlossary || {
+    _initialized: false,
+    _instance: null,
+    _pendingActions: [],
+    
+    open: function() {
+        console.log('📖 DashboardGlossary.open() called');
+        if (this._initialized && this._instance) {
+            return this._instance.open();
+        } else {
+            console.log('⏳ Glossary not ready, queuing open action...');
+            this._pendingActions.push({ action: 'open', args: [] });
+            this._retryWhenReady('open');
+            return false;
+        }
+    },
+    
+    close: function() {
+        if (this._initialized && this._instance) {
+            return this._instance.close();
+        }
+        return false;
+    },
+    
+    searchFor: function(term) {
+        console.log('🔍 DashboardGlossary.searchFor() called with:', term);
+        if (this._initialized && this._instance) {
+            return this._instance.search(term);
+        } else {
+            console.log('⏳ Glossary not ready, queuing search action...');
+            this._pendingActions.push({ action: 'search', args: [term] });
+            this._retryWhenReady('searchFor', term);
+            return false;
+        }
+    },
+    
+    goToCategory: function(category) {
+        if (this._initialized && this._instance) {
+            return this._instance.filterCategory(category);
+        } else {
+            this._pendingActions.push({ action: 'filterCategory', args: [category] });
+            this._retryWhenReady('goToCategory', category);
+            return false;
+        }
+    },
+    
+    isHealthy: function() {
+        return this._initialized && this._instance && this._instance.isHealthy();
+    },
+    
+    _retryWhenReady: function(actionName, ...args) {
+        let attempts = 0;
+        const maxAttempts = 10;
+        const checkInterval = 500;
+        
+        const checker = setInterval(() => {
+            attempts++;
+            console.log(`🔄 Attempt ${attempts}/${maxAttempts} to execute ${actionName}...`);
+            
+            if (this._initialized && this._instance) {
+                console.log(`✅ Glossary ready! Executing ${actionName}`);
+                clearInterval(checker);
+                
+                // Execute the pending action
+                switch(actionName) {
+                    case 'open':
+                        this._instance.open();
+                        break;
+                    case 'searchFor':
+                        this._instance.search(...args);
+                        break;
+                    case 'goToCategory':
+                        this._instance.filterCategory(...args);
+                        break;
+                }
+            } else if (attempts >= maxAttempts) {
+                console.error(`❌ Glossary failed to initialize after ${maxAttempts} attempts`);
+                console.error('💡 Please check:');
+                console.error('   1. No JavaScript errors in console');
+                console.error('   2. Script is loading properly');
+                console.error('   3. No CSS/JS conflicts');
+                clearInterval(checker);
+                
+                // Show user-friendly message
+                if (actionName === 'open') {
+                    alert('📚 Glossary is loading... Please try again in a moment.');
+                }
+            }
+        }, checkInterval);
+    },
+    
+    _markReady: function(instance) {
+        console.log('✅ Marking glossary as ready with instance:', instance);
+        this._initialized = true;
+        this._instance = instance;
+        
+        // Execute any pending actions
+        this._pendingActions.forEach(({ action, args }) => {
+            try {
+                switch(action) {
+                    case 'open':
+                        instance.open();
+                        break;
+                    case 'search':
+                        instance.search(...args);
+                        break;
+                    case 'filterCategory':
+                        instance.filterCategory(...args);
+                        break;
+                }
+            } catch (error) {
+                console.error('Error executing pending action:', error);
+            }
+        });
+        
+        this._pendingActions = []; // Clear the queue
+    }
+};
+
+console.log('✅ Safe DashboardGlossary API created, ready for use!');
+
+// ===========================================
+// MAIN GLOSSARY IMPLEMENTATION
+// ===========================================
+
 (function() {
     'use strict';
     
@@ -1273,10 +1404,10 @@
                         border: 0;
                     }
                     
-                    /* Floating Action Button - Enhanced */
+                    /* Floating Action Button - Repositioned to Top Right */
                     .glossary-fab {
                         position: fixed;
-                        bottom: 30px;
+                        top: 80px;
                         right: 30px;
                         width: 56px;
                         height: 56px;
@@ -1288,7 +1419,7 @@
                         cursor: pointer;
                         box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        z-index: 9999;
+                        z-index: 9998;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -1313,7 +1444,9 @@
                     
                     .fab-tooltip {
                         position: absolute;
-                        right: 70px;
+                        left: -120px;
+                        top: 50%;
+                        transform: translateY(-50%);
                         background: #1f2937;
                         color: white;
                         padding: 8px 12px;
@@ -1321,7 +1454,6 @@
                         font-size: 0.8rem;
                         font-weight: 600;
                         opacity: 0;
-                        transform: translateX(10px);
                         transition: all 0.2s ease;
                         pointer-events: none;
                         white-space: nowrap;
@@ -1330,7 +1462,7 @@
                     
                     .glossary-fab:hover .fab-tooltip {
                         opacity: 1;
-                        transform: translateX(0);
+                        transform: translateY(-50%) translateX(-5px);
                     }
                     
                     /* Glossary Panel - Enhanced */
@@ -1860,7 +1992,7 @@
                         }
                         
                         .glossary-fab {
-                            bottom: 20px;
+                            top: 60px;
                             right: 20px;
                             width: 48px;
                             height: 48px;
@@ -2032,7 +2164,7 @@
             // Initialize
             glossaryInstance.init().then(success => {
                 if (success) {
-                    // Set up global API
+                    // Replace the safe wrapper with full API
                     window.DashboardGlossary = {
                         open: () => glossaryInstance.open(),
                         close: () => glossaryInstance.close(),
