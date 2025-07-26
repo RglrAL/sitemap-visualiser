@@ -68,6 +68,8 @@ window.DashboardGlossary = {
             initAttempts: this._initAttempts,
             panelExists: !!document.getElementById('dashboardGlossary'),
             fabExists: !!document.getElementById('glossaryFAB'),
+            fabShouldShow: (typeof shouldShowFAB === 'function') ? shouldShowFAB() : 'unknown',
+            currentPage: window.location.pathname,
             timestamp: new Date().toISOString()
         };
     },
@@ -78,6 +80,32 @@ window.DashboardGlossary = {
         this._initialized = false;
         this._instance = null;
         return this._attemptInitialization();
+    },
+    
+    // Force show FAB on any page (if needed)
+    forceShowFAB: function() {
+        console.log('👆 Force showing FAB...');
+        if (!document.getElementById('glossaryFAB')) {
+            const fabHTML = `
+                <button class="glossary-fab" id="glossaryFAB" aria-label="Open Dashboard Glossary">
+                    <span class="fab-icon" aria-hidden="true">📚</span>
+                    <span class="fab-tooltip">Glossary</span>
+                </button>
+            `;
+            document.body.insertAdjacentHTML('beforeend', fabHTML);
+            
+            // Add event listener
+            const fab = document.getElementById('glossaryFAB');
+            if (fab && this._instance) {
+                fab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this._instance.openGlossary();
+                });
+            }
+            console.log('✅ FAB manually added');
+        } else {
+            console.log('ℹ️ FAB already exists');
+        }
     },
     
     // Internal methods
@@ -181,6 +209,17 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
         SEARCH_DEBOUNCE: 300,
         NAMESPACE: 'DashboardGlossary',
         INIT_TIMEOUT: 15000,
+        // FAB visibility control - Add your dashboard URLs here
+        SHOW_FAB_ON_PAGES: [
+            '/dashboard',           // Standard dashboard path
+            '/dashboard.html',      // HTML file dashboard
+            'dashboard',           // Any URL containing 'dashboard'
+            '/admin/dashboard',    // Admin dashboard
+            '/analytics/dashboard' // Analytics dashboard
+            // Add your specific dashboard URLs here, e.g.:
+            // '/my-custom-dashboard',
+            // '/reports/main'
+        ],
         SELECTORS: {
             fab: 'glossaryFAB',
             panel: 'dashboardGlossary',
@@ -192,6 +231,19 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             resultsSummary: 'resultsSummary'
         }
     };
+    
+    // Check if FAB should be shown on current page
+    function shouldShowFAB() {
+        const currentPath = window.location.pathname.toLowerCase();
+        const currentUrl = window.location.href.toLowerCase();
+        
+        // Check if current page matches any of the configured pages
+        return CONFIG.SHOW_FAB_ON_PAGES.some(page => {
+            return currentPath.includes(page.toLowerCase()) || 
+                   currentUrl.includes(page.toLowerCase()) ||
+                   document.title.toLowerCase().includes('dashboard');
+        });
+    }
     
     // Enhanced utilities
     function debugLog(message, data = null) {
@@ -604,9 +656,10 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
         verifySetup() {
             const panel = safeGetElement(CONFIG.SELECTORS.panel);
             const fab = safeGetElement(CONFIG.SELECTORS.fab);
+            const showFAB = shouldShowFAB();
             
             if (!panel) return { success: false, error: 'Panel not created' };
-            if (!fab) return { success: false, error: 'FAB not created' };
+            if (showFAB && !fab) return { success: false, error: 'FAB not created (required for dashboard)' };
             
             debugLog('✅ Setup verification passed');
             return { success: true };
@@ -665,6 +718,10 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             const alphabetNav = this.createAlphabetNav();
             const categoryFilters = this.createCategoryFilters();
             const glossaryEntries = this.createGlossaryEntries();
+            
+            // Check if FAB should be shown on this page
+            const showFAB = shouldShowFAB();
+            debugLog(`📍 FAB visibility check: ${showFAB ? 'Show' : 'Hide'} (Page: ${window.location.pathname})`);
             
             const glossaryHTML = `
                 <div class="glossary-panel" id="${CONFIG.SELECTORS.panel}" role="dialog" aria-labelledby="glossaryTitle" aria-hidden="true">
@@ -757,11 +814,13 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     </button>
                 </div>
                 
-                <!-- Floating Action Button -->
+                ${showFAB ? `
+                <!-- Floating Action Button (Dashboard Only) -->
                 <button class="glossary-fab" id="${CONFIG.SELECTORS.fab}" aria-label="Open Dashboard Glossary">
                     <span class="fab-icon" aria-hidden="true">📚</span>
                     <span class="fab-tooltip">Glossary</span>
                 </button>
+                ` : ''}
             `;
             
             document.body.insertAdjacentHTML('beforeend', glossaryHTML);
@@ -899,13 +958,15 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                 const categorySelect = safeGetElement('categorySelect');
                 const smartNavToggle = safeGetElement('smartNavToggle');
                 
-                // FAB click
+                // FAB click (only if FAB exists on this page)
                 if (fab) {
                     fab.addEventListener('click', (e) => {
                         e.preventDefault();
                         this.openGlossary();
                     });
                     debugLog('✅ FAB listener added');
+                } else {
+                    debugLog('ℹ️ FAB not present on this page (dashboard-only feature)');
                 }
                 
                 // Close button
@@ -1325,9 +1386,15 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
         }
         
         isHealthy() {
-            return this.isInitialized && 
-                   safeGetElement(CONFIG.SELECTORS.panel) && 
-                   safeGetElement(CONFIG.SELECTORS.fab);
+            const panel = safeGetElement(CONFIG.SELECTORS.panel);
+            const fab = safeGetElement(CONFIG.SELECTORS.fab);
+            const showFAB = shouldShowFAB();
+            
+            // Panel must always exist, FAB only on dashboard pages
+            const panelHealthy = this.isInitialized && panel;
+            const fabHealthy = showFAB ? !!fab : true; // FAB optional on non-dashboard pages
+            
+            return panelHealthy && fabHealthy;
         }
         
         cleanup() {
@@ -2041,6 +2108,17 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     console.log('  DashboardGlossary.goToCategory("Google Analytics") - Filter by category');
                     console.log('  DashboardGlossary.isHealthy() - Check system status');
                     console.log('  DashboardGlossary.getDebugInfo() - Get debug information');
+                    console.log('  DashboardGlossary.forceShowFAB() - Manually show FAB button');
+                    console.log('');
+                    console.log('📍 FAB (📚 button) visibility:');
+                    
+                    const fabVisible = shouldShowFAB();
+                    if (fabVisible) {
+                        console.log('  ✅ FAB visible on this page (dashboard detected)');
+                    } else {
+                        console.log('  ℹ️ FAB hidden on this page (not a dashboard)');
+                        console.log('  💡 Run DashboardGlossary.forceShowFAB() to show it anyway');
+                    }
                     console.log('');
                     console.log('🔍 Try searching for:');
                     console.log('  • "CTR" or "Click-Through Rate"');
