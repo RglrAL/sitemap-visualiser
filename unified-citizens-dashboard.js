@@ -572,6 +572,10 @@ function getRelativeTime(lastModified) {
     
     return `
         <div class="dashboard-header">
+        // Add this right after opening <div class="dashboard-header">
+<div class="help-corner">
+    <button class="help-btn" onclick="DashboardGlossary.open()" data-tooltip="Glossary">📚</button>
+</div>
             <div class="header-content">
                 <div class="page-info">
                     <div class="page-breadcrumb">
@@ -2621,6 +2625,57 @@ function createPerformanceMatrix(gscData, ga4Data) {
         </div>
         
         <style>
+        .help-corner {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+}
+
+.help-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.help-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+
+.help-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.help-btn:hover::after {
+    opacity: 1;
+}
+
+
             /* Enhanced Performance Matrix Styles */
             .enhanced-performance-matrix {
                 background: white;
