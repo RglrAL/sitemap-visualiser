@@ -572,7 +572,7 @@ function getRelativeTime(lastModified) {
     
     return `
         <div class="dashboard-header">
-        // Add this right after opening <div class="dashboard-header">
+        
 <div class="help-corner">
     <button class="help-btn" onclick="DashboardGlossary.open()" data-tooltip="Glossary">📚</button>
 </div>
