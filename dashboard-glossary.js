@@ -1,4 +1,11 @@
-// dashboard-glossary.js - FIXED version with proper debugging
+.source-legend {
+                            gap: 12px;
+                            flex-direction: column;
+                        }
+                        
+                        .legend-item {
+                            gap: 6px;
+                        }// dashboard-glossary.js - FIXED version with proper debugging
 // Sliding panel glossary with better error handling and performance
 
 // ===========================================
@@ -216,6 +223,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'CTR (Click-Through Rate)': {
             category: 'Search Console',
+            source: 'search_console',
             definition: 'Percentage of people who click on your page after seeing it in search results.',
             calculation: '(Clicks ÷ Impressions) × 100',
             benchmark: 'Position 1: ~28%, Position 2: ~15%, Position 3: ~11%, Position 4-5: ~6%',
@@ -225,6 +233,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Clicks': {
             category: 'Search Console',
+            source: 'search_console',
             definition: 'Number of times users clicked on your page from Google search results.',
             calculation: 'Direct count from Search Console',
             benchmark: 'Varies by content type - government pages typically 100-1,000+ monthly',
@@ -234,6 +243,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Impressions': {
             category: 'Search Console',
+            source: 'search_console',
             definition: 'Number of times your page appeared in Google search results.',
             calculation: 'Direct count from Search Console',
             benchmark: 'Good: 10x more than clicks, Excellent: 20x+ more than clicks',
@@ -243,6 +253,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Average Position': {
             category: 'Search Console',
+            source: 'search_console',
             definition: 'Average ranking position of your page in Google search results.',
             calculation: 'Weighted average of all query positions',
             benchmark: 'Excellent: 1-3, Good: 4-10, Fair: 11-20, Poor: 20+',
@@ -252,6 +263,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Top Queries': {
             category: 'Search Console',
+            source: 'search_console',
             definition: 'Most common search terms that lead people to your page.',
             calculation: 'Ranked by clicks or impressions',
             benchmark: 'Top query should represent 10-30% of total traffic',
@@ -264,6 +276,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Users': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Number of unique individuals who visited your page.',
             calculation: 'Distinct count based on Google Analytics user identification',
             benchmark: 'Government pages: 500-5,000+ monthly users typical',
@@ -273,6 +286,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Page Views': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Total number of times your page was viewed (includes repeat visits).',
             calculation: 'Count of all page view events',
             benchmark: 'Typically 1.2-2.5x higher than users (people viewing multiple times)',
@@ -282,6 +296,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Sessions': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Number of visits to your website (a session can include multiple pages).',
             calculation: 'Count of distinct user sessions',
             benchmark: 'Usually similar to Users for single-page analysis',
@@ -291,6 +306,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Average Session Duration': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Average time users spend on your page during a session.',
             calculation: 'Total session duration ÷ Number of sessions',
             benchmark: 'Government: 52+ seconds excellent, 35+ good, 20+ fair',
@@ -300,6 +316,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Bounce Rate': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Percentage of users who leave your page without interacting (single-page sessions).',
             calculation: '(Single-page sessions ÷ Total sessions) × 100',
             benchmark: 'Government: <40% excellent, 40-60% good, 60-80% fair, >80% poor',
@@ -309,6 +326,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Engagement Rate': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Percentage of sessions where users actively engaged with your content.',
             calculation: '(Engaged sessions ÷ Total sessions) × 100',
             benchmark: 'Government benchmark: 50%+ excellent, 35%+ good, 20%+ fair',
@@ -318,6 +336,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Pages per Session': {
             category: 'Google Analytics',
+            source: 'ga4',
             definition: 'Average number of pages viewed during a session.',
             calculation: 'Total page views ÷ Total sessions',
             benchmark: '1.0-1.5 typical for landing pages, 2.0+ excellent for hub pages',
@@ -330,6 +349,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Quality Score': {
             category: 'Dashboard Calculations',
+            source: 'calculated',
             definition: 'Overall content performance score combining search, engagement, relevance, and UX.',
             calculation: '(Search Score + Engagement Score + Relevance Score + UX Score) ÷ 4',
             benchmark: 'A: 85+, B: 75+, C: 65+, D: 55+, F: <55',
@@ -339,6 +359,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Search Score': {
             category: 'Dashboard Calculations',
+            source: 'calculated',
             definition: 'How well your page performs in search results.',
             calculation: '(Position Score + CTR Score) ÷ 2, where Position Score = max(0, 100 - position × 5) and CTR Score = min(100, CTR × 1000)',
             benchmark: '80+: Excellent, 60+: Good, 40+: Fair, <40: Poor',
@@ -348,6 +369,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Engagement Score': {
             category: 'Dashboard Calculations',
+            source: 'calculated',
             definition: 'How well your page engages visitors.',
             calculation: '(Duration Score + Bounce Score) ÷ 2, where Duration Score = min(100, session duration ÷ 300 × 100) and Bounce Score = max(0, (1 - bounce rate) × 100)',
             benchmark: '80+: Highly engaging, 60+: Good, 40+: Fair, <40: Poor',
@@ -357,6 +379,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Relevance Score': {
             category: 'Dashboard Calculations',
+            source: 'calculated',
             definition: 'How well your content matches user search intent.',
             calculation: '(Actual CTR ÷ Expected CTR for position) × 100',
             benchmark: '100+: Exceeds expectations, 80+: Good, 60+: Fair, <60: Poor relevance',
@@ -366,6 +389,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'UX Score': {
             category: 'Dashboard Calculations',
+            source: 'calculated',
             definition: 'User experience quality based on engagement patterns.',
             calculation: '(Engagement Rate × 60) + min(40, Pages per Session × 20)',
             benchmark: '80+: Excellent UX, 60+: Good, 40+: Fair, <40: Poor UX',
@@ -378,6 +402,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Citizens Reached': {
             category: 'Impact Metrics',
+            source: 'calculated',
             definition: 'Total number of citizens who accessed your content monthly.',
             calculation: 'Search Clicks + Unique Users (with overlap consideration)',
             benchmark: 'Varies by service type - aim for consistent monthly growth',
@@ -387,6 +412,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Content Helpfulness': {
             category: 'Impact Metrics',
+            source: 'calculated',
             definition: 'Percentage indicating how helpful your content is to citizens.',
             calculation: '((1 - Bounce Rate) × 50) + (min(100, Session Duration ÷ 180) × 50)',
             benchmark: '80+%: Very helpful, 65+%: Helpful, 50+%: Somewhat helpful, <50%: Needs improvement',
@@ -396,6 +422,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Information Seekers': {
             category: 'Impact Metrics',
+            source: 'calculated',
             definition: 'Citizens actively searching for information you provide.',
             calculation: 'Search Console Clicks + Direct Analytics Users',
             benchmark: 'Growth month-over-month indicates improving service delivery',
@@ -405,6 +432,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Content Success Rate': {
             category: 'Impact Metrics',
+            source: 'calculated',
             definition: 'Percentage of citizens who successfully engaged with your content.',
             calculation: '(1 - Bounce Rate) × 100',
             benchmark: 'Government services: 60%+ good, 70%+ excellent',
@@ -417,6 +445,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Government Engagement Benchmark': {
             category: 'Government Standards',
+            source: 'calculated',
             definition: 'Public sector standard for user engagement with government content.',
             calculation: 'Based on GOV.UK, Canada.ca, and Irish government research',
             benchmark: '50%+ engagement rate for government services',
@@ -426,6 +455,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Government Time Benchmark': {
             category: 'Government Standards',
+            source: 'calculated',
             definition: 'Expected time citizens spend finding government information.',
             calculation: 'Research-based standard for public service digital content',
             benchmark: '52+ seconds average session duration',
@@ -435,6 +465,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Discovery Benchmark': {
             category: 'Government Standards',
+            source: 'calculated',
             definition: 'How easily citizens can find government services through search.',
             calculation: '(Sessions ÷ Page Views) × 100 (Entrance Rate)',
             benchmark: '30%+ entrance rate indicates good discoverability',
@@ -447,6 +478,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Regional Distribution': {
             category: 'Geographic Intelligence',
+            source: 'ga4',
             definition: 'How your users are spread across Irish counties and regions.',
             calculation: 'Percentage breakdown from GA4 geographic data',
             benchmark: 'Balanced: <40% Dublin, Concentrated: >50% Dublin',
@@ -456,6 +488,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Dublin Concentration': {
             category: 'Geographic Intelligence',
+            source: 'calculated',
             definition: 'Percentage of your users located in Dublin metropolitan area.',
             calculation: '(Dublin Users ÷ Total Irish Users) × 100',
             benchmark: '<30%: Distributed, 30-50%: Moderate, >50%: High concentration',
@@ -465,6 +498,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'International Reach': {
             category: 'Geographic Intelligence',
+            source: 'ga4',
             definition: 'Number of countries from which citizens access your services.',
             calculation: 'Count of distinct countries in GA4 geographic data',
             benchmark: '5+: Good reach, 10+: Excellent, 15+: Global service',
@@ -474,6 +508,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Coverage Percentage': {
             category: 'Geographic Intelligence',
+            source: 'calculated',
             definition: 'Percentage of Irish counties your service reaches.',
             calculation: '(Counties with Users ÷ 32 total counties) × 100',
             benchmark: '75%+: Excellent coverage, 50%+: Good, <50%: Limited reach',
@@ -486,6 +521,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Immediate Action Intent': {
             category: 'Citizen Journey',
+            source: 'calculated',
             definition: 'Citizens who need to take urgent action or meet deadlines.',
             calculation: 'Query analysis for urgency keywords (urgent, today, deadline, expires)',
             benchmark: 'High priority - requires immediate response capability',
@@ -495,6 +531,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Eligibility Research Intent': {
             category: 'Citizen Journey',
+            source: 'calculated',
             definition: 'Citizens checking if they qualify for government services.',
             calculation: 'Query analysis for eligibility keywords (entitled, qualify, eligible, criteria)',
             benchmark: 'Common for government services - optimize for clear eligibility info',
@@ -504,6 +541,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Process Learning Intent': {
             category: 'Citizen Journey',
+            source: 'calculated',
             definition: 'Citizens learning how to complete government processes.',
             calculation: 'Query analysis for process keywords (how to, step by step, application process)',
             benchmark: 'Optimize for clear, step-by-step guidance',
@@ -513,6 +551,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Problem Solving Intent': {
             category: 'Citizen Journey',
+            source: 'calculated',
             definition: 'Citizens with issues, appeals, or complaints needing resolution.',
             calculation: 'Query analysis for problem keywords (appeal, complaint, problem, rejected)',
             benchmark: 'High priority - indicates service delivery issues',
@@ -525,6 +564,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Priority Score': {
             category: 'Optimization',
+            source: 'calculated',
             definition: 'Government framework score for content optimization priority.',
             calculation: '(Traffic Score × 0.4) + (Growth Score × 0.25) + (Search Score × 0.2) + (Discovery Score × 0.15)',
             benchmark: '80+: Critical, 60+: High, 40+: Medium, <40: Low priority',
@@ -534,6 +574,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Citizen Opportunity Score': {
             category: 'Optimization',
+            source: 'calculated',
             definition: 'Potential for improving citizen service delivery through content optimization.',
             calculation: 'Weighted score based on search volume, engagement gaps, and citizen impact potential',
             benchmark: '8+: High impact, 5+: Medium impact, 3+: Low impact',
@@ -543,6 +584,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Expected CTR Benchmark': {
             category: 'Optimization',
+            source: 'calculated',
             definition: 'Expected click-through rate based on search result position.',
             calculation: 'Position-based CTR benchmarks from industry research',
             benchmark: 'Pos 1: 28.4%, Pos 2: 15.5%, Pos 3: 11.0%, Pos 4: 7.7%, Pos 5: 6.1%',
@@ -555,6 +597,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Trend Direction': {
             category: 'Performance Trends',
+            source: 'calculated',
             definition: 'Whether a metric is improving, declining, or stable over time.',
             calculation: 'Comparison of current vs previous period performance',
             benchmark: 'Up: >2% improvement, Down: >2% decline, Stable: ±2%',
@@ -564,6 +607,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Growth Rate': {
             category: 'Performance Trends',
+            source: 'calculated',
             definition: 'Rate of change in performance metrics over time.',
             calculation: '((Current Period - Previous Period) ÷ Previous Period) × 100',
             benchmark: 'Positive growth indicates improving service delivery',
@@ -576,6 +620,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Position Anomaly': {
             category: 'Problem Detection',
+            source: 'calculated',
             definition: 'Query ranking in unexpected position relative to click volume.',
             calculation: 'Based on GOV.UK framework: position 4/5 clicks shouldnt exceed 50% of position 1',
             benchmark: 'Indicates technical SEO or content relevance issues',
@@ -585,6 +630,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'CTR Gap': {
             category: 'Problem Detection',
+            source: 'calculated',
             definition: 'Difference between actual and expected click-through rate.',
             calculation: 'Expected CTR (position-based) - Actual CTR',
             benchmark: '>2% gap indicates title/description optimization opportunity',
@@ -594,6 +640,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'High Impression Low Click': {
             category: 'Problem Detection',
+            source: 'calculated',
             definition: 'Pages appearing in search frequently but getting few clicks.',
             calculation: 'Impressions >1000 AND CTR <2%',
             benchmark: 'Indicates poor title/meta description or content mismatch',
@@ -606,6 +653,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'High Opportunity Gap': {
             category: 'Content Gaps',
+            source: 'calculated',
             definition: 'Search queries with high volume but low click-through, indicating content optimization opportunity.',
             calculation: 'Impressions ≥1000 AND CTR <2%',
             benchmark: 'High-priority optimization targets',
@@ -615,6 +663,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Missing Content Gap': {
             category: 'Content Gaps',
+            source: 'calculated',
             definition: 'Search queries showing demand but minimal content coverage.',
             calculation: 'Impressions ≥100 AND Clicks <5',
             benchmark: 'Indicates need for dedicated content creation',
@@ -627,6 +676,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Core Web Vitals': {
             category: 'Technical Performance',
+            source: 'ga4',
             definition: 'Google\'s user experience metrics measuring loading, interactivity, and visual stability.',
             calculation: 'LCP (Largest Contentful Paint) + FID (First Input Delay) + CLS (Cumulative Layout Shift)',
             benchmark: 'Good: LCP <2.5s, FID <100ms, CLS <0.1',
@@ -636,6 +686,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Page Load Speed': {
             category: 'Technical Performance',
+            source: 'ga4',
             definition: 'Time taken for a web page to completely load and display all content.',
             calculation: 'Time from navigation start to load event completion',
             benchmark: 'Excellent: <1s, Good: 1-3s, Fair: 3-5s, Poor: >5s',
@@ -645,6 +696,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Mobile Responsiveness Score': {
             category: 'Technical Performance',
+            source: 'calculated',
             definition: 'How well a website adapts and functions across different mobile devices.',
             calculation: 'Google Mobile-Friendly Test + viewport configuration + touch targets',
             benchmark: '90+: Excellent, 70+: Good, 50+: Fair, <50: Poor mobile experience',
@@ -654,6 +706,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Accessibility Score': {
             category: 'Technical Performance',
+            source: 'calculated',
             definition: 'Website compliance with accessibility standards for users with disabilities.',
             calculation: 'WCAG 2.1 compliance + screen reader compatibility + keyboard navigation',
             benchmark: 'AA compliance required, AAA preferred for government sites',
@@ -666,6 +719,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Organic Traffic': {
             category: 'Traffic Sources',
+            source: 'ga4',
             definition: 'Website visitors who arrive through unpaid search engine results.',
             calculation: 'Users from Google, Bing, other search engines (excluding ads)',
             benchmark: '60-80% organic traffic indicates strong SEO performance',
@@ -675,6 +729,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Direct Traffic': {
             category: 'Traffic Sources',
+            source: 'ga4',
             definition: 'Users who visit by typing URL directly or using bookmarks.',
             calculation: 'Sessions with no identifiable referral source',
             benchmark: '20-40% direct traffic shows good brand recognition',
@@ -684,6 +739,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Referral Traffic': {
             category: 'Traffic Sources',
+            source: 'ga4',
             definition: 'Visitors who arrive from links on other websites.',
             calculation: 'Sessions originating from external website links',
             benchmark: '5-15% referral traffic indicates good external visibility',
@@ -693,6 +749,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Social Media Traffic': {
             category: 'Traffic Sources',
+            source: 'ga4',
             definition: 'Website visits originating from social media platforms.',
             calculation: 'Sessions from Facebook, Twitter, LinkedIn, other social platforms',
             benchmark: '2-10% social traffic typical for government services',
@@ -705,6 +762,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Exit Rate': {
             category: 'Advanced User Behavior',
+            source: 'ga4',
             definition: 'Percentage of visitors who leave the website from a specific page.',
             calculation: '(Exits from page ÷ Total page views) × 100',
             benchmark: '<40% excellent, 40-60% good, >60% needs improvement',
@@ -714,6 +772,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Scroll Depth': {
             category: 'Advanced User Behavior',
+            source: 'ga4',
             definition: 'How far down a page users scroll, indicating content engagement.',
             calculation: 'Percentage of page height viewed by users',
             benchmark: '75%+ scroll depth indicates engaging content',
@@ -723,6 +782,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Time on Page': {
             category: 'Advanced User Behavior',
+            source: 'ga4',
             definition: 'Average time users spend actively reading a specific page.',
             calculation: 'Total time spent on page ÷ Number of page views',
             benchmark: '2+ minutes excellent, 1+ minute good for informational content',
@@ -732,6 +792,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Return Visit Intent': {
             category: 'Advanced User Behavior',
+            source: 'calculated',
             definition: 'Likelihood that users will return to the website in the future.',
             calculation: '(Return visitors ÷ Total visitors) × 100',
             benchmark: '30%+ return rate excellent for government services',
@@ -744,6 +805,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'Task Completion Rate': {
             category: 'Digital Service Delivery',
+            source: 'ga4',
             definition: 'Percentage of users who successfully complete their intended actions.',
             calculation: '(Completed tasks ÷ Attempted tasks) × 100',
             benchmark: '80%+ excellent, 60%+ good for complex government processes',
@@ -753,6 +815,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Form Completion Rate': {
             category: 'Digital Service Delivery',
+            source: 'ga4',
             definition: 'Percentage of users who complete forms versus abandoning them.',
             calculation: '(Form submissions ÷ Form starts) × 100',
             benchmark: '70%+ excellent, 50%+ good for government forms',
@@ -762,6 +825,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Self-service Success Rate': {
             category: 'Digital Service Delivery',
+            source: 'calculated',
             definition: 'Citizens who resolve issues without requiring human assistance.',
             calculation: '(Self-resolved queries ÷ Total queries) × 100',
             benchmark: '70%+ reduces support burden, improves efficiency',
@@ -771,6 +835,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Digital Adoption Rate': {
             category: 'Digital Service Delivery',
+            source: 'calculated',
             definition: 'Citizens choosing digital channels over traditional methods.',
             calculation: '(Digital transactions ÷ Total transactions) × 100',
             benchmark: '60%+ shows successful digital transformation',
@@ -783,6 +848,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'PDF Download Rate': {
             category: 'Content Engagement',
+            source: 'ga4',
             definition: 'How frequently documents and forms are downloaded by users.',
             calculation: '(PDF downloads ÷ Page views) × 100',
             benchmark: '15%+ download rate indicates valuable resources',
@@ -792,6 +858,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Video Engagement Rate': {
             category: 'Content Engagement',
+            source: 'ga4',
             definition: 'Percentage of video content watched versus total video length.',
             calculation: '(Total watch time ÷ Total video length × views) × 100',
             benchmark: '50%+ engagement excellent, 25%+ good for instructional videos',
@@ -801,6 +868,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Site Search Usage': {
             category: 'Content Engagement',
+            source: 'ga4',
             definition: 'How often visitors use internal search to find information.',
             calculation: '(Sessions with search ÷ Total sessions) × 100',
             benchmark: '10-30% search usage indicates good findability balance',
@@ -810,6 +878,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'FAQ Effectiveness': {
             category: 'Content Engagement',
+            source: 'calculated',
             definition: 'How well FAQ sections answer questions without requiring further support.',
             calculation: '(FAQ page exits ÷ FAQ page views) × 100',
             benchmark: '60%+ exit rate from FAQ indicates effective answers',
@@ -822,6 +891,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // ===========================================
         'User Satisfaction Score': {
             category: 'Citizen Experience',
+            source: 'calculated',
             definition: 'Survey-based measurement of citizen happiness with digital services.',
             calculation: 'Average rating from user feedback surveys (1-10 scale)',
             benchmark: '8.0+ excellent, 7.0+ good, 6.0+ acceptable citizen satisfaction',
@@ -831,6 +901,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Error Rate': {
             category: 'Citizen Experience',
+            source: 'ga4',
             definition: 'Frequency of technical problems encountered by users.',
             calculation: '(Error events ÷ Total interactions) × 100',
             benchmark: '<2% error rate excellent, <5% acceptable for government sites',
@@ -840,6 +911,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Support Ticket Volume': {
             category: 'Citizen Experience',
+            source: 'calculated',
             definition: 'Number of help requests generated by website content or processes.',
             calculation: 'Count of support requests attributed to website issues',
             benchmark: 'Decreasing trend indicates improving self-service effectiveness',
@@ -849,6 +921,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
 
         'Multi-language Usage': {
             category: 'Citizen Experience',
+            source: 'ga4',
             definition: 'Distribution of citizens accessing content in different languages.',
             calculation: 'Percentage breakdown by language preference',
             benchmark: 'Reflects Ireland\'s linguistic diversity and accessibility',
@@ -901,6 +974,30 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         'Content Gaps': {
             icon: '🔍',
             description: 'Missing or underperforming content areas with citizen demand'
+        },
+        'Technical Performance': {
+            icon: '⚡',
+            description: 'Website speed, accessibility, and technical user experience metrics'
+        },
+        'Traffic Sources': {
+            icon: '🚪',
+            description: 'How citizens discover and arrive at your digital services'
+        },
+        'Advanced User Behavior': {
+            icon: '🎭',
+            description: 'Detailed analysis of how citizens interact with your content'
+        },
+        'Digital Service Delivery': {
+            icon: '💻',
+            description: 'Effectiveness of online government services and processes'
+        },
+        'Content Engagement': {
+            icon: '📖',
+            description: 'How citizens interact with different types of content and resources'
+        },
+        'Citizen Experience': {
+            icon: '😊',
+            description: 'Overall satisfaction and experience quality metrics for citizens'
         }
     };
     
@@ -1060,6 +1157,38 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                         <div class="summary-content">
                             <span class="results-text">Showing ${Object.keys(glossaryData).length} terms</span>
                             <span class="menu-hint" id="menuHint">💡 Click "Show Menu" above to browse by category or letter</span>
+                        </div>
+                        <div class="source-legend">
+                            <div class="legend-item">
+                                <div class="source-indicator ga4">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" style="opacity: 0.8;">
+                                        <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                                    </svg>
+                                    <span class="source-label">GA4</span>
+                                </div>
+                                <span class="legend-desc">Google Analytics 4</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="source-indicator search-console">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" style="opacity: 0.8;">
+                                        <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                        <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                        <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                        <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                    </svg>
+                                    <span class="source-label">SC</span>
+                                </div>
+                                <span class="legend-desc">Search Console</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="source-indicator calculated">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" style="opacity: 0.8;">
+                                        <path fill="#6b7280" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                                    </svg>
+                                    <span class="source-label">CALC</span>
+                                </div>
+                                <span class="legend-desc">Calculated</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -2112,6 +2241,7 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                         display: flex;
                         flex-direction: column;
                         gap: 6px;
+                        margin-bottom: 12px;
                     }
                     
                     .results-text {
@@ -2124,6 +2254,27 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                         font-size: 0.8rem;
                         font-weight: 500;
                         animation: fadeIn 0.5s ease-in-out;
+                    }
+                    
+                    /* Source Legend */
+                    .source-legend {
+                        display: flex;
+                        gap: 16px;
+                        flex-wrap: wrap;
+                        padding-top: 8px;
+                        border-top: 1px solid rgba(226, 232, 240, 0.5);
+                    }
+                    
+                    .legend-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 0.75rem;
+                    }
+                    
+                    .legend-desc {
+                        color: #64748b;
+                        font-weight: 500;
                     }
                     
                     @keyframes fadeIn {
@@ -2171,13 +2322,63 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                         gap: 16px;
                     }
                     
+                    .entry-title-section {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        flex: 1;
+                    }
+                    
                     .entry-term {
                         margin: 0;
                         color: #1f2937;
                         font-size: 1.2rem;
                         font-weight: 700;
-                        flex: 1;
                         line-height: 1.3;
+                    }
+                    
+                    /* Source Indicators */
+                    .source-indicator {
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        padding: 4px 8px;
+                        border-radius: 12px;
+                        font-size: 0.7rem;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        flex-shrink: 0;
+                        border: 1px solid;
+                        background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%);
+                    }
+                    
+                    .source-indicator.ga4 {
+                        background: linear-gradient(135deg, #fff5f2 0%, #fed7cc 100%);
+                        color: #c2410c;
+                        border-color: rgba(255, 107, 53, 0.3);
+                    }
+                    
+                    .source-indicator.search-console {
+                        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                        color: #1d4ed8;
+                        border-color: rgba(66, 133, 244, 0.3);
+                    }
+                    
+                    .source-indicator.calculated {
+                        background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+                        color: #374151;
+                        border-color: rgba(107, 114, 128, 0.3);
+                    }
+                    
+                    .source-indicator svg {
+                        width: 14px;
+                        height: 14px;
+                    }
+                    
+                    .source-label {
+                        font-size: 0.65rem;
+                        font-weight: 700;
                     }
                     
                     .entry-category {
@@ -2371,6 +2572,16 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                             gap: 8px;
                         }
                         
+                        .entry-title-section {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 8px;
+                        }
+                        
+                        .source-indicator {
+                            align-self: flex-start;
+                        }
+                        
                         .entry-category {
                             align-self: flex-start;
                         }
@@ -2513,27 +2724,58 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                     console.log('💡 Usage:');
                     console.log('   - DashboardGlossary.open() - Open the glossary');
                     console.log('   - DashboardGlossary.searchFor("CTR") - Search for CTR');
-                    console.log('   - DashboardGlossary.searchFor("clicks") - Search for clicks');
-                    console.log('   - DashboardGlossary.searchFor("bounce rate") - Search for bounce rate');
-                    console.log('   - DashboardGlossary.goToCategory("Search Console") - Filter by category');
+                    console.log('   - DashboardGlossary.searchFor("core web vitals") - Search technical metrics');
+                    console.log('   - DashboardGlossary.searchFor("citizen satisfaction") - Search experience metrics');
+                    console.log('   - DashboardGlossary.goToCategory("Technical Performance") - Filter by category');
                     console.log('   - DashboardGlossary.isHealthy() - Check if system is working');
                     console.log('');
-                    console.log('🔍 Test the search with these terms:');
-                    console.log('   - "CTR" or "ctr" (should find Click-Through Rate)');
-                    console.log('   - "users" (should find Users term)');
-                    console.log('   - "bounce" (should find Bounce Rate)');
-                    console.log('   - "average session" (should find Average Session Duration)');
+                    console.log('🔍 Test the comprehensive search with these terms:');
+                    console.log('   - "CTR" or "ctr" (Search Console metrics)');
+                    console.log('   - "accessibility" (Technical Performance)');
+                    console.log('   - "organic traffic" (Traffic Sources)');
+                    console.log('   - "task completion" (Digital Service Delivery)');
+                    console.log('   - "scroll depth" (Advanced User Behavior)');
+                    console.log('   - "citizen satisfaction" (Citizen Experience)');
+                    console.log('   - "dublin concentration" (Geographic Intelligence)');
                     console.log('');
-                    console.log('🧪 Quick test helper:');
-                    console.log('   window.testSearch = () => {');
-                    console.log('     DashboardGlossary.open();');
-                    console.log('     setTimeout(() => DashboardGlossary.searchFor("CTR"), 500);');
-                    console.log('   };');
                     
-                    // Create test helper
+                    // Count metrics by source
+                    const sourceCount = {
+                        ga4: 0,
+                        search_console: 0,
+                        calculated: 0
+                    };
+                    
+                    Object.values(glossaryData).forEach(term => {
+                        sourceCount[term.source || 'calculated']++;
+                    });
+                    
+                    console.log(`📊 Total terms available: ${Object.keys(glossaryData).length}`);
+                    console.log(`📂 Categories: ${Object.keys(categories).length}`);
+                    console.log(`🔢 Source breakdown:`);
+                    console.log(`   📈 GA4 Direct Metrics: ${sourceCount.ga4}`);
+                    console.log(`   🔍 Search Console Direct: ${sourceCount.search_console}`);
+                    console.log(`   🧮 Calculated/Derived: ${sourceCount.calculated}`);
+                    console.log('');
+                    console.log('🧪 Quick test helpers:');
+                    console.log('   testSearch() - Opens and searches for CTR');
+                    console.log('   testTechnical() - Tests technical performance search');
+                    console.log('   testCitizen() - Tests citizen experience search');
+                    
+                    // Create test helpers
                     window.testSearch = () => {
                         DashboardGlossary.open();
                         setTimeout(() => DashboardGlossary.searchFor("CTR"), 500);
+                    };
+                    
+                    window.testTechnical = () => {
+                        DashboardGlossary.open();
+                        setTimeout(() => DashboardGlossary.searchFor("core web vitals"), 500);
+                    };
+                    
+                    window.testCitizen = () => {
+                        DashboardGlossary.open();
+                        setTimeout(() => DashboardGlossary.searchFor("citizen satisfaction"), 500);
                     };
                     
                 } else {
