@@ -620,6 +620,240 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
             benchmark: 'Indicates need for dedicated content creation',
             example: '"emergency passport" with 300 impressions, 2 clicks needs dedicated content',
             relatedTerms: ['Content Creation Opportunity', 'Unmet Search Demand', 'Service Gap']
+        },
+
+        // ===========================================
+        // TECHNICAL PERFORMANCE
+        // ===========================================
+        'Core Web Vitals': {
+            category: 'Technical Performance',
+            definition: 'Google\'s user experience metrics measuring loading, interactivity, and visual stability.',
+            calculation: 'LCP (Largest Contentful Paint) + FID (First Input Delay) + CLS (Cumulative Layout Shift)',
+            benchmark: 'Good: LCP <2.5s, FID <100ms, CLS <0.1',
+            example: 'LCP 1.8s, FID 45ms, CLS 0.05 = Excellent Core Web Vitals score',
+            relatedTerms: ['Page Speed', 'User Experience', 'SEO Performance']
+        },
+
+        'Page Load Speed': {
+            category: 'Technical Performance',
+            definition: 'Time taken for a web page to completely load and display all content.',
+            calculation: 'Time from navigation start to load event completion',
+            benchmark: 'Excellent: <1s, Good: 1-3s, Fair: 3-5s, Poor: >5s',
+            example: '2.3 second load time provides good user experience',
+            relatedTerms: ['Core Web Vitals', 'User Experience', 'Bounce Rate']
+        },
+
+        'Mobile Responsiveness Score': {
+            category: 'Technical Performance',
+            definition: 'How well a website adapts and functions across different mobile devices.',
+            calculation: 'Google Mobile-Friendly Test + viewport configuration + touch targets',
+            benchmark: '90+: Excellent, 70+: Good, 50+: Fair, <50: Poor mobile experience',
+            example: 'Score 92 indicates excellent mobile responsiveness',
+            relatedTerms: ['User Experience', 'Mobile Traffic', 'Accessibility']
+        },
+
+        'Accessibility Score': {
+            category: 'Technical Performance',
+            definition: 'Website compliance with accessibility standards for users with disabilities.',
+            calculation: 'WCAG 2.1 compliance + screen reader compatibility + keyboard navigation',
+            benchmark: 'AA compliance required, AAA preferred for government sites',
+            example: 'WCAG AA compliance ensures 95% of users can access content',
+            relatedTerms: ['User Experience', 'Government Standards', 'Inclusion']
+        },
+
+        // ===========================================
+        // TRAFFIC SOURCES
+        // ===========================================
+        'Organic Traffic': {
+            category: 'Traffic Sources',
+            definition: 'Website visitors who arrive through unpaid search engine results.',
+            calculation: 'Users from Google, Bing, other search engines (excluding ads)',
+            benchmark: '60-80% organic traffic indicates strong SEO performance',
+            example: '1,200 organic visitors means people found you through search',
+            relatedTerms: ['Search Console', 'SEO Performance', 'Clicks']
+        },
+
+        'Direct Traffic': {
+            category: 'Traffic Sources',
+            definition: 'Users who visit by typing URL directly or using bookmarks.',
+            calculation: 'Sessions with no identifiable referral source',
+            benchmark: '20-40% direct traffic shows good brand recognition',
+            example: '340 direct visits indicate citizens know your URL',
+            relatedTerms: ['Brand Awareness', 'Return Visitors', 'Bookmarks']
+        },
+
+        'Referral Traffic': {
+            category: 'Traffic Sources',
+            definition: 'Visitors who arrive from links on other websites.',
+            calculation: 'Sessions originating from external website links',
+            benchmark: '5-15% referral traffic indicates good external visibility',
+            example: '150 referral visits from gov.ie shows good integration',
+            relatedTerms: ['External Links', 'Partnerships', 'Content Sharing']
+        },
+
+        'Social Media Traffic': {
+            category: 'Traffic Sources',
+            definition: 'Website visits originating from social media platforms.',
+            calculation: 'Sessions from Facebook, Twitter, LinkedIn, other social platforms',
+            benchmark: '2-10% social traffic typical for government services',
+            example: '45 social visits show citizens sharing your content',
+            relatedTerms: ['Content Sharing', 'Public Engagement', 'Viral Content']
+        },
+
+        // ===========================================
+        // ADVANCED USER BEHAVIOR
+        // ===========================================
+        'Exit Rate': {
+            category: 'Advanced User Behavior',
+            definition: 'Percentage of visitors who leave the website from a specific page.',
+            calculation: '(Exits from page ÷ Total page views) × 100',
+            benchmark: '<40% excellent, 40-60% good, >60% needs improvement',
+            example: '35% exit rate means 35 of 100 visitors leave from this page',
+            relatedTerms: ['Bounce Rate', 'User Journey', 'Content Effectiveness']
+        },
+
+        'Scroll Depth': {
+            category: 'Advanced User Behavior',
+            definition: 'How far down a page users scroll, indicating content engagement.',
+            calculation: 'Percentage of page height viewed by users',
+            benchmark: '75%+ scroll depth indicates engaging content',
+            example: '82% average scroll depth means users read most content',
+            relatedTerms: ['Content Engagement', 'User Interest', 'Content Length']
+        },
+
+        'Time on Page': {
+            category: 'Advanced User Behavior',
+            definition: 'Average time users spend actively reading a specific page.',
+            calculation: 'Total time spent on page ÷ Number of page views',
+            benchmark: '2+ minutes excellent, 1+ minute good for informational content',
+            example: '3:24 time on page shows high content engagement',
+            relatedTerms: ['Engagement Rate', 'Content Quality', 'User Interest']
+        },
+
+        'Return Visit Intent': {
+            category: 'Advanced User Behavior',
+            definition: 'Likelihood that users will return to the website in the future.',
+            calculation: '(Return visitors ÷ Total visitors) × 100',
+            benchmark: '30%+ return rate excellent for government services',
+            example: '35% return intent shows citizens find ongoing value',
+            relatedTerms: ['User Loyalty', 'Content Value', 'Service Quality']
+        },
+
+        // ===========================================
+        // DIGITAL SERVICE DELIVERY
+        // ===========================================
+        'Task Completion Rate': {
+            category: 'Digital Service Delivery',
+            definition: 'Percentage of users who successfully complete their intended actions.',
+            calculation: '(Completed tasks ÷ Attempted tasks) × 100',
+            benchmark: '80%+ excellent, 60%+ good for complex government processes',
+            example: '78% completion rate means most citizens finish applications',
+            relatedTerms: ['User Success', 'Process Efficiency', 'Service Quality']
+        },
+
+        'Form Completion Rate': {
+            category: 'Digital Service Delivery',
+            definition: 'Percentage of users who complete forms versus abandoning them.',
+            calculation: '(Form submissions ÷ Form starts) × 100',
+            benchmark: '70%+ excellent, 50%+ good for government forms',
+            example: '68% form completion shows user-friendly design',
+            relatedTerms: ['Task Completion', 'User Experience', 'Process Optimization']
+        },
+
+        'Self-service Success Rate': {
+            category: 'Digital Service Delivery',
+            definition: 'Citizens who resolve issues without requiring human assistance.',
+            calculation: '(Self-resolved queries ÷ Total queries) × 100',
+            benchmark: '70%+ reduces support burden, improves efficiency',
+            example: '75% self-service success reduces call center load',
+            relatedTerms: ['Service Efficiency', 'Content Effectiveness', 'Cost Savings']
+        },
+
+        'Digital Adoption Rate': {
+            category: 'Digital Service Delivery',
+            definition: 'Citizens choosing digital channels over traditional methods.',
+            calculation: '(Digital transactions ÷ Total transactions) × 100',
+            benchmark: '60%+ shows successful digital transformation',
+            example: '67% digital adoption means citizens prefer online services',
+            relatedTerms: ['Digital Transformation', 'Channel Preference', 'Service Modernization']
+        },
+
+        // ===========================================
+        // CONTENT ENGAGEMENT
+        // ===========================================
+        'PDF Download Rate': {
+            category: 'Content Engagement',
+            definition: 'How frequently documents and forms are downloaded by users.',
+            calculation: '(PDF downloads ÷ Page views) × 100',
+            benchmark: '15%+ download rate indicates valuable resources',
+            example: '22% download rate shows citizens value your documents',
+            relatedTerms: ['Resource Usage', 'Content Value', 'Document Effectiveness']
+        },
+
+        'Video Engagement Rate': {
+            category: 'Content Engagement',
+            definition: 'Percentage of video content watched versus total video length.',
+            calculation: '(Total watch time ÷ Total video length × views) × 100',
+            benchmark: '50%+ engagement excellent, 25%+ good for instructional videos',
+            example: '58% video engagement shows compelling visual content',
+            relatedTerms: ['Content Quality', 'User Interest', 'Information Delivery']
+        },
+
+        'Site Search Usage': {
+            category: 'Content Engagement',
+            definition: 'How often visitors use internal search to find information.',
+            calculation: '(Sessions with search ÷ Total sessions) × 100',
+            benchmark: '10-30% search usage indicates good findability balance',
+            example: '18% search usage shows citizens actively seek information',
+            relatedTerms: ['Information Architecture', 'User Intent', 'Content Findability']
+        },
+
+        'FAQ Effectiveness': {
+            category: 'Content Engagement',
+            definition: 'How well FAQ sections answer questions without requiring further support.',
+            calculation: '(FAQ page exits ÷ FAQ page views) × 100',
+            benchmark: '60%+ exit rate from FAQ indicates effective answers',
+            example: '71% FAQ effectiveness reduces support ticket volume',
+            relatedTerms: ['Self-service', 'Content Quality', 'Support Reduction']
+        },
+
+        // ===========================================
+        // CITIZEN EXPERIENCE
+        // ===========================================
+        'User Satisfaction Score': {
+            category: 'Citizen Experience',
+            definition: 'Survey-based measurement of citizen happiness with digital services.',
+            calculation: 'Average rating from user feedback surveys (1-10 scale)',
+            benchmark: '8.0+ excellent, 7.0+ good, 6.0+ acceptable citizen satisfaction',
+            example: '8.2 satisfaction score indicates citizens are very happy',
+            relatedTerms: ['Service Quality', 'User Experience', 'Citizen Feedback']
+        },
+
+        'Error Rate': {
+            category: 'Citizen Experience',
+            definition: 'Frequency of technical problems encountered by users.',
+            calculation: '(Error events ÷ Total interactions) × 100',
+            benchmark: '<2% error rate excellent, <5% acceptable for government sites',
+            example: '1.3% error rate shows stable, reliable service',
+            relatedTerms: ['Technical Performance', 'User Experience', 'Site Reliability']
+        },
+
+        'Support Ticket Volume': {
+            category: 'Citizen Experience',
+            definition: 'Number of help requests generated by website content or processes.',
+            calculation: 'Count of support requests attributed to website issues',
+            benchmark: 'Decreasing trend indicates improving self-service effectiveness',
+            example: '15% reduction in tickets shows better content clarity',
+            relatedTerms: ['Self-service Success', 'Content Effectiveness', 'Cost Efficiency']
+        },
+
+        'Multi-language Usage': {
+            category: 'Citizen Experience',
+            definition: 'Distribution of citizens accessing content in different languages.',
+            calculation: 'Percentage breakdown by language preference',
+            benchmark: 'Reflects Ireland\'s linguistic diversity and accessibility',
+            example: '92% English, 8% Irish shows language preference patterns',
+            relatedTerms: ['Accessibility', 'Cultural Inclusion', 'Service Reach']
         }
     };
     
