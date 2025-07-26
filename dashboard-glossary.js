@@ -80,98 +80,462 @@
     // ===========================================
     
     const glossaryData = {
-        // METRICS & KPIs
-        'Average Position': {
-            category: 'Search Metrics',
-            definition: 'The average ranking position of your page in Google search results for all queries.',
-            calculation: 'Sum of (position × impressions) ÷ total impressions for all queries',
-            benchmark: 'Position 1-3: Excellent, 4-10: Good, 11-20: Fair, 21+: Poor',
-            example: 'If your page ranks #3 for "social welfare" and #7 for "benefits", the average considers impression volume',
-            relatedTerms: ['Search Position', 'SERP Ranking', 'Organic Position']
-        },
-        
-        'Average Session Duration': {
-            category: 'User Behavior',
-            definition: 'The average amount of time users spend on your page during a single visit.',
-            calculation: 'Total session duration ÷ number of sessions',
-            benchmark: 'Government standard: 52+ seconds is good, 180+ seconds is excellent',
-            example: '2:30 means citizens spend an average of 2 minutes 30 seconds reading your content',
-            relatedTerms: ['Time on Page', 'Engagement Time', 'Dwell Time']
-        },
-        
-        'Bounce Rate': {
-            category: 'User Behavior',
-            definition: 'Percentage of visitors who leave your page without interacting or viewing other pages.',
-            calculation: '(Single-page sessions ÷ total sessions) × 100',
-            benchmark: 'Under 40%: Excellent, 40-60%: Good, 60-80%: Fair, 80%+: Poor',
-            example: '45% bounce rate means 45 out of 100 visitors leave immediately',
-            relatedTerms: ['Exit Rate', 'Single Page Sessions', 'Engagement Rate']
-        },
-        
+        // ===========================================
+        // SEARCH CONSOLE METRICS
+        // ===========================================
         'CTR (Click-Through Rate)': {
-            category: 'Search Metrics',
+            category: 'Search Console',
             definition: 'Percentage of people who click on your page after seeing it in search results.',
             calculation: '(Clicks ÷ Impressions) × 100',
             benchmark: 'Position 1: ~28%, Position 2: ~15%, Position 3: ~11%, Position 4-5: ~6%',
             example: '5.2% CTR means 52 people clicked for every 1,000 who saw your page in search',
             relatedTerms: ['Click Rate', 'Search CTR', 'Organic CTR']
         },
-        
+
+        'Clicks': {
+            category: 'Search Console',
+            definition: 'Number of times users clicked on your page from Google search results.',
+            calculation: 'Direct count from Search Console',
+            benchmark: 'Varies by content type - government pages typically 100-1,000+ monthly',
+            example: '245 clicks means 245 people visited your page from Google search this month',
+            relatedTerms: ['Search Clicks', 'Organic Clicks', 'GSC Clicks']
+        },
+
+        'Impressions': {
+            category: 'Search Console',
+            definition: 'Number of times your page appeared in Google search results.',
+            calculation: 'Direct count from Search Console',
+            benchmark: 'Good: 10x more than clicks, Excellent: 20x+ more than clicks',
+            example: '5,000 impressions means your page appeared in search results 5,000 times',
+            relatedTerms: ['Search Impressions', 'SERP Appearances', 'Visibility']
+        },
+
+        'Average Position': {
+            category: 'Search Console',
+            definition: 'Average ranking position of your page in Google search results.',
+            calculation: 'Weighted average of all query positions',
+            benchmark: 'Excellent: 1-3, Good: 4-10, Fair: 11-20, Poor: 20+',
+            example: 'Position 5.2 means your page typically appears 5th-6th in search results',
+            relatedTerms: ['Ranking', 'SERP Position', 'Search Ranking']
+        },
+
+        'Top Queries': {
+            category: 'Search Console',
+            definition: 'Most common search terms that lead people to your page.',
+            calculation: 'Ranked by clicks or impressions',
+            benchmark: 'Top query should represent 10-30% of total traffic',
+            example: '"passport application" bringing 45 clicks shows citizens need passport info',
+            relatedTerms: ['Search Queries', 'Keywords', 'Search Terms']
+        },
+
+        // ===========================================
+        // GOOGLE ANALYTICS 4 METRICS
+        // ===========================================
+        'Users': {
+            category: 'Google Analytics',
+            definition: 'Number of unique individuals who visited your page.',
+            calculation: 'Distinct count based on Google Analytics user identification',
+            benchmark: 'Government pages: 500-5,000+ monthly users typical',
+            example: '1,250 users means 1,250 different people visited your page',
+            relatedTerms: ['Unique Visitors', 'Distinct Users', 'People']
+        },
+
+        'Page Views': {
+            category: 'Google Analytics',
+            definition: 'Total number of times your page was viewed (includes repeat visits).',
+            calculation: 'Count of all page view events',
+            benchmark: 'Typically 1.2-2.5x higher than users (people viewing multiple times)',
+            example: '1,800 page views from 1,250 users means some people returned',
+            relatedTerms: ['Views', 'Page Hits', 'Total Views']
+        },
+
+        'Sessions': {
+            category: 'Google Analytics',
+            definition: 'Number of visits to your website (a session can include multiple pages).',
+            calculation: 'Count of distinct user sessions',
+            benchmark: 'Usually similar to Users for single-page analysis',
+            example: '1,300 sessions means people made 1,300 separate visits',
+            relatedTerms: ['Visits', 'Site Sessions', 'User Sessions']
+        },
+
+        'Average Session Duration': {
+            category: 'Google Analytics',
+            definition: 'Average time users spend on your page during a session.',
+            calculation: 'Total session duration ÷ Number of sessions',
+            benchmark: 'Government: 52+ seconds excellent, 35+ good, 20+ fair',
+            example: '2:15 duration means people typically spend 2 minutes 15 seconds reading',
+            relatedTerms: ['Time on Page', 'Session Length', 'Engagement Time']
+        },
+
+        'Bounce Rate': {
+            category: 'Google Analytics',
+            definition: 'Percentage of users who leave your page without interacting (single-page sessions).',
+            calculation: '(Single-page sessions ÷ Total sessions) × 100',
+            benchmark: 'Government: <40% excellent, 40-60% good, 60-80% fair, >80% poor',
+            example: '35% bounce rate means 35 out of 100 visitors left immediately',
+            relatedTerms: ['Exit Rate', 'Single Page Sessions', 'Immediate Exits']
+        },
+
+        'Engagement Rate': {
+            category: 'Google Analytics',
+            definition: 'Percentage of sessions where users actively engaged with your content.',
+            calculation: '(Engaged sessions ÷ Total sessions) × 100',
+            benchmark: 'Government benchmark: 50%+ excellent, 35%+ good, 20%+ fair',
+            example: '65% engagement rate means 65 out of 100 visitors actively engaged',
+            relatedTerms: ['User Engagement', 'Active Sessions', 'Content Engagement']
+        },
+
+        'Pages per Session': {
+            category: 'Google Analytics',
+            definition: 'Average number of pages viewed during a session.',
+            calculation: 'Total page views ÷ Total sessions',
+            benchmark: '1.0-1.5 typical for landing pages, 2.0+ excellent for hub pages',
+            example: '1.8 pages per session means users view nearly 2 pages per visit',
+            relatedTerms: ['Page Depth', 'Site Navigation', 'Content Consumption']
+        },
+
+        // ===========================================
+        // CALCULATED QUALITY METRICS
+        // ===========================================
+        'Quality Score': {
+            category: 'Dashboard Calculations',
+            definition: 'Overall content performance score combining search, engagement, relevance, and UX.',
+            calculation: '(Search Score + Engagement Score + Relevance Score + UX Score) ÷ 4',
+            benchmark: 'A: 85+, B: 75+, C: 65+, D: 55+, F: <55',
+            example: 'Quality Score 78 (B grade) indicates good overall performance',
+            relatedTerms: ['Performance Score', 'Content Rating', 'Overall Score']
+        },
+
+        'Search Score': {
+            category: 'Dashboard Calculations',
+            definition: 'How well your page performs in search results.',
+            calculation: '(Position Score + CTR Score) ÷ 2, where Position Score = max(0, 100 - position × 5) and CTR Score = min(100, CTR × 1000)',
+            benchmark: '80+: Excellent, 60+: Good, 40+: Fair, <40: Poor',
+            example: 'Search Score 72 indicates good search performance',
+            relatedTerms: ['SEO Score', 'Search Performance', 'Visibility Score']
+        },
+
+        'Engagement Score': {
+            category: 'Dashboard Calculations',
+            definition: 'How well your page engages visitors.',
+            calculation: '(Duration Score + Bounce Score) ÷ 2, where Duration Score = min(100, session duration ÷ 300 × 100) and Bounce Score = max(0, (1 - bounce rate) × 100)',
+            benchmark: '80+: Highly engaging, 60+: Good, 40+: Fair, <40: Poor',
+            example: 'Engagement Score 68 shows good user engagement',
+            relatedTerms: ['User Engagement', 'Content Engagement', 'Interaction Score']
+        },
+
+        'Relevance Score': {
+            category: 'Dashboard Calculations',
+            definition: 'How well your content matches user search intent.',
+            calculation: '(Actual CTR ÷ Expected CTR for position) × 100',
+            benchmark: '100+: Exceeds expectations, 80+: Good, 60+: Fair, <60: Poor relevance',
+            example: 'Relevance Score 110 means content exceeds user expectations',
+            relatedTerms: ['Content Relevance', 'Search Intent Match', 'User Satisfaction']
+        },
+
+        'UX Score': {
+            category: 'Dashboard Calculations',
+            definition: 'User experience quality based on engagement patterns.',
+            calculation: '(Engagement Rate × 60) + min(40, Pages per Session × 20)',
+            benchmark: '80+: Excellent UX, 60+: Good, 40+: Fair, <40: Poor UX',
+            example: 'UX Score 75 indicates good user experience',
+            relatedTerms: ['User Experience', 'Usability Score', 'Interface Quality']
+        },
+
+        // ===========================================
+        // CITIZEN IMPACT METRICS
+        // ===========================================
         'Citizens Reached': {
             category: 'Impact Metrics',
-            definition: 'Total number of unique citizens who accessed your page in the last 30 days.',
-            calculation: 'Search Console clicks + Google Analytics unique users (with overlap consideration)',
-            benchmark: 'Varies by service type and page scope',
-            example: '2.3K citizens reached means 2,300 individual people accessed your information',
-            relatedTerms: ['Monthly Reach', 'User Count', 'Citizen Impact']
+            definition: 'Total number of citizens who accessed your content monthly.',
+            calculation: 'Search Clicks + Unique Users (with overlap consideration)',
+            benchmark: 'Varies by service type - aim for consistent monthly growth',
+            example: '2,850 citizens reached means your content helped 2,850 people find information',
+            relatedTerms: ['Monthly Reach', 'Citizen Engagement', 'Public Impact']
         },
-        
-        'Content Quality Score': {
-            category: 'Quality Metrics',
-            definition: 'Composite score measuring how well your content serves citizen needs.',
-            calculation: '(Search Score + Engagement Score + Relevance Score + UX Score) ÷ 4',
-            benchmark: '85+: A grade, 75-84: B grade, 65-74: C grade, <65: Needs improvement',
-            example: 'Score of 78/100 indicates good content that could be optimized further',
-            relatedTerms: ['Page Quality', 'Content Effectiveness', 'User Satisfaction']
+
+        'Content Helpfulness': {
+            category: 'Impact Metrics',
+            definition: 'Percentage indicating how helpful your content is to citizens.',
+            calculation: '((1 - Bounce Rate) × 50) + (min(100, Session Duration ÷ 180) × 50)',
+            benchmark: '80+%: Very helpful, 65+%: Helpful, 50+%: Somewhat helpful, <50%: Needs improvement',
+            example: '72% helpfulness means most citizens find your content useful',
+            relatedTerms: ['Content Effectiveness', 'User Satisfaction', 'Service Quality']
         },
-        
-        'Engagement Rate': {
-            category: 'User Behavior',
-            definition: 'Percentage of sessions where users actively engaged with your content.',
-            calculation: '(Engaged sessions ÷ total sessions) × 100. Engaged = 10+ seconds OR page view OR conversion',
-            benchmark: 'Government standard: 50%+ is good, 70%+ is excellent',
-            example: '65% engagement rate means 2 out of 3 visitors actively read your content',
-            relatedTerms: ['Active Sessions', 'User Engagement', 'Content Interaction']
+
+        'Information Seekers': {
+            category: 'Impact Metrics',
+            definition: 'Citizens actively searching for information you provide.',
+            calculation: 'Search Console Clicks + Direct Analytics Users',
+            benchmark: 'Growth month-over-month indicates improving service delivery',
+            example: '1,450 information seekers shows strong citizen demand for your content',
+            relatedTerms: ['Active Users', 'Service Demand', 'Citizen Need']
         },
-        
-        'Search Clicks': {
-            category: 'Search Metrics',
-            definition: 'Number of times people clicked on your page from Google search results.',
-            calculation: 'Count of clicks from organic search results',
-            benchmark: 'Should grow with impressions while maintaining good CTR',
-            example: '1.2K clicks means 1,200 people clicked through from search',
-            relatedTerms: ['Organic Clicks', 'Search Traffic', 'SERP Clicks']
+
+        'Content Success Rate': {
+            category: 'Impact Metrics',
+            definition: 'Percentage of citizens who successfully engaged with your content.',
+            calculation: '(1 - Bounce Rate) × 100',
+            benchmark: 'Government services: 60%+ good, 70%+ excellent',
+            example: '68% success rate means 68 out of 100 citizens found what they needed',
+            relatedTerms: ['Success Percentage', 'Effectiveness Rate', 'Completion Rate']
+        },
+
+        // ===========================================
+        // GOVERNMENT BENCHMARKS
+        // ===========================================
+        'Government Engagement Benchmark': {
+            category: 'Government Standards',
+            definition: 'Public sector standard for user engagement with government content.',
+            calculation: 'Based on GOV.UK, Canada.ca, and Irish government research',
+            benchmark: '50%+ engagement rate for government services',
+            example: 'Your 45% engagement is below the 50% government benchmark',
+            relatedTerms: ['Public Sector Standard', 'Digital Government KPI', 'Service Standard']
+        },
+
+        'Government Time Benchmark': {
+            category: 'Government Standards',
+            definition: 'Expected time citizens spend finding government information.',
+            calculation: 'Research-based standard for public service digital content',
+            benchmark: '52+ seconds average session duration',
+            example: 'Your 1:45 duration exceeds the 52-second government benchmark',
+            relatedTerms: ['Service Efficiency', 'Information Access Time', 'Digital Service Standard']
+        },
+
+        'Discovery Benchmark': {
+            category: 'Government Standards',
+            definition: 'How easily citizens can find government services through search.',
+            calculation: '(Sessions ÷ Page Views) × 100 (Entrance Rate)',
+            benchmark: '30%+ entrance rate indicates good discoverability',
+            example: '35% discovery rate means citizens easily find your service',
+            relatedTerms: ['Findability', 'Service Discovery', 'Search Visibility']
+        },
+
+        // ===========================================
+        // GEOGRAPHIC INTELLIGENCE
+        // ===========================================
+        'Regional Distribution': {
+            category: 'Geographic Intelligence',
+            definition: 'How your users are spread across Irish counties and regions.',
+            calculation: 'Percentage breakdown from GA4 geographic data',
+            benchmark: 'Balanced: <40% Dublin, Concentrated: >50% Dublin',
+            example: '38% Dublin distribution shows good regional balance',
+            relatedTerms: ['Geographic Spread', 'Regional Access', 'County Coverage']
+        },
+
+        'Dublin Concentration': {
+            category: 'Geographic Intelligence',
+            definition: 'Percentage of your users located in Dublin metropolitan area.',
+            calculation: '(Dublin Users ÷ Total Irish Users) × 100',
+            benchmark: '<30%: Distributed, 30-50%: Moderate, >50%: High concentration',
+            example: '42% Dublin concentration suggests service accessibility focus needed',
+            relatedTerms: ['Capital Concentration', 'Urban Focus', 'Metropolitan Bias']
+        },
+
+        'International Reach': {
+            category: 'Geographic Intelligence',
+            definition: 'Number of countries from which citizens access your services.',
+            calculation: 'Count of distinct countries in GA4 geographic data',
+            benchmark: '5+: Good reach, 10+: Excellent, 15+: Global service',
+            example: '12 countries shows good international Irish service reach',
+            relatedTerms: ['Global Access', 'Diaspora Engagement', 'Cross-border Service']
+        },
+
+        'Coverage Percentage': {
+            category: 'Geographic Intelligence',
+            definition: 'Percentage of Irish counties your service reaches.',
+            calculation: '(Counties with Users ÷ 32 total counties) × 100',
+            benchmark: '75%+: Excellent coverage, 50%+: Good, <50%: Limited reach',
+            example: '78% coverage means you serve citizens in 25 of 32 counties',
+            relatedTerms: ['Geographic Coverage', 'Service Reach', 'National Access']
+        },
+
+        // ===========================================
+        // CITIZEN JOURNEY INTELLIGENCE
+        // ===========================================
+        'Immediate Action Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens who need to take urgent action or meet deadlines.',
+            calculation: 'Query analysis for urgency keywords (urgent, today, deadline, expires)',
+            benchmark: 'High priority - requires immediate response capability',
+            example: '"apply today" queries indicate citizens with urgent application needs',
+            relatedTerms: ['Urgent Needs', 'Time-sensitive Queries', 'Critical Actions']
+        },
+
+        'Eligibility Research Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens checking if they qualify for government services.',
+            calculation: 'Query analysis for eligibility keywords (entitled, qualify, eligible, criteria)',
+            benchmark: 'Common for government services - optimize for clear eligibility info',
+            example: '"am I entitled to" queries show citizens researching service eligibility',
+            relatedTerms: ['Qualification Queries', 'Entitlement Research', 'Criteria Checking']
+        },
+
+        'Process Learning Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens learning how to complete government processes.',
+            calculation: 'Query analysis for process keywords (how to, step by step, application process)',
+            benchmark: 'Optimize for clear, step-by-step guidance',
+            example: '"how to apply" queries indicate need for process clarification',
+            relatedTerms: ['Process Queries', 'Application Help', 'Procedure Learning']
+        },
+
+        'Problem Solving Intent': {
+            category: 'Citizen Journey',
+            definition: 'Citizens with issues, appeals, or complaints needing resolution.',
+            calculation: 'Query analysis for problem keywords (appeal, complaint, problem, rejected)',
+            benchmark: 'High priority - indicates service delivery issues',
+            example: '"appeal decision" queries show citizens facing process problems',
+            relatedTerms: ['Issue Resolution', 'Complaint Handling', 'Appeal Process']
+        },
+
+        // ===========================================
+        // OPPORTUNITY SCORING
+        // ===========================================
+        'Priority Score': {
+            category: 'Optimization',
+            definition: 'Government framework score for content optimization priority.',
+            calculation: '(Traffic Score × 0.4) + (Growth Score × 0.25) + (Search Score × 0.2) + (Discovery Score × 0.15)',
+            benchmark: '80+: Critical, 60+: High, 40+: Medium, <40: Low priority',
+            example: 'Priority Score 75 indicates high-priority optimization opportunity',
+            relatedTerms: ['Optimization Priority', 'Improvement Potential', 'Resource Allocation']
+        },
+
+        'Citizen Opportunity Score': {
+            category: 'Optimization',
+            definition: 'Potential for improving citizen service delivery through content optimization.',
+            calculation: 'Weighted score based on search volume, engagement gaps, and citizen impact potential',
+            benchmark: '8+: High impact, 5+: Medium impact, 3+: Low impact',
+            example: 'Opportunity Score 9 suggests high potential for citizen service improvement',
+            relatedTerms: ['Service Improvement Potential', 'Citizen Impact Score', 'Optimization Value']
+        },
+
+        'Expected CTR Benchmark': {
+            category: 'Optimization',
+            definition: 'Expected click-through rate based on search result position.',
+            calculation: 'Position-based CTR benchmarks from industry research',
+            benchmark: 'Pos 1: 28.4%, Pos 2: 15.5%, Pos 3: 11.0%, Pos 4: 7.7%, Pos 5: 6.1%',
+            example: 'Position 3 with 8% CTR exceeds 11% benchmark (underperforming)',
+            relatedTerms: ['CTR Expectation', 'Position Performance', 'Click Rate Standard']
+        },
+
+        // ===========================================
+        // TREND ANALYSIS
+        // ===========================================
+        'Trend Direction': {
+            category: 'Performance Trends',
+            definition: 'Whether a metric is improving, declining, or stable over time.',
+            calculation: 'Comparison of current vs previous period performance',
+            benchmark: 'Up: >2% improvement, Down: >2% decline, Stable: ±2%',
+            example: 'CTR trend ↗ +15% shows improving click-through performance',
+            relatedTerms: ['Performance Direction', 'Change Indicator', 'Progress Tracking']
+        },
+
+        'Growth Rate': {
+            category: 'Performance Trends',
+            definition: 'Rate of change in performance metrics over time.',
+            calculation: '((Current Period - Previous Period) ÷ Previous Period) × 100',
+            benchmark: 'Positive growth indicates improving service delivery',
+            example: '+12% growth in users shows increasing citizen engagement',
+            relatedTerms: ['Change Rate', 'Performance Growth', 'Improvement Rate']
+        },
+
+        // ===========================================
+        // PROBLEM DETECTION
+        // ===========================================
+        'Position Anomaly': {
+            category: 'Problem Detection',
+            definition: 'Query ranking in unexpected position relative to click volume.',
+            calculation: 'Based on GOV.UK framework: position 4/5 clicks shouldnt exceed 50% of position 1',
+            benchmark: 'Indicates technical SEO or content relevance issues',
+            example: 'Position 6 query getting more clicks than position 2 suggests ranking problem',
+            relatedTerms: ['Ranking Issues', 'Search Anomalies', 'Performance Inconsistencies']
+        },
+
+        'CTR Gap': {
+            category: 'Problem Detection',
+            definition: 'Difference between actual and expected click-through rate.',
+            calculation: 'Expected CTR (position-based) - Actual CTR',
+            benchmark: '>2% gap indicates title/description optimization opportunity',
+            example: 'Position 3 with 5% CTR has 6% gap (expected 11%) needs title optimization',
+            relatedTerms: ['Click Rate Gap', 'Performance Shortfall', 'Optimization Gap']
+        },
+
+        'High Impression Low Click': {
+            category: 'Problem Detection',
+            definition: 'Pages appearing in search frequently but getting few clicks.',
+            calculation: 'Impressions >1000 AND CTR <2%',
+            benchmark: 'Indicates poor title/meta description or content mismatch',
+            example: '5,000 impressions with 1.2% CTR suggests title optimization needed',
+            relatedTerms: ['Visibility Without Engagement', 'Poor Click Performance', 'Title Issues']
+        },
+
+        // ===========================================
+        // CONTENT GAPS
+        // ===========================================
+        'High Opportunity Gap': {
+            category: 'Content Gaps',
+            definition: 'Search queries with high volume but low click-through, indicating content optimization opportunity.',
+            calculation: 'Impressions ≥1000 AND CTR <2%',
+            benchmark: 'High-priority optimization targets',
+            example: '"passport renewal" with 2,000 impressions, 1.5% CTR needs content improvement',
+            relatedTerms: ['Content Optimization Opportunity', 'Search Demand Gap', 'Click Deficit']
+        },
+
+        'Missing Content Gap': {
+            category: 'Content Gaps',
+            definition: 'Search queries showing demand but minimal content coverage.',
+            calculation: 'Impressions ≥100 AND Clicks <5',
+            benchmark: 'Indicates need for dedicated content creation',
+            example: '"emergency passport" with 300 impressions, 2 clicks needs dedicated content',
+            relatedTerms: ['Content Creation Opportunity', 'Unmet Search Demand', 'Service Gap']
         }
-        
-        // Add more terms as needed...
     };
     
     const categories = {
-        'Search Metrics': {
+        'Search Console': {
             icon: '🔍',
-            description: 'Metrics from Google Search Console showing how people find your content'
+            description: 'Direct metrics from Google Search Console showing search performance'
         },
-        'User Behavior': {
-            icon: '👥',
-            description: 'How citizens interact with your content once they arrive'
+        'Google Analytics': {
+            icon: '📊',
+            description: 'User behavior and engagement metrics from Google Analytics 4'
         },
-        'Quality Metrics': {
-            icon: '⭐',
-            description: 'Scores measuring how well your content serves citizen needs'
+        'Dashboard Calculations': {
+            icon: '🧮',
+            description: 'Composite scores and calculated metrics for content quality assessment'
         },
         'Impact Metrics': {
             icon: '🎯',
-            description: 'Measurements of real-world citizen service impact'
+            description: 'Measurements of real-world citizen service impact and effectiveness'
+        },
+        'Government Standards': {
+            icon: '🏛️',
+            description: 'Public sector benchmarks and standards for digital government services'
+        },
+        'Geographic Intelligence': {
+            icon: '🌍',
+            description: 'Location-based analysis of service usage across Ireland and internationally'
+        },
+        'Citizen Journey': {
+            icon: '🗺️',
+            description: 'Understanding citizen intent and needs at different service stages'
+        },
+        'Optimization': {
+            icon: '💡',
+            description: 'Priority scoring and opportunity identification for content improvement'
+        },
+        'Performance Trends': {
+            icon: '📈',
+            description: 'How metrics change over time and growth rate analysis'
+        },
+        'Problem Detection': {
+            icon: '⚠️',
+            description: 'Identification of performance issues and optimization opportunities'
+        },
+        'Content Gaps': {
+            icon: '🔍',
+            description: 'Missing or underperforming content areas with citizen demand'
         }
     };
     
@@ -206,8 +570,32 @@
                 // Add styles
                 this.addGlossaryStyles();
                 
-                // Setup event listeners with proper error handling
+                // Initialize navigation state
+        initializeNavigationState() {
+            const navContent = safeGetElement('navContent');
+            const navToggle = safeGetElement('navToggle');
+            
+            if (navContent && navToggle) {
+                // Start collapsed to give more space for content
+                navContent.classList.remove('expanded');
+                navToggle.classList.remove('expanded');
+                navToggle.setAttribute('aria-expanded', 'false');
+                
+                const toggleArrow = navToggle.querySelector('.toggle-arrow');
+                const toggleText = navToggle.querySelector('.toggle-text');
+                
+                if (toggleArrow) toggleArrow.textContent = '↓';
+                if (toggleText) toggleText.textContent = 'Show Menu';
+                
+                debugLog('📖 Navigation initialized in collapsed state');
+            }
+        }
+        
+        // Setup event listeners with proper error handling
                 this.setupEventListeners();
+                
+                // Initialize navigation state (collapsed by default for more content space)
+                this.initializeNavigationState();
                 
                 // Mark as initialized
                 this.isInitialized = true;
@@ -269,32 +657,45 @@
                     </div>
                     
                     <!-- Navigation -->
-                    <div class="glossary-nav">
-                        <!-- Alphabet Navigation -->
-                        <div class="alphabet-nav">
-                            <div class="nav-label">Jump to:</div>
-                            <div class="alphabet-buttons" role="tablist" aria-label="Alphabetical navigation">
-                                ${alphabetNav}
-                            </div>
+                    <div class="glossary-nav" id="glossaryNav">
+                        <div class="nav-header">
+                            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu">
+                                <span class="toggle-icon">📖</span>
+                                <span class="toggle-text">Menu</span>
+                                <span class="toggle-arrow">↑</span>
+                            </button>
                         </div>
                         
-                        <!-- Category Filters -->
-                        <div class="category-nav">
-                            <div class="nav-label">Filter by category:</div>
-                            <div class="category-filters" role="group" aria-label="Category filters">
-                                <button class="category-filter active" data-category="all" aria-pressed="true">
-                                    <span class="category-icon" aria-hidden="true">📋</span>
-                                    <span class="category-name">All Terms</span>
-                                    <span class="category-count">${Object.keys(glossaryData).length}</span>
-                                </button>
-                                ${categoryFilters}
+                        <div class="nav-content" id="navContent">
+                            <!-- Alphabet Navigation -->
+                            <div class="alphabet-nav">
+                                <div class="nav-label">Jump to:</div>
+                                <div class="alphabet-buttons" role="tablist" aria-label="Alphabetical navigation">
+                                    ${alphabetNav}
+                                </div>
+                            </div>
+                            
+                            <!-- Category Filters -->
+                            <div class="category-nav">
+                                <div class="nav-label">Filter by category:</div>
+                                <div class="category-filters" role="group" aria-label="Category filters">
+                                    <button class="category-filter active" data-category="all" aria-pressed="true">
+                                        <span class="category-icon" aria-hidden="true">📋</span>
+                                        <span class="category-name">All Terms</span>
+                                        <span class="category-count">${Object.keys(glossaryData).length}</span>
+                                    </button>
+                                    ${categoryFilters}
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Results Summary -->
                     <div class="results-summary" id="${CONFIG.SELECTORS.resultsSummary}" role="status" aria-live="polite">
-                        Showing ${Object.keys(glossaryData).length} terms
+                        <div class="summary-content">
+                            <span class="results-text">Showing ${Object.keys(glossaryData).length} terms</span>
+                            <span class="menu-hint" id="menuHint">💡 Click "Show Menu" above to browse by category or letter</span>
+                        </div>
                     </div>
                     
                     <!-- Glossary Content -->
@@ -428,6 +829,8 @@
                 const clearSearch = safeGetElement(CONFIG.SELECTORS.clearSearch);
                 const backToTop = safeGetElement(CONFIG.SELECTORS.backToTop);
                 const content = safeGetElement(CONFIG.SELECTORS.content);
+                const navToggle = safeGetElement('navToggle');
+                const navContent = safeGetElement('navContent');
                 
                 // FAB click to open
                 if (fab) {
@@ -474,6 +877,14 @@
                     backToTop.addEventListener('click', (e) => {
                         e.preventDefault();
                         this.scrollToTop();
+                    });
+                }
+                
+                // Navigation toggle
+                if (navToggle) {
+                    navToggle.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.toggleNavigation();
                     });
                 }
                 
@@ -784,7 +1195,21 @@
                 text += ` in "${category}"`;
             }
             
-            summary.textContent = text;
+            const resultsText = summary.querySelector('.results-text');
+            const menuHint = summary.querySelector('#menuHint');
+            
+            if (resultsText) {
+                resultsText.textContent = text;
+            } else {
+                summary.textContent = text;
+            }
+            
+            // Show/hide menu hint based on navigation state
+            if (menuHint) {
+                const navContent = safeGetElement('navContent');
+                const isNavExpanded = navContent && navContent.classList.contains('expanded');
+                menuHint.style.display = (isNavExpanded || query || category !== '') ? 'none' : 'block';
+            }
         }
         
         // Scroll to top
@@ -792,6 +1217,37 @@
             const content = safeGetElement(CONFIG.SELECTORS.content);
             if (content) {
                 content.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        // Toggle navigation menu
+        toggleNavigation() {
+            const navContent = safeGetElement('navContent');
+            const navToggle = safeGetElement('navToggle');
+            const menuHint = safeGetElement('menuHint');
+            
+            if (navContent && navToggle) {
+                const isExpanded = navContent.classList.contains('expanded');
+                const toggleArrow = navToggle.querySelector('.toggle-arrow');
+                const toggleText = navToggle.querySelector('.toggle-text');
+                
+                if (isExpanded) {
+                    navContent.classList.remove('expanded');
+                    navToggle.classList.remove('expanded');
+                    if (toggleArrow) toggleArrow.textContent = '↓';
+                    if (toggleText) toggleText.textContent = 'Show Menu';
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    if (menuHint) menuHint.style.display = 'block';
+                    debugLog('📖 Navigation menu collapsed');
+                } else {
+                    navContent.classList.add('expanded');
+                    navToggle.classList.add('expanded');
+                    if (toggleArrow) toggleArrow.textContent = '↑';
+                    if (toggleText) toggleText.textContent = 'Hide Menu';
+                    navToggle.setAttribute('aria-expanded', 'true');
+                    if (menuHint) menuHint.style.display = 'none';
+                    debugLog('📖 Navigation menu expanded');
+                }
             }
         }
         
@@ -992,12 +1448,83 @@
                         color: #ef4444;
                     }
                     
-                    /* Navigation - Enhanced */
+                    /* Navigation - Enhanced with Toggle */
                     .glossary-nav {
-                        padding: 16px 24px;
                         border-bottom: 1px solid #e2e8f0;
                         background: #fafbfc;
                         flex-shrink: 0;
+                        overflow: hidden;
+                    }
+                    
+                    .nav-header {
+                        padding: 12px 24px;
+                        border-bottom: 1px solid #e2e8f0;
+                    }
+                    
+                    .nav-toggle {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        width: 100%;
+                        padding: 8px 12px;
+                        background: white;
+                        border: 2px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        color: #374151;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        outline: none;
+                        text-align: left;
+                    }
+                    
+                    .nav-toggle:hover {
+                        background: #f8fafc;
+                        border-color: #3b82f6;
+                        color: #3b82f6;
+                    }
+                    
+                    .nav-toggle:focus {
+                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                        border-color: #3b82f6;
+                    }
+                    
+                    .nav-toggle.expanded {
+                        background: #3b82f6;
+                        color: white;
+                        border-color: #3b82f6;
+                    }
+                    
+                    .toggle-icon {
+                        font-size: 1rem;
+                    }
+                    
+                    .toggle-text {
+                        flex: 1;
+                    }
+                    
+                    .toggle-arrow {
+                        font-size: 0.8rem;
+                        transition: transform 0.3s ease;
+                    }
+                    
+                    .nav-toggle.expanded .toggle-arrow {
+                        transform: rotate(180deg);
+                    }
+                    
+                    .nav-content {
+                        max-height: 0;
+                        opacity: 0;
+                        overflow: hidden;
+                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                        padding: 0 24px;
+                    }
+                    
+                    .nav-content.expanded {
+                        max-height: 800px;
+                        opacity: 1;
+                        padding: 16px 24px;
                     }
                     
                     .nav-label {
@@ -1107,15 +1634,36 @@
                         background: rgba(255,255,255,0.25);
                     }
                     
-                    /* Results Summary */
+                    /* Results Summary - Enhanced */
                     .results-summary {
                         padding: 12px 24px;
                         background: #f8fafc;
                         border-bottom: 1px solid #e2e8f0;
                         font-size: 0.85rem;
+                        flex-shrink: 0;
+                    }
+                    
+                    .summary-content {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                    }
+                    
+                    .results-text {
                         color: #64748b;
                         font-weight: 500;
-                        flex-shrink: 0;
+                    }
+                    
+                    .menu-hint {
+                        color: #3b82f6;
+                        font-size: 0.8rem;
+                        font-weight: 500;
+                        animation: fadeIn 0.5s ease-in-out;
+                    }
+                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(-5px); }
+                        to { opacity: 1; transform: translateY(0); }
                     }
                     
                     /* Content - Enhanced */
@@ -1331,7 +1879,11 @@
                             padding: 12px 16px;
                         }
                         
-                        .glossary-nav {
+                        .glossary-nav .nav-header {
+                            padding: 12px 16px;
+                        }
+                        
+                        .nav-content.expanded {
                             padding: 12px 16px;
                         }
                         
