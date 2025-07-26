@@ -613,22 +613,10 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
         }
         
         initializeNavigationState() {
-            const navContent = safeGetElement('navContent');
-            const navToggle = safeGetElement('navToggle');
-            
-            if (navContent && navToggle) {
-                navContent.classList.remove('expanded');
-                navToggle.classList.remove('expanded');
-                navToggle.setAttribute('aria-expanded', 'false');
-                
-                const toggleArrow = navToggle.querySelector('.toggle-arrow');
-                const toggleText = navToggle.querySelector('.toggle-text');
-                
-                if (toggleArrow) toggleArrow.textContent = '↓';
-                if (toggleText) toggleText.textContent = 'Show Menu';
-                
-                debugLog('📖 Navigation initialized in collapsed state');
-            }
+            // Set initial active state for "All" category
+            this.updateQuickCategoryButtons('all');
+            this.updateCategoryDropdown('all');
+            debugLog('📖 Navigation initialized');
         }
         
         createGlossaryHTML() {
@@ -665,37 +653,38 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         <div id="searchHelp" class="sr-only">Type to search through glossary terms and definitions</div>
                     </div>
                     
-                    <!-- Enhanced Navigation -->
-                    <div class="glossary-nav" id="glossaryNav">
-                        <div class="nav-header">
-                            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu">
-                                <span class="toggle-icon">📖</span>
-                                <span class="toggle-text">Menu</span>
-                                <span class="toggle-arrow">↑</span>
-                            </button>
+                    <!-- Always Visible Alphabet Navigation -->
+                    <div class="alphabet-nav-fixed">
+                        <div class="nav-label">Jump to letter:</div>
+                        <div class="alphabet-buttons" role="tablist" aria-label="Alphabetical navigation">
+                            ${alphabetNav}
+                        </div>
+                    </div>
+                    
+                    <!-- Compact Category Navigation -->
+                    <div class="category-nav-compact">
+                        <div class="category-dropdown">
+                            <label for="categorySelect" class="category-label">Filter by category:</label>
+                            <select id="categorySelect" class="category-select">
+                                <option value="all">All Terms (${Object.keys(glossaryData).length})</option>
+                                ${this.createCategoryOptions()}
+                            </select>
                         </div>
                         
-                        <div class="nav-content" id="navContent">
-                            <!-- Alphabet Navigation -->
-                            <div class="alphabet-nav">
-                                <div class="nav-label">Jump to:</div>
-                                <div class="alphabet-buttons" role="tablist" aria-label="Alphabetical navigation">
-                                    ${alphabetNav}
-                                </div>
-                            </div>
-                            
-                            <!-- Category Filters -->
-                            <div class="category-nav">
-                                <div class="nav-label">Filter by category:</div>
-                                <div class="category-filters" role="group" aria-label="Category filters">
-                                    <button class="category-filter active" data-category="all" aria-pressed="true">
-                                        <span class="category-icon" aria-hidden="true">📋</span>
-                                        <span class="category-name">All Terms</span>
-                                        <span class="category-count">${Object.keys(glossaryData).length}</span>
-                                    </button>
-                                    ${categoryFilters}
-                                </div>
-                            </div>
+                        <!-- Quick Category Buttons -->
+                        <div class="quick-categories">
+                            <button class="quick-cat-btn active" data-category="all" title="Show all terms">
+                                📋 All
+                            </button>
+                            <button class="quick-cat-btn" data-category="Search Console" title="Google Search Console metrics">
+                                🔍 Search
+                            </button>
+                            <button class="quick-cat-btn" data-category="Google Analytics" title="Google Analytics metrics">
+                                📊 Analytics
+                            </button>
+                            <button class="quick-cat-btn" data-category="Dashboard Calculations" title="Calculated scores">
+                                🧮 Scores
+                            </button>
                         </div>
                     </div>
                     
@@ -703,7 +692,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     <div class="results-summary" id="${CONFIG.SELECTORS.resultsSummary}" role="status" aria-live="polite">
                         <div class="summary-content">
                             <span class="results-text">Showing ${Object.keys(glossaryData).length} terms</span>
-                            <span class="menu-hint" id="menuHint">💡 Click "Show Menu" above to browse by category or letter</span>
                         </div>
                         <div class="source-legend">
                             <div class="legend-item">
@@ -776,6 +764,13 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         ${letter}
                     </button>
                 `;
+            }).join('');
+        }
+        
+        createCategoryOptions() {
+            return Object.entries(categories).map(([category, config]) => {
+                const termCount = Object.values(glossaryData).filter(term => term.category === category).length;
+                return `<option value="${category}">${config.icon} ${category} (${termCount})</option>`;
             }).join('');
         }
         
@@ -882,7 +877,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                 const clearSearch = safeGetElement(CONFIG.SELECTORS.clearSearch);
                 const backToTop = safeGetElement(CONFIG.SELECTORS.backToTop);
                 const content = safeGetElement(CONFIG.SELECTORS.content);
-                const navToggle = safeGetElement('navToggle');
+                const categorySelect = safeGetElement('categorySelect');
                 
                 // FAB click
                 if (fab) {
@@ -934,13 +929,14 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     debugLog('✅ Back to top listener added');
                 }
                 
-                // Navigation toggle
-                if (navToggle) {
-                    navToggle.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.toggleNavigation();
+                // Category dropdown
+                if (categorySelect) {
+                    categorySelect.addEventListener('change', (e) => {
+                        const category = e.target.value;
+                        this.filterByCategory(category);
+                        this.updateQuickCategoryButtons(category);
                     });
-                    debugLog('✅ Navigation toggle listener added');
+                    debugLog('✅ Category dropdown listener added');
                 }
                 
                 // Scroll handling
@@ -975,12 +971,13 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                 this.scrollToLetter(letter);
             }
             
-            // Category filters
-            if (target.classList.contains('category-filter') || target.closest('.category-filter')) {
+            // Quick category buttons
+            if (target.classList.contains('quick-cat-btn')) {
                 e.preventDefault();
-                const button = target.classList.contains('category-filter') ? target : target.closest('.category-filter');
-                const category = button.dataset.category;
+                const category = target.dataset.category;
                 this.filterByCategory(category);
+                this.updateQuickCategoryButtons(category);
+                this.updateCategoryDropdown(category);
             }
             
             // Related term links
@@ -993,6 +990,20 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             // Close on backdrop
             if (target.classList.contains('glossary-panel')) {
                 this.closeGlossary();
+            }
+        }
+        
+        updateQuickCategoryButtons(activeCategory) {
+            document.querySelectorAll('.quick-cat-btn').forEach(btn => {
+                const isActive = btn.dataset.category === activeCategory;
+                btn.classList.toggle('active', isActive);
+            });
+        }
+        
+        updateCategoryDropdown(activeCategory) {
+            const dropdown = safeGetElement('categorySelect');
+            if (dropdown) {
+                dropdown.value = activeCategory;
             }
         }
         
@@ -1117,21 +1128,19 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                 }
             });
             
-            // Update category buttons
-            document.querySelectorAll('.category-filter').forEach(btn => {
-                const isActive = btn.dataset.category === category;
-                btn.classList.toggle('active', isActive);
-                btn.setAttribute('aria-pressed', isActive.toString());
-            });
-            
             this.updateResultsSummary(visibleCount, '', category);
             
-            // Clear search
+            // Clear search when filtering
             const searchInput = safeGetElement(CONFIG.SELECTORS.search);
             if (searchInput) {
                 searchInput.value = '';
                 this.updateClearButton('');
             }
+            
+            // Scroll to top of content
+            this.scrollToTop();
+            
+            debugLog(`✅ Category filter applied: ${visibleCount} results`);
         }
         
         scrollToLetter(letter) {
@@ -1212,16 +1221,11 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             }
             
             const resultsText = summary.querySelector('.results-text');
-            const menuHint = summary.querySelector('#menuHint');
             
             if (resultsText) {
                 resultsText.textContent = text;
-            }
-            
-            if (menuHint) {
-                const navContent = safeGetElement('navContent');
-                const isNavExpanded = navContent && navContent.classList.contains('expanded');
-                menuHint.style.display = (isNavExpanded || query || category !== '') ? 'none' : 'block';
+            } else {
+                summary.textContent = text;
             }
         }
         
@@ -1229,34 +1233,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             const content = safeGetElement(CONFIG.SELECTORS.content);
             if (content) {
                 content.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
-        
-        toggleNavigation() {
-            const navContent = safeGetElement('navContent');
-            const navToggle = safeGetElement('navToggle');
-            const menuHint = safeGetElement('menuHint');
-            
-            if (navContent && navToggle) {
-                const isExpanded = navContent.classList.contains('expanded');
-                const toggleArrow = navToggle.querySelector('.toggle-arrow');
-                const toggleText = navToggle.querySelector('.toggle-text');
-                
-                if (isExpanded) {
-                    navContent.classList.remove('expanded');
-                    navToggle.classList.remove('expanded');
-                    if (toggleArrow) toggleArrow.textContent = '↓';
-                    if (toggleText) toggleText.textContent = 'Show Menu';
-                    navToggle.setAttribute('aria-expanded', 'false');
-                    if (menuHint) menuHint.style.display = 'block';
-                } else {
-                    navContent.classList.add('expanded');
-                    navToggle.classList.add('expanded');
-                    if (toggleArrow) toggleArrow.textContent = '↑';
-                    if (toggleText) toggleText.textContent = 'Hide Menu';
-                    navToggle.setAttribute('aria-expanded', 'true');
-                    if (menuHint) menuHint.style.display = 'none';
-                }
             }
         }
         
@@ -1517,70 +1493,19 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         color: #ef4444;
                     }
                     
-                    /* Navigation */
-                    .glossary-nav {
+                    /* Always Visible Navigation */
+                    .alphabet-nav-fixed {
+                        padding: 16px 24px;
                         border-bottom: 1px solid #e2e8f0;
                         background: #fafbfc;
                         flex-shrink: 0;
-                        overflow: hidden;
                     }
                     
-                    .nav-header {
-                        padding: 12px 24px;
-                        border-bottom: 1px solid #e2e8f0;
-                    }
-                    
-                    .nav-toggle {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        width: 100%;
-                        padding: 8px 12px;
-                        background: white;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 8px;
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                        color: #374151;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        outline: none;
-                        text-align: left;
-                    }
-                    
-                    .nav-toggle:hover {
-                        background: #f8fafc;
-                        border-color: #3b82f6;
-                        color: #3b82f6;
-                    }
-                    
-                    .nav-toggle.expanded {
-                        background: #3b82f6;
-                        color: white;
-                        border-color: #3b82f6;
-                    }
-                    
-                    .toggle-text {
-                        flex: 1;
-                    }
-                    
-                    .toggle-arrow {
-                        font-size: 0.8rem;
-                        transition: transform 0.3s ease;
-                    }
-                    
-                    .nav-content {
-                        max-height: 0;
-                        opacity: 0;
-                        overflow: hidden;
-                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                        padding: 0 24px;
-                    }
-                    
-                    .nav-content.expanded {
-                        max-height: 800px;
-                        opacity: 1;
+                    .category-nav-compact {
                         padding: 16px 24px;
+                        border-bottom: 1px solid #e2e8f0;
+                        background: #f8fafc;
+                        flex-shrink: 0;
                     }
                     
                     .nav-label {
@@ -1590,14 +1515,11 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         margin-bottom: 8px;
                     }
                     
-                    .alphabet-nav {
-                        margin-bottom: 16px;
-                    }
-                    
                     .alphabet-buttons {
                         display: flex;
                         flex-wrap: wrap;
                         gap: 4px;
+                        justify-content: center;
                     }
                     
                     .alpha-btn {
@@ -1613,69 +1535,91 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         outline: none;
                     }
                     
-                    .alpha-btn.has-terms:hover {
+                    .alpha-btn.has-terms:hover,
+                    .alpha-btn.has-terms:focus {
                         background: #3b82f6;
                         color: white;
                         border-color: #3b82f6;
                         transform: translateY(-1px);
+                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
                     }
                     
                     .alpha-btn.no-terms {
                         color: #d1d5db;
                         cursor: not-allowed;
+                        background: #f9fafb;
                     }
                     
-                    .category-filters {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 6px;
+                    /* Category Navigation */
+                    .category-dropdown {
+                        margin-bottom: 12px;
                     }
                     
-                    .category-filter {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 10px 12px;
-                        background: white;
-                        border: 2px solid #e2e8f0;
-                        border-radius: 8px;
+                    .category-label {
+                        display: block;
                         font-size: 0.8rem;
+                        font-weight: 600;
+                        color: #374151;
+                        margin-bottom: 6px;
+                    }
+                    
+                    .category-select {
+                        width: 100%;
+                        padding: 8px 12px;
+                        border: 2px solid #d1d5db;
+                        border-radius: 6px;
+                        background: white;
+                        font-size: 0.85rem;
+                        color: #374151;
                         cursor: pointer;
                         transition: all 0.2s ease;
-                        text-align: left;
                         outline: none;
                     }
                     
-                    .category-filter:hover {
+                    .category-select:hover,
+                    .category-select:focus {
+                        border-color: #3b82f6;
+                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                    }
+                    
+                    .quick-categories {
+                        display: flex;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                    }
+                    
+                    .quick-cat-btn {
+                        padding: 6px 12px;
+                        background: white;
+                        border: 2px solid #e2e8f0;
+                        border-radius: 20px;
+                        font-size: 0.75rem;
+                        font-weight: 600;
+                        color: #64748b;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        outline: none;
+                        text-align: center;
+                        white-space: nowrap;
+                    }
+                    
+                    .quick-cat-btn:hover {
                         background: #f8fafc;
                         border-color: #3b82f6;
+                        color: #3b82f6;
                         transform: translateY(-1px);
                     }
                     
-                    .category-filter.active {
+                    .quick-cat-btn.active {
                         background: #3b82f6;
-                        color: white;
                         border-color: #3b82f6;
+                        color: white;
                         transform: translateY(-1px);
+                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
                     }
                     
-                    .category-name {
-                        flex: 1;
-                        font-weight: 500;
-                    }
-                    
-                    .category-count {
-                        background: rgba(0,0,0,0.1);
-                        padding: 3px 8px;
-                        border-radius: 12px;
-                        font-size: 0.7rem;
-                        font-weight: 600;
-                        min-width: 20px;
-                        text-align: center;
-                    }
-                    
-                    .category-filter.active .category-count {
-                        background: rgba(255,255,255,0.25);
+                    .quick-cat-btn:focus {
+                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
                     }
                     
                     /* Results Summary */
@@ -1688,20 +1632,11 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .summary-content {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 6px;
                         margin-bottom: 12px;
                     }
                     
                     .results-text {
                         color: #64748b;
-                        font-weight: 500;
-                    }
-                    
-                    .menu-hint {
-                        color: #3b82f6;
-                        font-size: 0.8rem;
                         font-weight: 500;
                     }
                     
@@ -1942,6 +1877,30 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         
                         .fab-tooltip {
                             display: none;
+                        }
+                        
+                        .alphabet-nav-fixed,
+                        .category-nav-compact {
+                            padding: 12px 16px;
+                        }
+                        
+                        .alphabet-buttons {
+                            gap: 3px;
+                        }
+                        
+                        .alpha-btn {
+                            width: 28px;
+                            height: 28px;
+                            font-size: 0.7rem;
+                        }
+                        
+                        .quick-categories {
+                            gap: 6px;
+                        }
+                        
+                        .quick-cat-btn {
+                            padding: 4px 8px;
+                            font-size: 0.7rem;
                         }
                         
                         .entry-header {
