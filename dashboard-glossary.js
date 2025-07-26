@@ -335,6 +335,24 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
             benchmark: 'A: 85+, B: 75+, C: 65+, D: 55+, F: <55',
             example: 'Quality Score 78 (B grade) indicates good overall performance',
             relatedTerms: ['Performance Score', 'Content Rating', 'Overall Score']
+        },
+
+        'Search Score': {
+            category: 'Dashboard Calculations',
+            definition: 'How well your page performs in search results.',
+            calculation: '(Position Score + CTR Score) ÷ 2',
+            benchmark: '80+: Excellent, 60+: Good, 40+: Fair, <40: Poor',
+            example: 'Search Score 72 indicates good search performance',
+            relatedTerms: ['SEO Score', 'Search Performance', 'Visibility Score']
+        },
+
+        'Engagement Score': {
+            category: 'Dashboard Calculations',
+            definition: 'How well your page engages visitors.',
+            calculation: '(Duration Score + Bounce Score) ÷ 2',
+            benchmark: '80+: Highly engaging, 60+: Good, 40+: Fair, <40: Poor',
+            example: 'Engagement Score 68 shows good user engagement',
+            relatedTerms: ['User Engagement', 'Content Engagement', 'Interaction Score']
         }
     };
     
@@ -587,9 +605,14 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
         // Create individual glossary entry
         createGlossaryEntry(term, data) {
             const termId = `term-${term.replace(/\s+/g, '-').toLowerCase()}`;
+            const termForData = term.toLowerCase().trim();
             
+            // Only debug first few entries to avoid spam
+            if (CONFIG.DEBUG && Object.keys(glossaryData).indexOf(term) < 3) {
+                debugLog(`Creating entry for term: "${term}" -> data-term: "${termForData}"`);
+            }
             return `
-                <article class="glossary-entry" data-term="${term.toLowerCase()}" data-category="${data.category}">
+                <article class="glossary-entry" data-term="${termForData}" data-category="${data.category}">
                     <div class="entry-header">
                         <h3 class="entry-term" id="${termId}">${term}</h3>
                         <span class="entry-category">${data.category}</span>
@@ -825,15 +848,42 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
             
             const entries = document.querySelectorAll('.glossary-entry');
             let visibleCount = 0;
+            let exactMatch = null;
             
             entries.forEach(entry => {
-                const term = entry.dataset.term || '';
+                const termElement = entry.querySelector('.entry-term');
+                const termName = termElement ? termElement.textContent.toLowerCase().trim() : '';
+                const termData = entry.dataset.term || '';
                 const content = entry.textContent.toLowerCase();
-                const isVisible = query === '' || term.includes(query) || content.includes(query);
+                
+                // Debug logging for search
+                if (CONFIG.DEBUG && query.length > 0 && query.length < 8) { // Limit debug output
+                    console.log(`🔍 Checking "${termName}" against "${query}":`, {
+                        termName: termName,
+                        termData: termData,
+                        termNameMatch: termName.includes(query),
+                        termDataMatch: termData.includes(query),
+                        contentMatch: content.includes(query)
+                    });
+                }
+                
+                // Multiple search criteria for better matching
+                const isVisible = query === '' || 
+                    termName.includes(query) ||           // Search in actual term name
+                    termData.includes(query) ||           // Search in data attribute
+                    content.includes(query) ||            // Search in full content
+                    this.fuzzyMatch(termName, query) ||   // Fuzzy matching for acronyms
+                    this.acronymMatch(termName, query);   // Acronym matching
                 
                 if (isVisible) {
                     entry.style.display = 'block';
                     visibleCount++;
+                    
+                    // Check for exact match to scroll to later
+                    if (termName === query || termData === query) {
+                        exactMatch = entry;
+                        debugLog(`🎯 Found exact match: ${termName}`);
+                    }
                     
                     // Highlight search terms
                     if (query !== '') {
@@ -849,7 +899,43 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
             this.updateResultsSummary(visibleCount, query);
             this.updateClearButton(query);
             
-            debugLog(`✅ Search complete: ${visibleCount} results`);
+            // If we found an exact match, scroll to it
+            if (exactMatch && query !== '') {
+                setTimeout(() => {
+                    exactMatch.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    exactMatch.style.background = 'rgba(59, 130, 246, 0.15)';
+                    setTimeout(() => {
+                        exactMatch.style.background = '';
+                    }, 2000);
+                }, 100);
+            }
+            
+            debugLog(`✅ Search complete: ${visibleCount} results${exactMatch ? ' (exact match found)' : ''}`);
+        }
+        
+        // Fuzzy matching for partial term searches
+        fuzzyMatch(termName, query) {
+            if (query.length < 3) return false;
+            
+            // Remove special characters and spaces for comparison
+            const cleanTerm = termName.replace(/[^\w]/g, '').toLowerCase();
+            const cleanQuery = query.replace(/[^\w]/g, '').toLowerCase();
+            
+            return cleanTerm.includes(cleanQuery);
+        }
+        
+        // Acronym matching (e.g., "ctr" matches "Click-Through Rate")
+        acronymMatch(termName, query) {
+            if (query.length < 2) return false;
+            
+            // Extract first letters of words (for acronyms)
+            const words = termName.split(/[\s\-\(\)]+/);
+            const acronym = words
+                .filter(word => word.length > 0)
+                .map(word => word.charAt(0).toLowerCase())
+                .join('');
+            
+            return acronym.includes(query) || query.includes(acronym);
         }
         
         // Clear search
@@ -942,14 +1028,48 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                 searchInput.value = term;
                 this.handleSearch();
                 
-                // Scroll to the specific term
-                const termId = `term-${term.replace(/\s+/g, '-').toLowerCase()}`;
-                const targetElement = document.getElementById(termId);
+                // Try to find exact term match for scrolling
+                const entries = document.querySelectorAll('.glossary-entry');
+                let targetEntry = null;
                 
-                if (targetElement) {
+                // Look for exact match first
+                entries.forEach(entry => {
+                    const termElement = entry.querySelector('.entry-term');
+                    const termName = termElement ? termElement.textContent.toLowerCase().trim() : '';
+                    const termData = entry.dataset.term || '';
+                    
+                    if (termName === term.toLowerCase() || 
+                        termData === term.toLowerCase() ||
+                        termName.includes(term.toLowerCase())) {
+                        targetEntry = entry;
+                    }
+                });
+                
+                // Scroll to target
+                if (targetEntry) {
                     setTimeout(() => {
-                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        targetEntry.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Add highlight effect
+                        targetEntry.style.background = 'rgba(59, 130, 246, 0.15)';
+                        targetEntry.style.transform = 'scale(1.02)';
+                        targetEntry.style.transition = 'all 0.3s ease';
+                        
+                        setTimeout(() => {
+                            targetEntry.style.background = '';
+                            targetEntry.style.transform = '';
+                        }, 2000);
                     }, 100);
+                } else {
+                    // Fallback: try the old method
+                    const termId = `term-${term.replace(/\s+/g, '-').toLowerCase()}`;
+                    const targetElement = document.getElementById(termId);
+                    
+                    if (targetElement) {
+                        setTimeout(() => {
+                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                    }
                 }
             }
         }
@@ -1859,9 +1979,29 @@ console.log('✅ Safe DashboardGlossary API created, ready for use!');
                     console.log('');
                     console.log('💡 Usage:');
                     console.log('   - DashboardGlossary.open() - Open the glossary');
-                    console.log('   - DashboardGlossary.searchFor("term") - Search for a term');
+                    console.log('   - DashboardGlossary.searchFor("CTR") - Search for CTR');
+                    console.log('   - DashboardGlossary.searchFor("clicks") - Search for clicks');
+                    console.log('   - DashboardGlossary.searchFor("bounce rate") - Search for bounce rate');
                     console.log('   - DashboardGlossary.goToCategory("Search Console") - Filter by category');
                     console.log('   - DashboardGlossary.isHealthy() - Check if system is working');
+                    console.log('');
+                    console.log('🔍 Test the search with these terms:');
+                    console.log('   - "CTR" or "ctr" (should find Click-Through Rate)');
+                    console.log('   - "users" (should find Users term)');
+                    console.log('   - "bounce" (should find Bounce Rate)');
+                    console.log('   - "average session" (should find Average Session Duration)');
+                    console.log('');
+                    console.log('🧪 Quick test helper:');
+                    console.log('   window.testSearch = () => {');
+                    console.log('     DashboardGlossary.open();');
+                    console.log('     setTimeout(() => DashboardGlossary.searchFor("CTR"), 500);');
+                    console.log('   };');
+                    
+                    // Create test helper
+                    window.testSearch = () => {
+                        DashboardGlossary.open();
+                        setTimeout(() => DashboardGlossary.searchFor("CTR"), 500);
+                    };
                     
                 } else {
                     debugLog('❌ Glossary initialization failed');
