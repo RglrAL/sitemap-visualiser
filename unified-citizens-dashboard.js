@@ -2638,6 +2638,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     border-radius: 50%;
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
+    padding: 20px;
     border: none;
     cursor: pointer;
     display: flex;
