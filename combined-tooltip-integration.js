@@ -93,8 +93,8 @@
                 <!-- Close Button -->
 <button class="tooltip-close-btn" style="
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 26px;
+    right: 26px;
     width: 32px;
     height: 32px;
     border: none;
