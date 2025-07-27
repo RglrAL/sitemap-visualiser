@@ -228,7 +228,12 @@ onmouseout="
                                 <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Updated</div>
                                 <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 2px;">Unknown</div>
                                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">No date</div>
-                                                    <!-- Freshness Badge Row -->
+                                                   
+                            </div>
+                        `}
+                    </div>
+
+                     <!-- Freshness Badge Row -->
                     <div style="
                         display: flex;
                         justify-content: center;
@@ -236,10 +241,6 @@ onmouseout="
                     ">
                         ${freshnessInfo.badge}
                     </div>
-                            </div>
-                        `}
-                    </div>
-                    
 
                 </div>
             </div>
