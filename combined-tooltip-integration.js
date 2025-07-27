@@ -422,7 +422,7 @@ onmouseout="
                             <span>Performance Insights</span>
                         </div>
                         <div id="ga4-insights" style="font-size: 0.8rem; color: #9a3412; opacity: 0.8;">
-                            Loading performance insights...
+                            Connect GA4 for performance insights
                         </div>
                     </div>
                 </div>
