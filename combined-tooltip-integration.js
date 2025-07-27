@@ -179,7 +179,7 @@ onmouseout="
                             border: 1px solid rgba(255,255,255,0.25);
                             text-align: center;
                         ">
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Page Info</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; letter-spacing: 0.5px;">Page Info</div>
                             <div style="font-size: 0.9rem; font-weight: 700; color: white; margin-bottom: 2px; line-height: 1.2;">${pageInfo.type}</div>
                             <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">Level ${pageInfo.depth}</div>
                         </div>
@@ -193,7 +193,7 @@ onmouseout="
                             border: 1px solid rgba(255,255,255,0.25);
                             text-align: center;
                         ">
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Structure</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px;  letter-spacing: 0.5px;">Structure</div>
                             <div style="font-size: 0.85rem; color: white; font-weight: 600; margin-bottom: 2px;">
                                 <span style="font-size: 0.9rem; font-weight: 700;">${pageInfo.children}</span> Children
                             </div>
@@ -212,7 +212,7 @@ onmouseout="
                                 border: 1px solid rgba(255,255,255,0.25);
                                 text-align: center;
                             ">
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Updated</div>
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; letter-spacing: 0.5px;">Updated</div>
                                 <div style="font-size: 0.85rem; font-weight: 700; color: white; margin-bottom: 2px; line-height: 1.2;">${getFormattedDate(data.lastModified)}</div>
                                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">${getRelativeTime(data.lastModified)}</div>
                             </div>
