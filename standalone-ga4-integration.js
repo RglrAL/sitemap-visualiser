@@ -976,7 +976,9 @@ function addGA4Button() {
         }, 4000);
     }
 
-    function addGA4Styles() {
+    // Replace the addGA4Styles() function in your standalone-ga4-integration.js with this enhanced version:
+
+function addGA4Styles() {
     if (document.getElementById('ga4-styles')) return;
     
     const style = document.createElement('style');
@@ -1033,6 +1035,73 @@ function addGA4Button() {
                 opacity: 0.7;
                 transform: scale(1.1);
             }
+        }
+
+        /* NEW: Data flow animation for connected state */
+        .nav-ga4-btn.connected::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(52, 168, 83, 0.2), transparent);
+            animation: ga4-data-flow 2.5s ease-in-out infinite;
+        }
+
+        @keyframes ga4-data-flow {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        /* Enhanced icon animations */
+        #ga4Icon {
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            flex-shrink: 0;
+        }
+
+        .nav-ga4-btn.connected #ga4Icon {
+            filter: drop-shadow(0 0 3px rgba(52, 168, 83, 0.6));
+            animation: ga4-icon-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes ga4-icon-glow {
+            0% { filter: drop-shadow(0 0 3px rgba(52, 168, 83, 0.6)); }
+            100% { filter: drop-shadow(0 0 6px rgba(52, 168, 83, 0.8)); }
+        }
+
+        /* Enhanced text animation */
+        #ga4Text {
+            font-weight: 500;
+            white-space: nowrap;
+            letter-spacing: 0.25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-ga4-btn.connected #ga4Text {
+            text-shadow: 0 0 8px rgba(52, 168, 83, 0.3);
+        }
+
+        /* Success animation when first connected */
+        .nav-ga4-btn.connecting {
+            animation: ga4-connecting 0.6s ease-out;
+        }
+
+        @keyframes ga4-connecting {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Click ripple effect */
+        .nav-ga4-btn.connected:active {
+            animation: ga4-click-ripple 0.3s ease-out;
+        }
+
+        @keyframes ga4-click-ripple {
+            0% { box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3), 0 0 0 0 rgba(52, 168, 83, 0.6); }
+            100% { box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3), 0 0 0 8px rgba(52, 168, 83, 0); }
         }
         
         .ga4-loading-dots {
