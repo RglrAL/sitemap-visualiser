@@ -960,7 +960,7 @@ function addGA4Button() {
         `;
         message.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 20px;"><svg id="ga4Icon" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                <span style="font-size: 28px;"><svg id="ga4Icon" width="28" height="28" viewBox="0 0 24 24" style="flex-shrink: 0;">
                 <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg></span>
                 <div>
