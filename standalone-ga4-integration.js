@@ -986,6 +986,11 @@ function addGA4Styles() {
     const style = document.createElement('style');
     style.id = 'ga4-styles';
     style.textContent = `
+        .nav-ga4-btn {
+            position: relative !important;
+            overflow: hidden !important;
+        }
+        
         .nav-ga4-btn:hover {
             background: #f8f9fa !important;
             border-color: #ff6b35 !important;
@@ -1039,7 +1044,7 @@ function addGA4Styles() {
             }
         }
 
-        /* NEW: Data flow animation for connected state */
+        /* NEW: Data flow animation for connected state - CONTAINED within button */
         .nav-ga4-btn.connected::before {
             content: '';
             position: absolute;
@@ -1049,12 +1054,19 @@ function addGA4Styles() {
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(52, 168, 83, 0.2), transparent);
             animation: ga4-data-flow 2.5s ease-in-out infinite;
+            z-index: 1;
         }
 
         @keyframes ga4-data-flow {
             0% { left: -100%; }
             50% { left: 100%; }
             100% { left: 100%; }
+        }
+
+        /* Ensure content stays above shimmer */
+        .nav-ga4-btn > * {
+            position: relative;
+            z-index: 2;
         }
 
         /* Enhanced icon animations */
