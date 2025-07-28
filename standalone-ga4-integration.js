@@ -769,65 +769,67 @@ ga4Log('Enhanced GA4 data processed for:', pagePath, ga4Data);
     // UI FUNCTIONS
     // ===========================================
 
-    function addGA4Button() {
-        const checkAndAdd = () => {
-            const navBar = document.querySelector('.nav-group') || 
-                          document.querySelector('.nav-bar') || 
-                          document.querySelector('nav') ||
-                          document.querySelector('[class*="nav"]');
-            
-            if (!navBar) {
-                setTimeout(checkAndAdd, 100);
-                return;
-            }
-            
-            if (document.getElementById('ga4ConnectBtn')) {
-                ga4Log('GA4 button already exists');
-                return;
-            }
-            
-            const ga4Button = document.createElement('button');
-            ga4Button.className = 'nav-btn nav-ga4-btn';
-            ga4Button.id = 'ga4ConnectBtn';
-            ga4Button.onclick = toggleGA4Connection;
-            
-            ga4Button.innerHTML = `
-                <svg id="ga4Icon" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                    <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                <span id="ga4Text">GA4</span>
-            `;
-            
-            ga4Button.style.cssText = `
-                display: flex !important;
-                align-items: center;
-                gap: 8px;
-                padding: 8px 16px !important;
-                margin: 0 8px !important;
-                background: #ffffff !important;
-                border: 1px solid #dadce0 !important;
-                border-radius: 8px !important;
-                cursor: pointer;
-                font-size: 14px !important;
-                color: #3c4043 !important;
-                transition: all 0.2s ease;
-                font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                font-weight: 500;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            `;
-            
-            const gscButton = document.getElementById('gscConnectBtn');
-            if (gscButton) {
-                navBar.insertBefore(ga4Button, gscButton);
-            } else {
-                navBar.appendChild(ga4Button);
-            }
-            
-            ga4Log('GA4 button added to navigation');
-        };
+function addGA4Button() {
+    const checkAndAdd = () => {
+        const navBar = document.querySelector('.nav-group') || 
+                      document.querySelector('.nav-bar') || 
+                      document.querySelector('nav') ||
+                      document.querySelector('[class*="nav"]');
         
-        checkAndAdd();
-    }
+        if (!navBar) {
+            setTimeout(checkAndAdd, 100);
+            return;
+        }
+        
+        if (document.getElementById('ga4ConnectBtn')) {
+            ga4Log('GA4 button already exists');
+            return;
+        }
+        
+        const ga4Button = document.createElement('button');
+        ga4Button.className = 'nav-btn nav-ga4-btn';
+        ga4Button.id = 'ga4ConnectBtn';
+        ga4Button.onclick = toggleGA4Connection;
+        
+        // Updated button HTML with status light
+        ga4Button.innerHTML = `
+            <svg id="ga4Icon" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <span id="ga4Text">GA4</span>
+            <div id="ga4StatusLight" class="ga4-status-light"></div>
+        `;
+        
+        ga4Button.style.cssText = `
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px !important;
+            margin: 0 8px !important;
+            background: #ffffff !important;
+            border: 1px solid #dadce0 !important;
+            border-radius: 8px !important;
+            cursor: pointer;
+            font-size: 14px !important;
+            color: #3c4043 !important;
+            transition: all 0.2s ease;
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+        
+        const gscButton = document.getElementById('gscConnectBtn');
+        if (gscButton) {
+            navBar.insertBefore(ga4Button, gscButton);
+        } else {
+            navBar.appendChild(ga4Button);
+        }
+        
+        ga4Log('GA4 button added to navigation');
+    };
+    
+    checkAndAdd();
+}
 
     function toggleGA4Connection() {
         ga4Log('Toggle GA4 connection called. Current state:', ga4Connected);
@@ -868,29 +870,40 @@ ga4Log('Enhanced GA4 data processed for:', pagePath, ga4Data);
     }
 
     function updateGA4ConnectionStatus(connected) {
-        ga4Connected = connected;
-        const ga4Btn = document.getElementById('ga4ConnectBtn');
-        const ga4Text = document.getElementById('ga4Text');
-        
-        if (ga4Btn && ga4Text) {
-            if (connected) {
-                ga4Btn.classList.add('connected');
-                ga4Btn.style.background = 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important';
-                ga4Btn.style.color = 'white !important';
-                ga4Btn.style.borderColor = '#ff6b35 !important';
-                ga4Text.textContent = 'GA4 Connected';
-                
-            } else {
-                ga4Btn.classList.remove('connected');
-                ga4Btn.style.background = '#ffffff !important';
-                ga4Btn.style.color = '#3c4043 !important';
-                ga4Btn.style.borderColor = '#dadce0 !important';
-                ga4Text.textContent = 'Connect GA4';
-            }
+    ga4Connected = connected;
+    const ga4Btn = document.getElementById('ga4ConnectBtn');
+    const ga4Text = document.getElementById('ga4Text');
+    const ga4StatusLight = document.getElementById('ga4StatusLight');
+    
+    if (ga4Btn && ga4Text && ga4StatusLight) {
+        if (connected) {
+            // Connected state: Green light
+            ga4Btn.classList.add('connected');
+            ga4Btn.style.background = '#ffffff !important';
+            ga4Btn.style.color = '#3c4043 !important';
+            ga4Btn.style.borderColor = '#34a853 !important';
+            ga4Text.textContent = 'GA4';
+            
+            // Set green status light
+            ga4StatusLight.style.backgroundColor = '#34a853';
+            ga4StatusLight.classList.add('connected');
+            
+        } else {
+            // Not connected state: Red light
+            ga4Btn.classList.remove('connected');
+            ga4Btn.style.background = '#ffffff !important';
+            ga4Btn.style.color = '#3c4043 !important';
+            ga4Btn.style.borderColor = '#dadce0 !important';
+            ga4Text.textContent = 'GA4';
+            
+            // Set red status light
+            ga4StatusLight.style.backgroundColor = '#ea4335';
+            ga4StatusLight.classList.remove('connected');
         }
-        
-        ga4Log('GA4 connection status updated:', connected);
     }
+    
+    ga4Log('GA4 connection status updated:', connected);
+}
 
     function showGA4LoadingState() {
         const ga4Text = document.getElementById('ga4Text');
@@ -963,59 +976,92 @@ ga4Log('Enhanced GA4 data processed for:', pagePath, ga4Data);
     }
 
     function addGA4Styles() {
-        if (document.getElementById('ga4-styles')) return;
+    if (document.getElementById('ga4-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'ga4-styles';
+    style.textContent = `
+        .nav-ga4-btn:hover {
+            background: #f8f9fa !important;
+            border-color: #ff6b35 !important;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.15) !important;
+            transform: translateY(-1px);
+        }
         
-        const style = document.createElement('style');
-        style.id = 'ga4-styles';
-        style.textContent = `
-            .nav-ga4-btn:hover {
-                background: #f8f9fa !important;
-                border-color: #ff6b35 !important;
-                box-shadow: 0 2px 8px rgba(255, 107, 53, 0.15) !important;
-                transform: translateY(-1px);
-            }
-            
-            .nav-ga4-btn.connected {
-                animation: ga4-connected-glow 3s ease-in-out infinite;
-            }
-            
-            @keyframes ga4-connected-glow {
-                0%, 100% { 
-                    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3), 0 0 0 0 rgba(255, 107, 53, 0.4);
-                }
-                50% { 
-                    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3), 0 0 0 4px rgba(255, 107, 53, 0.1);
-                }
-            }
-            
-            .ga4-loading-dots {
-                display: inline-flex;
-                gap: 2px;
-                margin-left: 4px;
-            }
-            
-            .ga4-loading-dots span {
-                width: 3px;
-                height: 3px;
-                border-radius: 50%;
-                background: currentColor;
-                opacity: 0.4;
-                animation: ga4-loading-dot 1.4s ease-in-out infinite;
-            }
-            
-            .ga4-loading-dots span:nth-child(1) { animation-delay: 0s; }
-            .ga4-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-            .ga4-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-            
-            @keyframes ga4-loading-dot {
-                0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
-                40% { opacity: 1; transform: scale(1.2); }
-            }
-        `;
-        document.head.appendChild(style);
+        .nav-ga4-btn.connected {
+            animation: ga4-connected-glow 3s ease-in-out infinite;
+        }
         
-        ga4Log('GA4 styles added');
-    }
+        .nav-ga4-btn.connected:hover {
+            border-color: #34a853 !important;
+            box-shadow: 0 2px 8px rgba(52, 168, 83, 0.15) !important;
+        }
+        
+        /* Status light styles */
+        .ga4-status-light {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ea4335;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .ga4-status-light.connected {
+            background-color: #34a853;
+            animation: ga4-status-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes ga4-connected-glow {
+            0%, 100% { 
+                box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3), 0 0 0 0 rgba(52, 168, 83, 0.4);
+            }
+            50% { 
+                box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3), 0 0 0 4px rgba(52, 168, 83, 0.1);
+            }
+        }
+        
+        @keyframes ga4-status-pulse {
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        .ga4-loading-dots {
+            display: inline-flex;
+            gap: 2px;
+            margin-left: 4px;
+        }
+        
+        .ga4-loading-dots span {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.4;
+            animation: ga4-loading-dot 1.4s ease-in-out infinite;
+        }
+        
+        .ga4-loading-dots span:nth-child(1) { animation-delay: 0s; }
+        .ga4-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .ga4-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes ga4-loading-dot {
+            0%, 80%, 100% { opacity: 0.4; transform: scale(1); }
+            40% { opacity: 1; transform: scale(1.2); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    ga4Log('GA4 styles added');
+}
 
     // ===========================================
     // UTILITY FUNCTIONS
