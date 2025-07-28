@@ -9352,7 +9352,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <div class="intent-distribution">
                 <h4>🗺️ Where Citizens Are in Their Journey</h4>
                 <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused) 
-                    <br><small style="color: #6b7280;">Look for the 👆 cursor icon when hovering - if bars aren't clickable, check browser console for errors</small>
+                   
                 </p>
                 
                 <!-- Urgent Queries Filter -->
