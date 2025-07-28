@@ -1551,7 +1551,7 @@ return gscData;
         const gscText = document.getElementById('gscText');
         
         if (gscBtn && gscText) {
-            gscText.innerHTML = 'Connecting<span class="gsc-loading-dots"><span></span><span></span><span></span></span>';
+            gscText.innerHTML = '<span class="gsc-loading-dots"><span></span><span></span><span></span></span>';
             gscBtn.style.pointerEvents = 'none';
         }
     }
