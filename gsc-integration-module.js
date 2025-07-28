@@ -1488,6 +1488,52 @@ return gscData;
 
     // Update connection status
     function updateConnectionStatus(connected) {
+    gscConnected = connected;
+    const gscBtn = document.getElementById('gscConnectBtn');
+    const gscIcon = document.getElementById('gscIcon');
+    const gscText = document.getElementById('gscText');
+    const gscStatusLight = document.getElementById('gscStatusLight');
+    
+    if (gscBtn && gscText && gscStatusLight) {
+        if (connected) {
+            // Connected state: Green light
+            gscBtn.classList.add('connecting');
+            setTimeout(() => gscBtn.classList.remove('connecting'), 600);
+            
+            setTimeout(() => {
+                gscBtn.classList.add('connected');
+                gscBtn.style.background = '#ffffff !important';
+                gscBtn.style.color = '#3c4043 !important';
+                gscBtn.style.borderColor = '#4caf50 !important';
+                gscText.textContent = 'SC';
+                
+                // Set green status light
+                gscStatusLight.style.backgroundColor = '#4caf50';
+                gscStatusLight.classList.add('connected');
+                
+            }, 300);
+            
+        } else {
+            // Not connected state: Red light
+            gscBtn.classList.remove('connected', 'connecting');
+            gscBtn.style.background = '#ffffff !important';
+            gscBtn.style.color = '#3c4043 !important';
+            gscBtn.style.borderColor = '#dadce0 !important';
+            gscBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+            gscText.textContent = 'SC';
+            
+            // Set red status light
+            gscStatusLight.style.backgroundColor = '#ea4335';
+            gscStatusLight.classList.remove('connected');
+        }
+    }
+    
+    debugLog('GSC connection status updated with animations:', connected);
+    
+    if (!connected) {
+        resetGSCData();
+    }
+}
 
     // Remove loading state
     function hideGSCLoadingState() {
@@ -1574,44 +1620,44 @@ return gscData;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         `;
         
-        // Enhanced positioning - after GA4 button
-        const ga4Button = document.getElementById('ga4ConnectBtn');
-        if (ga4Button) {
-            navBar.insertBefore(gscButton, ga4Button.nextSibling);
-            debugLog('GSC button inserted after GA4 button');
-        } else {
-            // Fallback positioning logic (your existing code)
-            const reportsDropdown = document.getElementById('reportsDropdown');
-            const firstButton = navBar.querySelector('button');
+        // Enhanced positioning - after reports dropdown and separator (original logic)
+        const reportsDropdown = document.getElementById('reportsDropdown');
+        const firstButton = navBar.querySelector('button');
 
-            if (reportsDropdown) {
-                let insertionPoint = reportsDropdown.nextSibling;
-                
-                while (insertionPoint && 
-                       (insertionPoint.nodeType === 3 || 
-                        insertionPoint.classList?.contains('separator') ||
-                        insertionPoint.classList?.contains('nav-separator') ||
-                        insertionPoint.classList?.contains('divider') ||
-                        insertionPoint.tagName === 'HR' ||
-                        (insertionPoint.tagName === 'DIV' && insertionPoint.offsetWidth < 10))) {
-                    insertionPoint = insertionPoint.nextSibling;
-                }
-                
-                if (insertionPoint) {
-                    navBar.insertBefore(gscButton, insertionPoint);
-                    debugLog('GSC button inserted after reports dropdown and separator');
-                } else {
-                    navBar.appendChild(gscButton);
-                    debugLog('GSC button appended after reports dropdown');
-                }
-                
-            } else if (firstButton) {
-                navBar.insertBefore(gscButton, firstButton.nextSibling);
-                debugLog('GSC button inserted after first button (fallback)');
+        if (reportsDropdown) {
+            // Look for separator after reports dropdown
+            let insertionPoint = reportsDropdown.nextSibling;
+            
+            // Skip over potential separators (div, span, or elements with separator classes)
+            while (insertionPoint && 
+                   (insertionPoint.nodeType === 3 || // Text nodes (whitespace)
+                    insertionPoint.classList?.contains('separator') ||
+                    insertionPoint.classList?.contains('nav-separator') ||
+                    insertionPoint.classList?.contains('divider') ||
+                    insertionPoint.tagName === 'HR' ||
+                    (insertionPoint.tagName === 'DIV' && insertionPoint.offsetWidth < 10))) {
+                insertionPoint = insertionPoint.nextSibling;
+            }
+            
+            // Insert after reports dropdown + separator
+            const ga4Button = document.getElementById('ga4ConnectBtn');
+            if (ga4Button) {
+                navBar.insertBefore(gscButton, ga4Button.nextSibling);
+                debugLog('GSC button inserted after GA4 button');
+            } else if (insertionPoint) {
+                navBar.insertBefore(gscButton, insertionPoint);
+                debugLog('GSC button inserted after reports dropdown and separator');
             } else {
                 navBar.appendChild(gscButton);
-                debugLog('GSC button appended to navigation bar (fallback)');
+                debugLog('GSC button appended after reports dropdown');
             }
+            
+        } else if (firstButton) {
+            navBar.insertBefore(gscButton, firstButton.nextSibling);
+            debugLog('GSC button inserted after first button (fallback)');
+        } else {
+            navBar.appendChild(gscButton);
+            debugLog('GSC button appended to navigation bar (fallback)');
         }
     };
     
