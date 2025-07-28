@@ -2901,7 +2901,7 @@ return gscData;
                 <div>
                     <div style="font-weight: bold;">Search Console Connected!</div>
                     <div style="font-size: 0.9rem; opacity: 0.9;">
-                        Enhanced GSC data with keyword insights • <span style="font-weight: 600;">Ctrl+L</span> to load all visible
+                        Enhanced GSC data with keyword insights 
                     </div>
                 </div>
             </div>
