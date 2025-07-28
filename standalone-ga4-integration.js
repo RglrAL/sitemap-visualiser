@@ -906,11 +906,12 @@ function addGA4Button() {
 }
 
     function showGA4LoadingState() {
-        const ga4Text = document.getElementById('ga4Text');
-        if (ga4Text) {
-            ga4Text.innerHTML = 'Connecting<span class="ga4-loading-dots"><span></span><span></span><span></span></span>';
-        }
+    const ga4Text = document.getElementById('ga4Text');
+    if (ga4Text) {
+        // Just show the loading dots animation without "Connecting" text
+        ga4Text.innerHTML = '<span class="ga4-loading-dots"><span></span><span></span><span></span></span>';
     }
+}
 
     function hideGA4LoadingState() {
         // Status will be updated by updateGA4ConnectionStatus
