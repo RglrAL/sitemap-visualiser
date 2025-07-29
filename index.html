@@ -1218,28 +1218,28 @@ body.dark-theme .tooltip-header > span:first-child {
 
         body.dark-theme .header {
     background: linear-gradient(135deg, 
-        #0f172a 0%,    /* Dark slate */
-        #1e293b 25%,   /* Medium slate */
-        #334155 60%,   /* Lighter slate */
-        #3d5600 100%   /* Dark version of your green */
+        #0f172a 0%,    /* Very dark slate */
+        #1e293b 25%,   /* Dark slate */
+        #334155 75%,   /* Medium slate */
+        #475569 100%   /* Lighter slate */
     );
-    border-bottom: 1px solid rgba(114, 163, 0, 0.4);
+    border-bottom: 1px solid rgba(114, 163, 0, 0.3);
 }
 
 body.dark-theme .header::before {
     background: 
-        /* Darker grid */
+        /* Darker grid pattern */
         url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="white" stroke-width="0.5" opacity="0.06"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>'),
-        /* Your green in geometric patterns */
-        linear-gradient(45deg, transparent 48%, rgba(114, 163, 0, 0.12) 49%, rgba(114, 163, 0, 0.12) 51%, transparent 52%),
-        /* Strong green accent glows */
-        radial-gradient(circle at 25% 75%, rgba(114, 163, 0, 0.18) 0%, transparent 50%),
-        radial-gradient(circle at 75% 25%, rgba(114, 163, 0, 0.10) 0%, transparent 50%);
+        /* Subtle geometric patterns */
+        linear-gradient(45deg, transparent 48%, rgba(114, 163, 0, 0.08) 49%, rgba(114, 163, 0, 0.08) 51%, transparent 52%),
+        /* Green accent glows */
+        radial-gradient(circle at 25% 75%, rgba(114, 163, 0, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(0, 124, 182, 0.08) 0%, transparent 50%);
     background-size: 40px 40px, 80px 80px, 600px 600px, 800px 800px;
 }
 
 body.dark-theme .header::after {
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.15); /* Slightly darker overlay */
 }
 
        body.dark-theme .upload-section {
