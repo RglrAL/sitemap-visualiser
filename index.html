@@ -89,10 +89,10 @@
         /* Improved Header Layout */
         .header {
     background: linear-gradient(135deg, 
-        #14532d 0%,    /* Dark forest green */
-        #166534 25%,   /* Deep green */
-        #22c55e 75%,   /* Bright green */
-        #72A300 100%   /* Your brand green */
+        #4a6b00 0%,    /* Much darker version of your green */
+        #5a8200 25%,   /* Your secondary dark green */
+        #72A300 75%,   /* Your main brand green */
+        #8abc00 100%   /* Lighter version of your green */
     );
     color: white;
     position: relative;
@@ -108,13 +108,13 @@
     right: 0;
     bottom: 0;
     background: 
-        /* Grid pattern with white lines for contrast */
+        /* Grid pattern */
         url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="white" stroke-width="0.5" opacity="0.12"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>'),
-        /* Geometric patterns with lighter green */
+        /* Geometric patterns */
         linear-gradient(45deg, transparent 48%, rgba(255, 255, 255, 0.08) 49%, rgba(255, 255, 255, 0.08) 51%, transparent 52%),
-        /* Radial glow effects with complementary colors */
-        radial-gradient(circle at 25% 75%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 75% 25%, rgba(34, 197, 94, 0.2) 0%, transparent 50%);
+        /* Radial glows using your green */
+        radial-gradient(circle at 25% 75%, rgba(114, 163, 0, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(138, 188, 0, 0.15) 0%, transparent 50%);
     background-size: 40px 40px, 80px 80px, 600px 600px, 800px 800px;
 }
 
@@ -1218,28 +1218,28 @@ body.dark-theme .tooltip-header > span:first-child {
 
         body.dark-theme .header {
     background: linear-gradient(135deg, 
-        #0f172a 0%,    /* Very dark slate */
-        #1e293b 25%,   /* Dark slate */
-        #334155 75%,   /* Medium slate */
-        #475569 100%   /* Lighter slate */
+        #0f172a 0%,    /* Dark slate */
+        #1e293b 25%,   /* Medium slate */
+        #334155 60%,   /* Lighter slate */
+        #3d5600 100%   /* Dark version of your green */
     );
-    border-bottom: 1px solid rgba(114, 163, 0, 0.3);
+    border-bottom: 1px solid rgba(114, 163, 0, 0.4);
 }
 
 body.dark-theme .header::before {
     background: 
-        /* Darker grid pattern */
+        /* Darker grid */
         url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="white" stroke-width="0.5" opacity="0.06"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>'),
-        /* Subtle geometric patterns */
-        linear-gradient(45deg, transparent 48%, rgba(114, 163, 0, 0.08) 49%, rgba(114, 163, 0, 0.08) 51%, transparent 52%),
-        /* Green accent glows */
-        radial-gradient(circle at 25% 75%, rgba(114, 163, 0, 0.12) 0%, transparent 50%),
-        radial-gradient(circle at 75% 25%, rgba(0, 124, 182, 0.08) 0%, transparent 50%);
+        /* Your green in geometric patterns */
+        linear-gradient(45deg, transparent 48%, rgba(114, 163, 0, 0.12) 49%, rgba(114, 163, 0, 0.12) 51%, transparent 52%),
+        /* Strong green accent glows */
+        radial-gradient(circle at 25% 75%, rgba(114, 163, 0, 0.18) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(114, 163, 0, 0.10) 0%, transparent 50%);
     background-size: 40px 40px, 80px 80px, 600px 600px, 800px 800px;
 }
 
 body.dark-theme .header::after {
-    background: rgba(0, 0, 0, 0.15); /* Slightly darker overlay */
+    background: rgba(0, 0, 0, 0.15);
 }
 
        body.dark-theme .upload-section {
