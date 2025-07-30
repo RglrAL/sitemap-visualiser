@@ -2331,7 +2331,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                         ${citizensScore.insights.map(insight => `
                             <div class="insight-item ${insight.type}">
                                 <div class="insight-header">
-                                    <span class="insight-category">${insight.category}</span>
+                                    <div><span class="insight-category">${insight.category}</span></div>
                                     <span class="insight-impact">${insight.impact}</span>
                                 </div>
                                 <div class="insight-message">${insight.message}</div>
