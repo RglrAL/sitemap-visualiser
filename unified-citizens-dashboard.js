@@ -13352,7 +13352,7 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
     
     return `
         <div class="section citizen-query-intelligence">
-            <h2 class="section-title">🎯 Citizen Query Intelligence</h2>
+            <h2 class="section-title">🧠 Citizen Query Intelligence</h2>
             <div class="citizen-analysis-explanation">
                 <p><strong>Understanding What Citizens Really Want:</strong> This analysis examines real citizen searches to identify their needs, problems, and opportunities to serve them better through your content.</p>
             </div>
