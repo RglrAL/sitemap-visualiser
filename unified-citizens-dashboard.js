@@ -5703,7 +5703,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .dashboard-header {
-    text-align: center;
+    
     margin-bottom: 24px;
 }
 
