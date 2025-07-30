@@ -881,7 +881,7 @@ function getRelativeTime(lastModified) {
     return `
         <div class="impact-metrics">
             <div class="impact-metric">
-                <span class="impact-label">Information Seekers:</span>
+                <span class="citizen-impact-label">Information Seekers:</span>
                 <span class="impact-value">${impact.seekers}</span>
                 <span class="impact-explain" title="Search clicks + unique visitors in last 30 days">ℹ️</span>
             </div>
@@ -891,7 +891,7 @@ function getRelativeTime(lastModified) {
                 <span class="impact-explain" title="Different search queries leading to this page">ℹ️</span>
             </div>
             <div class="impact-metric">
-                <span class="impact-label">Content Success Rate:</span>
+                <span class="citizen-impact-label">Content Success Rate:</span>
                 <span class="impact-value">${impact.successRate}%</span>
                 <span class="impact-explain" title="Citizens who stayed and engaged (didn't immediately leave)">ℹ️</span>
             </div>
