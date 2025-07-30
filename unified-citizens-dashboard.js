@@ -2865,40 +2865,39 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
     `;
 }
 
-    function createSearchPerformancePanel(gscData, gscTrends) {
-        if (!gscData || gscData.noDataFound) {
-            return createConnectionMessage('Search Console', 'Connect Search Console to see detailed search performance data');
-        }
-        
-        const problemQueries = identifyProblemQueries(gscData);
-        
-        return `
-            <div class="panel-content">
-                <div class="section">
-                    <h2 class="section-title">🔍 Search Console Metrics</h2>
-                    <div class="metrics-grid">
-                        ${createSearchConsoleMetrics(gscData, gscTrends)}
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🎯 Top Performing Queries</h2>
-                    ${createTopQueriesTable(gscData)}
-                </div>
-                
-                
-                
-        
-            </div>
-        `;
+    function createSearchPerformancePanel(gscData, gscTrends, pageUrl) {
+    if (!gscData || gscData.noDataFound) {
+        return createConnectionMessage('Search Console', 'Connect Search Console to see detailed search performance data');
     }
+    
+    const problemQueries = identifyProblemQueries(gscData);
+    
+    return `
+        <div class="panel-content">
+            <div class="section">
+                <h2 class="section-title">🔍 Search Console Metrics</h2>
+                <div class="metrics-grid">
+                    ${createSearchConsoleMetrics(gscData, gscTrends)}
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">🎯 Top Performing Queries</h2>
+                ${createTopQueriesTable(gscData)}
+            </div>
+            
+            <!-- MOVED: Citizen Query Intelligence from Content Analysis tab -->
+            ${createCitizenQueryIntelligenceSection(gscData, pageUrl)}
+        </div>
+    `;
+}
 
-    function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {  // Note: add pageUrl parameter
+    function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     const contentGaps = identifyContentGaps(gscData, ga4Data);
     
     return `
         <div class="panel-content">
-            ${createEnhancedQueryAnalysisSection(gscData, pageUrl)}
+            <!-- REMOVED: createEnhancedQueryAnalysisSection(gscData, pageUrl) - moved to Search Performance tab -->
             
             <div class="section">
                 <h2 class="section-title">📝 Content Performance Score</h2>
@@ -2907,52 +2906,52 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             
             <div class="section">
                 <h2 class="section-title">🔍 Content Gap Analysis</h2>
-                    <div class="gap-analysis-grid">
-                        <div class="gap-card high-opportunity">
-                            <div class="gap-header">
-                                <h3>🎯 High Opportunity Queries</h3>
-                                <span class="gap-count">${contentGaps.highOpportunity.length}</span>
-                            </div>
-                            <div class="gap-description">Queries with 1000+ impressions but &lt;2% CTR</div>
-                            ${contentGaps.highOpportunity.length > 0 ? `
-                                <div class="gap-examples">
-                                    ${contentGaps.highOpportunity.slice(0, 3).map(gap => `
-                                        <div class="gap-example">
-                                            <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                            ${formatNumber(gap.impressions)} impressions, ${(gap.ctr * 100).toFixed(1)}% CTR
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<div class="gap-none">✅ No major CTR gaps detected</div>'}
+                <div class="gap-analysis-grid">
+                    <div class="gap-card high-opportunity">
+                        <div class="gap-header">
+                            <h3>🎯 High Opportunity Queries</h3>
+                            <span class="gap-count">${contentGaps.highOpportunity.length}</span>
                         </div>
-                        
-                        <div class="gap-card missing-content">
-                            <div class="gap-header">
-                                <h3>📄 Missing Content</h3>
-                                <span class="gap-count">${contentGaps.missingContent.length}</span>
+                        <div class="gap-description">Queries with 1000+ impressions but &lt;2% CTR</div>
+                        ${contentGaps.highOpportunity.length > 0 ? `
+                            <div class="gap-examples">
+                                ${contentGaps.highOpportunity.slice(0, 3).map(gap => `
+                                    <div class="gap-example">
+                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
+                                        ${formatNumber(gap.impressions)} impressions, ${(gap.ctr * 100).toFixed(1)}% CTR
+                                    </div>
+                                `).join('')}
                             </div>
-                            <div class="gap-description">Queries with 100+ impressions but no dedicated content</div>
-                            ${contentGaps.missingContent.length > 0 ? `
-                                <div class="gap-examples">
-                                    ${contentGaps.missingContent.slice(0, 3).map(gap => `
-                                        <div class="gap-example">
-                                            <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                            ${formatNumber(gap.impressions)} monthly impressions
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : '<div class="gap-none">✅ Good content coverage detected</div>'}
+                        ` : '<div class="gap-none">✅ No major CTR gaps detected</div>'}
+                    </div>
+                    
+                    <div class="gap-card missing-content">
+                        <div class="gap-header">
+                            <h3>📄 Missing Content</h3>
+                            <span class="gap-count">${contentGaps.missingContent.length}</span>
                         </div>
+                        <div class="gap-description">Queries with 100+ impressions but no dedicated content</div>
+                        ${contentGaps.missingContent.length > 0 ? `
+                            <div class="gap-examples">
+                                ${contentGaps.missingContent.slice(0, 3).map(gap => `
+                                    <div class="gap-example">
+                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
+                                        ${formatNumber(gap.impressions)} monthly impressions
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div class="gap-none">✅ Good content coverage detected</div>'}
                     </div>
                 </div>
-                
-                <div class="section">
-                    <h2 class="section-title">💡 Evidence-Based Action Items</h2>
-                    ${createEvidenceBasedActions(gscData, ga4Data)}
-                </div>
             </div>
-        `;
-    }
+            
+            <div class="section">
+                <h2 class="section-title">💡 Evidence-Based Action Items</h2>
+                ${createEvidenceBasedActions(gscData, ga4Data)}
+            </div>
+        </div>
+    `;
+}
 
     function createUserBehaviorPanel(ga4Data, ga4Trends, gscData) {
         if (!ga4Data || ga4Data.noDataFound) {
@@ -8909,7 +8908,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
             ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
             ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
             
-            
             <div class="dashboard-tabs">
                 <div class="tab-nav">
                     <button class="tab-btn active" data-tab="overview">
@@ -8929,8 +8927,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         <span class="tab-icon">📝</span>
                         <span class="tab-label">Content Analysis</span>
                     </button>
-                    
-                    
                     <button class="tab-btn" data-tab="government">
                         <span class="tab-icon">🏛️</span>
                         <span class="tab-label">Government Intelligence</span>
@@ -8947,7 +8943,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                     </div>
                     
                     <div class="tab-panel" data-panel="search">
-                        ${createSearchPerformancePanel(gscData, gscTrends)}
+                        ${createSearchPerformancePanel(gscData, gscTrends, url)}
                     </div>
                     
                     <div class="tab-panel" data-panel="content">
