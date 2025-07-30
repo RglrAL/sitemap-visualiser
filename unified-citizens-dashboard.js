@@ -1202,13 +1202,14 @@ function calculateFindabilityScore(gscData) {
     const impressions = gscData.impressions || 0;
     const ctr = gscData.ctr || 0;
     
-    // Position score - Citizens need to find government info easily
+    // UPDATED: More lenient position scoring for AVERAGE position
     let positionScore = 0;
-    if (position <= 3) positionScore = 100;      // Excellent - top 3
-    else if (position <= 5) positionScore = 85;  // Very good - first half of page 1
-    else if (position <= 10) positionScore = 65; // Good - page 1
-    else if (position <= 20) positionScore = 40; // Poor - page 2
-    else positionScore = 15;                     // Very poor - page 3+
+    if (position <= 5) positionScore = 100;      // Excellent - top 5 average
+    else if (position <= 10) positionScore = 85; // Very good - top 10 average  
+    else if (position <= 15) positionScore = 70; // Good - top 15 average
+    else if (position <= 25) positionScore = 55; // Fair - top 25 average
+    else if (position <= 35) positionScore = 40; // Poor - top 35 average
+    else positionScore = 25;                     // Very poor - beyond page 3 average
     
     // Visibility score - Are people searching for this info?
     let visibilityScore = 0;
@@ -1327,28 +1328,45 @@ function calculateCoreWebVitalsScore(vitals) {
 
 function generateCitizensInfoInsights(scores, gscData, ga4Data) {
     const insights = [];
+    const position = gscData?.position || 50;
     
-    // Findability insights
+    // Findability insights - more nuanced for average position
     if (scores.findability < 60) {
-        if (gscData && gscData.position > 10) {
+        if (position > 25) {
             insights.push({
-                type: 'critical',
+                type: 'warning', // Changed from 'critical' to 'warning'
                 category: 'Findability',
-                message: `Citizens can't find this page easily (position #${gscData.position.toFixed(0)}). This critical information is buried in search results.`,
-                impact: 'High - Citizens missing important information'
+                message: `Average search position is #${position.toFixed(0)}. While some queries may rank well, overall discoverability needs improvement.`,
+                impact: 'Medium - Mixed search performance across queries'
+            });
+        } else if (position > 15) {
+            insights.push({
+                type: 'warning',
+                category: 'Findability',
+                message: `Average search position is #${position.toFixed(0)}. Focus on improving ranking for your most important target keywords.`,
+                impact: 'Medium - Good foundation but needs optimization'
             });
         }
+        
         if (gscData && gscData.impressions < 100) {
             insights.push({
                 type: 'warning', 
                 category: 'Findability',
-                message: 'Very few citizens are searching for this information. Consider if content is needed or discoverable.',
-                impact: 'Medium - Low information demand'
+                message: 'Low search volume suggests limited keyword targeting or content discoverability.',
+                impact: 'Medium - Missing potential citizen searches'
             });
         }
+    } else if (scores.findability >= 75) {
+        // Add positive insight for good findability
+        insights.push({
+            type: 'success',
+            category: 'Findability',
+            message: `Excellent average search position (#${position.toFixed(0)}). Citizens can easily discover this information.`,
+            impact: 'Positive search visibility'
+        });
     }
     
-    // Helpfulness insights
+    // Helpfulness insights (unchanged)
     if (scores.helpfulness < 50) {
         if (ga4Data && ga4Data.bounceRate > 0.7) {
             insights.push({
@@ -1368,7 +1386,7 @@ function generateCitizensInfoInsights(scores, gscData, ga4Data) {
         }
     }
     
-    // Readability insights
+    // Readability insights (unchanged)
     if (scores.readability < 50) {
         if (ga4Data && ga4Data.avgSessionDuration < 45) {
             insights.push({
@@ -1380,7 +1398,7 @@ function generateCitizensInfoInsights(scores, gscData, ga4Data) {
         }
     }
     
-    // Performance insights
+    // Performance insights (unchanged)
     if (scores.performance < 50) {
         insights.push({
             type: 'warning',
@@ -1402,6 +1420,7 @@ function generateCitizensInfoInsights(scores, gscData, ga4Data) {
     
     return insights;
 }
+
 
 // ====================================
 // ACTIONABLE RECOMMENDATIONS
@@ -1493,9 +1512,23 @@ function getGradeFromScore(score) {
 
 function getFindabilityImprovement(score, gscData) {
     if (score >= 75) return "✅ Citizens can easily find this information";
-    if (gscData?.position > 10) return "📈 Focus on improving search ranking to page 1";
-    if (gscData?.ctr < 0.05) return "📝 Optimize title and description to attract more clicks";
-    return "🔍 Improve both search ranking and click appeal";
+    
+    const position = gscData?.position || 50;
+    const ctr = gscData?.ctr || 0;
+    const impressions = gscData?.impressions || 0;
+    
+    // More nuanced messages based on average position
+    if (position > 25) {
+        return "📈 Average search ranking needs improvement - focus on top-performing queries first";
+    } else if (position > 15) {
+        return "📊 Decent average ranking but room for improvement - optimize for main target keywords";
+    } else if (ctr < 0.05) {
+        return "📝 Good average position but low click rate - optimize titles and descriptions";
+    } else if (impressions < 500) {
+        return "🔍 Improve keyword targeting to increase search visibility";
+    }
+    
+    return "🎯 Focus on improving ranking for your most important target keywords";
 }
 
 function getHelpfulnessImprovement(score, ga4Data) {
