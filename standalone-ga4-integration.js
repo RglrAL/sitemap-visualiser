@@ -158,10 +158,7 @@
         content.innerHTML = `
             <h3 style="margin-bottom: 20px; color: #ff6b35;">Select Your GA4 Property</h3>
             
-            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #17a2b8;">
-                <strong>ℹ️ Quick Selection</strong><br>
-                Choose from your configured GA4 properties below, or enter a custom Property ID.
-            </div>
+            
             
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">
