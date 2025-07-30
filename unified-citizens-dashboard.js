@@ -886,7 +886,7 @@ function getRelativeTime(lastModified) {
                 <span class="impact-explain" title="Search clicks + unique visitors in last 30 days">ℹ️</span>
             </div>
             <div class="impact-metric">
-                <span class="impact-label">Query Types Found:</span>
+                <span class="citizen-impact-label">Query Types Found:</span>
                 <span class="impact-value">${impact.queryTypes}</span>
                 <span class="impact-explain" title="Different search queries leading to this page">ℹ️</span>
             </div>
@@ -4620,9 +4620,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
     margin-bottom: 4px;
 }
 
-.impact-label {
+.citizen-impact-label {
     font-size: 0.8rem;
-    color: #ffffff;
+    color: #000000;
     font-weight: 600;
 }
 
