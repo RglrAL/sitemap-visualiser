@@ -3276,11 +3276,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                     </div>
                 </div>
                 
-                <div class="section">
-                    <h2 class="section-title">📋 Content Priority Matrix</h2>
-                    <div class="priority-explanation">
-                        <p>Based on government sector prioritization: Traffic Volume (40%), Growth Rate (25%), Search Behavior (20%), External Discovery (15%)</p>
-                    </div>
+               
                     
                     
                 
