@@ -2749,7 +2749,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
         <div class="panel-content">
             <!-- MOVED: Analytics and Search Performance Cards -->
             
-                <div class="overview-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 800px; margin: 0 auto;">
+                <div class="overview-grid" style="grid-template-columns: repeat(2, 1fr); margin: 0 auto;">
                     <div class="overview-card analytics-card">
                         <div class="card-header">
                             <div class="card-icon"><svg width="26" height="26" viewBox="0 0 24 24" style="flex-shrink: 0;">
