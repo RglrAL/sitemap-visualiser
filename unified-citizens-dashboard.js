@@ -6397,18 +6397,12 @@ function formatDuration(seconds) {
                         <span class="btn-icon">🔗</span>
                         <span class="btn-text">Visit Page</span>
                     </button>
-                    <button class="action-btn secondary" onclick="exportUnifiedReport('${escapeHtml(url)}')">
-                        <span class="btn-icon">📊</span>
-                        <span class="btn-text">Export Report</span>
-                    </button>
+                   
                     <button class="action-btn secondary" onclick="copyUnifiedSummary('${escapeHtml(url)}')">
                         <span class="btn-icon">📋</span>
                         <span class="btn-text">Copy Summary</span>
                     </button>
-                    <button class="action-btn secondary" onclick="scheduleUnifiedReview('${escapeHtml(url)}')">
-                        <span class="btn-icon">📅</span>
-                        <span class="btn-text">Schedule Review</span>
-                    </button>
+                    
                 </div>
             </div>
         `;
