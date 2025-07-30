@@ -2748,8 +2748,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
     return `
         <div class="panel-content">
             <!-- MOVED: Analytics and Search Performance Cards -->
-            <div class="section">
-                <h2 class="section-title">📊 Key Performance Metrics</h2>
+            
                 <div class="overview-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 800px; margin: 0 auto;">
                     <div class="overview-card analytics-card">
                         <div class="card-header">
@@ -2851,7 +2850,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                         </div>
                     </div>
                 </div>
-            </div>
+            
             
             <div class="section">
                 <h2 class="section-title">📊 Performance Matrix</h2>
