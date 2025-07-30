@@ -787,19 +787,20 @@ function getRelativeTime(lastModified) {
     }
 
     function createQualityScoreDisplay(gscData, ga4Data) {
-    const scores = calculateDetailedQualityScore(gscData, ga4Data);
-    const overallScore = scores.overall;
-    const grade = overallScore >= 85 ? 'A' : overallScore >= 75 ? 'B' : overallScore >= 65 ? 'C' : overallScore >= 55 ? 'D' : 'F';
+    // Use Citizens Information specific scoring
+    const citizensScore = calculateCitizensInfoQualityScore(gscData, ga4Data);
+    const overallScore = citizensScore.overall;
+    const grade = citizensScore.grade;
     
     return `
         <div class="quality-score-display">
             <div class="score-circle ${getScoreClass(overallScore)}">
                 <div class="score-number">${overallScore}</div>
-                <div class="score-label">Quality Score</div>
+                <div class="score-label">Citizens Info Score</div>
             </div>
             <div class="score-grade">Grade: ${grade}</div>
             
-            <!-- Detailed Breakdown Toggle - REMOVED onclick -->
+            <!-- Detailed Breakdown Toggle -->
             <div class="score-breakdown-toggle">
                 <button class="breakdown-btn" data-action="toggle-quality-breakdown" id="qualityBreakdownBtn">
                     <span>📊 Show Breakdown</span>
@@ -809,71 +810,655 @@ function getRelativeTime(lastModified) {
             <!-- Hidden Breakdown Details -->
             <div class="quality-breakdown" id="qualityBreakdown" style="display: none;">
                 <div class="breakdown-explanation">
-                    <p><strong>Quality Score Components:</strong></p>
+                    <p><strong>Citizens Information Quality Components:</strong></p>
                 </div>
                 
                 <div class="breakdown-components">
                     <div class="breakdown-item">
                         <div class="breakdown-header">
                             <span class="breakdown-icon">🔍</span>
-                            <span class="breakdown-name">Search Performance</span>
-                            <span class="breakdown-score ${getScoreClass(scores.search)}">${scores.search}/100</span>
+                            <span class="breakdown-name">Findability</span>
+                            <span class="breakdown-score ${getScoreClass(citizensScore.findability)}">${citizensScore.findability}/100</span>
                         </div>
                         <div class="breakdown-details">
-                            <div class="breakdown-metric">Ranking Position: ${scores.details.position ? '#' + scores.details.position.toFixed(0) : 'No data'}</div>
-                            <div class="breakdown-metric">Click Rate: ${scores.details.ctr ? (scores.details.ctr * 100).toFixed(1) + '%' : 'No data'}</div>
-                            <div class="breakdown-improvement">${getSearchImprovement(scores.search, scores.details)}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="breakdown-item">
-                        <div class="breakdown-header">
-                            <span class="breakdown-icon">👥</span>
-                            <span class="breakdown-name">User Engagement</span>
-                            <span class="breakdown-score ${getScoreClass(scores.engagement)}">${scores.engagement}/100</span>
-                        </div>
-                        <div class="breakdown-details">
-                            <div class="breakdown-metric">Time on Page: ${scores.details.duration ? formatDuration(scores.details.duration) : 'No data'}</div>
-                            <div class="breakdown-metric">Bounce Rate: ${scores.details.bounceRate ? (scores.details.bounceRate * 100).toFixed(0) + '%' : 'No data'}</div>
-                            <div class="breakdown-improvement">${getEngagementImprovement(scores.engagement, scores.details)}</div>
+                            <div class="breakdown-metric">Search Position: ${gscData?.position ? '#' + gscData.position.toFixed(0) : 'No data'}</div>
+                            <div class="breakdown-metric">Click Rate: ${gscData?.ctr ? (gscData.ctr * 100).toFixed(1) + '%' : 'No data'}</div>
+                            <div class="breakdown-metric">Impressions: ${gscData?.impressions ? formatNumber(gscData.impressions) : 'No data'}</div>
+                            <div class="breakdown-improvement">${getFindabilityImprovement(citizensScore.findability, gscData)}</div>
                         </div>
                     </div>
                     
                     <div class="breakdown-item">
                         <div class="breakdown-header">
                             <span class="breakdown-icon">🎯</span>
-                            <span class="breakdown-name">Content Relevance</span>
-                            <span class="breakdown-score ${getScoreClass(scores.relevance)}">${scores.relevance}/100</span>
+                            <span class="breakdown-name">Helpfulness</span>
+                            <span class="breakdown-score ${getScoreClass(citizensScore.helpfulness)}">${citizensScore.helpfulness}/100</span>
                         </div>
                         <div class="breakdown-details">
-                            <div class="breakdown-metric">Expected CTR: ${scores.details.expectedCtr ? (scores.details.expectedCtr * 100).toFixed(1) + '%' : 'No data'}</div>
-                            <div class="breakdown-metric">Actual CTR: ${scores.details.ctr ? (scores.details.ctr * 100).toFixed(1) + '%' : 'No data'}</div>
-                            <div class="breakdown-improvement">${getRelevanceImprovement(scores.relevance, scores.details)}</div>
+                            <div class="breakdown-metric">Success Rate: ${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</div>
+                            <div class="breakdown-metric">Engagement Rate: ${ga4Data?.engagementRate ? (ga4Data.engagementRate * 100).toFixed(0) + '%' : 'No data'}</div>
+                            <div class="breakdown-metric">Pages/Session: ${ga4Data?.sessions && ga4Data?.pageViews ? (ga4Data.pageViews / ga4Data.sessions).toFixed(1) : 'No data'}</div>
+                            <div class="breakdown-improvement">${getHelpfulnessImprovement(citizensScore.helpfulness, ga4Data)}</div>
                         </div>
                     </div>
                     
                     <div class="breakdown-item">
                         <div class="breakdown-header">
-                            <span class="breakdown-icon">⭐</span>
-                            <span class="breakdown-name">User Experience</span>
-                            <span class="breakdown-score ${getScoreClass(scores.ux)}">${scores.ux}/100</span>
+                            <span class="breakdown-icon">📖</span>
+                            <span class="breakdown-name">Readability</span>
+                            <span class="breakdown-score ${getScoreClass(citizensScore.readability)}">${citizensScore.readability}/100</span>
                         </div>
                         <div class="breakdown-details">
-                            <div class="breakdown-metric">Engagement Rate: ${scores.details.engagementRate ? (scores.details.engagementRate * 100).toFixed(0) + '%' : 'No data'}</div>
-                            <div class="breakdown-metric">Pages/Session: ${scores.details.pagesPerSession ? scores.details.pagesPerSession.toFixed(1) : 'No data'}</div>
-                            <div class="breakdown-improvement">${getUXImprovement(scores.ux, scores.details)}</div>
+                            <div class="breakdown-metric">Time on Page: ${ga4Data?.avgSessionDuration ? formatDuration(ga4Data.avgSessionDuration) : 'No data'}</div>
+                            <div class="breakdown-metric">Content Completion: ${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</div>
+                            <div class="breakdown-improvement">${getReadabilityImprovement(citizensScore.readability, ga4Data)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="breakdown-item">
+                        <div class="breakdown-header">
+                            <span class="breakdown-icon">⚡</span>
+                            <span class="breakdown-name">Performance</span>
+                            <span class="breakdown-score ${getScoreClass(citizensScore.performance)}">${citizensScore.performance}/100</span>
+                        </div>
+                        <div class="breakdown-details">
+                            <div class="breakdown-metric">Technical Health: ${citizensScore.performance >= 60 ? 'Good' : 'Needs Work'}</div>
+                            <div class="breakdown-metric">Bounce Rate: ${ga4Data?.bounceRate ? (ga4Data.bounceRate * 100).toFixed(0) + '%' : 'No data'}</div>
+                            <div class="breakdown-improvement">${getPerformanceImprovement(citizensScore.performance, ga4Data)}</div>
                         </div>
                     </div>
                 </div>
                 
+                <!-- Citizens Information Specific Insights -->
+                <div class="citizens-insights-section">
+                    <h4>💡 Citizens Information Insights</h4>
+                    <div class="insights-list">
+                        ${citizensScore.insights.map(insight => `
+                            <div class="insight-item ${insight.type}">
+                                <div class="insight-header">
+                                    <span class="insight-category">${insight.category}</span>
+                                    <span class="insight-impact">${insight.impact}</span>
+                                </div>
+                                <div class="insight-message">${insight.message}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Actionable Recommendations -->
+                <div class="citizens-recommendations-section">
+                    <h4>🚀 Actionable Recommendations</h4>
+                    <div class="recommendations-list">
+                        ${citizensScore.recommendations.map(rec => `
+                            <div class="recommendation-item priority-${rec.priority.toLowerCase()}">
+                                <div class="rec-header">
+                                    <span class="rec-action">${rec.action}</span>
+                                    <div class="rec-badges">
+                                        <span class="priority-badge ${rec.priority.toLowerCase()}">${rec.priority} Priority</span>
+                                        <span class="timeframe-badge">${rec.timeframe}</span>
+                                    </div>
+                                </div>
+                                <div class="rec-impact">${rec.impact}</div>
+                                <div class="rec-specifics">
+                                    <strong>Specific Actions:</strong>
+                                    <ul>
+                                        ${rec.specific.map(action => `<li>${action}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
                 <div class="overall-recommendation">
-                    <h4>💡 Overall Recommendation</h4>
-                    <p>${getOverallRecommendation(overallScore, scores)}</p>
+                    <h4>🎯 Overall Citizens Information Recommendation</h4>
+                    <p>${getCitizensOverallRecommendation(overallScore, citizensScore)}</p>
                 </div>
             </div>
         </div>
     `;
 }
+
+
+// ====================================
+// CITIZENS INFORMATION QUALITY SCORING
+// ====================================
+
+function calculateCitizensInfoQualityScore(gscData, ga4Data, coreWebVitals = null) {
+    const scores = {
+        findability: calculateFindabilityScore(gscData),           // Can citizens find this page?
+        helpfulness: calculateHelpfulnessScore(ga4Data),          // Does it help citizens?
+        readability: calculateReadabilityScore(ga4Data),          // Do citizens read it?
+        performance: calculatePerformanceScore(ga4Data, coreWebVitals), // Does it load well?
+        overall: 0
+    };
+    
+    // Equal weighting for information pages (all aspects matter)
+    scores.overall = Math.round(
+        (scores.findability * 0.3) +    // Can they find it? (30%)
+        (scores.helpfulness * 0.35) +   // Does it help them? (35%) 
+        (scores.readability * 0.25) +   // Do they read it? (25%)
+        (scores.performance * 0.1)      // Does it work well? (10%)
+    );
+    
+    return {
+        ...scores,
+        grade: getGradeFromScore(scores.overall),
+        insights: generateCitizensInfoInsights(scores, gscData, ga4Data),
+        recommendations: generateActionableRecommendations(scores, gscData, ga4Data)
+    };
+}
+
+// 1. FINDABILITY SCORE (Can citizens find this page in Google?)
+function calculateFindabilityScore(gscData) {
+    if (!gscData || gscData.noDataFound) return 20;
+    
+    const position = gscData.position || 50;
+    const impressions = gscData.impressions || 0;
+    const ctr = gscData.ctr || 0;
+    
+    // Position score - Citizens need to find government info easily
+    let positionScore = 0;
+    if (position <= 3) positionScore = 100;      // Excellent - top 3
+    else if (position <= 5) positionScore = 85;  // Very good - first half of page 1
+    else if (position <= 10) positionScore = 65; // Good - page 1
+    else if (position <= 20) positionScore = 40; // Poor - page 2
+    else positionScore = 15;                     // Very poor - page 3+
+    
+    // Visibility score - Are people searching for this info?
+    let visibilityScore = 0;
+    if (impressions >= 1000) visibilityScore = 100;      // High demand
+    else if (impressions >= 500) visibilityScore = 80;   // Good demand  
+    else if (impressions >= 100) visibilityScore = 60;   // Some demand
+    else if (impressions >= 50) visibilityScore = 40;    // Low demand
+    else visibilityScore = 20;                           // Very low demand
+    
+    // Click appeal - Do titles/descriptions attract citizens?
+    const expectedCTR = getCTRBenchmark(position);
+    const appealScore = expectedCTR > 0 ? 
+        Math.min(100, (ctr / expectedCTR) * 100) : 50;
+    
+    // Weighted combination (position most important for gov info)
+    return Math.round((positionScore * 0.5) + (visibilityScore * 0.3) + (appealScore * 0.2));
+}
+
+// 2. HELPFULNESS SCORE (Does this page actually help citizens?)
+function calculateHelpfulnessScore(ga4Data) {
+    if (!ga4Data || ga4Data.noDataFound) return 30;
+    
+    const bounceRate = ga4Data.bounceRate || 0.6;
+    const engagementRate = ga4Data.engagementRate || 0.4;
+    const sessions = ga4Data.sessions || 0;
+    const pageViews = ga4Data.pageViews || 0;
+    
+    // Success rate - Citizens who didn't immediately leave
+    const successRate = (1 - bounceRate) * 100;
+    
+    // Engagement quality - Citizens who actively engaged  
+    const engagementQuality = engagementRate * 100;
+    
+    // Return value - Citizens who explored further
+    const pagesPerSession = sessions > 0 ? pageViews / sessions : 1;
+    const returnValue = Math.min(100, (pagesPerSession - 1) * 100); // Above 1 = exploring
+    
+    // For information pages, success and engagement matter most
+    return Math.round((successRate * 0.5) + (engagementQuality * 0.4) + (returnValue * 0.1));
+}
+
+// 3. READABILITY SCORE (Do citizens actually read the content?)
+function calculateReadabilityScore(ga4Data) {
+    if (!ga4Data || ga4Data.noDataFound) return 30;
+    
+    const avgSessionDuration = ga4Data.avgSessionDuration || 0;
+    const bounceRate = ga4Data.bounceRate || 0.6;
+    
+    // Time investment - Citizens spending time reading
+    // For government info: 90 seconds = good reading time
+    const timeScore = Math.min(100, (avgSessionDuration / 90) * 100);
+    
+    // Content completion proxy - Lower bounce rate often means they read enough
+    const completionProxy = (1 - bounceRate) * 100;
+    
+    // Reading depth - Combination of time and completion
+    return Math.round((timeScore * 0.6) + (completionProxy * 0.4));
+}
+
+// 4. PERFORMANCE SCORE (Does the page work well technically?)
+function calculatePerformanceScore(ga4Data, coreWebVitals) {
+    if (!ga4Data || ga4Data.noDataFound) return 40;
+    
+    // If we have Core Web Vitals, use them
+    if (coreWebVitals) {
+        return calculateCoreWebVitalsScore(coreWebVitals);
+    }
+    
+    // Otherwise, use proxy metrics
+    const bounceRate = ga4Data.bounceRate || 0.6;
+    const engagementRate = ga4Data.engagementRate || 0.4;
+    
+    // High bounce + low engagement often indicates technical issues
+    const technicalHealth = Math.round((engagementRate * 70) + ((1 - bounceRate) * 30));
+    
+    return Math.min(100, technicalHealth);
+}
+
+// CORE WEB VITALS SCORING (if available)
+function calculateCoreWebVitalsScore(vitals) {
+    let score = 0;
+    let components = 0;
+    
+    // LCP Score (should be under 2.5 seconds)
+    if (vitals.lcp !== undefined) {
+        components++;
+        if (vitals.lcp <= 2.5) score += 100;
+        else if (vitals.lcp <= 4.0) score += 70;
+        else score += 30;
+    }
+    
+    // FID Score (should be under 100ms) 
+    if (vitals.fid !== undefined) {
+        components++;
+        if (vitals.fid <= 100) score += 100;
+        else if (vitals.fid <= 300) score += 70;
+        else score += 30;
+    }
+    
+    // CLS Score (should be under 0.1)
+    if (vitals.cls !== undefined) {
+        components++;
+        if (vitals.cls <= 0.1) score += 100;
+        else if (vitals.cls <= 0.25) score += 70;
+        else score += 30;
+    }
+    
+    return components > 0 ? Math.round(score / components) : 50;
+}
+
+
+  
+// ====================================
+// INSIGHTS GENERATION
+// ====================================
+
+function generateCitizensInfoInsights(scores, gscData, ga4Data) {
+    const insights = [];
+    
+    // Findability insights
+    if (scores.findability < 60) {
+        if (gscData && gscData.position > 10) {
+            insights.push({
+                type: 'critical',
+                category: 'Findability',
+                message: `Citizens can't find this page easily (position #${gscData.position.toFixed(0)}). This critical information is buried in search results.`,
+                impact: 'High - Citizens missing important information'
+            });
+        }
+        if (gscData && gscData.impressions < 100) {
+            insights.push({
+                type: 'warning', 
+                category: 'Findability',
+                message: 'Very few citizens are searching for this information. Consider if content is needed or discoverable.',
+                impact: 'Medium - Low information demand'
+            });
+        }
+    }
+    
+    // Helpfulness insights
+    if (scores.helpfulness < 50) {
+        if (ga4Data && ga4Data.bounceRate > 0.7) {
+            insights.push({
+                type: 'critical',
+                category: 'Helpfulness', 
+                message: `${(ga4Data.bounceRate * 100).toFixed(0)}% of citizens leave immediately. Content may not match their information needs.`,
+                impact: 'High - Citizens not getting help they need'
+            });
+        }
+        if (ga4Data && ga4Data.engagementRate < 0.3) {
+            insights.push({
+                type: 'warning',
+                category: 'Helpfulness',
+                message: 'Low citizen engagement suggests information is hard to use or irrelevant.',
+                impact: 'Medium - Poor user experience'
+            });
+        }
+    }
+    
+    // Readability insights
+    if (scores.readability < 50) {
+        if (ga4Data && ga4Data.avgSessionDuration < 45) {
+            insights.push({
+                type: 'warning',
+                category: 'Readability',
+                message: 'Citizens spend very little time reading. Information may be too complex or poorly formatted.',
+                impact: 'Medium - Information not being consumed'
+            });
+        }
+    }
+    
+    // Performance insights
+    if (scores.performance < 50) {
+        insights.push({
+            type: 'warning',
+            category: 'Performance',
+            message: 'Technical performance issues may be preventing citizens from accessing information.',
+            impact: 'Medium - Technical barriers to access'
+        });
+    }
+    
+    // Positive insights
+    if (scores.overall >= 75) {
+        insights.push({
+            type: 'success',
+            category: 'Overall',
+            message: 'Excellent! This page effectively serves citizens\' information needs.',
+            impact: 'Positive citizen experience'
+        });
+    }
+    
+    return insights;
+}
+
+// ====================================
+// ACTIONABLE RECOMMENDATIONS
+// ====================================
+
+function generateActionableRecommendations(scores, gscData, ga4Data) {
+    const recommendations = [];
+    
+    // Findability improvements
+    if (scores.findability < 60) {
+        recommendations.push({
+            priority: 'High',
+            action: 'SEO Optimization',
+            specific: [
+                'Review and improve page title to match citizen search terms',
+                'Write meta description that clearly explains what citizens will find',
+                'Add internal links from related high-traffic pages',
+                'Ensure content includes terms citizens actually search for'
+            ],
+            timeframe: '1-2 weeks',
+            impact: `Could help ${gscData?.impressions ? Math.round(gscData.impressions * 0.3) : 'more'} citizens find this information monthly`
+        });
+    }
+    
+    // Helpfulness improvements  
+    if (scores.helpfulness < 50) {
+        recommendations.push({
+            priority: 'High',
+            action: 'Content Restructuring', 
+            specific: [
+                'Add clear headings that match citizen questions',
+                'Put most important information at the top',
+                'Use bullet points and simple language',
+                'Add "What you need to know" summary section',
+                'Include relevant contact information or next steps'
+            ],
+            timeframe: '2-3 weeks',
+            impact: `Could reduce bounce rate from ${ga4Data?.bounceRate ? (ga4Data.bounceRate * 100).toFixed(0) : '60'}% to ~40%`
+        });
+    }
+    
+    // Readability improvements
+    if (scores.readability < 50) {
+        recommendations.push({
+            priority: 'Medium',
+            action: 'Content Formatting',
+            specific: [
+                'Break up long paragraphs into shorter ones',
+                'Use more headings and bullet points', 
+                'Add a table of contents for long pages',
+                'Include examples or scenarios citizens can relate to',
+                'Consider adding FAQ section for common questions'
+            ],
+            timeframe: '1-2 weeks', 
+            impact: 'Increase average reading time and citizen satisfaction'
+        });
+    }
+    
+    // Performance improvements
+    if (scores.performance < 60) {
+        recommendations.push({
+            priority: 'Medium',
+            action: 'Technical Improvements',
+            specific: [
+                'Optimize images and file sizes',
+                'Review page loading speed',
+                'Test on mobile devices',
+                'Check for broken links or forms'
+            ],
+            timeframe: '1 week',
+            impact: 'Improve citizen experience, especially on mobile'
+        });
+    }
+    
+    return recommendations;
+}
+
+// ====================================
+// HELPER FUNCTIONS
+// ====================================
+
+function getGradeFromScore(score) {
+    if (score >= 85) return 'A';
+    if (score >= 75) return 'B'; 
+    if (score >= 65) return 'C';
+    if (score >= 55) return 'D';
+    return 'F';
+}
+
+function getFindabilityImprovement(score, gscData) {
+    if (score >= 75) return "✅ Citizens can easily find this information";
+    if (gscData?.position > 10) return "📈 Focus on improving search ranking to page 1";
+    if (gscData?.ctr < 0.05) return "📝 Optimize title and description to attract more clicks";
+    return "🔍 Improve both search ranking and click appeal";
+}
+
+function getHelpfulnessImprovement(score, ga4Data) {
+    if (score >= 75) return "✅ Content successfully helps citizens";
+    if (ga4Data?.bounceRate > 0.7) return "📚 Restructure content to better match citizen needs";
+    if (ga4Data?.engagementRate < 0.3) return "🎯 Make content more engaging and actionable";
+    return "👥 Focus on improving citizen engagement";
+}
+
+function getReadabilityImprovement(score, ga4Data) {
+    if (score >= 75) return "✅ Citizens are reading and consuming the information";
+    if (ga4Data?.avgSessionDuration < 60) return "⏱️ Break up content and improve readability";
+    return "📖 Make content easier to read and understand";
+}
+
+function getPerformanceImprovement(score, ga4Data) {
+    if (score >= 75) return "✅ Page performs well technically";
+    if (ga4Data?.bounceRate > 0.6) return "⚡ Technical issues may be causing high bounce rate";
+    return "🔧 Improve page loading speed and technical performance";
+}
+
+function getCitizensOverallRecommendation(score, citizensScore) {
+    if (score >= 85) {
+        return "Outstanding! This page excellently serves citizens' information needs across all quality dimensions. Continue monitoring and maintain this high standard.";
+    } else if (score >= 65) {
+        return "Good performance overall. Focus on the lowest-scoring areas (findability, helpfulness, readability, or performance) for maximum improvement in citizen service.";
+    } else if (score >= 45) {
+        return "Significant room for improvement. Citizens are struggling to find, use, or understand this information. Start with the highest-priority recommendations to better serve citizens.";
+    } else {
+        return "This page needs urgent attention. Poor performance across multiple areas is preventing citizens from getting the information they need. Implement high-priority recommendations immediately.";
+    }
+}
+
+// ====================================
+// ADDITIONAL STYLING FOR CITIZENS INFO
+// ====================================
+
+// Add these styles to your existing CSS or include in the dashboard
+const citizensInfoStyles = `
+<style>
+.citizens-insights-section {
+    margin-top: 20px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 8px;
+    border-left: 4px solid #0ea5e9;
+}
+
+.insights-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.insight-item {
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 3px solid #e5e7eb;
+}
+
+.insight-item.critical {
+    background: #fef2f2;
+    border-left-color: #ef4444;
+}
+
+.insight-item.warning {
+    background: #fffbeb;
+    border-left-color: #f59e0b;
+}
+
+.insight-item.success {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+}
+
+.insight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.insight-category {
+    color: #374151;
+}
+
+.insight-impact {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
+.insight-message {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.citizens-recommendations-section {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid #10b981;
+}
+
+.recommendations-list {
+    display: grid;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.recommendation-item {
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.recommendation-item.priority-high {
+    border-left: 4px solid #ef4444;
+}
+
+.recommendation-item.priority-medium {
+    border-left: 4px solid #f59e0b;
+}
+
+.recommendation-item.priority-low {
+    border-left: 4px solid #6b7280;
+}
+
+.rec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rec-action {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.rec-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.priority-badge, .timeframe-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.priority-badge.high {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.priority-badge.medium {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.priority-badge.low {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.timeframe-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.rec-impact {
+    font-size: 0.85rem;
+    color: #059669;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.rec-specifics {
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.rec-specifics ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.rec-specifics li {
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+</style>
+`;  
+
+
+
+
+
+    
 
     function createImpactDisplay(gscData, ga4Data) {
     const impact = calculateEnhancedImpactMetrics(gscData, ga4Data);
