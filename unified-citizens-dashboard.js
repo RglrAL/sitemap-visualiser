@@ -9625,7 +9625,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         
         <div id="${dashboardId}" class="unified-dashboard-container">
             ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
-            ${createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends)}
+            
             
             <div class="dashboard-tabs">
                 <div class="tab-nav">
