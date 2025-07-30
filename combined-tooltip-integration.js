@@ -1263,14 +1263,196 @@ if (closeBtn) {
             
         case 'detailed':
             if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
-                // Pass the node data from the tooltip to the dashboard
+                // Show loading immediately
+                const loadingOverlay = showDashboardLoading();
+                
+                // Get button and show loading state
+                const button = document.querySelector(`[data-action="detailed"]`);
+                if (button) {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = `
+                        <span class="btn-icon">⏳</span>
+                        <span class="btn-text">Loading...</span>
+                    `;
+                    button.style.opacity = '0.7';
+                    button.style.pointerEvents = 'none';
+                }
+                
                 const nodeData = tooltip._nodeData;
                 console.log('📊 Opening dashboard with node data:', nodeData);
-                window.showUnifiedDashboardReport(url, nodeData);  // Pass nodeData
+                
+                // Call your dashboard function and hide loading when done
+                window.showUnifiedDashboardReport(url, nodeData)
+                    .then(() => {
+                        hideDashboardLoading();
+                    })
+                    .catch((error) => {
+                        console.error('Dashboard loading error:', error);
+                        hideDashboardLoading();
+                        // Show error message
+                        alert('Failed to load dashboard. Please try again.');
+                    });
             }
             break;
     }
 }
+
+
+
+function showDashboardLoading() {
+    // Remove any existing loading overlay
+    const existingLoader = document.getElementById('dashboard-loading-overlay');
+    if (existingLoader) existingLoader.remove();
+    
+    // Create loading overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'dashboard-loading-overlay';
+    loadingOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+    
+    loadingOverlay.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+        ">
+            <!-- Animated background -->
+            <div style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 6px;
+                background: linear-gradient(90deg, #5a8200, #72A300, #84cc16, #a3e635);
+                background-size: 300% 100%;
+                animation: loading-sweep 2s ease-in-out infinite;
+                border-radius: 20px 20px 0 0;
+            "></div>
+            
+            <!-- Loading spinner -->
+            <div style="
+                width: 60px;
+                height: 60px;
+                border: 4px solid #f1f5f9;
+                border-top: 4px solid #72A300;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 24px;
+            "></div>
+            
+            <!-- Loading text -->
+            <h3 style="
+                margin: 0 0 12px 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #1e293b;
+            ">Loading Dashboard</h3>
+            
+            <p style="
+                margin: 0 0 20px 0;
+                color: #64748b;
+                font-size: 0.95rem;
+                line-height: 1.5;
+            ">Fetching analytics data and performance metrics...</p>
+            
+            <!-- Progress dots -->
+            <div style="display: flex; justify-content: center; gap: 8px;">
+                <div class="loading-dot" style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #72A300;
+                    animation: bounce 1.4s ease-in-out infinite both;
+                "></div>
+                <div class="loading-dot" style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #72A300;
+                    animation: bounce 1.4s ease-in-out 0.16s infinite both;
+                "></div>
+                <div class="loading-dot" style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #72A300;
+                    animation: bounce 1.4s ease-in-out 0.32s infinite both;
+                "></div>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            @keyframes bounce {
+                0%, 80%, 100% {
+                    transform: scale(0);
+                    opacity: 0.5;
+                }
+                40% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes loading-sweep {
+                0% { 
+                    background-position: -300% 0;
+                }
+                100% { 
+                    background-position: 300% 0;
+                }
+            }
+        </style>
+    `;
+    
+    document.body.appendChild(loadingOverlay);
+    
+    // Fade in
+    requestAnimationFrame(() => {
+        loadingOverlay.style.opacity = '1';
+    });
+    
+    return loadingOverlay;
+}
+
+function hideDashboardLoading() {
+    const loadingOverlay = document.getElementById('dashboard-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => {
+            if (loadingOverlay && loadingOverlay.parentNode) {
+                loadingOverlay.remove();
+            }
+        }, 300);
+    }
+}
+
+    
 
 
 
@@ -1447,6 +1629,10 @@ function calculateTrend(currentValue, previousValue, inverted = false) {
 
 // Modal display function (customize to match your UI style)
 function showDashboardModal(htmlContent) {
+
+    hideDashboardLoading();
+
+    
     // Remove existing modal if present
     const existingModal = document.getElementById('unified-dashboard-modal');
     if (existingModal) existingModal.remove();
