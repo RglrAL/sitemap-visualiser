@@ -792,6 +792,245 @@ function getRelativeTime(lastModified) {
         `;
     }
 
+
+
+    
+// NEW: Expanded Citizens Quality Score Section (replaces Content Performance Score)
+function createExpandedCitizensQualitySection(gscData, ga4Data) {
+    // Use Citizens Information specific scoring
+    const citizensScore = calculateCitizensInfoQualityScore(gscData, ga4Data);
+    const overallScore = citizensScore.overall;
+    const grade = citizensScore.grade;
+    
+    return `
+        <div class="expanded-citizens-quality-section">
+            <!-- Header with Overall Score -->
+            <div class="quality-header">
+                <div class="score-display-large">
+                    <div class="score-circle-large ${getScoreClass(overallScore)}">
+                        <div class="score-number-large">${overallScore}</div>
+                        <div class="score-label-large">Citizens Info Score</div>
+                    </div>
+                    <div class="score-grade-large">Grade: ${grade}</div>
+                </div>
+                
+                <div class="score-explanation">
+                    <h3>🇮🇪 Citizens Information Quality Assessment</h3>
+                    <p>This comprehensive score evaluates how well your content serves Irish citizens across four critical dimensions. Each component is weighted based on government service best practices.</p>
+                </div>
+            </div>
+            
+            <!-- Component Breakdown Grid -->
+            <div class="quality-components-grid">
+                <!-- Findability Component -->
+                <div class="quality-component-card findability">
+                    <div class="component-header">
+                        <div class="component-icon">🔍</div>
+                        <div class="component-info">
+                            <div class="component-title">Findability</div>
+                            <div class="component-subtitle">Can citizens find this page?</div>
+                        </div>
+                        <div class="component-score ${getScoreClass(citizensScore.findability)}">
+                            ${citizensScore.findability}/100
+                        </div>
+                    </div>
+                    
+                    <div class="component-details">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Search Position:</span>
+                                <span class="detail-value">${gscData?.position ? '#' + gscData.position.toFixed(0) : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Click Rate:</span>
+                                <span class="detail-value">${gscData?.ctr ? (gscData.ctr * 100).toFixed(1) + '%' : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Monthly Searches:</span>
+                                <span class="detail-value">${gscData?.impressions ? formatNumber(gscData.impressions) : 'No data'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="component-improvement">
+                            <div class="improvement-icon">💡</div>
+                            <div class="improvement-text">${getFindabilityImprovement(citizensScore.findability, gscData)}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Helpfulness Component -->
+                <div class="quality-component-card helpfulness">
+                    <div class="component-header">
+                        <div class="component-icon">🎯</div>
+                        <div class="component-info">
+                            <div class="component-title">Helpfulness</div>
+                            <div class="component-subtitle">Does it help citizens?</div>
+                        </div>
+                        <div class="component-score ${getScoreClass(citizensScore.helpfulness)}">
+                            ${citizensScore.helpfulness}/100
+                        </div>
+                    </div>
+                    
+                    <div class="component-details">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Success Rate:</span>
+                                <span class="detail-value">${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Engagement Rate:</span>
+                                <span class="detail-value">${ga4Data?.engagementRate ? (ga4Data.engagementRate * 100).toFixed(0) + '%' : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Pages/Session:</span>
+                                <span class="detail-value">${ga4Data?.sessions && ga4Data?.pageViews ? (ga4Data.pageViews / ga4Data.sessions).toFixed(1) : 'No data'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="component-improvement">
+                            <div class="improvement-icon">💡</div>
+                            <div class="improvement-text">${getHelpfulnessImprovement(citizensScore.helpfulness, ga4Data)}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Readability Component -->
+                <div class="quality-component-card readability">
+                    <div class="component-header">
+                        <div class="component-icon">📖</div>
+                        <div class="component-info">
+                            <div class="component-title">Readability</div>
+                            <div class="component-subtitle">Do citizens read it?</div>
+                        </div>
+                        <div class="component-score ${getScoreClass(citizensScore.readability)}">
+                            ${citizensScore.readability}/100
+                        </div>
+                    </div>
+                    
+                    <div class="component-details">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Time on Page:</span>
+                                <span class="detail-value">${ga4Data?.avgSessionDuration ? formatDuration(ga4Data.avgSessionDuration) : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Content Completion:</span>
+                                <span class="detail-value">${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Reading Depth:</span>
+                                <span class="detail-value">${citizensScore.readability >= 75 ? 'High' : citizensScore.readability >= 50 ? 'Medium' : 'Low'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="component-improvement">
+                            <div class="improvement-icon">💡</div>
+                            <div class="improvement-text">${getReadabilityImprovement(citizensScore.readability, ga4Data)}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Performance Component -->
+                <div class="quality-component-card performance">
+                    <div class="component-header">
+                        <div class="component-icon">⚡</div>
+                        <div class="component-info">
+                            <div class="component-title">Performance</div>
+                            <div class="component-subtitle">Does it work well?</div>
+                        </div>
+                        <div class="component-score ${getScoreClass(citizensScore.performance)}">
+                            ${citizensScore.performance}/100
+                        </div>
+                    </div>
+                    
+                    <div class="component-details">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="detail-label">Technical Health:</span>
+                                <span class="detail-value">${citizensScore.performance >= 60 ? 'Good' : 'Needs Work'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Bounce Rate:</span>
+                                <span class="detail-value">${ga4Data?.bounceRate ? (ga4Data.bounceRate * 100).toFixed(0) + '%' : 'No data'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Loading Speed:</span>
+                                <span class="detail-value">Analyzing...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="component-improvement">
+                            <div class="improvement-icon">💡</div>
+                            <div class="improvement-text">${getPerformanceImprovement(citizensScore.performance, ga4Data)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Citizens Information Specific Insights -->
+            <div class="citizens-insights-expanded">
+                <h4>🧠 Citizens Information Insights</h4>
+                <div class="insights-grid">
+                    ${citizensScore.insights.map(insight => `
+                        <div class="insight-card ${insight.type}">
+                            <div class="insight-header">
+                                <span class="insight-category">${insight.category}</span>
+                                <span class="insight-impact">${insight.impact}</span>
+                            </div>
+                            <div class="insight-message">${insight.message}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- Actionable Recommendations -->
+            <div class="recommendations-expanded">
+                <h4>🚀 Actionable Recommendations</h4>
+                <div class="recommendations-grid">
+                    ${citizensScore.recommendations.map(rec => `
+                        <div class="recommendation-card priority-${rec.priority.toLowerCase()}">
+                            <div class="rec-header">
+                                <div class="rec-priority">
+                                    <span class="priority-indicator ${rec.priority.toLowerCase()}"></span>
+                                    <span class="priority-label">${rec.priority} Priority</span>
+                                </div>
+                                <div class="rec-timeframe">${rec.timeframe}</div>
+                            </div>
+                            
+                            <div class="rec-action">${rec.action}</div>
+                            <div class="rec-impact">${rec.impact}</div>
+                            
+                            <div class="rec-specifics">
+                                <div class="specifics-title">Specific Actions:</div>
+                                <ul class="specifics-list">
+                                    ${rec.specific.map(action => `<li>${action}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- Overall Recommendation -->
+            <div class="overall-recommendation-expanded">
+                <div class="recommendation-header">
+                    <h4>🎯 Overall Citizens Information Recommendation</h4>
+                    <div class="recommendation-score">Score: ${overallScore}/100 (${grade})</div>
+                </div>
+                <div class="recommendation-content">
+                    <p>${getCitizensOverallRecommendation(overallScore, citizensScore)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
+
+
+
+    
+
     function createQualityScoreDisplay(gscData, ga4Data) {
     // Use Citizens Information specific scoring
     const citizensScore = calculateCitizensInfoQualityScore(gscData, ga4Data);
@@ -2892,16 +3131,15 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
     `;
 }
 
-    function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
+    // UPDATED: Content Analysis Panel with Expanded Citizens Quality Score
+function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     const contentGaps = identifyContentGaps(gscData, ga4Data);
     
     return `
         <div class="panel-content">
-            <!-- REMOVED: createEnhancedQueryAnalysisSection(gscData, pageUrl) - moved to Search Performance tab -->
-            
             <div class="section">
-                <h2 class="section-title">📝 Content Performance Score</h2>
-                ${createContentScoreBreakdown(gscData, ga4Data)}
+                <h2 class="section-title">⭐ Citizens Information Quality Assessment</h2>
+                ${createExpandedCitizensQualitySection(gscData, ga4Data)}
             </div>
             
             <div class="section">
@@ -6381,6 +6619,450 @@ function createPerformanceMatrix(gscData, ga4Data) {
         </style>
     `;
 }
+
+
+// Additional CSS for the expanded layout
+const expandedCitizensQualityStyles = `
+<style>
+/* Expanded Citizens Quality Section */
+.expanded-citizens-quality-section {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Header with large score display */
+.quality-header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: center;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 32px;
+    border-radius: 16px;
+    border-left: 4px solid #3b82f6;
+}
+
+.score-display-large {
+    text-align: center;
+}
+
+.score-circle-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    border: 4px solid;
+    position: relative;
+}
+
+.score-circle-large.excellent {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-color: #10b981;
+    color: #064e3b;
+}
+
+.score-circle-large.good {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: #3b82f6;
+    color: #1e40af;
+}
+
+.score-circle-large.fair {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.score-circle-large.poor {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-color: #ef4444;
+    color: #991b1b;
+}
+
+.score-number-large {
+    font-size: 2.5rem;
+    font-weight: 800;
+}
+
+.score-label-large {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    font-weight: 600;
+}
+
+.score-grade-large {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #1f2937;
+}
+
+.score-explanation h3 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 1.4rem;
+}
+
+.score-explanation p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* Components Grid */
+.quality-components-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.quality-component-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.quality-component-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.component-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.component-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.component-info {
+    flex: 1;
+}
+
+.component-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.component-subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.component-score {
+    font-size: 1.5rem;
+    font-weight: 800;
+    padding: 8px 16px;
+    border-radius: 12px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.component-score.excellent { background: #dcfce7; color: #166534; }
+.component-score.good { background: #dbeafe; color: #1e40af; }
+.component-score.fair { background: #fef3c7; color: #92400e; }
+.component-score.poor { background: #fee2e2; color: #991b1b; }
+
+.detail-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.component-improvement {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 3px solid #3b82f6;
+}
+
+.improvement-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.improvement-text {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+/* Insights Section */
+.citizens-insights-expanded {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 24px;
+    border-radius: 12px;
+    border-left: 4px solid #0ea5e9;
+}
+
+.citizens-insights-expanded h4 {
+    margin: 0 0 20px 0;
+    color: #0c4a6e;
+    font-size: 1.2rem;
+}
+
+.insights-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.insight-card {
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 3px solid #e5e7eb;
+    background: white;
+}
+
+.insight-card.critical {
+    background: #fef2f2;
+    border-left-color: #ef4444;
+}
+
+.insight-card.warning {
+    background: #fffbeb;
+    border-left-color: #f59e0b;
+}
+
+.insight-card.success {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+}
+
+.insight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.insight-category {
+    color: #374151;
+}
+
+.insight-impact {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
+.insight-message {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.4;
+}
+
+/* Recommendations Section */
+.recommendations-expanded {
+    background: #f8fafc;
+    padding: 24px;
+    border-radius: 12px;
+    border-left: 4px solid #10b981;
+}
+
+.recommendations-expanded h4 {
+    margin: 0 0 20px 0;
+    color: #065f46;
+    font-size: 1.2rem;
+}
+
+.recommendations-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.recommendation-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.recommendation-card.priority-high {
+    border-left: 4px solid #ef4444;
+}
+
+.recommendation-card.priority-medium {
+    border-left: 4px solid #f59e0b;
+}
+
+.recommendation-card.priority-low {
+    border-left: 4px solid #6b7280;
+}
+
+.rec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.rec-priority {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.priority-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.priority-indicator.high { background: #ef4444; }
+.priority-indicator.medium { background: #f59e0b; }
+.priority-indicator.low { background: #6b7280; }
+
+.priority-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.rec-timeframe {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.rec-action {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.rec-impact {
+    font-size: 0.9rem;
+    color: #059669;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.specifics-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.specifics-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #6b7280;
+}
+
+.specifics-list li {
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+/* Overall Recommendation */
+.overall-recommendation-expanded {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    padding: 24px;
+    border-radius: 12px;
+    border-left: 4px solid #f59e0b;
+}
+
+.recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.recommendation-header h4 {
+    margin: 0;
+    color: #92400e;
+    font-size: 1.2rem;
+}
+
+.recommendation-score {
+    font-weight: 700;
+    color: #78350f;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+
+.recommendation-content p {
+    margin: 0;
+    color: #78350f;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .quality-header {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .quality-components-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .score-circle-large {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .score-number-large {
+        font-size: 2rem;
+    }
+}
+</style>
+`;
+
+
+    
 // Helper function to create matrix grid
 function createMatrixGrid() {
     return '<!-- Grid is created via CSS background -->';
