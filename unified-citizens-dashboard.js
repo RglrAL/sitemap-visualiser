@@ -768,25 +768,7 @@ function getRelativeTime(lastModified) {
 
                     
                     
-                    <div class="overview-card quality-card">
-                        <div class="card-header">
-                            <div class="card-icon">⭐</div>
-                            <div class="card-title">Content Quality</div>
-                        </div>
-                        <div class="card-content">
-                            ${createQualityScoreDisplay(gscData, ga4Data)}
-                        </div>
-                    </div>
                     
-                    <div class="overview-card impact-card">
-                        <div class="card-header">
-                            <div class="card-icon">🎯</div>
-                            <div class="card-title">Citizen Impact</div>
-                        </div>
-                        <div class="card-content">
-                            ${createImpactDisplay(gscData, ga4Data)}
-                        </div>
-                    </div>
                 </div>
             </div>
         `;
