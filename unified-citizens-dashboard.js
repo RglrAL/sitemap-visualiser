@@ -361,6 +361,385 @@
         return Math.round(engagementScore + navigationScore);
     }
 
+
+
+
+// ENHANCED GOVERNMENT INTELLIGENCE - Based on GOV.UK/GDS Research
+// Add these functions to replace/enhance your existing government intelligence
+
+// 1. GOV.UK "1-Click Rate" and Position Analysis
+function analyzeGOVUKClickPatterns(gscData) {
+    if (!gscData?.topQueries) return { patterns: [], issues: [] };
+    
+    const patterns = [];
+    const issues = [];
+    
+    gscData.topQueries.forEach((query, index) => {
+        const position = Math.round(query.position);
+        const hasOneClick = query.clicks >= 1;
+        
+        patterns.push({
+            query: query.query,
+            position: position,
+            hasOneClick: hasOneClick,
+            clickRate: query.ctr,
+            impressions: query.impressions,
+            clicks: query.clicks
+        });
+        
+        // GOV.UK Rule: Position 4/5 shouldn't exceed 50% of position 1 clicks
+        if (index === 0) { // This is position 1 (top query)
+            const topClicks = query.clicks;
+            
+            // Check other queries for position anomalies
+            gscData.topQueries.forEach((otherQuery, otherIndex) => {
+                if (otherIndex > 0) {
+                    const otherPosition = Math.round(otherQuery.position);
+                    const clickRatio = topClicks > 0 ? (otherQuery.clicks / topClicks) : 0;
+                    
+                    if (otherPosition >= 4 && clickRatio > 0.5) {
+                        issues.push({
+                            type: 'position_anomaly',
+                            severity: 'high',
+                            query: otherQuery.query,
+                            position: otherPosition,
+                            clickRatio: clickRatio,
+                            message: `Position ${otherPosition} getting ${Math.round(clickRatio * 100)}% of top result clicks - indicates ranking problem`,
+                            action: 'Immediate investigation needed - check if content matches search intent'
+                        });
+                    }
+                }
+            });
+        }
+    });
+    
+    return { patterns, issues };
+}
+
+// 2. Government Content Gap Analysis with Specific Thresholds
+function analyzeGovernmentContentGaps(gscData, ga4Data) {
+    const gaps = {
+        immediateAction: [], // 1000+ impressions, <2% CTR
+        newPageNeeded: [], // 100+ impressions, no dedicated content
+        seoOptimization: [], // High traffic, low entrance rate
+        comprehensiveGuides: [], // High traffic + high searches
+        seasonalContent: [], // 50%+ month-over-month growth
+        formAbandonment: [] // 70%+ drop-off rates
+    };
+    
+    if (!gscData?.topQueries) return gaps;
+    
+    gscData.topQueries.forEach(query => {
+        const impressions = query.impressions || 0;
+        const ctr = query.ctr || 0;
+        const clicks = query.clicks || 0;
+        
+        // GOV.UK Rule: 1000+ impressions with <2% CTR = immediate action
+        if (impressions >= 1000 && ctr < 0.02) {
+            gaps.immediateAction.push({
+                query: query.query,
+                impressions: impressions,
+                ctr: (ctr * 100).toFixed(2),
+                clicks: clicks,
+                priority: 'CRITICAL',
+                action: 'Optimize title/meta description immediately',
+                expectedIncrease: Math.round(impressions * (0.05 - ctr)) // Potential clicks at 5% CTR
+            });
+        }
+        
+        // Government Rule: 100+ impressions without dedicated content
+        if (impressions >= 100 && clicks < 5) {
+            gaps.newPageNeeded.push({
+                query: query.query,
+                impressions: impressions,
+                clicks: clicks,
+                action: 'Create dedicated content page',
+                citizenNeed: 'High search volume indicates unmet citizen need'
+            });
+        }
+    });
+    
+    // GA4-based gaps
+    if (ga4Data && !ga4Data.noDataFound) {
+        const entranceRate = ga4Data.sessions && ga4Data.pageViews ? 
+            (ga4Data.sessions / ga4Data.pageViews) * 100 : 0;
+        const bounceRate = (ga4Data.bounceRate || 0) * 100;
+        
+        // Government Rule: <30% entrance rate = poor discoverability
+        if (entranceRate < 30 && ga4Data.pageViews > 1000) {
+            gaps.seoOptimization.push({
+                type: 'poor_discoverability',
+                entranceRate: entranceRate.toFixed(1),
+                monthlyViews: ga4Data.pageViews,
+                action: 'Create SEO-optimized landing pages',
+                priority: 'HIGH'
+            });
+        }
+        
+        // Government Rule: 70%+ bounce rate = investigation needed
+        if (bounceRate > 70 && ga4Data.pageViews > 500) {
+            gaps.formAbandonment.push({
+                type: 'high_bounce_investigation',
+                bounceRate: bounceRate.toFixed(1),
+                monthlyViews: ga4Data.pageViews,
+                action: 'Investigate user journey - content may not match intent',
+                priority: 'CRITICAL'
+            });
+        }
+    }
+    
+    return gaps;
+}
+
+// 3. Government Review Workflow Framework
+function createGovernmentWorkflowFramework(gscData, ga4Data, gscTrends, ga4Trends) {
+    const framework = {
+        weeklyReview: {
+            duration: '60 minutes',
+            agenda: [
+                {
+                    task: 'Performance Dashboard Review',
+                    duration: '15 minutes',
+                    metrics: ['clicks', 'impressions', 'ctr', 'position'],
+                    threshold: '10-20% performance changes'
+                },
+                {
+                    task: 'Content Health Check',
+                    duration: '20 minutes',
+                    focus: 'Pages with 70%+ bounce rates',
+                    action: 'Immediate investigation'
+                },
+                {
+                    task: 'Opportunity Identification',
+                    duration: '15 minutes',
+                    focus: 'Search queries analysis',
+                    triggers: ['1000+ impressions + <2% CTR', '100+ impressions + no content']
+                },
+                {
+                    task: 'Action Planning',
+                    duration: '10 minutes',
+                    tool: 'Decision matrices',
+                    output: 'Prioritized task list'
+                }
+            ]
+        },
+        monthlyReview: {
+            duration: '120 minutes',
+            focus: '3-month rolling trends',
+            requirements: [
+                'User journey mapping analysis',
+                'A/B testing for pages affecting 1000+ users monthly',
+                'Quarterly usability testing mandate'
+            ]
+        },
+        immediateActionTriggers: [
+            'Key metrics drop over 50%',
+            'Exit rates exceed 11% from search pages',
+            '70%+ bounce rate + high traffic volume',
+            'Position 4/5 exceeds 50% of position 1 clicks'
+        ]
+    };
+    
+    // Calculate current status against thresholds
+    const currentStatus = assessCurrentStatus(gscData, ga4Data, gscTrends, ga4Trends);
+    
+    return { framework, currentStatus };
+}
+
+// 4. Enhanced Priority Matrix with Government Specific Scoring
+function calculateEnhancedGovernmentPriority(gscData, ga4Data, gscTrends, ga4Trends) {
+    let priorityScore = 0;
+    const factors = [];
+    let urgencyLevel = 'standard';
+    
+    // Traffic Volume Component (40% weight)
+    const monthlyViews = (ga4Data?.pageViews || 0);
+    let trafficScore = 0;
+    
+    if (monthlyViews >= 200000) {
+        trafficScore = 100; // Automatic priority queue entry
+        factors.push('200k+ monthly views - automatic priority optimization');
+        urgencyLevel = 'critical';
+    } else if (monthlyViews >= 50000) {
+        trafficScore = 80;
+        factors.push('High traffic volume - strategic importance');
+    } else if (monthlyViews >= 10000) {
+        trafficScore = 60;
+        factors.push('Moderate traffic - optimization worthwhile');
+    } else if (monthlyViews >= 1000) {
+        trafficScore = 40;
+        factors.push('Growing audience - monitor closely');
+    } else {
+        trafficScore = 20;
+        factors.push('Low traffic - focus on discovery');
+    }
+    
+    // Growth Rate Component (25% weight)
+    let growthScore = 50; // Default neutral
+    if (ga4Trends?.trends?.pageViews) {
+        const growth = ga4Trends.trends.pageViews.percentChange || 0;
+        const direction = ga4Trends.trends.pageViews.direction;
+        
+        if (direction === 'up' && growth > 50) {
+            growthScore = 100;
+            factors.push(`${growth.toFixed(0)}% growth - trending content`);
+            urgencyLevel = urgencyLevel === 'critical' ? 'critical' : 'high';
+        } else if (direction === 'up' && growth > 20) {
+            growthScore = 80;
+            factors.push(`${growth.toFixed(0)}% growth - positive trend`);
+        } else if (direction === 'down' && growth > 20) {
+            growthScore = 20;
+            factors.push(`${growth.toFixed(0)}% decline - needs attention`);
+        }
+    }
+    
+    // Search Behavior Component (20% weight)
+    let searchScore = 0;
+    if (gscData && !gscData.noDataFound) {
+        const position = gscData.position || 50;
+        const ctr = gscData.ctr || 0;
+        const impressions = gscData.impressions || 0;
+        
+        // Government-specific search scoring
+        if (impressions >= 1000 && ctr < 0.02) {
+            searchScore = 100; // Critical optimization opportunity
+            factors.push('1000+ searches with <2% CTR - immediate action needed');
+            urgencyLevel = 'critical';
+        } else if (position <= 3) {
+            searchScore = 90;
+            factors.push('Top 3 ranking - maintain position');
+        } else if (position <= 10) {
+            searchScore = 70;
+            factors.push('Page 1 ranking - optimization opportunity');
+        } else if (position <= 20) {
+            searchScore = 40;
+            factors.push('Page 2 ranking - SEO needed');
+        } else {
+            searchScore = 20;
+            factors.push('Poor ranking - major SEO intervention required');
+        }
+    }
+    
+    // External Discovery Component (15% weight)
+    const entranceRate = ga4Data?.sessions && ga4Data?.pageViews ? 
+        (ga4Data.sessions / ga4Data.pageViews) * 100 : 0;
+    
+    let discoveryScore = 0;
+    if (entranceRate >= 50) {
+        discoveryScore = 100;
+        factors.push('Excellent search discovery');
+    } else if (entranceRate >= 30) {
+        discoveryScore = 80;
+        factors.push('Good search discovery');
+    } else if (entranceRate >= 15) {
+        discoveryScore = 50;
+        factors.push('Moderate search discovery');
+    } else {
+        discoveryScore = 20;
+        factors.push('Poor search discovery - SEO focus needed');
+        if (monthlyViews > 1000) urgencyLevel = urgencyLevel === 'critical' ? 'critical' : 'high';
+    }
+    
+    // Calculate weighted score
+    priorityScore = Math.round(
+        (trafficScore * 0.4) + 
+        (growthScore * 0.25) + 
+        (searchScore * 0.2) + 
+        (discoveryScore * 0.15)
+    );
+    
+    // Government-specific recommendations
+    let recommendation = '';
+    let actionPlan = [];
+    
+    if (priorityScore >= 80 || urgencyLevel === 'critical') {
+        recommendation = 'CRITICAL PRIORITY: Immediate government stakeholder attention required';
+        actionPlan = [
+            'Schedule weekly review meetings',
+            'Assign dedicated content team',
+            'Implement A/B testing program',
+            'Set up automated monitoring alerts'
+        ];
+    } else if (priorityScore >= 60 || urgencyLevel === 'high') {
+        recommendation = 'HIGH PRIORITY: Schedule for next strategic review cycle';
+        actionPlan = [
+            'Include in monthly optimization queue',
+            'Conduct user journey analysis',
+            'Plan content optimization sprint',
+            'Set quarterly performance targets'
+        ];
+    } else if (priorityScore >= 40) {
+        recommendation = 'MODERATE PRIORITY: Monitor and optimize when resources available';
+        actionPlan = [
+            'Include in quarterly content audit',
+            'Monitor for trend changes',
+            'Consider for batch optimization',
+            'Document citizen feedback patterns'
+        ];
+    } else {
+        recommendation = 'LOW PRIORITY: Focus on foundational improvements';
+        actionPlan = [
+            'Improve basic SEO fundamentals',
+            'Ensure mobile optimization',
+            'Review content for citizen needs',
+            'Consider consolidation with similar content'
+        ];
+    }
+    
+    return {
+        score: priorityScore,
+        urgencyLevel,
+        recommendation,
+        actionPlan,
+        factors,
+        components: {
+            traffic: Math.round(trafficScore),
+            growth: Math.round(growthScore),
+            search: Math.round(searchScore),
+            discovery: Math.round(discoveryScore)
+        },
+        governmentContext: {
+            weeklyReviewRequired: urgencyLevel === 'critical',
+            quarterlyTestingRequired: monthlyViews >= 1000,
+            stakeholderAttentionRequired: priorityScore >= 80,
+            automatedMonitoringRecommended: urgencyLevel !== 'standard'
+        }
+    };
+}
+
+// Helper function to assess current status against government thresholds
+function assessCurrentStatus(gscData, ga4Data, gscTrends, ga4Trends) {
+    const status = {
+        immediateActions: [],
+        weeklyReviewItems: [],
+        monthlyReviewItems: [],
+        alerts: []
+    };
+    
+    // Check immediate action triggers
+    if (gscTrends?.trends?.clicks && Math.abs(gscTrends.trends.clicks.percentChange) > 50) {
+        status.immediateActions.push(`Search clicks ${gscTrends.trends.clicks.direction} by ${gscTrends.trends.clicks.percentChange.toFixed(0)}%`);
+    }
+    
+    if (ga4Data?.bounceRate > 0.7 && ga4Data?.pageViews > 500) {
+        status.immediateActions.push('High bounce rate investigation needed');
+    }
+    
+    // Check weekly review triggers (10-20% changes)
+    if (ga4Trends?.trends?.pageViews) {
+        const change = ga4Trends.trends.pageViews.percentChange;
+        if (change >= 10 && change <= 50) {
+            status.weeklyReviewItems.push(`Page views ${ga4Trends.trends.pageViews.direction} by ${change.toFixed(0)}%`);
+        }
+    }
+    
+    return status;
+}
+
+
+
+    
+
     // ===========================================
     // PAGE INFO EXTRACTION
     // ===========================================
@@ -3236,106 +3615,229 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
         `;
     }
 
-    function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
-        const benchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
-        const priorityScore = calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends);
-        const surgeAnalysis = detectCitizenNeedSurges(gscData, gscTrends);
-        
-        return `
-            <div class="panel-content">
-                <div class="section">
-                    <h2 class="section-title">🏛️ Government Performance Benchmarks</h2>
-                    <div class="benchmark-explanation">
-                        <p>Performance compared to government sector standards based on research from GOV.UK, Canada.ca, and other public sector organizations.</p>
+    function createEnhancedGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    const benchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
+    const priorityAnalysis = calculateEnhancedGovernmentPriority(gscData, ga4Data, gscTrends, ga4Trends);
+    const clickPatterns = analyzeGOVUKClickPatterns(gscData);
+    const contentGaps = analyzeGovernmentContentGaps(gscData, ga4Data);
+    const workflowFramework = createGovernmentWorkflowFramework(gscData, ga4Data, gscTrends, ga4Trends);
+    
+    return `
+        <div class="panel-content">
+            <!-- Critical Alerts Section -->
+            ${(clickPatterns.issues.length > 0 || contentGaps.immediateAction.length > 0) ? `
+                <div class="section critical-alerts">
+                    <h2 class="section-title">🚨 Critical Government Analytics Alerts</h2>
+                    <div class="alerts-grid">
+                        ${clickPatterns.issues.map(issue => `
+                            <div class="alert-card ${issue.severity}">
+                                <div class="alert-header">
+                                    <span class="alert-type">GOV.UK Pattern Violation</span>
+                                    <span class="alert-severity">${issue.severity.toUpperCase()}</span>
+                                </div>
+                                <div class="alert-message">${issue.message}</div>
+                                <div class="alert-action">${issue.action}</div>
+                                <div class="alert-query">"${issue.query}" (Position ${issue.position})</div>
+                            </div>
+                        `).join('')}
+                        
+                        ${contentGaps.immediateAction.map(gap => `
+                            <div class="alert-card critical">
+                                <div class="alert-header">
+                                    <span class="alert-type">Content Gap Critical</span>
+                                    <span class="alert-severity">IMMEDIATE ACTION</span>
+                                </div>
+                                <div class="alert-message">${formatNumber(gap.impressions)} monthly searches with only ${gap.ctr}% click rate</div>
+                                <div class="alert-action">${gap.action}</div>
+                                <div class="alert-potential">Potential: +${gap.expectedIncrease} monthly clicks</div>
+                                <div class="alert-query">"${gap.query}"</div>
+                            </div>
+                        `).join('')}
                     </div>
+                </div>
+            ` : ''}
+            
+            <!-- Government Benchmarks -->
+            <div class="section">
+                <h2 class="section-title">🏛️ Government Performance Benchmarks</h2>
+                <div class="benchmark-explanation">
+                    <p>Performance against government sector standards from GOV.UK, Canada.ca, and other public sector organizations.</p>
+                </div>
+                <div class="benchmarks-grid">
+                    ${createBenchmarkCard('Citizen Engagement Rate', 
+                        \`\${((ga4Data?.engagementRate || 0) * 100).toFixed(0)}%\`, 
+                        '50%', 
+                        benchmarks.engagement.status,
+                        benchmarks.engagement.message)}
                     
-                    <div class="benchmarks-grid">
-                        ${createBenchmarkCard('Engagement Rate', 
-                            `${((ga4Data?.engagementRate || 0) * 100).toFixed(0)}%`, 
-                            '50%', 
-                            benchmarks.engagement.status,
-                            benchmarks.engagement.message)}
-                        
-                        ${createBenchmarkCard('Avg Engagement Time', 
-                            formatDuration(ga4Data?.avgSessionDuration || 0), 
-                            '52 seconds', 
-                            benchmarks.engagementTime.status,
-                            benchmarks.engagementTime.message)}
-                        
-                        ${createBenchmarkCard('Search Discovery', 
-                            `${calculateEntranceRate(ga4Data)}%`, 
-                            '30%', 
-                            benchmarks.discovery.status,
-                            benchmarks.discovery.message)}
-                        
-                        ${createBenchmarkCard('Content Effectiveness', 
-                            `${((1 - (ga4Data?.bounceRate || 0.5)) * 100).toFixed(0)}%`, 
-                            '40%', 
-                            benchmarks.effectiveness.status,
-                            benchmarks.effectiveness.message)}
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">📋 Content Priority Matrix</h2>
-                    <div class="priority-explanation">
-                        <p>Based on government sector prioritization: Traffic Volume (40%), Growth Rate (25%), Search Behavior (20%), External Discovery (15%)</p>
-                    </div>
+                    ${createBenchmarkCard('Average Engagement Time', 
+                        formatDuration(ga4Data?.avgSessionDuration || 0), 
+                        '52 seconds', 
+                        benchmarks.engagementTime.status,
+                        benchmarks.engagementTime.message)}
                     
-                    <div class="priority-matrix">
-                        <div class="priority-breakdown">
-                            <div class="priority-component">
-                                <div class="component-label">Traffic Volume (40%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.traffic}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.traffic}/100</div>
-                            </div>
-                            
-                            <div class="priority-component">
-                                <div class="component-label">Growth Rate (25%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.growth}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.growth}/100</div>
-                            </div>
-                            
-                            <div class="priority-component">
-                                <div class="component-label">Search Behavior (20%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.search}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.search}/100</div>
-                            </div>
-                            
-                            <div class="priority-component">
-                                <div class="component-label">External Discovery (15%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.discovery}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.discovery}/100</div>
-                            </div>
-                        </div>
-                        
-                        <div class="priority-recommendation">
-                            <h3>📌 Priority Recommendation</h3>
-                            <div class="recommendation-text">${priorityScore.recommendation}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
-                    ${createCitizenNeedSurgeDetection(surgeAnalysis)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">📅 Review Workflow Recommendations</h2>
-                    ${createReviewWorkflowRecommendations(benchmarks)}
+                    ${createBenchmarkCard('Search Discoverability', 
+                        \`\${calculateEntranceRate(ga4Data)}%\`, 
+                        '30%', 
+                        benchmarks.discovery.status,
+                        benchmarks.discovery.message)}
+                    
+                    ${createBenchmarkCard('Content Effectiveness', 
+                        \`\${((1 - (ga4Data?.bounceRate || 0.5)) * 100).toFixed(0)}%\`, 
+                        '40%', 
+                        benchmarks.effectiveness.status,
+                        benchmarks.effectiveness.message)}
                 </div>
             </div>
-        `;
-    }
+            
+            <!-- Enhanced Priority Matrix -->
+            <div class="section">
+                <h2 class="section-title">📋 Government Priority Assessment</h2>
+                <div class="priority-context">
+                    <div class="priority-score-display">
+                        <div class="score-circle ${priorityAnalysis.urgencyLevel}">
+                            <div class="score-number">${priorityAnalysis.score}</div>
+                            <div class="score-label">Priority Score</div>
+                        </div>
+                        <div class="urgency-level ${priorityAnalysis.urgencyLevel}">
+                            ${priorityAnalysis.urgencyLevel.toUpperCase()} PRIORITY
+                        </div>
+                    </div>
+                    
+                    <div class="priority-breakdown">
+                        <h4>Government Framework Weighting (GDS Model):</h4>
+                        ${Object.entries(priorityAnalysis.components).map(([component, score]) => {
+                            const weights = { traffic: 40, growth: 25, search: 20, discovery: 15 };
+                            return \`
+                                <div class="component-breakdown">
+                                    <div class="component-label">\${component.charAt(0).toUpperCase() + component.slice(1)} (\${weights[component]}%)</div>
+                                    <div class="component-bar">
+                                        <div class="component-fill" style="width: \${score}%"></div>
+                                    </div>
+                                    <div class="component-score">\${score}/100</div>
+                                </div>
+                            \`;
+                        }).join('')}
+                    </div>
+                </div>
+                
+                <div class="priority-recommendation">
+                    <h4>📌 Government Recommendation:</h4>
+                    <p><strong>${priorityAnalysis.recommendation}</strong></p>
+                    
+                    <div class="action-plan">
+                        <h5>🎯 Action Plan:</h5>
+                        <ul>
+                            ${priorityAnalysis.actionPlan.map(action => `<li>${action}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="government-context">
+                        <h5>🏛️ Government Requirements:</h5>
+                        <div class="requirements-grid">
+                            <div class="requirement ${priorityAnalysis.governmentContext.weeklyReviewRequired ? 'required' : 'optional'}">
+                                Weekly Review: ${priorityAnalysis.governmentContext.weeklyReviewRequired ? 'REQUIRED' : 'Optional'}
+                            </div>
+                            <div class="requirement ${priorityAnalysis.governmentContext.quarterlyTestingRequired ? 'required' : 'optional'}">
+                                Quarterly Testing: ${priorityAnalysis.governmentContext.quarterlyTestingRequired ? 'REQUIRED' : 'Not Required'}
+                            </div>
+                            <div class="requirement ${priorityAnalysis.governmentContext.stakeholderAttentionRequired ? 'required' : 'optional'}">
+                                Stakeholder Attention: ${priorityAnalysis.governmentContext.stakeholderAttentionRequired ? 'REQUIRED' : 'Optional'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Government Content Gaps -->
+            ${Object.values(contentGaps).some(arr => arr.length > 0) ? \`
+                <div class="section">
+                    <h2 class="section-title">📄 Government Content Gap Analysis</h2>
+                    <div class="gaps-grid">
+                        \${contentGaps.newPageNeeded.length > 0 ? \`
+                            <div class="gap-category">
+                                <h4>🆕 New Pages Needed (100+ Monthly Searches)</h4>
+                                \${contentGaps.newPageNeeded.slice(0, 5).map(gap => \`
+                                    <div class="gap-item">
+                                        <div class="gap-query">"\${gap.query}"</div>
+                                        <div class="gap-stats">\${formatNumber(gap.impressions)} searches, \${gap.clicks} clicks</div>
+                                        <div class="gap-need">\${gap.citizenNeed}</div>
+                                    </div>
+                                \`).join('')}
+                            </div>
+                        \` : ''}
+                        
+                        \${contentGaps.seoOptimization.length > 0 ? \`
+                            <div class="gap-category">
+                                <h4>🔍 SEO Optimization Needed (<30% Entrance Rate)</h4>
+                                \${contentGaps.seoOptimization.map(gap => \`
+                                    <div class="gap-item">
+                                        <div class="gap-stats">Entrance Rate: \${gap.entranceRate}% | Views: \${formatNumber(gap.monthlyViews)}</div>
+                                        <div class="gap-action">\${gap.action}</div>
+                                    </div>
+                                \`).join('')}
+                            </div>
+                        \` : ''}
+                    </div>
+                </div>
+            \` : ''}
+            
+            <!-- Government Workflow Framework -->
+            <div class="section">
+                <h2 class="section-title">📅 Government Review Framework</h2>
+                <div class="workflow-framework">
+                    <div class="review-schedule">
+                        <div class="review-type weekly">
+                            <h4>📅 Weekly Content Review (60 minutes)</h4>
+                            <div class="agenda-items">
+                                ${workflowFramework.framework.weeklyReview.agenda.map(item => \`
+                                    <div class="agenda-item">
+                                        <div class="item-header">
+                                            <span class="item-task">\${item.task}</span>
+                                            <span class="item-duration">\${item.duration}</span>
+                                        </div>
+                                        <div class="item-details">
+                                            \${item.focus ? \`Focus: \${item.focus}\` : ''}
+                                            \${item.threshold ? \`Threshold: \${item.threshold}\` : ''}
+                                        </div>
+                                    </div>
+                                \`).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="review-type monthly">
+                            <h4>📊 Monthly Strategic Review (120 minutes)</h4>
+                            <ul>
+                                ${workflowFramework.framework.monthlyReview.requirements.map(req => \`<li>\${req}</li>\`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="current-status">
+                        <h4>🚨 Current Status Assessment</h4>
+                        ${workflowFramework.currentStatus.immediateActions.length > 0 ? \`
+                            <div class="status-category immediate">
+                                <h5>Immediate Actions Required:</h5>
+                                <ul>
+                                    \${workflowFramework.currentStatus.immediateActions.map(action => \`<li>\${action}</li>\`).join('')}
+                                </ul>
+                            </div>
+                        \` : ''}
+                        
+                        ${workflowFramework.currentStatus.weeklyReviewItems.length > 0 ? \`
+                            <div class="status-category weekly">
+                                <h5>Weekly Review Items:</h5>
+                                <ul>
+                                    \${workflowFramework.currentStatus.weeklyReviewItems.map(item => \`<li>\${item}</li>\`).join('')}
+                                </ul>
+                            </div>
+                        \` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    \`;
+}
 
     function createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends) {
         return `
