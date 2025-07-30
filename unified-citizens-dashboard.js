@@ -2855,10 +2855,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                 ${createPerformanceMatrix(gscData, ga4Data)}
             </div>
             
-            <div class="section">
-                <h2 class="section-title">🎯 Citizens Impact Summary</h2>
-                ${createCitizensImpactMetrics(ga4Data, gscData)}
-            </div>
+           
             
             <div class="section">
                 <h2 class="section-title">💡 Key Insights</h2>
@@ -6916,47 +6913,7 @@ function formatDuration(seconds) {
         `;
     }
 
-    function createCitizensImpactMetrics(ga4Data, gscData) {
-        const avgReadingTime = ga4Data ? ga4Data.avgSessionDuration : 0;
-        const informationConsumed = avgReadingTime > 0 ? Math.min(100, (avgReadingTime / 300) * 100) : 0;
-        const serviceHelpfulness = gscData?.clicks > 0 ? Math.min(100, (gscData.clicks / 100) * 100) : 0;
-
-        return `
-            <div class="citizens-impact-metrics">
-                <div class="impact-grid">
-                    <div class="impact-metric-card">
-                        <div class="impact-metric-icon">📖</div>
-                        <div class="impact-metric-value">${informationConsumed.toFixed(0)}%</div>
-                        <div class="impact-metric-label">Information Consumed</div>
-                        <div class="impact-metric-detail">Avg. reading time: ${formatDuration(avgReadingTime)}</div>
-                    </div>
-                    
-                    <div class="impact-metric-card">
-                        <div class="impact-metric-icon">🎯</div>
-                        <div class="impact-metric-value">${gscData?.clicks || 0}</div>
-                        <div class="impact-metric-label">Citizens Helped</div>
-                        <div class="impact-metric-detail">Monthly search visitors</div>
-                    </div>
-                    
-                    <div class="impact-metric-card">
-                        <div class="impact-metric-icon">📋</div>
-                        <div class="impact-metric-value">${serviceHelpfulness.toFixed(0)}/100</div>
-                        <div class="impact-metric-label">Service Effectiveness</div>
-                        <div class="impact-metric-detail">Based on engagement patterns</div>
-                    </div>
-                </div>
-                
-                <div class="impact-summary">
-                    <h3>🏛️ Public Service Impact Summary</h3>
-                    <p>This page successfully helps <strong>${gscData?.clicks || 0} citizens per month</strong> find the information they need, 
-                    with an average engagement time of <strong>${formatDuration(avgReadingTime)}</strong>. 
-                    ${informationConsumed > 75 ? ' Citizens are thoroughly consuming the information provided.' : 
-                      informationConsumed > 40 ? ' Citizens are moderately engaging with the content.' : 
-                      ' Consider improving content clarity and structure.'}</p>
-                </div>
-            </div>
-        `;
-    }
+    
 
     function createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends) {
         const insights = [];
