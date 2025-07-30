@@ -1263,20 +1263,11 @@ if (closeBtn) {
             
         case 'detailed':
             if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
+                // Hide the tooltip first
+                hideEnhancedTooltip(true); // Force immediate close
+                
                 // Show loading immediately
                 const loadingOverlay = showDashboardLoading();
-                
-                // Get button and show loading state
-                const button = document.querySelector(`[data-action="detailed"]`);
-                if (button) {
-                    const originalText = button.innerHTML;
-                    button.innerHTML = `
-                        <span class="btn-icon">⏳</span>
-                        <span class="btn-text">Loading...</span>
-                    `;
-                    button.style.opacity = '0.7';
-                    button.style.pointerEvents = 'none';
-                }
                 
                 const nodeData = tooltip._nodeData;
                 console.log('📊 Opening dashboard with node data:', nodeData);
@@ -1314,7 +1305,7 @@ function showDashboardLoading() {
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.8);
-        z-index: 9999;
+        z-index: 15000;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1439,6 +1430,7 @@ function showDashboardLoading() {
     
     return loadingOverlay;
 }
+
 
 function hideDashboardLoading() {
     const loadingOverlay = document.getElementById('dashboard-loading-overlay');
