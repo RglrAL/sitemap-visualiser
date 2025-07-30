@@ -5081,7 +5081,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .metric-value {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #059669;
+    color: #000000;
 }
 
 .metric-label {
