@@ -659,132 +659,186 @@ function getRelativeTime(lastModified) {
     }
 
     function createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends) {
-        return `
-            <div class="performance-overview">
-                <div class="overview-grid">
-                    <div class="overview-card search-card">
-                        <div class="card-header">
-                            <div class="card-icon"> <svg width="16" height="16" viewBox="0 0 24 24" style="opacity: 0.7;">
-                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg></div>
-                            <div class="card-title">Search Performance</div>
-                            <div class="card-status ${gscData && !gscData.noDataFound ? 'connected' : 'disconnected'}">
-                                ${gscData && !gscData.noDataFound ? '●' : '○'}
-                            </div>
+    return `
+        <div class="performance-overview">
+            <div class="overview-grid">
+                <div class="overview-card search-card enhanced">
+                    <div class="card-header">
+                        <div class="card-icon-container">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="main-card-icon">
+                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
                         </div>
-                        <div class="card-content">
-                            ${gscData && !gscData.noDataFound ? `
-                                <div class="metric-row">
-                                    <span class="metric-label">Clicks:</span>
-                                    <span class="metric-value">${formatNumber(gscData.clicks)}</span>
-                                    ${getTrendIndicator(gscTrends?.trends?.clicks)}
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">Impressions:</span>
-                                    <span class="metric-value">${formatNumber(gscData.impressions)}</span>
-                                    ${getTrendIndicator(gscTrends?.trends?.impressions)}
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">CTR:</span>
-                                    <span class="metric-value">${(gscData.ctr * 100).toFixed(1)}%</span>
-                                    ${getTrendIndicator(gscTrends?.trends?.ctr)}
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">Position:</span>
-                                    <span class="metric-value">#${gscData.position.toFixed(1)}</span>
-                                    ${getTrendIndicator(gscTrends?.trends?.position, true)}
-                                </div>
-                            ` : `
-                                <div class="no-data-message">
-                                    <span class="no-data-icon">
-                                    <div style="margin-bottom: 16px; display: flex; justify-content: center;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
-                        <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                </div>
-                                    </span>
-                                    <span class="no-data-text">Connect Search Console</span>
-                                </div>
-                            `}
+                        <div class="card-title">Search Performance</div>
+                        <div class="card-status ${gscData && !gscData.noDataFound ? 'connected' : 'disconnected'}">
+                            ${gscData && !gscData.noDataFound ? '●' : '○'}
                         </div>
                     </div>
                     
-                    <div class="overview-card analytics-card">
-                        <div class="card-header">
-                            <div class="card-icon"><svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                    <div class="card-content">
+                        ${gscData && !gscData.noDataFound ? `
+                            <div class="enhanced-metrics-grid">
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">🎯</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Clicks</span>
+                                        <span class="metric-value">${formatNumber(gscData.clicks)}</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(gscTrends?.trends?.clicks)}
+                                    </div>
+                                </div>
+                                
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">👁️</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Impressions</span>
+                                        <span class="metric-value">${formatNumber(gscData.impressions)}</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(gscTrends?.trends?.impressions)}
+                                    </div>
+                                </div>
+                                
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">⚡</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">CTR</span>
+                                        <span class="metric-value">${(gscData.ctr * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(gscTrends?.trends?.ctr)}
+                                    </div>
+                                </div>
+                                
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">📍</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Position</span>
+                                        <span class="metric-value">#${gscData.position.toFixed(1)}</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(gscTrends?.trends?.position, true)}
+                                    </div>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="no-data-message">
+                                <div class="no-data-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
+                                        <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                        <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                        <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                        <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                    </svg>
+                                </div>
+                                <span class="no-data-text">Connect Search Console</span>
+                                <span class="no-data-detail">Get insights into search performance</span>
+                            </div>
+                        `}
+                    </div>
+                </div>
+                
+                <div class="overview-card analytics-card enhanced">
+                    <div class="card-header">
+                        <div class="card-icon-container">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="main-card-icon">
                                 <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                            </svg></div>
-                            <div class="card-title">Google Analytics</div>
-                            <div class="card-status ${ga4Data && !ga4Data.noDataFound ? 'connected' : 'disconnected'}">
-                                ${ga4Data && !ga4Data.noDataFound ? '●' : '○'}
+                            </svg>
+                        </div>
+                        <div class="card-title">Google Analytics</div>
+                        <div class="card-status ${ga4Data && !ga4Data.noDataFound ? 'connected' : 'disconnected'}">
+                            ${ga4Data && !ga4Data.noDataFound ? '●' : '○'}
+                        </div>
+                    </div>
+                    
+                    <div class="card-content">
+                        ${ga4Data && !ga4Data.noDataFound ? `
+                            <div class="enhanced-metrics-grid">
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">👥</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Users</span>
+                                        <span class="metric-value">${formatNumber(ga4Data.users || 0)}</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(ga4Trends?.trends?.users)}
+                                    </div>
+                                </div>
+                                
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">📄</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Page Views</span>
+                                        <span class="metric-value">${formatNumber(ga4Data.pageViews || 0)}</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(ga4Trends?.trends?.pageViews)}
+                                    </div>
+                                </div>
+                                
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">⏱️</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Avg. Session</span>
+                                        <span class="metric-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(ga4Trends?.trends?.avgSessionDuration)}
+                                    </div>
+                                </div>
+                                
+                                <div class="enhanced-metric-row">
+                                    <div class="metric-icon">⚽</div>
+                                    <div class="metric-info">
+                                        <span class="metric-label">Bounce Rate</span>
+                                        <span class="metric-value">${((ga4Data.bounceRate || 0) * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="metric-trend">
+                                        ${getTrendIndicator(ga4Trends?.trends?.bounceRate, true)}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-content">
-                            ${ga4Data && !ga4Data.noDataFound ? `
-                                <div class="metric-row">
-                                    <span class="metric-label">Users:</span>
-                                    <span class="metric-value">${formatNumber(ga4Data.users || 0)}</span>
-                                    ${getTrendIndicator(ga4Trends?.trends?.users)}
+                        ` : `
+                            <div class="no-data-message">
+                                <div class="no-data-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
+                                        <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                                    </svg>
                                 </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">Page Views:</span>
-                                    <span class="metric-value">${formatNumber(ga4Data.pageViews || 0)}</span>
-                                    ${getTrendIndicator(ga4Trends?.trends?.pageViews)}
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">Avg. Session:</span>
-                                    <span class="metric-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
-                                    ${getTrendIndicator(ga4Trends?.trends?.avgSessionDuration)}
-                                </div>
-                                <div class="metric-row">
-                                    <span class="metric-label">Bounce Rate:</span>
-                                    <span class="metric-value">${((ga4Data.bounceRate || 0) * 100).toFixed(1)}%</span>
-                                    ${getTrendIndicator(ga4Trends?.trends?.bounceRate, true)}
-                                </div>
-                            ` : `
-                                <div class="no-data-message">
-                                    <span class="no-data-icon">
-                                    <div style="margin-bottom: 16px; display: flex; justify-content: center;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
-                        <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                    </svg>
+                                <span class="no-data-text">Connect Google Analytics</span>
+                                <span class="no-data-detail">Get insights into user behavior</span>
+                            </div>
+                        `}
+                    </div>
                 </div>
-                                    </span>
-                                    <span class="no-data-text">Connect Google Analytics</span>
-                                </div>
-                            `}
-                        </div>
+                
+                <div class="overview-card quality-card">
+                    <div class="card-header">
+                        <div class="card-icon">⭐</div>
+                        <div class="card-title">Content Quality</div>
                     </div>
-                    
-                    <div class="overview-card quality-card">
-                        <div class="card-header">
-                            <div class="card-icon">⭐</div>
-                            <div class="card-title">Content Quality</div>
-                        </div>
-                        <div class="card-content">
-                            ${createQualityScoreDisplay(gscData, ga4Data)}
-                        </div>
+                    <div class="card-content">
+                        ${createQualityScoreDisplay(gscData, ga4Data)}
                     </div>
-                    
-                    <div class="overview-card impact-card">
-                        <div class="card-header">
-                            <div class="card-icon">🎯</div>
-                            <div class="card-title">Citizen Impact</div>
-                        </div>
-                        <div class="card-content">
-                            ${createImpactDisplay(gscData, ga4Data)}
-                        </div>
+                </div>
+                
+                <div class="overview-card impact-card">
+                    <div class="card-header">
+                        <div class="card-icon">🎯</div>
+                        <div class="card-title">Citizen Impact</div>
+                    </div>
+                    <div class="card-content">
+                        ${createImpactDisplay(gscData, ga4Data)}
                     </div>
                 </div>
             </div>
-        `;
-    }
+        </div>
+    `;
+}
 
     function createQualityScoreDisplay(gscData, ga4Data) {
     // Use Citizens Information specific scoring
@@ -2739,38 +2793,27 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
     // ===========================================
 
     function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url) {
-        return `
-            <div class="panel-content">
-                <div class="section">
-                    <h2 class="section-title">📊 Performance Matrix</h2>
-                    ${createPerformanceMatrix(gscData, ga4Data)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🔢 Key Metrics</h2>
-                    <div class="metrics-overview">
-                        <div class="metrics-grid">
-                            ${createSearchConsoleMetrics(gscData, gscTrends)}
-                            ${createGA4Metrics(ga4Data, ga4Trends)}
-                            ${createCrossMetrics(gscData, ga4Data)}
-                        </div>
-                    </div>
-                </div>
-                
-                
-                
-                <div class="section">
-                    <h2 class="section-title">🎯 Citizens Impact Summary</h2>
-                    ${createCitizensImpactMetrics(ga4Data, gscData)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">💡 Key Insights</h2>
-                    ${createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends)}
-                </div>
+    return `
+        <div class="panel-content">
+            <div class="section">
+                <h2 class="section-title">📊 Performance Matrix</h2>
+                ${createPerformanceMatrix(gscData, ga4Data)}
             </div>
-        `;
-    }
+            
+            <!-- KEY METRICS SECTION REMOVED - Icons now integrated into main cards above -->
+            
+            <div class="section">
+                <h2 class="section-title">🎯 Citizens Impact Summary</h2>
+                ${createCitizensImpactMetrics(ga4Data, gscData)}
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">💡 Key Insights</h2>
+                ${createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends)}
+            </div>
+        </div>
+    `;
+}
 
     function createSearchPerformancePanel(gscData, gscTrends) {
         if (!gscData || gscData.noDataFound) {
