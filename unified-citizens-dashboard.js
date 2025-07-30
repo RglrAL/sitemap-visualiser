@@ -10710,14 +10710,14 @@ function formatDuration(seconds) {
                 /* Government Benchmarks */
                 .benchmarks-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
                     gap: 20px;
                 }
                 
                 .benchmark-card {
                     background: white;
                     border-radius: 16px;
-                    padding: 24px;
+                    padding: 44px;
                     border-left: 4px solid #e5e7eb;
                     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                 }
