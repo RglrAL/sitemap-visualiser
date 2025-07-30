@@ -9117,11 +9117,7 @@ function formatDuration(seconds) {
     line-height: 1.4;
 }
 
-
-
-            ${createEnhancedQueryAnalysisStyles()}
-
- /* Expanded Citizens Quality Section */
+/* Expanded Citizens Quality Section */
             .expanded-citizens-quality-section {
                 display: flex;
                 flex-direction: column;
@@ -9556,8 +9552,13 @@ function formatDuration(seconds) {
                 }
             }
 
-            /* END OF NEW STYLES FOR EXPANDED CITIZENS QUALITY SECTION */
+           
 
+
+
+            ${createEnhancedQueryAnalysisStyles()}
+
+ 
             
         </style>
     `;
