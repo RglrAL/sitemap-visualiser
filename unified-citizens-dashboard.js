@@ -2967,7 +2967,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             
             .metric-value {
                 font-weight: 600;
-                color: #374151;
+                color: #000000;
             }
             
             /* FIXED Axis System */
