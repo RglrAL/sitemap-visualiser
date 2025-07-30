@@ -3175,51 +3175,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                 ${createExpandedCitizensQualitySection(gscData, ga4Data)}
             </div>
             
-            <div class="section">
-                <h2 class="section-title">🔍 Content Gap Analysis</h2>
-                <div class="gap-analysis-grid">
-                    <div class="gap-card high-opportunity">
-                        <div class="gap-header">
-                            <h3>🎯 High Opportunity Queries</h3>
-                            <span class="gap-count">${contentGaps.highOpportunity.length}</span>
-                        </div>
-                        <div class="gap-description">Queries with 1000+ impressions but &lt;2% CTR</div>
-                        ${contentGaps.highOpportunity.length > 0 ? `
-                            <div class="gap-examples">
-                                ${contentGaps.highOpportunity.slice(0, 3).map(gap => `
-                                    <div class="gap-example">
-                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                        ${formatNumber(gap.impressions)} impressions, ${(gap.ctr * 100).toFixed(1)}% CTR
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="gap-none">✅ No major CTR gaps detected</div>'}
-                    </div>
-                    
-                    <div class="gap-card missing-content">
-                        <div class="gap-header">
-                            <h3>📄 Missing Content</h3>
-                            <span class="gap-count">${contentGaps.missingContent.length}</span>
-                        </div>
-                        <div class="gap-description">Queries with 100+ impressions but no dedicated content</div>
-                        ${contentGaps.missingContent.length > 0 ? `
-                            <div class="gap-examples">
-                                ${contentGaps.missingContent.slice(0, 3).map(gap => `
-                                    <div class="gap-example">
-                                        <strong>"${escapeHtml(gap.query)}"</strong><br>
-                                        ${formatNumber(gap.impressions)} monthly impressions
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="gap-none">✅ Good content coverage detected</div>'}
-                    </div>
-                </div>
-            </div>
             
-            <div class="section">
-                <h2 class="section-title">💡 Evidence-Based Action Items</h2>
-                ${createEvidenceBasedActions(gscData, ga4Data)}
-            </div>
         </div>
     `;
 }
