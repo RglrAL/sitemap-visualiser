@@ -3139,7 +3139,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
 
     function createSearchPerformancePanel(gscData, gscTrends, pageUrl) {
     if (!gscData || gscData.noDataFound) {
-        return createConnectionMessage('Search Console', 'Connect Search Console to see detailed search performance data');
+        return createConnectionMessage('Search Console', 'Click the GSC button in the toolbar to connect to Google Search Console and see search performance trends');
     }
     
     const problemQueries = identifyProblemQueries(gscData);
@@ -7290,7 +7290,7 @@ function formatDuration(seconds) {
                 </svg></div>
                 <div class="connection-title">Connect ${service}</div>
                 <div class="connection-description">${description}</div>
-                <button class="connection-btn">Connect ${service}</button>
+                
             </div>
         `;
     }
