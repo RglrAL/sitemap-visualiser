@@ -300,6 +300,620 @@
         return analysis;
     }
 
+
+
+
+// ==================================================
+// ENHANCED CITIZEN NEED SURGE DETECTION SYSTEM
+// Comprehensive surge analysis with actionable intelligence
+// ==================================================
+
+// ENHANCED SURGE CATEGORIES WITH IRISH GOVERNMENT CONTEXT
+const SURGE_CATEGORIES = {
+    crisis: {
+        keywords: ['emergency', 'urgent', 'crisis', 'disaster', 'flood', 'fire', 'accident', 'evacuation'],
+        icon: '🚨',
+        priority: 'critical',
+        responseTime: 'immediate',
+        escalation: 'minister_level'
+    },
+    policy: {
+        keywords: ['new', 'changes', 'budget', 'announcement', 'law', 'regulation', 'introduced'],
+        icon: '📋',
+        priority: 'high', 
+        responseTime: '24_hours',
+        escalation: 'department_head'
+    },
+    benefits: {
+        keywords: ['allowance', 'payment', 'benefit', 'grant', 'support', 'assistance'],
+        icon: '💰',
+        priority: 'high',
+        responseTime: '48_hours', 
+        escalation: 'service_manager'
+    },
+    seasonal: {
+        keywords: ['school', 'christmas', 'summer', 'winter', 'holiday', 'back to'],
+        icon: '📅',
+        priority: 'medium',
+        responseTime: '1_week',
+        escalation: 'content_team'
+    },
+    health: {
+        keywords: ['covid', 'vaccine', 'medical', 'health', 'illness', 'hospital'],
+        icon: '🏥', 
+        priority: 'high',
+        responseTime: '12_hours',
+        escalation: 'health_liaison'
+    },
+    housing: {
+        keywords: ['rent', 'eviction', 'homeless', 'accommodation', 'housing'],
+        icon: '🏠',
+        priority: 'critical',
+        responseTime: '4_hours',
+        escalation: 'housing_crisis_team'
+    },
+    employment: {
+        keywords: ['job', 'unemployment', 'redundancy', 'work', 'employer'],
+        icon: '💼',
+        priority: 'high', 
+        responseTime: '24_hours',
+        escalation: 'employment_services'
+    }
+};
+
+// ENHANCED SURGE DETECTION WITH INTELLIGENCE
+function detectCitizenNeedSurgesEnhanced(gscData, gscTrends, currentDate = new Date()) {
+    const analysis = {
+        volumeSurges: [],
+        emergingQueries: [],
+        unmetNeeds: [],
+        criticalAlerts: [],
+        trendingTopics: [],
+        seasonalPatterns: [],
+        urgencyLevels: {
+            critical: [],
+            high: [],
+            medium: [],
+            low: []
+        },
+        totalSurges: 0,
+        avgVolumeIncrease: 0,
+        contextualInsights: [],
+        actionableRecommendations: [],
+        historicalComparison: {},
+        surgeCategories: {}
+    };
+
+    if (!gscData || !gscData.topQueries) return analysis;
+
+    // Initialize category counters
+    Object.keys(SURGE_CATEGORIES).forEach(cat => {
+        analysis.surgeCategories[cat] = [];
+    });
+
+    gscData.topQueries.forEach(query => {
+        const currentImpressions = query.impressions || 0;
+        const previousImpressions = getPreviousImpressions(query, gscTrends);
+        
+        // ENHANCED VOLUME SURGE ANALYSIS
+        if (previousImpressions > 0) {
+            const percentIncrease = ((currentImpressions - previousImpressions) / previousImpressions) * 100;
+            
+            if (percentIncrease >= 25) { // Lowered threshold for more sensitivity
+                const surge = createEnhancedSurgeObject(query, currentImpressions, previousImpressions, percentIncrease, currentDate);
+                
+                analysis.volumeSurges.push(surge);
+                analysis.totalSurges++;
+                
+                // Categorize by urgency
+                analysis.urgencyLevels[surge.urgencyLevel].push(surge);
+                
+                // Categorize by topic
+                if (surge.category !== 'general') {
+                    analysis.surgeCategories[surge.category].push(surge);
+                }
+                
+                // Critical alerts for immediate action
+                if (surge.urgencyLevel === 'critical') {
+                    analysis.criticalAlerts.push(createCriticalAlert(surge));
+                }
+            }
+        } 
+        // ENHANCED EMERGING QUERIES
+        else if (currentImpressions >= 50) { // Lowered threshold
+            const emergingQuery = createEmergingQueryObject(query, currentDate);
+            analysis.emergingQueries.push(emergingQuery);
+            analysis.totalSurges++;
+            
+            if (emergingQuery.category !== 'general') {
+                analysis.surgeCategories[emergingQuery.category].push(emergingQuery);
+            }
+        }
+
+        // ENHANCED UNMET NEEDS DETECTION
+        if (currentImpressions >= 200 && (query.ctr < 0.015 || query.position > 25)) {
+            const unmetNeed = createUnmetNeedObject(query, currentDate);
+            analysis.unmetNeeds.push(unmetNeed);
+            
+            // High-volume unmet needs are critical
+            if (currentImpressions >= 1000) {
+                analysis.criticalAlerts.push(createUnmetNeedAlert(unmetNeed));
+            }
+        }
+    });
+
+    // CALCULATE ADVANCED METRICS
+    if (analysis.volumeSurges.length > 0) {
+        analysis.avgVolumeIncrease = Math.round(
+            analysis.volumeSurges.reduce((sum, surge) => sum + surge.percentIncrease, 0) / analysis.volumeSurges.length
+        );
+    }
+
+    // GENERATE CONTEXTUAL INSIGHTS
+    analysis.contextualInsights = generateContextualInsights(analysis, currentDate);
+    
+    // GENERATE ACTIONABLE RECOMMENDATIONS  
+    analysis.actionableRecommendations = generateSurgeRecommendations(analysis);
+    
+    // IDENTIFY TRENDING TOPICS
+    analysis.trendingTopics = identifyTrendingTopics(analysis);
+    
+    // SEASONAL PATTERN ANALYSIS
+    analysis.seasonalPatterns = analyzeSeasonalPatterns(analysis, currentDate);
+
+    return analysis;
+}
+
+// CREATE ENHANCED SURGE OBJECT WITH FULL CONTEXT
+function createEnhancedSurgeObject(query, currentImpressions, previousImpressions, percentIncrease, currentDate) {
+    const category = categorizeSurgeQuery(query.query);
+    const urgencyLevel = determineUrgencyLevel(percentIncrease, currentImpressions, category);
+    const contextualFactors = analyzeContextualFactors(query.query, currentDate);
+    
+    return {
+        query: query.query,
+        currentImpressions: currentImpressions,
+        previousImpressions: previousImpressions,
+        percentIncrease: Math.round(percentIncrease),
+        absoluteIncrease: currentImpressions - previousImpressions,
+        category: category,
+        urgencyLevel: urgencyLevel,
+        priority: SURGE_CATEGORIES[category]?.priority || 'medium',
+        responseTime: SURGE_CATEGORIES[category]?.responseTime || '1_week',
+        escalationPath: SURGE_CATEGORIES[category]?.escalation || 'content_team',
+        contextualFactors: contextualFactors,
+        estimatedCitizensAffected: estimateAffectedCitizens(currentImpressions, category),
+        recommendedActions: generateQuerySpecificActions(query, category, urgencyLevel),
+        historicalContext: getHistoricalContext(query.query, currentDate),
+        relatedQueries: findRelatedQueries(query.query, category),
+        contentGaps: identifyContentGaps(query, category),
+        businessImpact: assessBusinessImpact(currentImpressions, category, urgencyLevel)
+    };
+}
+
+// CATEGORIZE SURGE QUERIES BY TOPIC
+function categorizeSurgeQuery(queryText) {
+    const queryLower = queryText.toLowerCase();
+    
+    for (const [category, config] of Object.entries(SURGE_CATEGORIES)) {
+        if (config.keywords.some(keyword => queryLower.includes(keyword))) {
+            return category;
+        }
+    }
+    
+    // Additional Irish-specific categorization
+    if (queryLower.includes('dole') || queryLower.includes('social welfare')) return 'benefits';
+    if (queryLower.includes('garda') || queryLower.includes('court')) return 'legal';
+    if (queryLower.includes('hse') || queryLower.includes('hospital')) return 'health';
+    if (queryLower.includes('revenue') || queryLower.includes('tax')) return 'tax';
+    
+    return 'general';
+}
+
+// DETERMINE URGENCY LEVEL WITH SOPHISTICATED LOGIC
+function determineUrgencyLevel(percentIncrease, currentImpressions, category) {
+    // Base urgency on percentage increase
+    let urgencyScore = 0;
+    
+    if (percentIncrease >= 500) urgencyScore += 40;
+    else if (percentIncrease >= 200) urgencyScore += 30;
+    else if (percentIncrease >= 100) urgencyScore += 20;
+    else if (percentIncrease >= 50) urgencyScore += 10;
+    
+    // Adjust for volume
+    if (currentImpressions >= 5000) urgencyScore += 20;
+    else if (currentImpressions >= 1000) urgencyScore += 10;
+    else if (currentImpressions >= 500) urgencyScore += 5;
+    
+    // Category-based urgency multipliers
+    const categoryMultipliers = {
+        crisis: 2.0,
+        housing: 1.8,
+        health: 1.6,
+        benefits: 1.4,
+        policy: 1.2,
+        employment: 1.3,
+        seasonal: 0.8
+    };
+    
+    urgencyScore *= (categoryMultipliers[category] || 1.0);
+    
+    // Determine final urgency level
+    if (urgencyScore >= 60) return 'critical';
+    if (urgencyScore >= 40) return 'high';
+    if (urgencyScore >= 20) return 'medium';
+    return 'low';
+}
+
+// ANALYZE CONTEXTUAL FACTORS
+function analyzeContextualFactors(queryText, currentDate) {
+    const factors = [];
+    const month = currentDate.getMonth();
+    const dayOfWeek = currentDate.getDay();
+    
+    // Seasonal factors
+    if (month >= 5 && month <= 7 && queryText.toLowerCase().includes('school')) {
+        factors.push('Summer school holiday period');
+    }
+    if (month >= 10 || month <= 1) {
+        factors.push('Winter period - increased heating/welfare needs');
+    }
+    
+    // Day-of-week factors
+    if (dayOfWeek === 1) { // Monday
+        factors.push('Monday effect - weekend issue accumulation');
+    }
+    
+    // Economic factors (would integrate with real economic data)
+    factors.push('Current economic climate consideration needed');
+    
+    // Policy calendar factors (would integrate with government calendar)
+    if (month === 9) { // October budget
+        factors.push('Budget season - policy change anticipation');
+    }
+    
+    return factors;
+}
+
+// GENERATE CONTEXTUAL INSIGHTS
+function generateContextualInsights(analysis, currentDate) {
+    const insights = [];
+    
+    // Critical surge insights
+    if (analysis.criticalAlerts.length > 0) {
+        insights.push({
+            type: 'critical',
+            icon: '🚨',
+            title: `${analysis.criticalAlerts.length} Critical Surge Alert${analysis.criticalAlerts.length > 1 ? 's' : ''}`,
+            description: `Immediate government response required for high-impact citizen needs`,
+            action: 'Escalate to crisis response team within 1 hour'
+        });
+    }
+    
+    // Category-based insights
+    Object.entries(analysis.surgeCategories).forEach(([category, surges]) => {
+        if (surges.length > 0) {
+            const config = SURGE_CATEGORIES[category];
+            const totalVolume = surges.reduce((sum, s) => sum + s.currentImpressions, 0);
+            
+            insights.push({
+                type: 'category',
+                icon: config.icon,
+                title: `${surges.length} ${category.charAt(0).toUpperCase() + category.slice(1)} Surges`,
+                description: `${formatNumber(totalVolume)} citizens seeking ${category} information`,
+                action: `Review ${category} content and service delivery`
+            });
+        }
+    });
+    
+    // Volume insights
+    if (analysis.avgVolumeIncrease > 100) {
+        insights.push({
+            type: 'volume',
+            icon: '📈',
+            title: `Average ${analysis.avgVolumeIncrease}% Increase Detected`,
+            description: 'Significantly higher than normal citizen information demand',
+            action: 'Increase content team capacity and monitoring frequency'
+        });
+    }
+    
+    // Unmet needs insights
+    if (analysis.unmetNeeds.length > 0) {
+        const totalUnmetVolume = analysis.unmetNeeds.reduce((sum, need) => sum + need.impressions, 0);
+        insights.push({
+            type: 'unmet',
+            icon: '❌',
+            title: `${analysis.unmetNeeds.length} High-Demand, Low-Performance Queries`,
+            description: `${formatNumber(totalUnmetVolume)} monthly searches not being served effectively`,
+            action: 'Priority content creation and SEO optimization needed'
+        });
+    }
+    
+    return insights;
+}
+
+// GENERATE SURGE-SPECIFIC RECOMMENDATIONS
+function generateSurgeRecommendations(analysis) {
+    const recommendations = [];
+    
+    // Critical response recommendations
+    analysis.criticalAlerts.forEach(alert => {
+        recommendations.push({
+            priority: 'critical',
+            timeframe: 'immediate',
+            category: alert.category,
+            action: `Emergency Response: ${alert.title}`,
+            details: alert.details,
+            assignee: alert.escalationPath,
+            expectedImpact: 'Prevent service delivery crisis',
+            resources: 'Senior management, crisis communications team'
+        });
+    });
+    
+    // High-volume surge recommendations
+    analysis.urgencyLevels.high.forEach(surge => {
+        recommendations.push({
+            priority: 'high',
+            timeframe: SURGE_CATEGORIES[surge.category]?.responseTime || '24_hours',
+            category: surge.category,
+            action: `Scale Content: "${surge.query}"`,
+            details: `${surge.absoluteIncrease} additional citizens searching (${surge.percentIncrease}% increase)`,
+            assignee: surge.escalationPath,
+            expectedImpact: `Serve ${surge.estimatedCitizensAffected} additional citizens effectively`,
+            resources: 'Content team, subject matter experts'
+        });
+    });
+    
+    // Emerging topic recommendations
+    analysis.emergingQueries.slice(0, 3).forEach(query => {
+        recommendations.push({
+            priority: 'medium',
+            timeframe: '1_week',
+            category: query.category,
+            action: `Create Content: "${query.query}"`,
+            details: `New topic with ${query.impressions} monthly searches`,
+            assignee: 'content_team',
+            expectedImpact: 'Address emerging citizen information need',
+            resources: 'Content team, policy research'
+        });
+    });
+    
+    return recommendations.sort((a, b) => {
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+}
+
+// CREATE COMPREHENSIVE SURGE DISPLAY
+function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
+    if (!surgeAnalysis || surgeAnalysis.totalSurges === 0) {
+        return `
+            <div class="surge-detection-enhanced">
+                <div class="no-surges-detected">
+                    <div class="no-surge-icon">✅</div>
+                    <div class="no-surge-title">No Significant Surges Detected</div>
+                    <div class="no-surge-description">Citizen information demand is stable</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="surge-detection-enhanced">
+            <!-- Critical Alerts Section -->
+            ${surgeAnalysis.criticalAlerts.length > 0 ? `
+                <div class="critical-alerts-section">
+                    <div class="critical-header">
+                        <span class="critical-icon">🚨</span>
+                        <span class="critical-title">CRITICAL SURGE ALERTS</span>
+                        <span class="critical-count">${surgeAnalysis.criticalAlerts.length}</span>
+                    </div>
+                    <div class="critical-alerts-grid">
+                        ${surgeAnalysis.criticalAlerts.map(alert => `
+                            <div class="critical-alert-card ${alert.category}">
+                                <div class="alert-header">
+                                    <span class="alert-category-icon">${SURGE_CATEGORIES[alert.category]?.icon || '⚠️'}</span>
+                                    <span class="alert-title">${alert.title}</span>
+                                    <span class="alert-urgency">${alert.urgency}</span>
+                                </div>
+                                <div class="alert-details">${alert.details}</div>
+                                <div class="alert-actions">
+                                    <button class="alert-action-btn primary" onclick="handleCriticalAlert('${alert.id}')">
+                                        Take Action Now
+                                    </button>
+                                    <span class="alert-timeline">Response needed: ${alert.responseTime}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Surge Summary Dashboard -->
+            <div class="surge-summary-dashboard">
+                <div class="dashboard-header">
+                    <h3>📊 Citizen Need Surge Analysis</h3>
+                    <div class="surge-period">Last 30 days vs Previous period</div>
+                </div>
+                
+                <div class="surge-stats-grid">
+                    <div class="surge-stat-card total">
+                        <div class="stat-number">${surgeAnalysis.totalSurges}</div>
+                        <div class="stat-label">Total Surges Detected</div>
+                        <div class="stat-detail">Across all categories</div>
+                    </div>
+                    <div class="surge-stat-card average">
+                        <div class="stat-number">${surgeAnalysis.avgVolumeIncrease}%</div>
+                        <div class="stat-label">Average Increase</div>
+                        <div class="stat-detail">Above normal demand</div>
+                    </div>
+                    <div class="surge-stat-card critical">
+                        <div class="stat-number">${surgeAnalysis.urgencyLevels.critical.length}</div>
+                        <div class="stat-label">Critical Surges</div>
+                        <div class="stat-detail">Requiring immediate action</div>
+                    </div>
+                    <div class="surge-stat-card emerging">
+                        <div class="stat-number">${surgeAnalysis.emergingQueries.length}</div>
+                        <div class="stat-label">New Topics</div>
+                        <div class="stat-detail">Previously unseen queries</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Breakdown -->
+            <div class="surge-categories-section">
+                <h4>📋 Surge Categories Breakdown</h4>
+                <div class="categories-grid">
+                    ${Object.entries(surgeAnalysis.surgeCategories)
+                        .filter(([category, surges]) => surges.length > 0)
+                        .map(([category, surges]) => `
+                            <div class="category-card ${category}">
+                                <div class="category-header">
+                                    <span class="category-icon">${SURGE_CATEGORIES[category]?.icon || '📊'}</span>
+                                    <span class="category-name">${category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                                    <span class="category-count">${surges.length}</span>
+                                </div>
+                                <div class="category-volume">
+                                    ${formatNumber(surges.reduce((sum, s) => sum + s.currentImpressions, 0))} searches
+                                </div>
+                                <div class="category-priority">
+                                    Priority: ${SURGE_CATEGORIES[category]?.priority || 'medium'}
+                                </div>
+                            </div>
+                        `).join('')}
+                </div>
+            </div>
+            
+            <!-- Detailed Surge Analysis -->
+            <div class="detailed-surges-section">
+                <h4>🔍 Detailed Surge Analysis</h4>
+                <div class="surge-tabs">
+                    <button class="surge-tab active" data-tab="volume">Volume Surges</button>
+                    <button class="surge-tab" data-tab="emerging">Emerging Topics</button>
+                    <button class="surge-tab" data-tab="unmet">Unmet Needs</button>
+                </div>
+                
+                <div class="surge-tab-content">
+                    <!-- Volume Surges Tab -->
+                    <div class="surge-panel active" data-panel="volume">
+                        ${createVolumeSurgesPanel(surgeAnalysis.volumeSurges)}
+                    </div>
+                    
+                    <!-- Emerging Topics Tab -->  
+                    <div class="surge-panel" data-panel="emerging">
+                        ${createEmergingTopicsPanel(surgeAnalysis.emergingQueries)}
+                    </div>
+                    
+                    <!-- Unmet Needs Tab -->
+                    <div class="surge-panel" data-panel="unmet">
+                        ${createUnmetNeedsPanel(surgeAnalysis.unmetNeeds)}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contextual Insights -->
+            <div class="contextual-insights-section">
+                <h4>🧠 Contextual Insights</h4>
+                <div class="insights-list">
+                    ${surgeAnalysis.contextualInsights.map(insight => `
+                        <div class="insight-card ${insight.type}">
+                            <div class="insight-icon">${insight.icon}</div>
+                            <div class="insight-content">
+                                <div class="insight-title">${insight.title}</div>
+                                <div class="insight-description">${insight.description}</div>
+                                <div class="insight-action">${insight.action}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- Actionable Recommendations -->
+            <div class="recommendations-section">
+                <h4>🚀 Recommended Actions</h4>
+                <div class="recommendations-list">
+                    ${surgeAnalysis.actionableRecommendations.slice(0, 6).map(rec => `
+                        <div class="recommendation-card priority-${rec.priority}">
+                            <div class="rec-header">
+                                <div class="rec-priority">
+                                    <span class="priority-indicator ${rec.priority}"></span>
+                                    <span class="priority-label">${rec.priority.toUpperCase()}</span>
+                                </div>
+                                <div class="rec-timeframe">${rec.timeframe.replace('_', ' ')}</div>
+                            </div>
+                            <div class="rec-action">${rec.action}</div>
+                            <div class="rec-details">${rec.details}</div>
+                            <div class="rec-impact">Expected Impact: ${rec.expectedImpact}</div>
+                            <div class="rec-assignee">Assign to: ${rec.assignee.replace('_', ' ')}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// HELPER FUNCTIONS FOR DETAILED PANELS
+function createVolumeSurgesPanel(volumeSurges) {
+    if (volumeSurges.length === 0) {
+        return '<div class="no-data">No volume surges detected</div>';
+    }
+    
+    return `
+        <div class="volume-surges-list">
+            ${volumeSurges.map(surge => `
+                <div class="surge-item urgency-${surge.urgencyLevel}">
+                    <div class="surge-query">"${surge.query}"</div>
+                    <div class="surge-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Increase:</span>
+                            <span class="metric-value increase">${surge.percentIncrease}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Volume:</span>
+                            <span class="metric-value">${formatNumber(surge.currentImpressions)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Category:</span>
+                            <span class="metric-value">${SURGE_CATEGORIES[surge.category]?.icon || '📊'} ${surge.category}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Citizens Affected:</span>
+                            <span class="metric-value">${surge.estimatedCitizensAffected}</span>
+                        </div>
+                    </div>
+                    <div class="surge-context">
+                        ${surge.contextualFactors.map(factor => `<span class="context-tag">${factor}</span>`).join('')}
+                    </div>
+                    <div class="surge-actions">
+                        ${surge.recommendedActions.slice(0, 2).map(action => `
+                            <div class="recommended-action">${action}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Additional helper functions would continue here...
+// formatNumber, createEmergingTopicsPanel, createUnmetNeedsPanel, etc.
+
+function formatNumber(num) {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+}
+
+
+
+
+
+
+
+
+    
+
     function getPreviousImpressions(query, gscTrends) {
         if (gscTrends && gscTrends.previous && gscTrends.previous.topQueries) {
             const previousQuery = gscTrends.previous.topQueries.find(q => q.query === query.query);
@@ -3239,7 +3853,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
         const benchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
         const priorityScore = calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends);
-        const surgeAnalysis = detectCitizenNeedSurges(gscData, gscTrends);
+        const surgeAnalysis = detectCitizenNeedSurgesEnhanced(gscData, gscTrends);
         
         return `
             <div class="panel-content">
@@ -3281,9 +3895,9 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                     
                 
                 <div class="section">
-                    <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
-                    ${createCitizenNeedSurgeDetection(surgeAnalysis)}
-                </div>
+    <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
+    ${createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis)}
+</div>
                 
                 
             </div>
