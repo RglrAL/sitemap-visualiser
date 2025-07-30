@@ -7646,7 +7646,7 @@ function formatDuration(seconds) {
                 
                 .metric-value {
                     font-weight: 700;
-                    color: #1f2937;
+                    color: #000000;
                 }
                 
                 .trend-indicator {
