@@ -3289,10 +3289,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                     ${createCitizenNeedSurgeDetection(surgeAnalysis)}
                 </div>
                 
-                <div class="section">
-                    <h2 class="section-title">📅 Review Workflow Recommendations</h2>
-                    ${createReviewWorkflowRecommendations(benchmarks)}
-                </div>
+                
             </div>
         `;
     }
