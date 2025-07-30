@@ -1262,29 +1262,29 @@ if (closeBtn) {
             break;
             
         case 'detailed':
-            if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
-                // Hide the tooltip first
-                hideEnhancedTooltip(true); // Force immediate close
-                
-                // Show loading immediately
-                const loadingOverlay = showDashboardLoading();
-                
-                const nodeData = tooltip._nodeData;
-                console.log('📊 Opening dashboard with node data:', nodeData);
-                
-                // Call your dashboard function and hide loading when done
-                window.showUnifiedDashboardReport(url, nodeData)
-                    .then(() => {
-                        hideDashboardLoading();
-                    })
-                    .catch((error) => {
-                        console.error('Dashboard loading error:', error);
-                        hideDashboardLoading();
-                        // Show error message
-                        alert('Failed to load dashboard. Please try again.');
-                    });
-            }
-            break;
+    if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
+        // Hide the tooltip first
+        hideEnhancedTooltip(true); // Force immediate close
+        
+        // Show loading immediately
+        const loadingOverlay = showDashboardLoading();
+        
+        const nodeData = tooltip._nodeData;
+        console.log('📊 Opening dashboard with node data:', nodeData);
+        
+        // Call your dashboard function and hide loading when done
+        window.showUnifiedDashboardReport(url, nodeData)
+            .then(() => {
+                hideDashboardLoading();
+            })
+            .catch((error) => {
+                console.error('Dashboard loading error:', error);
+                hideDashboardLoading();
+                // Show error message
+                alert('Failed to load dashboard. Please try again.');
+            });
+    }
+    break;
     }
 }
 
@@ -1294,6 +1294,9 @@ function showDashboardLoading() {
     // Remove any existing loading overlay
     const existingLoader = document.getElementById('dashboard-loading-overlay');
     if (existingLoader) existingLoader.remove();
+    
+    // Track loading start time
+    window.dashboardLoadingStartTime = Date.now();
     
     // Create loading overlay
     const loadingOverlay = document.createElement('div');
@@ -1409,15 +1412,6 @@ function showDashboardLoading() {
                     opacity: 1;
                 }
             }
-            
-            @keyframes loading-sweep {
-                0% { 
-                    background-position: -300% 0;
-                }
-                100% { 
-                    background-position: 300% 0;
-                }
-            }
         </style>
     `;
     
@@ -1431,17 +1425,28 @@ function showDashboardLoading() {
     return loadingOverlay;
 }
 
-
 function hideDashboardLoading() {
     const loadingOverlay = document.getElementById('dashboard-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.opacity = '0';
-        setTimeout(() => {
-            if (loadingOverlay && loadingOverlay.parentNode) {
-                loadingOverlay.remove();
-            }
-        }, 300);
-    }
+    if (!loadingOverlay) return;
+    
+    const startTime = window.dashboardLoadingStartTime || 0;
+    const elapsedTime = Date.now() - startTime;
+    const minimumDuration = 2000; // 2 seconds
+    
+    const remainingTime = Math.max(0, minimumDuration - elapsedTime);
+    
+    setTimeout(() => {
+        if (loadingOverlay && loadingOverlay.parentNode) {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                if (loadingOverlay && loadingOverlay.parentNode) {
+                    loadingOverlay.remove();
+                }
+            }, 300);
+        }
+        // Clear the start time
+        window.dashboardLoadingStartTime = null;
+    }, remainingTime);
 }
 
     
