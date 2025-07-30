@@ -4489,10 +4489,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                     </div>
                 </div>
                 
-                <div class="section">
-                    <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
-                    ${createSafeCitizenNeedSurgeDetection(surgeAnalysis)}
-                </div>
+                
             </div>
         `;
     } catch (error) {
