@@ -8500,23 +8500,31 @@ function formatDuration(seconds) {
                 
                 /* Insights Grid */
                 .insights-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                    gap: 20px;
-                }
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Always 2 columns on desktop */
+    grid-template-rows: 1fr 1fr;    /* Always 2 rows on desktop */
+    gap: 20px;
+    width: 100%;                     /* Full width */
+    max-width: none;                 /* Remove any width restrictions */
+}
                 
                 .insight-card {
-                    padding: 20px;
-                    border-radius: 12px;
-                    border: 1px solid #e2e8f0;
-                    background: white;
-                    transition: all 0.2s ease;
-                }
-                
-                .insight-card:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                }
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 100%; /* Fill the grid cell height */
+    min-height: 120px; /* Ensure minimum height for content */
+}
+
+.insight-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
                 
                 .insight-card.positive {
                     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
@@ -8539,16 +8547,18 @@ function formatDuration(seconds) {
                 }
                 
                 .insight-icon {
-                    font-size: 1.5rem;
-                    margin-bottom: 12px;
-                    display: block;
-                }
-                
-                .insight-text {
-                    color: #374151;
-                    line-height: 1.4;
-                    font-weight: 500;
-                }
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    display: block;
+    flex-shrink: 0; /* Don't shrink the icon */
+}
+
+.insight-text {
+    color: #374151;
+    line-height: 1.5;
+    font-weight: 500;
+    flex-grow: 1; /* Take up remaining space */
+}
                 
                 /* Connection Message */
                 .connection-message {
