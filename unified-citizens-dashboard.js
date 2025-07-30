@@ -2028,7 +2028,7 @@ function createCleanIrelandView(regions, geoInsights) {
                 <div class="empty-icon"><svg width="46" height="46" viewBox="0 0 24 24" style="flex-shrink: 0;">
                             <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                         </svg></div>
-                <div class="empty-text">Enable geographic reporting in GA4 to see regional breakdown</div>
+                <div class="empty-text">Click the GA4 button in the toolbar to see regional breakdown</div>
             </div>
         `;
     }
@@ -2074,7 +2074,7 @@ function createCleanInternationalView(countries, geoInsights) {
         return `
             <div class="clean-empty-state">
                 <div class="empty-icon">🌍</div>
-                <div class="empty-text">No international visitor data available</div>
+                <div class="empty-text">Click the GA4 button in the toolbar see international reach</div>
             </div>
         `;
     }
