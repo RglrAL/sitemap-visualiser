@@ -135,7 +135,7 @@
         const GA4_PROPERTIES = [
             {
                 name: "Citizens Information",
-                description: "Main Citizens Information website",
+                description: "Citizens Information website",
                 propertyId: "341170035"
             },
             {
@@ -150,7 +150,7 @@
             },
             {
                 name: "RISLI",
-                description: "Refugee Information Service Legal Initiative",
+                description: "Register of Sign Language Interpreters",
                 propertyId: "254639858"
             }
         ];
