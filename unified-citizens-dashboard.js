@@ -2802,7 +2802,10 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             
             <!-- KEY METRICS SECTION REMOVED - Icons now integrated into main cards above -->
             
-           
+            <div class="section">
+                <h2 class="section-title">🎯 Citizens Impact Summary</h2>
+                ${createCitizensImpactMetrics(ga4Data, gscData)}
+            </div>
             
             <div class="section">
                 <h2 class="section-title">💡 Key Insights</h2>
