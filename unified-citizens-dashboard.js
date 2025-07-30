@@ -2885,7 +2885,10 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                     <h2 class="section-title">🎯 Top Performing Queries</h2>
                     ${createTopQueriesTable(gscData)}
                 </div>
-                
+
+                <div class="section">
+                ${createEnhancedQueryAnalysisSection(gscData, pageUrl)}
+                </div>
                 
                 
         
