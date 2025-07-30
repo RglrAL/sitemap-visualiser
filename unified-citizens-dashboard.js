@@ -4335,7 +4335,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             </div>
             
             <div class="section" style="margin-top: 0;">
-                <h2 class="section-title">📊 Performance Matrix</h2>
+                <h2 class="section-title">🧭 Performance Matrix</h2>
                 ${createPerformanceMatrix(gscData, ga4Data)}
             </div>
             
