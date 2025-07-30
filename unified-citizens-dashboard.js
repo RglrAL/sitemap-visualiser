@@ -4622,7 +4622,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .impact-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: #ffffff;
     font-weight: 600;
 }
 
