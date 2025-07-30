@@ -3282,47 +3282,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                         <p>Based on government sector prioritization: Traffic Volume (40%), Growth Rate (25%), Search Behavior (20%), External Discovery (15%)</p>
                     </div>
                     
-                    <div class="priority-matrix">
-                        <div class="priority-breakdown">
-                            <div class="priority-component">
-                                <div class="component-label">Traffic Volume (40%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.traffic}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.traffic}/100</div>
-                            </div>
-                            
-                            <div class="priority-component">
-                                <div class="component-label">Growth Rate (25%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.growth}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.growth}/100</div>
-                            </div>
-                            
-                            <div class="priority-component">
-                                <div class="component-label">Search Behavior (20%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.search}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.search}/100</div>
-                            </div>
-                            
-                            <div class="priority-component">
-                                <div class="component-label">External Discovery (15%)</div>
-                                <div class="component-bar">
-                                    <div class="component-fill" style="width: ${priorityScore.components.discovery}%"></div>
-                                </div>
-                                <div class="component-score">${priorityScore.components.discovery}/100</div>
-                            </div>
-                        </div>
-                        
-                        <div class="priority-recommendation">
-                            <h3>📌 Priority Recommendation</h3>
-                            <div class="recommendation-text">${priorityScore.recommendation}</div>
-                        </div>
-                    </div>
-                </div>
+                    
                 
                 <div class="section">
                     <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
@@ -9621,7 +9581,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                     </button>
                     <button class="tab-btn" data-tab="government">
                         <span class="tab-icon">🏛️</span>
-                        <span class="tab-label">Government Intelligence</span>
+                        <span class="tab-label">Government Benchmarks</span>
                     </button>
                     <button class="tab-btn" data-tab="geographic">
                         <span class="tab-icon">🌍</span>
