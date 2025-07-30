@@ -2048,7 +2048,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                     <div class="component-details">
                         <div class="detail-grid">
                             <div class="detail-item">
-                                <span class="detail-label">Search Position:</span>
+                                <span class="detail-label">Average Search Position:</span>
                                 <span class="detail-value">${gscData?.position ? '#' + gscData.position.toFixed(0) : 'No data'}</span>
                             </div>
                             <div class="detail-item">
