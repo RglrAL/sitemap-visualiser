@@ -896,8 +896,604 @@ function createVolumeSurgesPanel(volumeSurges) {
     `;
 }
 
-// Additional helper functions would continue here...
-// formatNumber, createEmergingTopicsPanel, createUnmetNeedsPanel, etc.
+// ==================================================
+// MISSING HELPER FUNCTIONS FOR SURGE DETECTION
+// Add these functions to your unified-citizens-dashboard.js file
+// ==================================================
+
+// CREATE VOLUME SURGES PANEL
+function createVolumeSurgesPanel(volumeSurges) {
+    if (!volumeSurges || volumeSurges.length === 0) {
+        return '<div class="no-data">No volume surges detected</div>';
+    }
+    
+    return `
+        <div class="volume-surges-list">
+            ${volumeSurges.map(surge => `
+                <div class="surge-item urgency-${surge.urgencyLevel}">
+                    <div class="surge-query">"${surge.query || 'Unknown query'}"</div>
+                    <div class="surge-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Increase:</span>
+                            <span class="metric-value increase">${surge.percentIncrease}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Volume:</span>
+                            <span class="metric-value">${formatNumber(surge.currentImpressions)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Category:</span>
+                            <span class="metric-value">${SURGE_CATEGORIES[surge.category]?.icon || '📊'} ${surge.category}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Citizens Affected:</span>
+                            <span class="metric-value">${surge.estimatedCitizensAffected || 'Unknown'}</span>
+                        </div>
+                    </div>
+                    <div class="surge-context">
+                        ${(surge.contextualFactors || []).map(factor => `<span class="context-tag">${factor}</span>`).join('')}
+                    </div>
+                    <div class="surge-actions">
+                        ${(surge.recommendedActions || []).slice(0, 2).map(action => `
+                            <div class="recommended-action">${action}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// CREATE EMERGING TOPICS PANEL
+function createEmergingTopicsPanel(emergingQueries) {
+    if (!emergingQueries || emergingQueries.length === 0) {
+        return '<div class="no-data">No emerging topics detected</div>';
+    }
+    
+    return `
+        <div class="emerging-topics-list">
+            ${emergingQueries.map(topic => `
+                <div class="emerging-topic-item">
+                    <div class="topic-query">"${topic.query || 'Unknown query'}"</div>
+                    <div class="topic-metrics">
+                        <div class="metric">
+                            <span class="metric-label">New Searches:</span>
+                            <span class="metric-value">${formatNumber(topic.impressions || 0)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Category:</span>
+                            <span class="metric-value">${topic.category || 'general'}</span>
+                        </div>
+                    </div>
+                    <div class="topic-recommendation">
+                        💡 Consider creating content to address this emerging need
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// CREATE UNMET NEEDS PANEL
+function createUnmetNeedsPanel(unmetNeeds) {
+    if (!unmetNeeds || unmetNeeds.length === 0) {
+        return '<div class="no-data">No significant unmet needs detected</div>';
+    }
+    
+    return `
+        <div class="unmet-needs-list">
+            ${unmetNeeds.map(need => `
+                <div class="unmet-need-item">
+                    <div class="need-query">"${need.query || 'Unknown query'}"</div>
+                    <div class="need-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Searches:</span>
+                            <span class="metric-value">${formatNumber(need.impressions || 0)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">CTR:</span>
+                            <span class="metric-value">${((need.ctr || 0) * 100).toFixed(2)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Position:</span>
+                            <span class="metric-value">#${(need.position || 0).toFixed(0)}</span>
+                        </div>
+                    </div>
+                    <div class="need-gap">
+                        🎯 High search demand but poor performance - optimization opportunity
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// CREATE CRITICAL ALERT
+function createCriticalAlert(surge) {
+    return {
+        id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        category: surge.category || 'general',
+        title: `Critical Surge: ${surge.query || 'Unknown Query'}`,
+        details: `${surge.percentIncrease}% increase in searches (${formatNumber(surge.currentImpressions)} monthly searches)`,
+        urgency: surge.urgencyLevel || 'high',
+        responseTime: SURGE_CATEGORIES[surge.category]?.responseTime || '24_hours',
+        escalationPath: SURGE_CATEGORIES[surge.category]?.escalation || 'content_team'
+    };
+}
+
+// CREATE UNMET NEED ALERT
+function createUnmetNeedAlert(unmetNeed) {
+    return {
+        id: `unmet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        category: 'unmet_need',
+        title: `High-Volume Unmet Need: ${unmetNeed.query || 'Unknown Query'}`,
+        details: `${formatNumber(unmetNeed.impressions)} monthly searches with poor performance`,
+        urgency: 'high',
+        responseTime: '48_hours',
+        escalationPath: 'content_optimization_team'
+    };
+}
+
+// CREATE EMERGING QUERY OBJECT
+function createEmergingQueryObject(query, currentDate) {
+    return {
+        query: query.query,
+        impressions: query.impressions || 0,
+        clicks: query.clicks || 0,
+        category: categorizeSurgeQuery(query.query),
+        isNew: true,
+        detectionDate: currentDate,
+        potentialImpact: query.impressions > 100 ? 'high' : query.impressions > 50 ? 'medium' : 'low'
+    };
+}
+
+// CREATE UNMET NEED OBJECT
+function createUnmetNeedObject(query, currentDate) {
+    return {
+        query: query.query,
+        impressions: query.impressions || 0,
+        clicks: query.clicks || 0,
+        ctr: query.ctr || 0,
+        position: query.position || 0,
+        category: categorizeSurgeQuery(query.query),
+        gapType: 'performance',
+        severity: query.impressions >= 1000 ? 'critical' : query.impressions >= 500 ? 'high' : 'medium'
+    };
+}
+
+// ESTIMATE AFFECTED CITIZENS
+function estimateAffectedCitizens(impressions, category) {
+    if (!impressions) return 'Unknown';
+    
+    // Different categories have different citizen-to-impression ratios
+    const multipliers = {
+        crisis: 0.8,      // Crisis situations affect more people per search
+        housing: 0.6,     // Housing affects families
+        health: 0.5,      // Health affects individuals + family
+        benefits: 0.4,    // Benefits primarily individual
+        emergency: 0.9,   // Emergency situations are critical
+        general: 0.3      // General information
+    };
+    
+    const multiplier = multipliers[category] || 0.3;
+    const estimated = Math.round(impressions * multiplier);
+    
+    return formatNumber(estimated);
+}
+
+// GENERATE QUERY SPECIFIC ACTIONS
+function generateQuerySpecificActions(query, category, urgencyLevel) {
+    const actions = [];
+    
+    // Base actions by category
+    const categoryActions = {
+        crisis: [
+            'Create emergency response page',
+            'Add crisis helpline contacts',
+            'Ensure mobile-first design'
+        ],
+        housing: [
+            'Update housing eligibility criteria',
+            'Add local housing office contacts',
+            'Create application walkthrough'
+        ],
+        health: [
+            'Update medical card information',
+            'Add HSE contact details',
+            'Create health service finder'
+        ],
+        benefits: [
+            'Update benefit rates and criteria',
+            'Add online application links',
+            'Create eligibility calculator'
+        ],
+        employment: [
+            'Update job seeker information',
+            'Add Intreo office details',
+            'Link to online services'
+        ]
+    };
+    
+    // Get category-specific actions
+    const baseActions = categoryActions[category] || [
+        'Review and update content',
+        'Add relevant contact information',
+        'Improve search optimization'
+    ];
+    
+    // Add urgency-specific actions
+    if (urgencyLevel === 'critical') {
+        actions.push('URGENT: Immediate content review required');
+        actions.push('Escalate to senior management');
+    } else if (urgencyLevel === 'high') {
+        actions.push('Priority content update needed');
+        actions.push('Schedule within 24 hours');
+    }
+    
+    return [...actions, ...baseActions.slice(0, 2)];
+}
+
+// GET HISTORICAL CONTEXT
+function getHistoricalContext(query, currentDate) {
+    // In a real implementation, this would compare with historical data
+    // For now, return mock context based on query patterns
+    
+    const seasonalPatterns = {
+        'school': 'Peaks in August-September and January',
+        'tax': 'Highest in October-December',
+        'christmas': 'Seasonal spike November-December',
+        'summer': 'Peaks May-July',
+        'holiday': 'Increases before holiday periods'
+    };
+    
+    const queryLower = query.toLowerCase();
+    for (const [pattern, context] of Object.entries(seasonalPatterns)) {
+        if (queryLower.includes(pattern)) {
+            return context;
+        }
+    }
+    
+    return 'No clear historical pattern detected';
+}
+
+// FIND RELATED QUERIES
+function findRelatedQueries(query, category) {
+    // In a real implementation, this would use ML/semantic analysis
+    // For now, return mock related queries based on category
+    
+    const relatedByCategory = {
+        housing: ['rent supplement', 'housing list', 'hap payment'],
+        health: ['medical card', 'gp visit card', 'hospital services'],
+        benefits: ['jobseekers allowance', 'child benefit', 'disability allowance'],
+        education: ['student grant', 'susi application', 'back to school'],
+        employment: ['job seekers', 'unemployment benefit', 'work permit']
+    };
+    
+    return relatedByCategory[category] || ['general information', 'government services', 'citizen support'];
+}
+
+// ASSESS BUSINESS IMPACT
+function assessBusinessImpact(impressions, category, urgencyLevel) {
+    let impact = 'Low';
+    let score = 0;
+    
+    // Volume impact
+    if (impressions >= 1000) score += 3;
+    else if (impressions >= 500) score += 2;
+    else if (impressions >= 100) score += 1;
+    
+    // Category impact
+    const categoryScores = {
+        crisis: 4,
+        emergency: 4,
+        housing: 3,
+        health: 3,
+        benefits: 3,
+        employment: 2,
+        education: 2,
+        general: 1
+    };
+    score += categoryScores[category] || 1;
+    
+    // Urgency impact
+    const urgencyScores = {
+        critical: 4,
+        high: 3,
+        medium: 2,
+        low: 1
+    };
+    score += urgencyScores[urgencyLevel] || 1;
+    
+    // Determine impact level
+    if (score >= 8) impact = 'Critical';
+    else if (score >= 6) impact = 'High';
+    else if (score >= 4) impact = 'Medium';
+    
+    return {
+        level: impact,
+        score: score,
+        citizenImpact: score >= 6 ? 'High citizen service impact' : score >= 4 ? 'Medium citizen impact' : 'Standard service impact',
+        recommendedResponse: score >= 8 ? 'Immediate action required' : score >= 6 ? 'Priority response needed' : 'Include in regular updates'
+    };
+}
+
+// IDENTIFY TRENDING TOPICS
+function identifyTrendingTopics(analysis) {
+    const trending = [];
+    
+    // Look for patterns in surge categories
+    if (analysis.surgeCategories) {
+        Object.entries(analysis.surgeCategories).forEach(([category, surges]) => {
+            if (surges.length >= 2) {
+                const totalVolume = surges.reduce((sum, s) => sum + (s.currentImpressions || 0), 0);
+                trending.push({
+                    topic: category,
+                    volume: totalVolume,
+                    surgeCount: surges.length,
+                    trend: 'increasing'
+                });
+            }
+        });
+    }
+    
+    // Sort by volume
+    return trending.sort((a, b) => b.volume - a.volume).slice(0, 5);
+}
+
+// ANALYZE SEASONAL PATTERNS
+function analyzeSeasonalPatterns(analysis, currentDate) {
+    const month = currentDate.getMonth();
+    const patterns = [];
+    
+    // Check for seasonal keywords in surges
+    const seasonalKeywords = {
+        'school': [8, 9, 0, 1], // Sept, Oct, Jan, Feb
+        'christmas': [10, 11],  // Nov, Dec
+        'summer': [5, 6, 7],    // Jun, Jul, Aug
+        'tax': [9, 10, 11],     // Oct, Nov, Dec
+        'holiday': [5, 6, 7, 11, 0] // Summer and Christmas
+    };
+    
+    if (analysis.volumeSurges) {
+        analysis.volumeSurges.forEach(surge => {
+            const query = (surge.query || '').toLowerCase();
+            
+            Object.entries(seasonalKeywords).forEach(([keyword, months]) => {
+                if (query.includes(keyword) && months.includes(month)) {
+                    patterns.push({
+                        keyword: keyword,
+                        query: surge.query,
+                        seasonal: true,
+                        expectedPeriod: months,
+                        currentRelevance: 'high'
+                    });
+                }
+            });
+        });
+    }
+    
+    return patterns;
+}
+
+// FORMAT NUMBER FUNCTION (if not already defined)
+function formatNumber(num) {
+    if (typeof num !== 'number' || isNaN(num)) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return Math.round(num).toLocaleString();
+}
+
+// ADDITIONAL HELPER FUNCTIONS THAT MIGHT BE MISSING
+
+// Ensure SURGE_CATEGORIES is available (if not already defined)
+if (typeof SURGE_CATEGORIES === 'undefined') {
+    const SURGE_CATEGORIES = {
+        crisis: {
+            keywords: ['emergency', 'urgent', 'crisis', 'disaster', 'flood', 'fire', 'accident', 'evacuation'],
+            icon: '🚨',
+            priority: 'critical',
+            responseTime: 'immediate',
+            escalation: 'minister_level'
+        },
+        policy: {
+            keywords: ['new', 'changes', 'budget', 'announcement', 'law', 'regulation', 'introduced'],
+            icon: '📋',
+            priority: 'high', 
+            responseTime: '24_hours',
+            escalation: 'department_head'
+        },
+        benefits: {
+            keywords: ['allowance', 'payment', 'benefit', 'grant', 'support', 'assistance'],
+            icon: '💰',
+            priority: 'high',
+            responseTime: '48_hours', 
+            escalation: 'service_manager'
+        },
+        seasonal: {
+            keywords: ['school', 'christmas', 'summer', 'winter', 'holiday', 'back to'],
+            icon: '📅',
+            priority: 'medium',
+            responseTime: '1_week',
+            escalation: 'content_team'
+        },
+        health: {
+            keywords: ['covid', 'vaccine', 'medical', 'health', 'illness', 'hospital'],
+            icon: '🏥', 
+            priority: 'high',
+            responseTime: '12_hours',
+            escalation: 'health_liaison'
+        },
+        housing: {
+            keywords: ['rent', 'eviction', 'homeless', 'accommodation', 'housing'],
+            icon: '🏠',
+            priority: 'critical',
+            responseTime: '4_hours',
+            escalation: 'housing_crisis_team'
+        },
+        employment: {
+            keywords: ['job', 'unemployment', 'redundancy', 'work', 'employer'],
+            icon: '💼',
+            priority: 'high', 
+            responseTime: '24_hours',
+            escalation: 'employment_services'
+        }
+    };
+    
+    // Make it available globally
+    window.SURGE_CATEGORIES = SURGE_CATEGORIES;
+}
+
+// ESCAPE HTML FUNCTION (if not already defined)
+if (typeof escapeHtml === 'undefined') {
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Make it available globally
+    window.escapeHtml = escapeHtml;
+}
+
+// GET CTR BENCHMARK FUNCTION (if not already defined)
+if (typeof getCTRBenchmark === 'undefined') {
+    function getCTRBenchmark(position) {
+        if (position <= 1) return 0.28;
+        if (position <= 2) return 0.15;
+        if (position <= 3) return 0.11;
+        if (position <= 5) return 0.06;
+        if (position <= 10) return 0.03;
+        return 0.01;
+    }
+    
+    // Make it available globally
+    window.getCTRBenchmark = getCTRBenchmark;
+}
+
+// CATEGORIZE SURGE QUERY FUNCTION (ensure it's available)
+if (typeof categorizeSurgeQuery === 'undefined') {
+    function categorizeSurgeQuery(queryText) {
+        const queryLower = queryText.toLowerCase();
+        const categories = window.SURGE_CATEGORIES || SURGE_CATEGORIES;
+        
+        for (const [category, config] of Object.entries(categories)) {
+            if (config.keywords.some(keyword => queryLower.includes(keyword))) {
+                return category;
+            }
+        }
+        
+        // Additional Irish-specific categorization
+        if (queryLower.includes('dole') || queryLower.includes('social welfare')) return 'benefits';
+        if (queryLower.includes('garda') || queryLower.includes('court')) return 'legal';
+        if (queryLower.includes('hse') || queryLower.includes('hospital')) return 'health';
+        if (queryLower.includes('revenue') || queryLower.includes('tax')) return 'tax';
+        
+        return 'general';
+    }
+    
+    // Make it available globally
+    window.categorizeSurgeQuery = categorizeSurgeQuery;
+}
+
+// SAFE QUERY ACCESS HELPER
+function safeGetQuery(query) {
+    if (typeof query === 'string') {
+        return query;
+    }
+    if (query && typeof query === 'object' && query.query) {
+        return query.query;
+    }
+    return 'Unknown Query';
+}
+
+// SAFE METRICS ACCESS HELPER
+function safeGetMetric(obj, property, defaultValue = 0) {
+    try {
+        return obj && obj[property] !== undefined ? obj[property] : defaultValue;
+    } catch (error) {
+        console.warn(`Error accessing property ${property}:`, error);
+        return defaultValue;
+    }
+}
+
+// ENHANCED ERROR HANDLING FOR SURGE DETECTION
+function safeExecuteSurgeDetection(gscData, gscTrends) {
+    try {
+        if (!gscData || gscData.noDataFound) {
+            return {
+                volumeSurges: [],
+                emergingQueries: [],
+                unmetNeeds: [],
+                criticalAlerts: [],
+                totalSurges: 0,
+                avgVolumeIncrease: 0,
+                contextualInsights: [],
+                actionableRecommendations: [],
+                surgeCategories: {}
+            };
+        }
+        
+        return detectCitizenNeedSurgesEnhanced(gscData, gscTrends);
+    } catch (error) {
+        console.error('Error in surge detection:', error);
+        return {
+            volumeSurges: [],
+            emergingQueries: [],
+            unmetNeeds: [],
+            criticalAlerts: [],
+            totalSurges: 0,
+            avgVolumeIncrease: 0,
+            contextualInsights: [{
+                type: 'error',
+                icon: '⚠️',
+                title: 'Surge Detection Error',
+                description: 'Unable to analyze citizen need surges at this time',
+                action: 'Check data connections and try refreshing'
+            }],
+            actionableRecommendations: [],
+            surgeCategories: {}
+        };
+    }
+}
+
+// Make all functions globally available
+window.createVolumeSurgesPanel = createVolumeSurgesPanel;
+window.createEmergingTopicsPanel = createEmergingTopicsPanel;
+window.createUnmetNeedsPanel = createUnmetNeedsPanel;
+window.createCriticalAlert = createCriticalAlert;
+window.createUnmetNeedAlert = createUnmetNeedAlert;
+window.createEmergingQueryObject = createEmergingQueryObject;
+window.createUnmetNeedObject = createUnmetNeedObject;
+window.estimateAffectedCitizens = estimateAffectedCitizens;
+window.generateQuerySpecificActions = generateQuerySpecificActions;
+window.getHistoricalContext = getHistoricalContext;
+window.findRelatedQueries = findRelatedQueries;
+window.assessBusinessImpact = assessBusinessImpact;
+window.identifyTrendingTopics = identifyTrendingTopics;
+window.analyzeSeasonalPatterns = analyzeSeasonalPatterns;
+window.safeExecuteSurgeDetection = safeExecuteSurgeDetection;
+window.safeGetQuery = safeGetQuery;
+window.safeGetMetric = safeGetMetric;
+
+console.log('✅ All Surge Detection helper functions loaded successfully!');
+console.log('📋 Functions available:', [
+    'createVolumeSurgesPanel',
+    'createEmergingTopicsPanel', 
+    'createUnmetNeedsPanel',
+    'createCriticalAlert',
+    'createUnmetNeedAlert',
+    'createEmergingQueryObject',
+    'createUnmetNeedObject',
+    'estimateAffectedCitizens',
+    'generateQuerySpecificActions',
+    'getHistoricalContext',
+    'findRelatedQueries',
+    'assessBusinessImpact',
+    'identifyTrendingTopics',
+    'analyzeSeasonalPatterns',
+    'safeExecuteSurgeDetection'
+]);
 
 function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -3851,9 +4447,12 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     }
 
     function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    try {
         const benchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
         const priorityScore = calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends);
-        const surgeAnalysis = detectCitizenNeedSurgesEnhanced(gscData, gscTrends);
+        
+        // Use safe surge detection
+        const surgeAnalysis = safeExecuteSurgeDetection(gscData, gscTrends);
         
         return `
             <div class="panel-content">
@@ -3890,19 +4489,171 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
                     </div>
                 </div>
                 
-               
-                    
-                    
-                
                 <div class="section">
-    <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
-    ${createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis)}
-</div>
-                
-                
+                    <h2 class="section-title">🚨 Citizen Need Surge Detection</h2>
+                    ${createSafeCitizenNeedSurgeDetection(surgeAnalysis)}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error creating government intelligence panel:', error);
+        return `
+            <div class="panel-content">
+                <div class="section">
+                    <h2 class="section-title">🏛️ Government Performance Benchmarks</h2>
+                    <div class="error-message">
+                        <p>⚠️ Unable to load government intelligence data at this time.</p>
+                        <p>Please check your data connections and try refreshing the dashboard.</p>
+                    </div>
+                </div>
             </div>
         `;
     }
+}
+
+
+// SAFE SURGE DETECTION DISPLAY FUNCTION
+function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
+    try {
+        if (!surgeAnalysis || surgeAnalysis.totalSurges === 0) {
+            return `
+                <div class="surge-detection-enhanced">
+                    <div class="no-surges-detected">
+                        <div class="no-surge-icon">✅</div>
+                        <div class="no-surge-title">No Significant Surges Detected</div>
+                        <div class="no-surge-description">Citizen information demand is stable</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="surge-detection-enhanced">
+                <!-- Critical Alerts Section -->
+                ${surgeAnalysis.criticalAlerts && surgeAnalysis.criticalAlerts.length > 0 ? `
+                    <div class="critical-alerts-section">
+                        <div class="critical-header">
+                            <span class="critical-icon">🚨</span>
+                            <span class="critical-title">CRITICAL SURGE ALERTS</span>
+                            <span class="critical-count">${surgeAnalysis.criticalAlerts.length}</span>
+                        </div>
+                        <div class="critical-alerts-grid">
+                            ${surgeAnalysis.criticalAlerts.map(alert => `
+                                <div class="critical-alert-card ${alert.category}">
+                                    <div class="alert-header">
+                                        <span class="alert-category-icon">⚠️</span>
+                                        <span class="alert-title">${alert.title || 'Critical Alert'}</span>
+                                        <span class="alert-urgency">${alert.urgency || 'high'}</span>
+                                    </div>
+                                    <div class="alert-details">${alert.details || 'No details available'}</div>
+                                    <div class="alert-actions">
+                                        <span class="alert-timeline">Response needed: ${alert.responseTime || 'immediate'}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Surge Summary Dashboard -->
+                <div class="surge-summary-dashboard">
+                    <div class="dashboard-header">
+                        <h3>📊 Citizen Need Surge Analysis</h3>
+                        <div class="surge-period">Last 30 days vs Previous period</div>
+                    </div>
+                    
+                    <div class="surge-stats-grid">
+                        <div class="surge-stat-card total">
+                            <div class="stat-number">${surgeAnalysis.totalSurges || 0}</div>
+                            <div class="stat-label">Total Surges Detected</div>
+                            <div class="stat-detail">Across all categories</div>
+                        </div>
+                        <div class="surge-stat-card average">
+                            <div class="stat-number">${surgeAnalysis.avgVolumeIncrease || 0}%</div>
+                            <div class="stat-label">Average Increase</div>
+                            <div class="stat-detail">Above normal demand</div>
+                        </div>
+                        <div class="surge-stat-card critical">
+                            <div class="stat-number">${surgeAnalysis.criticalAlerts ? surgeAnalysis.criticalAlerts.length : 0}</div>
+                            <div class="stat-label">Critical Surges</div>
+                            <div class="stat-detail">Requiring immediate action</div>
+                        </div>
+                        <div class="surge-stat-card emerging">
+                            <div class="stat-number">${surgeAnalysis.emergingQueries ? surgeAnalysis.emergingQueries.length : 0}</div>
+                            <div class="stat-label">New Topics</div>
+                            <div class="stat-detail">Previously unseen queries</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contextual Insights -->
+                ${surgeAnalysis.contextualInsights && surgeAnalysis.contextualInsights.length > 0 ? `
+                    <div class="contextual-insights-section">
+                        <h4>🧠 Contextual Insights</h4>
+                        <div class="insights-list">
+                            ${surgeAnalysis.contextualInsights.map(insight => `
+                                <div class="insight-card ${insight.type || 'info'}">
+                                    <div class="insight-icon">${insight.icon || '💡'}</div>
+                                    <div class="insight-content">
+                                        <div class="insight-title">${insight.title || 'Insight'}</div>
+                                        <div class="insight-description">${insight.description || 'No description available'}</div>
+                                        <div class="insight-action">${insight.action || 'No action specified'}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Actionable Recommendations -->
+                ${surgeAnalysis.actionableRecommendations && surgeAnalysis.actionableRecommendations.length > 0 ? `
+                    <div class="recommendations-section">
+                        <h4>🚀 Recommended Actions</h4>
+                        <div class="recommendations-list">
+                            ${surgeAnalysis.actionableRecommendations.slice(0, 6).map(rec => `
+                                <div class="recommendation-card priority-${rec.priority || 'medium'}">
+                                    <div class="rec-header">
+                                        <div class="rec-priority">
+                                            <span class="priority-indicator ${rec.priority || 'medium'}"></span>
+                                            <span class="priority-label">${(rec.priority || 'medium').toUpperCase()}</span>
+                                        </div>
+                                        <div class="rec-timeframe">${rec.timeframe || 'TBD'}</div>
+                                    </div>
+                                    <div class="rec-action">${rec.action || 'No action specified'}</div>
+                                    <div class="rec-details">${rec.details || 'No details available'}</div>
+                                    <div class="rec-impact">Expected Impact: ${rec.expectedImpact || 'TBD'}</div>
+                                    <div class="rec-assignee">Assign to: ${rec.assignee || 'TBD'}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error creating surge detection display:', error);
+        return `
+            <div class="surge-detection-enhanced">
+                <div class="surge-error">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-title">Surge Detection Unavailable</div>
+                    <div class="error-description">Unable to analyze citizen need surges at this time</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Make the safe functions globally available
+window.createGovernmentIntelligencePanel = createGovernmentIntelligencePanel;
+window.createSafeCitizenNeedSurgeDetection = createSafeCitizenNeedSurgeDetection;
+
+console.log('✅ Safe Government Intelligence Panel functions loaded!');
+
+
+
+
+    
 
     function createActionItemsPanel(gscData, ga4Data, gscTrends, ga4Trends) {
         return `
