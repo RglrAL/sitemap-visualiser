@@ -2889,20 +2889,9 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                     ${createTopQueriesTable(gscData)}
                 </div>
                 
-                ${problemQueries.length > 0 ? `
-                    <div class="section problem-queries">
-                        <h2 class="section-title">⚠️ Problem Query Detection</h2>
-                        <div class="problem-explanation">
-                            <p>Based on GOV.UK's framework: queries where click positions deviate from expected patterns, requiring immediate attention.</p>
-                        </div>
-                        
-                        <div class="problem-queries-list">
-                            ${problemQueries.map(query => createProblemQueryCard(query)).join('')}
-                        </div>
-                    </div>
-                ` : ''}
                 
                 
+        
             </div>
         `;
     }
