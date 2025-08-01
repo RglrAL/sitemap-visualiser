@@ -16759,13 +16759,8 @@ function calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends
     const currentReach = (gscData?.clicks || 0) + (ga4Data?.users || 0);
     const monthlyReach = formatNumber(currentReach);
     
-    // Calculate helpfulness score
-    let helpfulnessScore = 65; // Default fallback
-    if (ga4Data && !ga4Data.noDataFound) {
-        const engagementScore = (1 - (ga4Data.bounceRate || 0.5)) * 100;
-        const timeScore = Math.min(100, (ga4Data.avgSessionDuration || 60) / 180 * 100);
-        helpfulnessScore = Math.round((engagementScore + timeScore) / 2);
-    }
+    // Use the same helpfulness calculation as detailed quality assessment
+    const helpfulnessScore = calculateHelpfulnessScore(ga4Data);
     
     // Time to find info
     const avgTimeToInfo = ga4Data?.avgSessionDuration ? 
@@ -16804,7 +16799,6 @@ function calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends
                                 ga4Trends.trends.avgSessionDuration.direction === 'down' ? -1 : 0;
         
         const overallDirection = bounceDirection + sessionDirection;
-        const avgChange = (bounceChange + sessionChange) / 2;
         
         if (overallDirection > 0) {
             helpfulnessTrend = `<span class="trend-positive">↗ Improving</span>`;
