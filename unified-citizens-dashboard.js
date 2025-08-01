@@ -2056,7 +2056,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                                 <span class="detail-value">${gscData?.ctr ? (gscData.ctr * 100).toFixed(1) + '%' : 'No data'}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Monthly Searches:</span>
+                                <span class="detail-label">Monthly Impressions:</span>
                                 <span class="detail-value">${gscData?.impressions ? formatNumber(gscData.impressions) : 'No data'}</span>
                             </div>
                         </div>
