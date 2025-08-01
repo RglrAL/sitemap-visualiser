@@ -134,12 +134,12 @@
         // Configuration object for GA4 properties
         const GA4_PROPERTIES = [
             {
-                name: "Citizens Information",
+                name: "CIO",
                 description: "Citizens Information website",
                 propertyId: "341170035"
             },
             {
-                name: "Citizens Information Board",
+                name: "CIB",
                 description: "Citizens Information Board website",
                 propertyId: "384792858"
             },
