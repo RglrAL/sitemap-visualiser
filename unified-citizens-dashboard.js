@@ -2119,7 +2119,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                     
                     <div class="component-details">
                         <div class="detail-grid">
-                            // NEW (single clear metric):
+                            
 <div class="detail-item">
     <span class="detail-label">Reading Time:</span>
     <span class="detail-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
