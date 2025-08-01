@@ -2119,14 +2119,15 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                     
                     <div class="component-details">
                         <div class="detail-grid">
-                            <div class="detail-item">
-                                <span class="detail-label">Time on Page:</span>
-                                <span class="detail-value">${ga4Data?.avgSessionDuration ? formatDuration(ga4Data.avgSessionDuration) : 'No data'}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Content Completion:</span>
-                                <span class="detail-value">${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</span>
-                            </div>
+                            // NEW (single clear metric):
+<div class="detail-item">
+    <span class="detail-label">Reading Time:</span>
+    <span class="detail-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
+</div>
+<div class="detail-item">
+    <span class="detail-label">Reading Benchmark:</span>
+    <span class="detail-value">90 seconds = ideal</span>
+</div>
                             <div class="detail-item">
                                 <span class="detail-label">Reading Depth:</span>
                                 <span class="detail-value">${citizensScore.readability >= 75 ? 'High' : citizensScore.readability >= 50 ? 'Medium' : 'Low'}</span>
@@ -2467,17 +2468,15 @@ function calculateReadabilityScore(ga4Data) {
     if (!ga4Data || ga4Data.noDataFound) return 30;
     
     const avgSessionDuration = ga4Data.avgSessionDuration || 0;
-    const bounceRate = ga4Data.bounceRate || 0.6;
     
-    // Time investment - Citizens spending time reading
-    // For government info: 90 seconds = good reading time
-    const timeScore = Math.min(100, (avgSessionDuration / 90) * 100);
+    // Single page readability - pure time investment
+    // Under 15 seconds = clearly didn't read (very low score)
+    // 90 seconds = ideal government content reading time (100%)
+    if (avgSessionDuration < 15) {
+        return Math.round((avgSessionDuration / 15) * 20); // 0-20 range for very short visits
+    }
     
-    // Content completion proxy - Lower bounce rate often means they read enough
-    const completionProxy = (1 - bounceRate) * 100;
-    
-    // Reading depth - Combination of time and completion
-    return Math.round((timeScore * 0.6) + (completionProxy * 0.4));
+    return Math.min(100, Math.round((avgSessionDuration / 90) * 100));
 }
 
 // 4. PERFORMANCE SCORE (Does the page work well technically?)
