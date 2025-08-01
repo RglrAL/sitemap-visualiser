@@ -2084,17 +2084,17 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                     <div class="component-details">
                         <div class="detail-grid">
                             <div class="detail-item">
-                                <span class="detail-label">Success Rate:</span>
-                                <span class="detail-value">${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Engagement Rate:</span>
-                                <span class="detail-value">${ga4Data?.engagementRate ? (ga4Data.engagementRate * 100).toFixed(0) + '%' : 'No data'}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Pages/Session:</span>
-                                <span class="detail-value">${ga4Data?.sessions && ga4Data?.pageViews ? (ga4Data.pageViews / ga4Data.sessions).toFixed(1) : 'No data'}</span>
-                            </div>
+    <span class="detail-label">Success Rate:</span>
+    <span class="detail-value">${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</span>
+</div>
+<div class="detail-item">
+    <span class="detail-label">Time Investment:</span>
+    <span class="detail-value">${ga4Data?.avgSessionDuration ? formatDuration(ga4Data.avgSessionDuration) + ' avg' : 'No data'}</span>
+</div>
+<div class="detail-item">
+    <span class="detail-label">Pages/Session:</span>
+    <span class="detail-value">${ga4Data?.sessions && ga4Data?.pageViews ? (ga4Data.pageViews / ga4Data.sessions).toFixed(1) : 'No data'}</span>
+</div>
                         </div>
                         
                         <div class="component-improvement">
@@ -2289,12 +2289,12 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                             <span class="breakdown-name">Helpfulness</span>
                             <span class="breakdown-score ${getScoreClass(citizensScore.helpfulness)}">${citizensScore.helpfulness}/100</span>
                         </div>
-                        <div class="breakdown-details">
-                            <div class="breakdown-metric">Success Rate: ${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</div>
-                            <div class="breakdown-metric">Engagement Rate: ${ga4Data?.engagementRate ? (ga4Data.engagementRate * 100).toFixed(0) + '%' : 'No data'}</div>
-                            <div class="breakdown-metric">Pages/Session: ${ga4Data?.sessions && ga4Data?.pageViews ? (ga4Data.pageViews / ga4Data.sessions).toFixed(1) : 'No data'}</div>
-                            <div class="breakdown-improvement">${getHelpfulnessImprovement(citizensScore.helpfulness, ga4Data)}</div>
-                        </div>
+<div class="breakdown-details">
+    <div class="breakdown-metric">Success Rate: ${ga4Data?.bounceRate ? ((1 - ga4Data.bounceRate) * 100).toFixed(0) + '%' : 'No data'}</div>
+    <div class="breakdown-metric">Time Investment: ${ga4Data?.avgSessionDuration ? formatDuration(ga4Data.avgSessionDuration) + ' avg' : 'No data'}</div>
+    <div class="breakdown-metric">Pages/Session: ${ga4Data?.sessions && ga4Data?.pageViews ? (ga4Data.pageViews / ga4Data.sessions).toFixed(1) : 'No data'}</div>
+    <div class="breakdown-improvement">${getHelpfulnessImprovement(citizensScore.helpfulness, ga4Data)}</div>
+</div>
                     </div>
                     
                     <div class="breakdown-item">
@@ -2443,22 +2443,23 @@ function calculateHelpfulnessScore(ga4Data) {
     if (!ga4Data || ga4Data.noDataFound) return 30;
     
     const bounceRate = ga4Data.bounceRate || 0.6;
-    const engagementRate = ga4Data.engagementRate || 0.4;
+    const avgSessionDuration = ga4Data.avgSessionDuration || 0;
     const sessions = ga4Data.sessions || 0;
     const pageViews = ga4Data.pageViews || 0;
     
     // Success rate - Citizens who didn't immediately leave
     const successRate = (1 - bounceRate) * 100;
     
-    // Engagement quality - Citizens who actively engaged  
-    const engagementQuality = engagementRate * 100;
+    // Time investment - Citizens who spent meaningful time reading
+    // For government info: 60 seconds = good engagement benchmark
+    const timeInvestment = Math.min(100, (avgSessionDuration / 60) * 100);
     
     // Return value - Citizens who explored further
     const pagesPerSession = sessions > 0 ? pageViews / sessions : 1;
     const returnValue = Math.min(100, (pagesPerSession - 1) * 100); // Above 1 = exploring
     
-    // For information pages, success and engagement matter most
-    return Math.round((successRate * 0.5) + (engagementQuality * 0.4) + (returnValue * 0.1));
+    // For information pages, success and time investment matter most
+    return Math.round((successRate * 0.5) + (timeInvestment * 0.4) + (returnValue * 0.1));
 }
 
 // 3. READABILITY SCORE (Do citizens actually read the content?)
@@ -2744,8 +2745,9 @@ function getFindabilityImprovement(score, gscData) {
 function getHelpfulnessImprovement(score, ga4Data) {
     if (score >= 75) return "✅ Content successfully helps citizens";
     if (ga4Data?.bounceRate > 0.7) return "📚 Restructure content to better match citizen needs";
-    if (ga4Data?.engagementRate < 0.3) return "🎯 Make content more engaging and actionable";
-    return "👥 Focus on improving citizen engagement";
+    if (ga4Data?.avgSessionDuration < 30) return "⏱️ Make content more engaging to increase reading time";
+    if (ga4Data?.sessions && ga4Data?.pageViews && (ga4Data.pageViews / ga4Data.sessions) < 1.2) return "🔗 Add better internal linking to encourage exploration";
+    return "👥 Focus on improving citizen engagement and time investment";
 }
 
 function getReadabilityImprovement(score, ga4Data) {
