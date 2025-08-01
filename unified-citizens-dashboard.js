@@ -1448,7 +1448,7 @@ function safeExecuteSurgeDetection(gscData, gscTrends) {
                 type: 'error',
                 icon: '⚠️',
                 title: 'Surge Detection Error',
-                description: 'Unable to analyze citizen need surges at this time',
+                description: 'Unable to analyse citizen need surges at this time',
                 action: 'Check data connections and try refreshing'
             }],
             actionableRecommendations: [],
@@ -4642,7 +4642,7 @@ function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
                 <div class="surge-error">
                     <div class="error-icon">⚠️</div>
                     <div class="error-title">Surge Detection Unavailable</div>
-                    <div class="error-description">Unable to analyze citizen need surges at this time</div>
+                    <div class="error-description">Unable to analyse citizen need surges at this time</div>
                 </div>
             </div>
         `;
