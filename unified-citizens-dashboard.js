@@ -2695,7 +2695,7 @@ function generateActionableRecommendations(scores, gscData, ga4Data) {
             priority: 'Medium',
             action: 'Technical Improvements',
             specific: [
-                'Optimize images and file sizes',
+                'Optimise images and file sizes',
                 'Review page loading speed',
                 'Test on mobile devices',
                 'Check for broken links or forms'
@@ -2731,9 +2731,9 @@ function getFindabilityImprovement(score, gscData) {
     if (position > 25) {
         return "📈 Average search ranking needs improvement - focus on top-performing queries first";
     } else if (position > 15) {
-        return "📊 Decent average ranking but room for improvement - optimize for main target keywords";
+        return "📊 Decent average ranking but room for improvement - optimise for main target keywords";
     } else if (ctr < 0.05) {
-        return "📝 Good average position but low click rate - optimize titles and descriptions";
+        return "📝 Good average position but low click rate - optimise titles and descriptions";
     } else if (impressions < 500) {
         return "🔍 Improve keyword targeting to increase search visibility";
     }
@@ -3529,7 +3529,7 @@ function createCleanOpportunities(servicePatterns, accessibilityInsights, pageCo
                     </div>
                     <ul class="opp-list">
                         <li>Add regional contact information to content</li>
-                        <li>Optimize mobile experience for rural users</li>
+                        <li>Optimise mobile experience for rural users</li>
                         <li>Include location-specific service details</li>
                     </ul>
                 </div>
@@ -4065,7 +4065,7 @@ function identifyGeographicOpportunities(servicePatterns, accessibilityInsights,
         quickWins: [
             {
                 title: 'Dublin Traffic Optimization',
-                description: 'Optimize content for high Dublin traffic concentration',
+                description: 'Optimise content for high Dublin traffic concentration',
                 impact: 'High',
                 effort: 'Low',
                 timeframe: '1-2 weeks',
@@ -9041,11 +9041,11 @@ function generateMatrixRecommendations(quadrant, searchScore, engagementScore) {
         recommendations.push('🔍 Identify opportunities for related content');
     } else if (quadrant.class === 'potential') {
         recommendations.push('🔍 Improve search ranking and visibility');
-        recommendations.push('📝 Optimize title tags and meta descriptions');
+        recommendations.push('📝 Optimise title tags and meta descriptions');
         recommendations.push('🔗 Build internal and external links');
     } else if (quadrant.class === 'opportunity') {
         recommendations.push('📚 Improve content quality and depth');
-        recommendations.push('⚡ Optimize page loading speed');
+        recommendations.push('⚡ Optimise page loading speed');
         recommendations.push('🎨 Enhance user experience design');
     } else {
         recommendations.push('🎯 Start with basic SEO optimization');
@@ -9491,7 +9491,7 @@ function formatDuration(seconds) {
                 <div class="action-item high">
                     <div class="action-rank">1</div>
                     <div class="action-content">
-                        <div class="action-title">Optimize Search Performance</div>
+                        <div class="action-title">Optimise Search Performance</div>
                         <div class="action-description">Focus on improving click-through rates and rankings</div>
                     </div>
                 </div>
@@ -15920,7 +15920,7 @@ function generateSearchInsights(locationQueries, urgencyPatterns, servicePattern
         const infoQueries = servicePatterns.filter(p => p.intent === 'information');
         
         if (applicationQueries.length > infoQueries.length) {
-            insights.push('Users primarily seeking application processes - optimize conversion flow');
+            insights.push('Users primarily seeking application processes - optimise conversion flow');
         } else {
             insights.push('Users primarily seeking information - improve content clarity');
         }
@@ -16528,7 +16528,7 @@ function createStreamlinedOpportunities(servicePatterns, accessibilityInsights, 
                     <div class="opp-content">
                         <h4>Quick Wins (1-2 weeks)</h4>
                         <ul class="opp-list">
-                            <li>Optimize content for top-performing regions</li>
+                            <li>Optimise content for top-performing regions</li>
                             <li>Add regional service contact information</li>
                             <li>Improve mobile experience for rural users</li>
                         </ul>
@@ -16874,7 +16874,7 @@ function calculateDetailedQualityScore(gscData, ga4Data) {
 function getSearchImprovement(score, details) {
     if (score >= 75) return "✅ Good search performance";
     if (details.position > 10) return "📈 Focus on improving search ranking";
-    if (details.ctr < 0.03) return "📝 Optimize title and meta description";
+    if (details.ctr < 0.03) return "📝 Optimise title and meta description";
     return "🔍 Work on both ranking and click-through rate";
 }
 
