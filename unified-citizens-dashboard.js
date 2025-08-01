@@ -9090,19 +9090,20 @@ function formatDuration(seconds) {
         }
 
         const metrics = [
-            {
-                label: 'Search Clicks',
-                value: formatNumber(gscData.clicks),
-                trend: gscTrends?.trends?.clicks,
-                icon: '🎯',
-                color: '#3b82f6'
-            },
+            
             {
                 label: 'Impressions',
                 value: formatNumber(gscData.impressions),
                 trend: gscTrends?.trends?.impressions,
                 icon: '👁️',
                 color: '#06b6d4'
+            },
+            {
+                label: 'Search Clicks',
+                value: formatNumber(gscData.clicks),
+                trend: gscTrends?.trends?.clicks,
+                icon: '🎯',
+                color: '#3b82f6'
             },
             {
                 label: 'Click-Through Rate',
