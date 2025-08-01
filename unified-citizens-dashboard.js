@@ -13364,8 +13364,8 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                 <div class="summary-grid">
                     <div class="summary-card citizens-reached">
                         <div class="summary-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
-                        <div class="summary-label">Citizens Reached Monthly</div>
-                        <div class="summary-subtitle">From trackable search queries (Google doesn't report all searches)</div>
+                        <div class="summary-label">Analysed Search Volume</div>
+                        <div class="summary-subtitle">Trackable searches reported by Google Search Console</div>
                     </div>
                     <div class="summary-card urgent-needs">
                         <div class="summary-number">${analysis.summary.urgentQueries}</div>
