@@ -42,8 +42,8 @@
                 0 25px 50px -12px rgba(0, 0, 0, 0.25),
                 0 0 0 1px rgba(0, 0, 0, 0.05);
             z-index: 10000;
-            max-width: 480px;
-            width: 480px;
+            max-width: 520px;
+            width: 520px;
             opacity: 0;
             transform: translateY(12px) scale(0.94);
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
