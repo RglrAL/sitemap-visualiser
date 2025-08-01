@@ -2025,7 +2025,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                 </div>
                 
                 <div class="score-explanation">
-                    <h3>🇮🇪 Citizens Information Quality Assessment</h3>
+                    <h3>Quality Assessment</h3>
                     <p>This comprehensive score evaluates how well your content serves Irish citizens across four critical dimensions. Each component is weighted based on government service best practices.</p>
                 </div>
             </div>
@@ -4391,7 +4391,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     return `
         <div class="panel-content">
             <div class="section">
-                <h2 class="section-title">⭐ Citizens Information Quality Assessment</h2>
+                <h2 class="section-title">⭐ Quality Assessment</h2>
                 ${createExpandedCitizensQualitySection(gscData, ga4Data)}
             </div>
             
