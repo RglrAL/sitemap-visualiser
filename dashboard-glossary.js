@@ -1354,7 +1354,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     /* Floating Action Button */
                     .glossary-fab {
                         position: fixed;
-                        top: 80px;
+                        bottom: 30px;
                         right: 30px;
                         width: 56px;
                         height: 56px;
