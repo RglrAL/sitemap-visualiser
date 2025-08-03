@@ -768,7 +768,8 @@ ga4Log('Enhanced GA4 data processed for:', pagePath, ga4Data);
 
 function addGA4Button() {
     const checkAndAdd = () => {
-        const navBar = document.querySelector('.nav-group') || 
+        const navBar = document.querySelector('.nav-group.integrations-nav') || 
+                      document.querySelector('.nav-group') || 
                       document.querySelector('.nav-bar') || 
                       document.querySelector('nav') ||
                       document.querySelector('[class*="nav"]');
@@ -823,9 +824,54 @@ function addGA4Button() {
         }
         
         ga4Log('GA4 button added to navigation');
+        
+        // Also add to mobile menu
+        addMobileGA4Button();
     };
     
     checkAndAdd();
+}
+
+// Add GA4 button to mobile menu
+function addMobileGA4Button() {
+    const mobileContainer = document.getElementById('mobileIntegrationsContainer');
+    const mobileSection = document.getElementById('mobileIntegrationsSection');
+    
+    if (!mobileContainer || !mobileSection) {
+        ga4Log('Mobile integrations container not found');
+        return;
+    }
+    
+    // Check if button already exists
+    if (document.getElementById('mobileGa4Btn')) {
+        ga4Log('Mobile GA4 button already exists');
+        return;
+    }
+    
+    // Show the integrations section
+    mobileSection.style.display = 'block';
+    
+    // Create mobile GA4 button
+    const mobileGa4Button = document.createElement('button');
+    mobileGa4Button.className = 'mobile-nav-item';
+    mobileGa4Button.id = 'mobileGa4Btn';
+    mobileGa4Button.onclick = () => {
+        toggleGA4Connection();
+        closeMobileMenu();
+    };
+    
+    mobileGa4Button.innerHTML = `
+        <span style="display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                <path fill="#FF6D01" d="M12.5 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12.5 17.77L6.82 21.02L8 14.14L3 9.27L9.91 8.26L12.5 2Z"/>
+                <circle cx="12.5" cy="12" r="3" fill="#4285F4"/>
+            </svg>
+            <span>Analytics (GA4)</span>
+        </span>
+    `;
+    
+    mobileContainer.appendChild(mobileGa4Button);
+    ga4Log('Mobile GA4 button added');
 }
 
     function toggleGA4Connection() {
