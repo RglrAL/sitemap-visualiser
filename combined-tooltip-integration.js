@@ -1444,6 +1444,21 @@ onmouseout="
     console.log('🔍 createUnifiedCitizensDashboard available:', !!window.createUnifiedCitizensDashboard);
     console.log('🔍 showUnifiedDashboardReport available:', !!window.showUnifiedDashboardReport);
     
+    // Check if function is available, if not, wait a bit and try again
+    if (!window.createUnifiedCitizensDashboard) {
+        console.log('⏳ Dashboard function not available, waiting for script to load...');
+        setTimeout(() => {
+            console.log('🔍 Retry - createUnifiedCitizensDashboard available:', !!window.createUnifiedCitizensDashboard);
+            if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
+                handleEnhancedAction('detailed', url, tooltip);
+            } else {
+                console.error('❌ Dashboard function still not available after wait');
+                alert('Dashboard function is not loaded. Please refresh the page and try again.');
+            }
+        }, 500);
+        return;
+    }
+    
     if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
         console.log('✅ All checks passed, proceeding with dashboard...');
         // Hide the tooltip first
