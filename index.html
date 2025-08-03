@@ -744,13 +744,13 @@ body.dark-theme .tree-control-btn {
     color: var(--gray-300);
 }
 
-/* Tree Connection Status Indicators */
+/* Tree Connection Status Indicators - Mobile Only */
 .tree-connection-status {
     position: fixed;
     bottom: 6rem; /* Above tree controls */
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
+    display: none; /* Hidden by default */
     gap: 1rem;
     background: rgba(255, 255, 255, 0.95);
     padding: 0.75rem 1rem;
@@ -871,9 +871,10 @@ body.dark-theme .tree-connection-status .connection-indicator.connected .status-
     color: #34d399;
 }
 
-/* Mobile Responsive */
+/* Mobile Responsive - Show only on mobile */
 @media (max-width: 768px) {
     .tree-connection-status {
+        display: flex; /* Show on mobile */
         bottom: 5rem;
         gap: 0.5rem;
         padding: 0.5rem 0.75rem;
