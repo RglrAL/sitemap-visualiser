@@ -1461,28 +1461,64 @@ onmouseout="
     
     if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
         console.log('✅ All checks passed, proceeding with dashboard...');
-        // Hide the tooltip first
-        hideEnhancedTooltip(true); // Force immediate close
         
-        // Show loading immediately
-        const loadingOverlay = showDashboardLoading();
-        console.log('⏳ Loading overlay shown');
+        // Aggressively hide all tooltips on mobile
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        const nodeData = tooltip._nodeData;
-        console.log('📊 Opening dashboard with node data:', nodeData);
-        
-        // Call your dashboard function and hide loading when done
-        console.log('🚀 Calling showUnifiedDashboardReport...');
-        window.showUnifiedDashboardReport(url, nodeData)
-            .then(() => {
-                hideDashboardLoading();
-            })
-            .catch((error) => {
-                console.error('Dashboard loading error:', error);
-                hideDashboardLoading();
-                // Show error message
-                alert('Failed to load dashboard. Please try again.');
+        if (isMobileDevice) {
+            console.log('📱 Mobile device detected, force closing all tooltips');
+            // Clear any timers
+            if (window.enhancedHideTimer) {
+                clearTimeout(window.enhancedHideTimer);
+            }
+            if (window.enhancedShowTimer) {
+                clearTimeout(window.enhancedShowTimer);
+            }
+            
+            // Remove all existing tooltips immediately
+            const existingTooltips = document.querySelectorAll('.enhanced-tooltip');
+            existingTooltips.forEach(tip => {
+                console.log('🗑️ Removing existing tooltip');
+                tip.remove();
             });
+            
+            // Clear global reference
+            window.currentEnhancedTooltip = null;
+            
+            // Small delay to ensure tooltip is fully removed
+            setTimeout(() => {
+                console.log('📱 Tooltip cleanup complete, proceeding with dashboard');
+                proceedWithDashboard();
+            }, 100);
+            return;
+        } else {
+            // Desktop: normal hide
+            hideEnhancedTooltip(true); // Force immediate close
+        }
+        
+        proceedWithDashboard();
+        
+        function proceedWithDashboard() {
+            // Show loading immediately
+            const loadingOverlay = showDashboardLoading();
+            console.log('⏳ Loading overlay shown');
+        
+            const nodeData = tooltip._nodeData;
+            console.log('📊 Opening dashboard with node data:', nodeData);
+            
+            // Call your dashboard function and hide loading when done
+            console.log('🚀 Calling showUnifiedDashboardReport...');
+            window.showUnifiedDashboardReport(url, nodeData)
+                .then(() => {
+                    hideDashboardLoading();
+                })
+                .catch((error) => {
+                    console.error('Dashboard loading error:', error);
+                    hideDashboardLoading();
+                    // Show error message
+                    alert('Failed to load dashboard. Please try again.');
+                });
+        }
     }
     break;
     }
@@ -1869,7 +1905,7 @@ function showDashboardModal(htmlContent) {
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.75);
-        z-index: 10000;
+        z-index: 99999;
         display: flex;
         align-items: center;
         justify-content: center;
