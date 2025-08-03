@@ -940,9 +940,9 @@ body.dark-theme #loadingText {
         
         
         /* Enhanced Tooltip/Popup Styles */
-/* Change pointer-events from 'none' to 'auto' */
+/* Enhanced tooltip with proper isolation */
 .enhanced-tooltip {
-    position: absolute;
+    position: fixed;  /* Changed from absolute to fixed for better positioning */
     padding: 0;
     background: white;
     border-radius: 12px;
@@ -955,6 +955,7 @@ body.dark-theme #loadingText {
     font-size: 14px;
     z-index: 10000;
     overflow: hidden;
+    contain: layout style;  /* CSS containment to prevent layout interference */
 }
 
 .enhanced-tooltip.visible {
@@ -5518,6 +5519,35 @@ let enhancedTooltip = null;
 window.enhancedTooltip = null; 
 let tooltipTimeout = null;
 
+// Helper function to completely hide and reset tooltip
+function hideTooltipCompletely() {
+    // Clear all timeouts
+    if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+        tooltipTimeout = null;
+    }
+    if (hideTooltipTimeout) {
+        clearTimeout(hideTooltipTimeout);
+        hideTooltipTimeout = null;
+    }
+    
+    // Reset flag
+    tooltipMouseOver = false;
+    
+    // Hide tooltip completely
+    if (enhancedTooltip) {
+        enhancedTooltip
+            .interrupt()  // Stop any transitions
+            .classed("visible", false)
+            .style("opacity", 0)
+            .style("pointer-events", "none")
+            .style("display", "none")
+            .style("z-index", -1)  // Send to back
+            .on("mouseenter", null)
+            .on("mouseleave", null);
+    }
+}
+
         // Colour scheme
         const colourScheme = {
             home: '#1f4788',
@@ -7051,7 +7081,13 @@ function reapplyThemeStyles() {
         .attr("height", height)
         .style("display", "block")
         .style("margin", "0 auto")
-        .style("background", isDark ? 'var(--gray-900)' : 'var(--gray-50)'); // Apply theme background immediately
+        .style("background", isDark ? 'var(--gray-900)' : 'var(--gray-50)') // Apply theme background immediately
+        .on("click", function(event) {
+            // Hide tooltip when clicking on SVG background
+            if (event.target === this) {
+                hideTooltipCompletely();
+            }
+        });
     
     // Add touch-action CSS for mobile
     if (checkIfMobile()) {
@@ -7122,6 +7158,10 @@ function reapplyThemeStyles() {
     svg.call(globalZoom)
        .on("zoom.cull", () => {
            requestAnimationFrame(cullInvisibleNodes);
+       })
+       .on("zoomstart", () => {
+           // Hide tooltip when starting to zoom/pan
+           hideTooltipCompletely();
        });
 
     if (isMobile) {
@@ -7213,25 +7253,8 @@ nodeEnter.append('circle')
     .on('click.node', function(event, d) {  // Use namespaced events
         event.stopPropagation();
         
-        // Hide any tooltip on circle click - ensure it's completely hidden
-        if (enhancedTooltip) {
-            // Clear any pending timeouts
-            if (tooltipTimeout) {
-                clearTimeout(tooltipTimeout);
-                tooltipTimeout = null;
-            }
-            if (hideTooltipTimeout) {
-                clearTimeout(hideTooltipTimeout);
-                hideTooltipTimeout = null;
-            }
-            
-            enhancedTooltip
-                .interrupt()  // Cancel any ongoing transitions
-                .classed("visible", false)
-                .style("opacity", 0)
-                .style("pointer-events", "none")
-                .style("display", "none");  // Completely hide it
-        }
+        // Hide any tooltip on circle click - use the complete cleanup function
+        hideTooltipCompletely();
         
         // Handle expand/collapse
         if (checkIfMobile()) {
@@ -7555,6 +7578,9 @@ function handleEnhancedMouseOut(event, d) {
     
     hideTooltipTimeout = setTimeout(() => {
         if (!tooltipMouseOver && enhancedTooltip) {
+            // Reset the flag immediately
+            tooltipMouseOver = false;
+            
             enhancedTooltip
                 .classed("visible", false)  // Remove class immediately
                 .style("pointer-events", "none")  // Explicitly set pointer-events
@@ -7563,6 +7589,8 @@ function handleEnhancedMouseOut(event, d) {
                 .style("opacity", 0)
                 .on("end", function() {
                     d3.select(this).style("display", "none");  // Hide completely after transition
+                    // Clear all event listeners to prevent memory leaks
+                    d3.select(this).on("mouseenter", null).on("mouseleave", null);
                 });
         }
     }, 100); // Small delay to allow mouse to move to tooltip
@@ -7740,6 +7768,7 @@ if (d.parent) {
         .style("top", top + "px")
         .style("opacity", 0)
         .style("pointer-events", "auto")  // Enable pointer events
+        .style("z-index", 10000)  // Ensure it's on top
         .classed("visible", true)
         .transition()
         .duration(200)
@@ -7753,6 +7782,9 @@ if (d.parent) {
         })
         .on("mouseleave", function() {
             tooltipMouseOver = false;
+            // Clear any existing timeouts
+            if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
+            
             enhancedTooltip
                 .classed("visible", false)  // Remove class immediately
                 .style("pointer-events", "none")  // Explicitly set pointer-events
@@ -7761,6 +7793,8 @@ if (d.parent) {
                 .style("opacity", 0)
                 .on("end", function() {
                     d3.select(this).style("display", "none");  // Hide completely after transition
+                    // Clear all event listeners to prevent memory leaks
+                    d3.select(this).on("mouseenter", null).on("mouseleave", null);
                 });
         });
 
