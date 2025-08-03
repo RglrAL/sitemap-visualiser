@@ -7082,18 +7082,7 @@ function reapplyThemeStyles() {
         .style("display", "block")
         .style("margin", "0 auto")
         .style("background", isDark ? 'var(--gray-900)' : 'var(--gray-50)') // Apply theme background immediately
-        .on("click", function(event) {
-            // Hide tooltip when clicking on SVG background
-            if (event.target === this) {
-                hideTooltipCompletely();
-            }
-        })
-        .on("mousemove", function(event) {
-            // If tooltip is visible but mouse is on SVG background, hide it
-            if (event.target === this && enhancedTooltip && enhancedTooltip.classed("visible")) {
-                hideTooltipCompletely();
-            }
-        });
+;
     
     // Add touch-action CSS for mobile
     if (checkIfMobile()) {
@@ -7165,10 +7154,7 @@ function reapplyThemeStyles() {
        .on("zoom.cull", () => {
            requestAnimationFrame(cullInvisibleNodes);
        })
-       .on("zoomstart", () => {
-           // Hide tooltip when starting to zoom/pan
-           hideTooltipCompletely();
-       });
+;
 
     if (isMobile) {
         svg.on("touchstart", function(event) { event.preventDefault(); });
@@ -7259,8 +7245,13 @@ nodeEnter.append('circle')
     .on('click.node', function(event, d) {  // Use namespaced events
         event.stopPropagation();
         
-        // Hide any tooltip on circle click - use the complete cleanup function
-        hideTooltipCompletely();
+        // Hide any tooltip on circle click
+        if (enhancedTooltip) {
+            enhancedTooltip
+                .classed("visible", false)
+                .style("opacity", 0)
+                .style("pointer-events", "none");
+        }
         
         // Handle expand/collapse
         if (checkIfMobile()) {
@@ -7292,7 +7283,12 @@ textElement
         event.stopPropagation();
         
         // Hide any tooltip on text click
-        hideTooltipCompletely();
+        if (enhancedTooltip) {
+            enhancedTooltip
+                .classed("visible", false)
+                .style("opacity", 0)
+                .style("pointer-events", "none");
+        }
         
         // Handle expand/collapse
         if (checkIfMobile()) {
@@ -7575,38 +7571,42 @@ function handleMouseOut(event, d) {
 
 
 
-// Fixed tooltip handlers
+// Back to original working tooltip handlers
 function handleEnhancedMouseOver(event, d) {
     // Skip completely on mobile - use click instead
     if (isMobile) return;
     
-    // Only show if no tooltip is currently visible
-    if (enhancedTooltip && enhancedTooltip.classed("visible")) {
-        return;
-    }
-    
     // Clear any existing timeout
     if (tooltipTimeout) clearTimeout(tooltipTimeout);
     
-    // Show tooltip after delay to prevent rapid fire
+    // Show tooltip after short delay
     tooltipTimeout = setTimeout(() => {
         showEnhancedTooltip(event, d);
     }, 300);
 }
 
 function handleEnhancedMouseOut(event, d) {
-    // Clear show timeout
     if (tooltipTimeout) {
         clearTimeout(tooltipTimeout);
         tooltipTimeout = null;
     }
     
-    // Hide after short delay
-    setTimeout(() => {
-        if (!tooltipMouseOver) {
-            hideTooltipCompletely();
+    // Don't hide immediately - wait to see if mouse goes to tooltip
+    if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
+    
+    hideTooltipTimeout = setTimeout(() => {
+        if (!tooltipMouseOver && enhancedTooltip) {
+            enhancedTooltip
+                .classed("visible", false)
+                .style("pointer-events", "none")
+                .transition()
+                .duration(200)
+                .style("opacity", 0)
+                .on("end", function() {
+                    d3.select(this).style("display", "none");
+                });
         }
-    }, 200);
+    }, 100);
 }
 
 function showEnhancedTooltip(event, d) {
@@ -7787,18 +7787,21 @@ if (d.parent) {
         .duration(200)
         .style("opacity", 1);
         
-        // Tooltip mouse events
+        // Add mouse events to the tooltip itself
     enhancedTooltip
         .on("mouseenter", function() {
             tooltipMouseOver = true;
+            if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
         })
         .on("mouseleave", function() {
             tooltipMouseOver = false;
-            setTimeout(() => {
-                if (!tooltipMouseOver) {
-                    hideTooltipCompletely();
-                }
-            }, 100);
+            enhancedTooltip
+                .transition()
+                .duration(200)
+                .style("opacity", 0)
+                .on("end", function() {
+                    d3.select(this).classed("visible", false);
+                });
         });
 
 }
@@ -12624,17 +12627,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // EXPOSE TO WINDOW FOR GSC INTEGRATION
     window.enhancedTooltip = enhancedTooltip;
     
-    // Disabled global click handler - was causing interference
-    // document.addEventListener('click', function(event) {
-    //     if (!event.target.closest('.enhanced-tooltip')) {
-    //         hideTooltipCompletely();
-    //     }
-    // }, true);
-    
-    // Global escape key handler
+    // Only keep escape key handler
     document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            hideTooltipCompletely();
+        if (event.key === 'Escape' && enhancedTooltip) {
+            enhancedTooltip
+                .classed("visible", false)
+                .style("opacity", 0)
+                .style("pointer-events", "none");
         }
     });
     
