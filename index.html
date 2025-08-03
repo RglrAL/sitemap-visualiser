@@ -13366,13 +13366,15 @@ window.focusOnNode = function(nodeId) {
     );
     
     if (targetNode) {
-        // Expand path to node
+        // Expand path to node first
         expandPathToNode(targetNode);
         update(root);
         
+        // Use enhanced UX functions after expansion
         setTimeout(() => {
-            panToNode(targetNode);
-            highlightNode(targetNode);
+            scrollToNode(targetNode);      // Enhanced auto-scroll
+            highlightNodePath(targetNode); // Enhanced path highlighting  
+            updateBreadcrumb(targetNode);  // Update breadcrumb
         }, 800);
     }
 }
