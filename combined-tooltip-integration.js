@@ -1440,17 +1440,24 @@ onmouseout="
             break;
             
         case 'detailed':
+    console.log('🔍 Detailed action triggered for URL:', url);
+    console.log('🔍 createUnifiedCitizensDashboard available:', !!window.createUnifiedCitizensDashboard);
+    console.log('🔍 showUnifiedDashboardReport available:', !!window.showUnifiedDashboardReport);
+    
     if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
+        console.log('✅ All checks passed, proceeding with dashboard...');
         // Hide the tooltip first
         hideEnhancedTooltip(true); // Force immediate close
         
         // Show loading immediately
         const loadingOverlay = showDashboardLoading();
+        console.log('⏳ Loading overlay shown');
         
         const nodeData = tooltip._nodeData;
         console.log('📊 Opening dashboard with node data:', nodeData);
         
         // Call your dashboard function and hide loading when done
+        console.log('🚀 Calling showUnifiedDashboardReport...');
         window.showUnifiedDashboardReport(url, nodeData)
             .then(() => {
                 hideDashboardLoading();
