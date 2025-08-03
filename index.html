@@ -7471,7 +7471,25 @@ function reapplyThemeStyles() {
 ;
 
     if (isMobile) {
-        svg.on("touchstart", function(event) { event.preventDefault(); });
+        // Enhanced touch handling for mobile
+        svg.on("touchstart", function(event) { 
+            // Only prevent default for background touches, not node touches
+            if (event.target === this) {
+                event.preventDefault(); 
+            }
+        })
+        .on("touchmove", function(event) {
+            // Prevent default scrolling when touching the SVG background
+            if (event.target === this) {
+                event.preventDefault();
+            }
+        })
+        .on("touchend", function(event) {
+            // Clean up any touch state
+            if (event.target === this) {
+                event.preventDefault();
+            }
+        });
         
         if (root) {
             const initialScale = 0.6;
@@ -7591,13 +7609,73 @@ nodeEnter.append('circle')
             .style('stroke-width', '2px')
             .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
     })
-    // Add touch event handlers for mobile with namespace
-    .on('touchstart.node', function(event, d) {
+    // Add comprehensive touch event handlers for mobile circles
+    .on('touchstart.circle', function(event, d) {
+        if (!checkIfMobile()) return;
+        
         event.preventDefault();
         event.stopPropagation();
         
-        // Trigger the click handler
-        d3.select(this).dispatch('click.node');
+        // Store touch start info
+        this._touchStartTime = Date.now();
+        this._touchStartPos = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY
+        };
+        
+        // Add visual feedback for expandable nodes
+        if (d.children || d._children) {
+            d3.select(this).style('stroke', '#4f46e5').style('stroke-width', '3px');
+        }
+    })
+    .on('touchmove.circle', function(event, d) {
+        if (!checkIfMobile()) return;
+        
+        event.preventDefault();
+        
+        // Check if touch moved too much (drag vs tap)
+        if (this._touchStartPos) {
+            const currentPos = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
+            
+            const distance = Math.sqrt(
+                Math.pow(currentPos.x - this._touchStartPos.x, 2) + 
+                Math.pow(currentPos.y - this._touchStartPos.y, 2)
+            );
+            
+            // If moved more than 15px, cancel the tap
+            if (distance > 15) {
+                // Reset visual feedback
+                d3.select(this).style('stroke', '#fff').style('stroke-width', '2px');
+                this._touchCancelled = true;
+            }
+        }
+    })
+    .on('touchend.circle', function(event, d) {
+        if (!checkIfMobile()) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Reset visual feedback
+        d3.select(this).style('stroke', '#fff').style('stroke-width', '2px');
+        
+        // Check if this was a valid tap
+        const touchDuration = Date.now() - (this._touchStartTime || 0);
+        const isValidTap = !this._touchCancelled && touchDuration < 500;
+        
+        // Clean up
+        delete this._touchStartTime;
+        delete this._touchStartPos;
+        delete this._touchCancelled;
+        
+        if (isValidTap) {
+            console.log('🎯 Circle touch tap detected - expanding/collapsing node:', d.data?.name);
+            // Trigger expand/collapse
+            click(event, d);
+        }
     });
         
         // Add text once
@@ -7636,6 +7714,82 @@ textElement
             if (d.data && (d.data.lastModified || d.data.url)) {
                 showEnhancedTooltip(event, d.data);
             }
+        }
+    })
+    // Add comprehensive touch event handlers for mobile text
+    .on('touchstart.text', function(event, d) {
+        if (!checkIfMobile()) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Store touch start info
+        this._touchStartTime = Date.now();
+        this._touchStartPos = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY
+        };
+        
+        // Add visual feedback
+        d3.select(this).style('opacity', 0.7);
+    })
+    .on('touchmove.text', function(event, d) {
+        if (!checkIfMobile()) return;
+        
+        event.preventDefault();
+        
+        // Check if touch moved too much (drag vs tap)
+        if (this._touchStartPos) {
+            const currentPos = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
+            
+            const distance = Math.sqrt(
+                Math.pow(currentPos.x - this._touchStartPos.x, 2) + 
+                Math.pow(currentPos.y - this._touchStartPos.y, 2)
+            );
+            
+            // If moved more than 10px, cancel the tap
+            if (distance > 10) {
+                d3.select(this).style('opacity', 1);
+                this._touchCancelled = true;
+            }
+        }
+    })
+    .on('touchend.text', function(event, d) {
+        if (!checkIfMobile()) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Reset visual feedback
+        d3.select(this).style('opacity', 1);
+        
+        // Check if this was a valid tap
+        const touchDuration = Date.now() - (this._touchStartTime || 0);
+        const isValidTap = !this._touchCancelled && touchDuration < 500;
+        
+        // Clean up
+        delete this._touchStartTime;
+        delete this._touchStartPos;
+        delete this._touchCancelled;
+        
+        if (isValidTap && d.data && (d.data.lastModified || d.data.url)) {
+            console.log('💬 Text touch tap detected - showing tooltip for:', d.data.name);
+            // Create touch event object
+            const touchEvent = {
+                pageX: event.changedTouches[0].pageX,
+                pageY: event.changedTouches[0].pageY,
+                preventDefault: () => {},
+                stopPropagation: () => {},
+                target: event.target
+            };
+            
+            // Show tooltip after short delay
+            setTimeout(() => {
+                showEnhancedTooltip(touchEvent, d.data);
+            }, 100);
         }
     });
 
@@ -7731,12 +7885,72 @@ if (!checkIfMobile()) {
                     .style('stroke-width', '2px')
                     .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
             })
-            .on('touchstart.node', function(event, d) {
+            // Add comprehensive touch event handlers for nodeUpdate circles
+            .on('touchstart.circle-update', function(event, d) {
+                if (!checkIfMobile()) return;
+                
                 event.preventDefault();
                 event.stopPropagation();
                 
-                // Trigger the click handler
-                d3.select(this).dispatch('click.node');
+                // Store touch start info
+                this._touchStartTime = Date.now();
+                this._touchStartPos = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+                
+                // Add visual feedback for expandable nodes
+                if (d.children || d._children) {
+                    d3.select(this).style('stroke', '#4f46e5').style('stroke-width', '3px');
+                }
+            })
+            .on('touchmove.circle-update', function(event, d) {
+                if (!checkIfMobile()) return;
+                
+                event.preventDefault();
+                
+                // Check if touch moved too much (drag vs tap)
+                if (this._touchStartPos) {
+                    const currentPos = {
+                        x: event.touches[0].clientX,
+                        y: event.touches[0].clientY
+                    };
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(currentPos.x - this._touchStartPos.x, 2) + 
+                        Math.pow(currentPos.y - this._touchStartPos.y, 2)
+                    );
+                    
+                    // If moved more than 15px, cancel the tap
+                    if (distance > 15) {
+                        // Reset visual feedback
+                        d3.select(this).style('stroke', '#fff').style('stroke-width', '2px');
+                        this._touchCancelled = true;
+                    }
+                }
+            })
+            .on('touchend.circle-update', function(event, d) {
+                if (!checkIfMobile()) return;
+                
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Reset visual feedback
+                d3.select(this).style('stroke', '#fff').style('stroke-width', '2px');
+                
+                // Check if this was a valid tap
+                const touchDuration = Date.now() - (this._touchStartTime || 0);
+                const isValidTap = !this._touchCancelled && touchDuration < 500;
+                
+                // Clean up
+                delete this._touchStartTime;
+                delete this._touchStartPos;
+                delete this._touchCancelled;
+                
+                if (isValidTap) {
+                    // Trigger expand/collapse
+                    click(event, d);
+                }
             })
             .transition()
             .duration(duration)
@@ -7776,6 +7990,81 @@ if (!checkIfMobile()) {
                     if (d.data && (d.data.lastModified || d.data.url)) {
                         showEnhancedTooltip(event, d.data);
                     }
+                }
+            })
+            // Add comprehensive touch events for nodeUpdate text elements
+            .on('touchstart.text-update', function(event, d) {
+                if (!checkIfMobile()) return;
+                
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Store touch start info
+                this._touchStartTime = Date.now();
+                this._touchStartPos = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+                
+                // Add visual feedback
+                d3.select(this).style('opacity', 0.7);
+            })
+            .on('touchmove.text-update', function(event, d) {
+                if (!checkIfMobile()) return;
+                
+                event.preventDefault();
+                
+                // Check if touch moved too much (drag vs tap)
+                if (this._touchStartPos) {
+                    const currentPos = {
+                        x: event.touches[0].clientX,
+                        y: event.touches[0].clientY
+                    };
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(currentPos.x - this._touchStartPos.x, 2) + 
+                        Math.pow(currentPos.y - this._touchStartPos.y, 2)
+                    );
+                    
+                    // If moved more than 10px, cancel the tap
+                    if (distance > 10) {
+                        d3.select(this).style('opacity', 1);
+                        this._touchCancelled = true;
+                    }
+                }
+            })
+            .on('touchend.text-update', function(event, d) {
+                if (!checkIfMobile()) return;
+                
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Reset visual feedback
+                d3.select(this).style('opacity', 1);
+                
+                // Check if this was a valid tap
+                const touchDuration = Date.now() - (this._touchStartTime || 0);
+                const isValidTap = !this._touchCancelled && touchDuration < 500;
+                
+                // Clean up
+                delete this._touchStartTime;
+                delete this._touchStartPos;
+                delete this._touchCancelled;
+                
+                if (isValidTap && d.data && (d.data.lastModified || d.data.url)) {
+                    // Create touch event object
+                    const touchEvent = {
+                        pageX: event.changedTouches[0].pageX,
+                        pageY: event.changedTouches[0].pageY,
+                        preventDefault: () => {},
+                        stopPropagation: () => {},
+                        target: event.target
+                    };
+                    
+                    // Show tooltip after short delay
+                    setTimeout(() => {
+                        showEnhancedTooltip(touchEvent, d.data);
+                    }, 100);
                 }
             })
             .transition()
