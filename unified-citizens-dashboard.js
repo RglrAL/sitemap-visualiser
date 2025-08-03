@@ -12219,19 +12219,39 @@ function formatDuration(seconds) {
 // ===========================================
 
 function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData = null) {
-    const dashboardId = 'unified-dashboard-' + Date.now();
+    console.log('📊 Creating unified dashboard with:', {
+        url, 
+        hasGscData: !!gscData, 
+        hasGa4Data: !!ga4Data, 
+        hasNodeData: !!nodeData
+    });
+    
+    try {
+        const dashboardId = 'unified-dashboard-' + Date.now();
     
     // Schedule initialization after DOM insertion
     setTimeout(() => {
         const dashboard = document.getElementById(dashboardId);
         if (dashboard) {
             console.log('🚀 Auto-initializing unified dashboard:', dashboardId);
-            initializeUnifiedDashboard(dashboardId);
+            try {
+                initializeUnifiedDashboard(dashboardId);
+                console.log('✅ Dashboard initialization completed successfully');
+            } catch (error) {
+                console.error('❌ Error during dashboard initialization:', error);
+                console.error('Error stack:', error.stack);
+            }
         } else {
             console.log('⏳ Dashboard not ready, trying again...');
             setTimeout(() => {
                 if (document.getElementById(dashboardId)) {
-                    initializeUnifiedDashboard(dashboardId);
+                    try {
+                        initializeUnifiedDashboard(dashboardId);
+                        console.log('✅ Dashboard initialization completed successfully (retry)');
+                    } catch (error) {
+                        console.error('❌ Error during dashboard initialization (retry):', error);
+                        console.error('Error stack:', error.stack);
+                    }
                 }
             }, 50);
         }
