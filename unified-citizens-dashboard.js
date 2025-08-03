@@ -11370,35 +11370,252 @@ function formatDuration(seconds) {
                 
                 /* Responsive Design */
                 @media (max-width: 768px) {
+                    /* Dashboard Header Mobile Fixes */
+                    .dashboard-header {
+                        padding: 20px !important;
+                        margin: 0;
+                    }
+                    
                     .header-content {
                         grid-template-columns: 1fr;
-                        gap: 20px;
+                        gap: 16px;
+                        padding: 0;
+                    }
+                    
+                    .page-breadcrumb {
+                        font-size: 12px;
+                        flex-wrap: wrap;
+                        gap: 4px;
+                    }
+                    
+                    .breadcrumb-item {
+                        font-size: 12px;
+                    }
+                    
+                    .page-title {
+                        font-size: 1.4rem;
+                        line-height: 1.3;
+                        margin: 8px 0 12px 0;
+                    }
+                    
+                    .metadata-grid {
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+                    
+                    .metadata-item {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 4px;
+                        padding: 8px 0;
+                        border-bottom: 1px solid #f3f4f6;
+                    }
+                    
+                    .metadata-item:last-child {
+                        border-bottom: none;
+                    }
+                    
+                    .url-link {
+                        word-break: break-all;
+                        font-size: 13px;
+                    }
+                    
+                    /* Overview Grid Mobile Fixes */
+                    .overview-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 16px;
+                        margin: 0 0 20px 0;
+                    }
+                    
+                    .overview-card {
+                        min-height: auto;
+                        padding: 16px;
+                    }
+                    
+                    .card-header {
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    
+                    .card-title {
+                        font-size: 14px;
+                        font-weight: 600;
+                    }
+                    
+                    .metric-row {
+                        flex-wrap: wrap;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin: 6px 0;
+                    }
+                    
+                    .metric-label {
+                        font-size: 13px;
+                    }
+                    
+                    .metric-value {
+                        font-size: 16px;
+                        font-weight: 600;
+                    }
+                    
+                    /* General Mobile Improvements */
+                    .tab-nav {
+                        overflow-x: scroll;
+                    }
+                    
+                    .panel-content {
+                        padding: 16px;
+                    }
+                    
+                    .action-buttons {
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    
+                    .action-btn {
+                        width: 100%;
+                        max-width: 280px;
+                        justify-content: center;
+                        padding: 12px 16px;
+                        font-size: 14px;
+                    }
+                    
+                    /* Help Corner Mobile */
+                    .help-corner {
+                        top: 16px;
+                        right: 16px;
+                    }
+                    
+                    .help-btn {
+                        width: 36px;
+                        height: 36px;
+                        font-size: 14px;
+                    }
+                    
+                    /* Additional Mobile Fixes for All Tabs */
+                    .stats-grid,
+                    .metrics-grid,
+                    .performance-grid,
+                    .analysis-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 12px;
+                    }
+                    
+                    .chart-container,
+                    .visualization-container {
+                        overflow-x: auto;
+                        margin: 0 -16px;
+                        padding: 0 16px;
+                    }
+                    
+                    .section-title {
+                        font-size: 1.2rem;
+                        margin: 16px 0 12px 0;
+                    }
+                    
+                    .query-item,
+                    .trend-item,
+                    .analysis-item {
+                        padding: 12px;
+                        margin-bottom: 8px;
+                    }
+                    
+                    .query-stats,
+                    .trend-stats {
+                        flex-direction: column;
+                        gap: 4px;
+                        align-items: flex-start;
+                    }
+                    
+                    .stat-item {
+                        font-size: 12px;
+                    }
+                    
+                    .trend-indicator {
+                        margin-left: 0;
+                        margin-top: 4px;
+                    }
+                    
+                    /* Mobile table styles */
+                    .data-table {
+                        font-size: 12px;
+                    }
+                    
+                    .data-table th,
+                    .data-table td {
+                        padding: 8px 4px;
+                    }
+                    
+                    /* Mobile-specific search and content panels */
+                    .search-query-list,
+                    .content-analysis-list {
+                        max-height: 300px;
+                        overflow-y: auto;
+                    }
+                    
+                    .query-performance-item {
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+                    
+                    .query-metrics {
+                        justify-content: space-between;
+                        margin-top: 8px;
+                    }
+                    
+                    /* Government Intelligence Panel Mobile */
+                    .government-kpis {
+                        grid-template-columns: 1fr;
+                        gap: 12px;
+                    }
+                    
+                    .kpi-card {
+                        padding: 12px;
+                    }
+                    
+                    .priority-matrix {
+                        height: 250px;
+                        margin: 0;
+                    }
+                    
+                    /* User Behavior Panel Mobile */
+                    .user-behavior-metrics {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .behavior-chart {
+                        height: 200px;
+                    }
                 }
                 
-                .page-title {
-                    font-size: 1.4rem;
-                }
-                
-                .overview-grid {
-                    grid-template-columns: 1fr;
-                }
-                
-                .tab-nav {
-                    overflow-x: scroll;
-                }
-                
-                .panel-content {
-                    padding: 20px;
-                }
-                
-                .action-buttons {
-                    flex-direction: column;
-                    align-items: center;
-                }
-                
-                .action-btn {
-                    width: 200px;
-                    justify-content: center;
+                /* Extra small mobile devices */
+                @media (max-width: 480px) {
+                    .dashboard-header {
+                        padding: 16px !important;
+                    }
+                    
+                    .page-title {
+                        font-size: 1.2rem;
+                    }
+                    
+                    .overview-card {
+                        padding: 12px;
+                    }
+                    
+                    .panel-content {
+                        padding: 12px;
+                    }
+                    
+                    .mobile-tab-toggle {
+                        padding: 12px 16px;
+                        font-size: 14px;
+                    }
+                    
+                    .tab-btn {
+                        font-size: 12px;
+                        padding: 8px 12px;
+                    }
                 }
                 
                 .impact-summary {
