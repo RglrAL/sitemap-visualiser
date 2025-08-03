@@ -1749,6 +1749,15 @@ window.showUnifiedDashboardReport = async function(url, nodeData = null) {
         console.log('📊 Dashboard data prepared:', { gscData, ga4Data, gscTrends, ga4Trends, nodeData });
         
         // Create the unified dashboard WITH nodeData
+        console.log('🚀 About to create unified dashboard with data:', {
+            url,
+            hasGscData: !!gscData,
+            hasGa4Data: !!ga4Data,
+            hasNodeData: !!nodeData,
+            gscKeys: gscData ? Object.keys(gscData) : [],
+            ga4Keys: ga4Data ? Object.keys(ga4Data) : []
+        });
+        
         const dashboardHtml = createUnifiedCitizensDashboard(
             url, 
             gscData, 
@@ -1758,12 +1767,24 @@ window.showUnifiedDashboardReport = async function(url, nodeData = null) {
             nodeData  // Pass the node data to the dashboard
         );
         
+        console.log('✅ Dashboard HTML created successfully, length:', dashboardHtml?.length);
+        
         // Show in modal
         showDashboardModal(dashboardHtml);
         
     } catch (error) {
-        console.error('Error loading unified dashboard:', error);
-        alert('Failed to load dashboard data. Please try again.');
+        console.error('❌ Error loading unified dashboard:');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('Full error object:', error);
+        console.error('Dashboard data states:', {
+            hasGscData: !!gscData,
+            hasGa4Data: !!ga4Data,
+            hasNodeData: !!nodeData,
+            gscDataSize: gscData ? Object.keys(gscData).length : 0,
+            ga4DataSize: ga4Data ? Object.keys(ga4Data).length : 0
+        });
+        alert(`Failed to load dashboard data: ${error.message}. Check console for details.`);
     }
 };
 
