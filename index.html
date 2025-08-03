@@ -7718,6 +7718,7 @@ textElement
     })
     // Add comprehensive touch event handlers for mobile text
     .on('touchstart.text', function(event, d) {
+        console.log('📱 Text touchstart detected:', d.data?.name, 'Mobile check:', checkIfMobile());
         if (!checkIfMobile()) return;
         
         event.preventDefault();
@@ -7730,6 +7731,7 @@ textElement
             y: event.touches[0].clientY
         };
         
+        console.log('📱 Text touchstart processed for:', d.data?.name);
         // Add visual feedback
         d3.select(this).style('opacity', 0.7);
     })
@@ -7758,6 +7760,7 @@ textElement
         }
     })
     .on('touchend.text', function(event, d) {
+        console.log('📱 Text touchend detected:', d.data?.name);
         if (!checkIfMobile()) return;
         
         event.preventDefault();
@@ -7770,13 +7773,21 @@ textElement
         const touchDuration = Date.now() - (this._touchStartTime || 0);
         const isValidTap = !this._touchCancelled && touchDuration < 500;
         
+        console.log('📱 Touch validation:', {
+            duration: touchDuration,
+            cancelled: this._touchCancelled,
+            isValidTap: isValidTap,
+            hasData: !!(d.data && (d.data.lastModified || d.data.url)),
+            data: d.data
+        });
+        
         // Clean up
         delete this._touchStartTime;
         delete this._touchStartPos;
         delete this._touchCancelled;
         
         if (isValidTap && d.data && (d.data.lastModified || d.data.url)) {
-            console.log('💬 Text touch tap detected - showing tooltip for:', d.data.name);
+            console.log('💬 Valid text tap - showing tooltip for:', d.data.name);
             // Create touch event object
             const touchEvent = {
                 pageX: event.changedTouches[0].pageX,
@@ -7786,10 +7797,13 @@ textElement
                 target: event.target
             };
             
+            console.log('📱 Calling showEnhancedTooltip with:', touchEvent, d.data);
             // Show tooltip after short delay
             setTimeout(() => {
                 showEnhancedTooltip(touchEvent, d.data);
             }, 100);
+        } else {
+            console.log('❌ Text tap not valid or no tooltip data');
         }
     });
 
@@ -7994,6 +8008,7 @@ if (!checkIfMobile()) {
             })
             // Add comprehensive touch events for nodeUpdate text elements
             .on('touchstart.text-update', function(event, d) {
+                console.log('📱 NodeUpdate text touchstart detected:', d.data?.name);
                 if (!checkIfMobile()) return;
                 
                 event.preventDefault();
@@ -8052,6 +8067,7 @@ if (!checkIfMobile()) {
                 delete this._touchCancelled;
                 
                 if (isValidTap && d.data && (d.data.lastModified || d.data.url)) {
+                    console.log('💬 NodeUpdate valid text tap - showing tooltip for:', d.data.name);
                     // Create touch event object
                     const touchEvent = {
                         pageX: event.changedTouches[0].pageX,
@@ -8061,10 +8077,13 @@ if (!checkIfMobile()) {
                         target: event.target
                     };
                     
+                    console.log('📱 NodeUpdate calling showEnhancedTooltip with:', touchEvent, d.data);
                     // Show tooltip after short delay
                     setTimeout(() => {
                         showEnhancedTooltip(touchEvent, d.data);
                     }, 100);
+                } else {
+                    console.log('❌ NodeUpdate text tap not valid or no tooltip data');
                 }
             })
             .transition()
@@ -8404,7 +8423,11 @@ function handleEnhancedMouseOut(event, d) {
 }
 
 function showEnhancedTooltip(event, d) {
-    if (!enhancedTooltip || !d.data) return;
+    console.log('🎯 showEnhancedTooltip called with:', {event, d, hasTooltip: !!enhancedTooltip, hasData: !!d?.data});
+    if (!enhancedTooltip || !d.data) {
+        console.log('❌ showEnhancedTooltip early return - no tooltip or data');
+        return;
+    }
     
     const data = d.data;
     const now = new Date();
