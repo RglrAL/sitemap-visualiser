@@ -12342,6 +12342,16 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
             ${createActionCenter(url)}
         </div>
     `;
+    } catch (error) {
+        console.error('❌ Error creating unified dashboard:', error);
+        return `
+            <div class="unified-dashboard-container" style="padding: 20px; text-align: center;">
+                <h2>Dashboard Error</h2>
+                <p>There was an error creating the dashboard. Please try again.</p>
+                <p style="color: #666; font-size: 12px;">Error: ${error.message}</p>
+            </div>
+        `;
+    }
 }
 
 // ===========================================
