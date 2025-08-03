@@ -1210,6 +1210,8 @@ body.dark-theme .tooltip-header > span:first-child {
     transition: var(--transition);
     font-weight: 500;
     pointer-events: all; /* Add this line */
+    position: relative;
+    z-index: 15; /* Higher than circles (10) */
     /* Optimize text rendering */
     text-rendering: optimizeSpeed;
     /* Prevent layout thrashing */
@@ -4027,9 +4029,11 @@ body.dark-theme .mobile-freshness-badge.freshness-stale {
     /* Note: Circle radius should be set via JavaScript, not CSS */
     
     .node text {
-        pointer-events: none; /* Prevent text from blocking touches */
+        pointer-events: all !important; /* Allow text interaction on mobile too */
         font-size: 14px !important; /* Larger text on mobile */
         font-weight: 500 !important;
+        /* Ensure text is tappable */
+        cursor: pointer !important;
     }
     
     /* Remove invalid CSS properties that break SVG positioning */
@@ -7087,6 +7091,12 @@ function reapplyThemeStyles() {
             if (event.target === this) {
                 hideTooltipCompletely();
             }
+        })
+        .on("mousemove", function(event) {
+            // If tooltip is visible but mouse is on SVG background, hide it
+            if (event.target === this && enhancedTooltip && enhancedTooltip.classed("visible")) {
+                hideTooltipCompletely();
+            }
         });
     
     // Add touch-action CSS for mobile
@@ -7279,6 +7289,22 @@ nodeEnter.append('circle')
             .style('fill-opacity', 1e-6)
             .style('fill', isDark ? '#ffffff' : '#333333') // Apply theme immediately
             .style('cursor', 'pointer');
+
+// Add click handler to text for expand/collapse
+textElement
+    .on('click.node', function(event, d) {
+        event.stopPropagation();
+        
+        // Hide any tooltip on text click
+        hideTooltipCompletely();
+        
+        // Handle expand/collapse
+        if (checkIfMobile()) {
+            handleMobileNodeTap(event, d);
+        } else {
+            click(event, d);
+        }
+    });
 
 // Add hover events only to text elements on desktop with namespaced events
 if (!checkIfMobile()) {
@@ -7561,10 +7587,10 @@ function handleEnhancedMouseOver(event, d) {
     // Clear any existing timeout
     if (tooltipTimeout) clearTimeout(tooltipTimeout);
     
-    // Show tooltip after short delay
+    // Show tooltip after shorter delay for better responsiveness
     tooltipTimeout = setTimeout(() => {
         showEnhancedTooltip(event, d);
-    }, 300);
+    }, 150);  // Reduced from 300ms to 150ms
 }
 
 function handleEnhancedMouseOut(event, d) {
