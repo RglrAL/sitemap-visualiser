@@ -7706,13 +7706,13 @@ textElement
                 
                 // Small delay to ensure proper rendering
                 setTimeout(() => {
-                    showEnhancedTooltip(mobileEvent, d.data);
+                    showEnhancedTooltip(mobileEvent, d);
                 }, 50);
             }
         } else {
             // Desktop: show tooltip on click too (hover already works)
             if (d.data && (d.data.lastModified || d.data.url)) {
-                showEnhancedTooltip(event, d.data);
+                showEnhancedTooltip(event, d);
             }
         }
     })
@@ -7797,10 +7797,10 @@ textElement
                 target: event.target
             };
             
-            console.log('📱 Calling showEnhancedTooltip with:', touchEvent, d.data);
+            console.log('📱 Calling showEnhancedTooltip with:', touchEvent, d);
             // Show tooltip after short delay
             setTimeout(() => {
-                showEnhancedTooltip(touchEvent, d.data);
+                showEnhancedTooltip(touchEvent, d);
             }, 100);
         } else {
             console.log('❌ Text tap not valid or no tooltip data');
@@ -7996,13 +7996,13 @@ if (!checkIfMobile()) {
                         
                         // Small delay to ensure proper rendering
                         setTimeout(() => {
-                            showEnhancedTooltip(mobileEvent, d.data);
+                            showEnhancedTooltip(mobileEvent, d);
                         }, 50);
                     }
                 } else {
                     // Desktop: show tooltip on click too (hover already works)
                     if (d.data && (d.data.lastModified || d.data.url)) {
-                        showEnhancedTooltip(event, d.data);
+                        showEnhancedTooltip(event, d);
                     }
                 }
             })
@@ -8077,10 +8077,10 @@ if (!checkIfMobile()) {
                         target: event.target
                     };
                     
-                    console.log('📱 NodeUpdate calling showEnhancedTooltip with:', touchEvent, d.data);
+                    console.log('📱 NodeUpdate calling showEnhancedTooltip with:', touchEvent, d);
                     // Show tooltip after short delay
                     setTimeout(() => {
-                        showEnhancedTooltip(touchEvent, d.data);
+                        showEnhancedTooltip(touchEvent, d);
                     }, 100);
                 } else {
                     console.log('❌ NodeUpdate text tap not valid or no tooltip data');
