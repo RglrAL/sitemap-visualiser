@@ -10200,23 +10200,30 @@ function formatDuration(seconds) {
                     }
                     
                     .status-dot {
-                        width: 8px;
-                        height: 8px;
+                        width: 10px;
+                        height: 10px;
                         border-radius: 50%;
                         background: #ef4444;
                         transition: all 0.3s ease;
                         animation: pulse-disconnected 2s infinite;
+                        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
                     }
                     
                     .connection-indicator.connected .status-dot {
                         background: #10b981;
                         animation: pulse-connected 2s infinite;
+                        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
                     }
                     
                     .status-text {
-                        font-weight: 500;
-                        font-size: 11px;
+                        font-weight: 600;
+                        font-size: 12px;
                         letter-spacing: 0.5px;
+                        color: #374151;
+                    }
+                    
+                    .connection-indicator.connected .status-text {
+                        color: #059669;
                     }
                     
                     @keyframes pulse-connected {
@@ -12849,25 +12856,38 @@ function updateMobileConnectionStatus() {
     
     console.log('🔍 Connection status:', { ga4Connected, gscConnected });
     
-    // Update GA4 status indicator
+    // Find and update GA4 status indicator
     const ga4Indicator = document.querySelector('.ga4-status');
+    console.log('📊 GA4 indicator element found:', !!ga4Indicator);
     if (ga4Indicator) {
         if (ga4Connected) {
             ga4Indicator.classList.add('connected');
+            console.log('✅ GA4 marked as connected');
         } else {
             ga4Indicator.classList.remove('connected');
+            console.log('❌ GA4 marked as disconnected');
         }
     }
     
-    // Update GSC status indicator
+    // Find and update GSC status indicator
     const gscIndicator = document.querySelector('.gsc-status');
+    console.log('🔍 GSC indicator element found:', !!gscIndicator);
     if (gscIndicator) {
         if (gscConnected) {
             gscIndicator.classList.add('connected');
+            console.log('✅ GSC marked as connected');
         } else {
             gscIndicator.classList.remove('connected');
+            console.log('❌ GSC marked as disconnected');
         }
     }
+    
+    // Debug: List all connection indicators
+    const allIndicators = document.querySelectorAll('.connection-indicator');
+    console.log('🔍 Total connection indicators found:', allIndicators.length);
+    allIndicators.forEach((indicator, index) => {
+        console.log(`Indicator ${index}:`, indicator.className, indicator.dataset.service);
+    });
     
     console.log('✅ Mobile connection status updated');
 }
