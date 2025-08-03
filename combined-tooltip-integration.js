@@ -1880,6 +1880,13 @@ function showDashboardModal(htmlContent) {
         box-sizing: border-box;
     `;
     
+    // Add mobile-specific styles
+    if (window.innerWidth <= 768) {
+        modal.style.padding = '10px';
+        modal.style.alignItems = 'flex-start';
+        modal.style.paddingTop = '20px';
+    }
+    
     // Create modal content container
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
@@ -1891,6 +1898,13 @@ function showDashboardModal(htmlContent) {
         transform: scale(0.9);
         transition: transform 0.3s ease;
     `;
+    
+    // Add mobile-specific modal content styles
+    if (window.innerWidth <= 768) {
+        modalContent.style.maxWidth = '100%';
+        modalContent.style.maxHeight = '95vh';
+        modalContent.style.margin = '0';
+    }
     
     // Add close button
     const closeBtn = document.createElement('button');
