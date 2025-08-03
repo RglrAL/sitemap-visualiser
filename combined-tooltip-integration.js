@@ -33,26 +33,60 @@
         const tooltip = document.createElement('div');
         tooltip.className = 'enhanced-tabbed-tooltip';
         
-        tooltip.style.cssText = `
-            position: absolute;
-            background: white;
-            border-radius: 20px;
-            padding: 0;
-            box-shadow: 
-                0 25px 50px -12px rgba(0, 0, 0, 0.25),
-                0 0 0 1px rgba(0, 0, 0, 0.05);
-            z-index: 10000;
-            max-width: 520px;
-            width: 520px;
-            opacity: 0;
-            transform: translateY(12px) scale(0.94);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
-            pointer-events: auto;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        `;
+        // Detect mobile/tablet
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobileDevice) {
+            // Mobile-specific styling
+            tooltip.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 10px;
+                right: 10px;
+                bottom: auto;
+                background: white;
+                border-radius: 16px;
+                padding: 0;
+                box-shadow: 
+                    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+                    0 0 0 1px rgba(0, 0, 0, 0.1);
+                z-index: 15000;
+                max-width: calc(100vw - 20px);
+                width: calc(100vw - 20px);
+                max-height: calc(100vh - 40px);
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                overflow: hidden;
+                pointer-events: auto;
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                -webkit-overflow-scrolling: touch;
+            `;
+        } else {
+            // Desktop styling (unchanged)
+            tooltip.style.cssText = `
+                position: absolute;
+                background: white;
+                border-radius: 20px;
+                padding: 0;
+                box-shadow: 
+                    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                    0 0 0 1px rgba(0, 0, 0, 0.05);
+                z-index: 10000;
+                max-width: 520px;
+                width: 520px;
+                opacity: 0;
+                transform: translateY(12px) scale(0.94);
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                overflow: hidden;
+                pointer-events: auto;
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            `;
+        }
 
         tooltip.innerHTML = createTabbedContent(data);
         
@@ -164,7 +198,7 @@ onmouseout="
                     </div>
                     
                     <!-- Page Information Grid -->
-                    <div style="
+                    <div class="page-info-grid" style="
                         display: grid; 
                         grid-template-columns: 1fr 1fr 1fr; 
                         gap: 12px; 
@@ -582,6 +616,37 @@ onmouseout="
                 .tab-content::-webkit-scrollbar-thumb:hover {
                     background: #94a3b8;
                 }
+                
+                /* Mobile-specific responsive styles */
+                @media (max-width: 768px) {
+                    .page-info-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 8px !important;
+                    }
+                    
+                    .enhanced-tabbed-tooltip .tab-content {
+                        padding: 16px !important;
+                        max-height: calc(60vh) !important;
+                        overflow-y: auto !important;
+                    }
+                    
+                    .enhanced-tabbed-tooltip .action-btn {
+                        flex-direction: column !important;
+                        min-height: 48px !important;
+                        padding: 12px !important;
+                        margin: 4px 0 !important;
+                    }
+                    
+                    .enhanced-tabbed-tooltip .tab-btn {
+                        padding: 12px 8px !important;
+                        font-size: 13px !important;
+                        min-height: 44px !important;
+                    }
+                    
+                    .enhanced-tabbed-tooltip .tab-btn .btn-icon {
+                        margin-bottom: 4px !important;
+                    }
+                }
             </style>
         `;
     }
@@ -589,9 +654,13 @@ onmouseout="
     function initializeTabs(tooltip) {
         const tabBtns = tooltip.querySelectorAll('.tab-btn');
         const tabPanels = tooltip.querySelectorAll('.tab-panel');
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
+            const handleTabSwitch = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const targetTab = btn.dataset.tab;
                 
                 // Update buttons
@@ -603,22 +672,28 @@ onmouseout="
                     if (panel.dataset.panel === targetTab) {
                         panel.style.display = 'block';
                         panel.style.opacity = '0';
-                        panel.style.transform = 'translateX(20px)';
+                        panel.style.transform = isMobileDevice ? 'translateY(10px)' : 'translateX(20px)';
                         
                         requestAnimationFrame(() => {
                             panel.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
                             panel.style.opacity = '1';
-                            panel.style.transform = 'translateX(0)';
+                            panel.style.transform = isMobileDevice ? 'translateY(0)' : 'translateX(0)';
                         });
                     } else {
                         panel.style.opacity = '0';
-                        panel.style.transform = 'translateX(-20px)';
+                        panel.style.transform = isMobileDevice ? 'translateY(-10px)' : 'translateX(-20px)';
                         setTimeout(() => {
                             panel.style.display = 'none';
                         }, 300);
                     }
                 });
-            });
+            };
+            
+            // Add both click and touch handlers for mobile compatibility
+            btn.addEventListener('click', handleTabSwitch);
+            if (isMobileDevice) {
+                btn.addEventListener('touchend', handleTabSwitch, { passive: false });
+            }
         });
     }
 
@@ -1169,53 +1244,138 @@ onmouseout="
     }
 
     function positionTooltip(tooltip, event) {
-        let left = event.pageX + 20;
-        let top = event.pageY - 60;
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        tooltip.style.left = left + 'px';
-        tooltip.style.top = top + 'px';
-        
-        setTimeout(() => {
-            const rect = tooltip.getBoundingClientRect();
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
+        if (isMobileDevice) {
+            // Mobile: Use fixed positioning to center on screen
+            tooltip.style.position = 'fixed';
+            tooltip.style.top = '20px';
+            tooltip.style.left = '10px';
+            tooltip.style.right = '10px';
+            tooltip.style.bottom = 'auto';
+            tooltip.style.maxHeight = 'calc(100vh - 40px)';
+            tooltip.style.transform = 'none';
+            tooltip.style.width = 'calc(100vw - 20px)';
+            tooltip.style.maxWidth = 'calc(100vw - 20px)';
             
-            if (rect.right > windowWidth - 20) {
-                tooltip.style.left = (event.pageX - rect.width - 20) + 'px';
-            }
+            // Enable scrolling for mobile
+            tooltip.style.overflowY = 'auto';
+            tooltip.style.webkitOverflowScrolling = 'touch';
+        } else {
+            // Desktop: Original positioning logic
+            let left = event.pageX + 20;
+            let top = event.pageY - 60;
             
-            if (rect.top < 10) {
-                tooltip.style.top = (event.pageY + 20) + 'px';
-            }
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
             
-            if (rect.bottom > windowHeight - 20) {
-                tooltip.style.top = Math.max(10, windowHeight - rect.height - 20) + 'px';
-            }
-        }, 10);
+            setTimeout(() => {
+                const rect = tooltip.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                if (rect.right > windowWidth - 20) {
+                    tooltip.style.left = (event.pageX - rect.width - 20) + 'px';
+                }
+                
+                if (rect.top < 10) {
+                    tooltip.style.top = (event.pageY + 20) + 'px';
+                }
+                
+                if (rect.bottom > windowHeight - 20) {
+                    tooltip.style.top = Math.max(10, windowHeight - rect.height - 20) + 'px';
+                }
+            }, 10);
+        }
     }
 
     function addModernHoverBehavior(tooltip) {
         let isHovering = false;
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        tooltip.addEventListener('mouseenter', () => {
-            isHovering = true;
-            clearTooltipTimers();
-        });
-        
-        tooltip.addEventListener('mouseleave', () => {
-            isHovering = false;
-            hideEnhancedTooltip();
-        });
+        if (isMobileDevice) {
+            // Mobile-specific touch behavior
+            let touchStartTime = 0;
+            
+            tooltip.addEventListener('touchstart', (e) => {
+                isHovering = true;
+                touchStartTime = Date.now();
+                clearTooltipTimers();
+                e.stopPropagation(); // Prevent event bubbling
+            }, { passive: true });
+            
+            tooltip.addEventListener('touchend', (e) => {
+                const touchDuration = Date.now() - touchStartTime;
+                // Only close on quick taps (< 200ms), not scrolling
+                if (touchDuration < 200 && e.target === tooltip) {
+                    isHovering = false;
+                    hideEnhancedTooltip();
+                }
+                e.stopPropagation();
+            }, { passive: true });
+            
+            // Prevent mobile scroll when touching tooltip content
+            tooltip.addEventListener('touchmove', (e) => {
+                e.stopPropagation();
+            }, { passive: true });
+            
+            // Add backdrop touch to close
+            const backdrop = document.createElement('div');
+            backdrop.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.3);
+                z-index: 14999;
+                backdrop-filter: blur(2px);
+            `;
+            
+            backdrop.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                hideEnhancedTooltip(true);
+            }, { passive: false });
+            
+            // Insert backdrop before tooltip
+            document.body.insertBefore(backdrop, tooltip);
+            tooltip._backdrop = backdrop;
+            
+        } else {
+            // Desktop behavior (unchanged)
+            tooltip.addEventListener('mouseenter', () => {
+                isHovering = true;
+                clearTooltipTimers();
+            });
+            
+            tooltip.addEventListener('mouseleave', () => {
+                isHovering = false;
+                hideEnhancedTooltip();
+            });
+        }
 
-        // Handle close button click
-const closeBtn = tooltip.querySelector('.tooltip-close-btn');
-if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        hideEnhancedTooltip(true); // Force immediate close
-    });
-}
+        // Handle close button click (both mobile and desktop)
+        const closeBtn = tooltip.querySelector('.tooltip-close-btn');
+        if (closeBtn) {
+            // Make close button more touch-friendly on mobile
+            if (isMobileDevice) {
+                closeBtn.style.minWidth = '44px';
+                closeBtn.style.minHeight = '44px';
+                closeBtn.style.padding = '12px';
+            }
+            
+            const closeHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                hideEnhancedTooltip(true); // Force immediate close
+            };
+            
+            closeBtn.addEventListener('click', closeHandler);
+            if (isMobileDevice) {
+                closeBtn.addEventListener('touchend', closeHandler, { passive: false });
+            }
+        }
 
         
         
@@ -1238,10 +1398,23 @@ if (closeBtn) {
         
         window.enhancedHideTimer = setTimeout(() => {
             if (window.currentEnhancedTooltip) {
+                const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
                 window.currentEnhancedTooltip.style.opacity = '0';
-                window.currentEnhancedTooltip.style.transform = 'translateY(12px) scale(0.94)';
+                
+                if (isMobileDevice) {
+                    window.currentEnhancedTooltip.style.transform = 'translateY(-20px) scale(0.95)';
+                } else {
+                    window.currentEnhancedTooltip.style.transform = 'translateY(12px) scale(0.94)';
+                }
+                
                 setTimeout(() => {
                     if (window.currentEnhancedTooltip) {
+                        // Remove mobile backdrop if it exists
+                        if (window.currentEnhancedTooltip._backdrop) {
+                            window.currentEnhancedTooltip._backdrop.remove();
+                        }
+                        
                         window.currentEnhancedTooltip.remove();
                         window.currentEnhancedTooltip = null;
                     }
