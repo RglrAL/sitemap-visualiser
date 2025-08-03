@@ -715,6 +715,7 @@
 /* Add some bottom padding to tree container so content doesn't hide behind controls */
 #treeContainer {
     padding-bottom: 100px; /* Space for sticky controls */
+    position: relative; /* Required for absolute positioning of export buttons */
 }
 
         .tree-control-btn {
@@ -757,6 +758,7 @@ body.dark-theme .tree-control-btn {
             right: 1.5rem;
             display: flex;
             gap: 0.5rem;
+            z-index: 100; /* Ensure buttons are above SVG */
         }
 
         .export-float-btn {
@@ -7211,12 +7213,24 @@ nodeEnter.append('circle')
     .on('click.node', function(event, d) {  // Use namespaced events
         event.stopPropagation();
         
-        // Hide any tooltip on circle click
+        // Hide any tooltip on circle click - ensure it's completely hidden
         if (enhancedTooltip) {
+            // Clear any pending timeouts
+            if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = null;
+            }
+            if (hideTooltipTimeout) {
+                clearTimeout(hideTooltipTimeout);
+                hideTooltipTimeout = null;
+            }
+            
             enhancedTooltip
+                .interrupt()  // Cancel any ongoing transitions
                 .classed("visible", false)
                 .style("opacity", 0)
-                .style("pointer-events", "none");
+                .style("pointer-events", "none")
+                .style("display", "none");  // Completely hide it
         }
         
         // Handle expand/collapse
@@ -7542,11 +7556,13 @@ function handleEnhancedMouseOut(event, d) {
     hideTooltipTimeout = setTimeout(() => {
         if (!tooltipMouseOver && enhancedTooltip) {
             enhancedTooltip
+                .classed("visible", false)  // Remove class immediately
+                .style("pointer-events", "none")  // Explicitly set pointer-events
                 .transition()
                 .duration(200)
                 .style("opacity", 0)
                 .on("end", function() {
-                    d3.select(this).classed("visible", false);
+                    d3.select(this).style("display", "none");  // Hide completely after transition
                 });
         }
     }, 100); // Small delay to allow mouse to move to tooltip
@@ -7719,9 +7735,11 @@ if (d.parent) {
     }
     
     enhancedTooltip
+        .style("display", "block")  // Ensure it's visible
         .style("left", left + "px")
         .style("top", top + "px")
         .style("opacity", 0)
+        .style("pointer-events", "auto")  // Enable pointer events
         .classed("visible", true)
         .transition()
         .duration(200)
@@ -7736,11 +7754,13 @@ if (d.parent) {
         .on("mouseleave", function() {
             tooltipMouseOver = false;
             enhancedTooltip
+                .classed("visible", false)  // Remove class immediately
+                .style("pointer-events", "none")  // Explicitly set pointer-events
                 .transition()
                 .duration(200)
                 .style("opacity", 0)
                 .on("end", function() {
-                    d3.select(this).classed("visible", false);
+                    d3.select(this).style("display", "none");  // Hide completely after transition
                 });
         });
 
