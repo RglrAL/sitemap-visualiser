@@ -13342,20 +13342,26 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     const showPagination = intentAnalysis.length > initialDisplayCount;
     
     // FIX: Validate and correct intent counts
+    console.log('📊 About to validate intent counts...');
     const correctedIntentCounts = validateIntentCounts(intentAnalysis, intentCounts);
+    console.log('✅ Intent counts validated successfully:', correctedIntentCounts);
     
     // Create intent distribution chart using corrected counts
+    console.log('📈 Creating intent distribution chart...');
     const topIntents = Object.entries(correctedIntentCounts)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 6)
         .filter(([,count]) => count > 0);
     
     // NEW: Analyze Irish service usage
+    console.log('🇮🇪 Analyzing Irish service usage...');
     const irishServiceAnalysis = analyzeIrishServiceUsage(intentAnalysis);
+    console.log('✅ Irish service analysis completed:', irishServiceAnalysis);
     const topIrishServices = Object.entries(irishServiceAnalysis.serviceBreakdown)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 5)
         .filter(([,count]) => count > 0);
+    console.log('🏆 Top Irish services:', topIrishServices);
     
     return `
         <div class="citizen-journey-panel">
