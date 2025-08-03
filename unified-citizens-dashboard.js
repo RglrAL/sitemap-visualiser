@@ -10173,8 +10173,60 @@ function formatDuration(seconds) {
                         min-height: 44px; /* Touch-friendly */
                         text-align: left;
                         display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .mobile-menu-header {
+                        display: flex;
                         align-items: center;
                         justify-content: space-between;
+                        width: 100%;
+                    }
+                    
+                    .mobile-connection-status {
+                        display: flex;
+                        gap: 16px;
+                        align-items: center;
+                    }
+                    
+                    .connection-indicator {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 12px;
+                        opacity: 0.9;
+                    }
+                    
+                    .status-dot {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background: #ef4444;
+                        transition: all 0.3s ease;
+                        animation: pulse-disconnected 2s infinite;
+                    }
+                    
+                    .connection-indicator.connected .status-dot {
+                        background: #10b981;
+                        animation: pulse-connected 2s infinite;
+                    }
+                    
+                    .status-text {
+                        font-weight: 500;
+                        font-size: 11px;
+                        letter-spacing: 0.5px;
+                    }
+                    
+                    @keyframes pulse-connected {
+                        0%, 100% { opacity: 1; transform: scale(1); }
+                        50% { opacity: 0.7; transform: scale(1.1); }
+                    }
+                    
+                    @keyframes pulse-disconnected {
+                        0%, 100% { opacity: 0.6; }
+                        50% { opacity: 0.3; }
                     }
                     
                     .mobile-menu-text {
@@ -12483,8 +12535,20 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
             
             <div class="dashboard-tabs">
                 <button class="mobile-tab-toggle" onclick="toggleMobileTabs()" style="display: none;" aria-label="Toggle dashboard navigation menu">
-                    <span class="mobile-menu-text">📊 Dashboard Menu: </span>
-                    <span class="current-tab-label">Overview</span>
+                    <div class="mobile-menu-header">
+                        <span class="mobile-menu-text">📊 Dashboard Menu: </span>
+                        <span class="current-tab-label">Overview</span>
+                    </div>
+                    <div class="mobile-connection-status">
+                        <div class="connection-indicator ga4-status" data-service="ga4">
+                            <div class="status-dot"></div>
+                            <span class="status-text">GA4</span>
+                        </div>
+                        <div class="connection-indicator gsc-status" data-service="gsc">
+                            <div class="status-dot"></div>
+                            <span class="status-text">GSC</span>
+                        </div>
+                    </div>
                 </button>
                 <div class="tab-nav">
                     <button class="tab-btn active" data-tab="overview">
@@ -12593,6 +12657,9 @@ function initializeUnifiedDashboard(dashboardId) {
     }
     
     console.log('✅ Found', tabButtons.length, 'buttons and', tabPanels.length, 'panels');
+    
+    // Update mobile connection status indicators
+    updateMobileConnectionStatus();
     
     // Handle tab clicks
     tabButtons.forEach((button, index) => {
@@ -12767,6 +12834,54 @@ function initializeUnifiedDashboard(dashboardId) {
         
         console.log('✅ Unified dashboard tabs initialized successfully!');
     }
+}
+
+// ===========================================
+// MOBILE CONNECTION STATUS FUNCTIONS
+// ===========================================
+
+function updateMobileConnectionStatus() {
+    console.log('📡 Updating mobile connection status indicators');
+    
+    // Check GA4 connection status
+    const ga4Connected = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
+    const gscConnected = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
+    
+    console.log('🔍 Connection status:', { ga4Connected, gscConnected });
+    
+    // Update GA4 status indicator
+    const ga4Indicator = document.querySelector('.ga4-status');
+    if (ga4Indicator) {
+        if (ga4Connected) {
+            ga4Indicator.classList.add('connected');
+        } else {
+            ga4Indicator.classList.remove('connected');
+        }
+    }
+    
+    // Update GSC status indicator
+    const gscIndicator = document.querySelector('.gsc-status');
+    if (gscIndicator) {
+        if (gscConnected) {
+            gscIndicator.classList.add('connected');
+        } else {
+            gscIndicator.classList.remove('connected');
+        }
+    }
+    
+    console.log('✅ Mobile connection status updated');
+}
+
+// Listen for connection status changes
+if (typeof window !== 'undefined') {
+    // Listen for custom events that might indicate connection changes
+    document.addEventListener('ga4Connected', updateMobileConnectionStatus);
+    document.addEventListener('gscConnected', updateMobileConnectionStatus);
+    document.addEventListener('ga4Disconnected', updateMobileConnectionStatus);
+    document.addEventListener('gscDisconnected', updateMobileConnectionStatus);
+    
+    // Also check periodically in case we miss events
+    setInterval(updateMobileConnectionStatus, 5000);
 }
 
 
