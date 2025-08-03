@@ -1174,13 +1174,25 @@ body.dark-theme .tooltip-header > span:first-child {
         
         
 
-        /* Node Styles */
-        /* Node Styles */
+        /* Node Styles - Fixed for better click handling and performance */
+.node {
+    pointer-events: all;
+    /* Remove transform that might interfere with D3's positioning */
+    /* position: relative; - not needed for SVG */
+    /* transform: translateZ(0); - can break SVG transforms */
+    /* will-change: transform; - keep for performance but be careful */
+}
+
 .node circle {
     cursor: pointer;
     transition: var(--transition);
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-    pointer-events: all; /* Add this line */
+    pointer-events: all;
+    /* position: relative; - not valid for SVG elements */
+    /* z-index: 10; - be careful with z-index in SVG */
+    /* Optimize for animations */
+    /* will-change: fill, r, transform; - be careful with transform */
+    /* transform-origin: center; - this is ok */
 }
 
         .node circle:hover {
@@ -1195,6 +1207,10 @@ body.dark-theme .tooltip-header > span:first-child {
     transition: var(--transition);
     font-weight: 500;
     pointer-events: all; /* Add this line */
+    /* Optimize text rendering */
+    text-rendering: optimizeSpeed;
+    /* Prevent layout thrashing */
+    will-change: fill, opacity;
 }
 
         .link {
@@ -1203,6 +1219,30 @@ body.dark-theme .tooltip-header > span:first-child {
             stroke-opacity: 0.6;
             stroke-width: 2px;
             transition: var(--transition);
+        }
+        
+        /* SVG Performance Optimizations */
+        #treeContainer svg {
+            /* Enable GPU acceleration */
+            transform: translateZ(0);
+            will-change: transform;
+            /* Optimize shape rendering */
+            shape-rendering: geometricPrecision;
+        }
+        
+        #treeContainer svg g {
+            /* Optimize group transforms */
+            will-change: transform;
+        }
+        
+        /* Reduce paint operations during animations */
+        .node.transitioning {
+            will-change: transform;
+        }
+        
+        .node.transitioning text,
+        .node.transitioning circle {
+            will-change: auto;
         }
 
         /* Dark Mode */
@@ -3974,15 +4014,23 @@ body.dark-theme .mobile-freshness-badge.freshness-stale {
 /* Improve touch targets on mobile */
 @media (max-width: 768px) {
     .node circle {
-        /* Make touch targets bigger on mobile */
-        stroke-width: 20px;
+        /* Make touch targets bigger on mobile - increased from 20px to 30px */
+        stroke-width: 30px;
         stroke-opacity: 0;
         paint-order: stroke;
+        /* position: relative; - removed, not valid for SVG */
     }
+    
+    /* Note: Circle radius should be set via JavaScript, not CSS */
     
     .node text {
         pointer-events: none; /* Prevent text from blocking touches */
+        font-size: 14px !important; /* Larger text on mobile */
+        font-weight: 500 !important;
     }
+    
+    /* Remove invalid CSS properties that break SVG positioning */
+    /* SVG elements don't support padding, margin, min-width, min-height, or display */
     
     /* Visible stroke remains normal */
     .node circle::after {
@@ -6946,6 +6994,32 @@ function reapplyThemeStyles() {
     </svg>
     <span class="btn-text">Collapse All</span>`);
             
+            // Zoom controls
+            treeControls.append("button")
+                .attr("class", "tree-control-btn")
+                .attr("onclick", "zoomIn()")
+                .attr("aria-label", "Zoom In")
+                .attr("title", "Zoom In")
+                .html(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <span class="btn-text">Zoom In</span>`);
+                
+            treeControls.append("button")
+                .attr("class", "tree-control-btn")
+                .attr("onclick", "zoomOut()")
+                .attr("aria-label", "Zoom Out")
+                .attr("title", "Zoom Out")
+                .html(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <span class="btn-text">Zoom Out</span>`);
+                
             treeControls.append("button")
                 .attr("class", "tree-control-btn")
                 .attr("onclick", "resetZoom()")
@@ -7130,10 +7204,11 @@ function reapplyThemeStyles() {
         // In the update() function, modify the nodeEnter circle creation:
 nodeEnter.append('circle')
     .attr('r', 1e-6)
+    .attr('class', 'node-circle')
     .style('fill', d => d._children ? 'lightsteelblue' : '#fff')
     .style('stroke', '#fff')
     .style('stroke-width', '2px')
-    .on('click', function(event, d) {
+    .on('click.node', function(event, d) {  // Use namespaced events
         event.stopPropagation();
         
         // Hide any tooltip on circle click
@@ -7151,13 +7226,13 @@ nodeEnter.append('circle')
             click(event, d);
         }
     })
-    // Add touch event handlers for mobile
-    .on('touchstart', function(event, d) {
+    // Add touch event handlers for mobile with namespace
+    .on('touchstart.node', function(event, d) {
         event.preventDefault();
         event.stopPropagation();
         
         // Trigger the click handler
-        d3.select(this).dispatch('click');
+        d3.select(this).dispatch('click.node');
     });
         
         // Add text once
@@ -7168,10 +7243,10 @@ nodeEnter.append('circle')
             .style('fill', isDark ? '#ffffff' : '#333333') // Apply theme immediately
             .style('cursor', 'pointer');
 
-// Add hover events only to text elements on desktop
+// Add hover events only to text elements on desktop with namespaced events
 if (!checkIfMobile()) {
     textElement
-        .on('mouseenter', function(event, d) {
+        .on('mouseenter.node', function(event, d) {
             // Visual feedback on hover
             d3.select(this)
                 .style('text-decoration', 'underline')
@@ -7179,7 +7254,7 @@ if (!checkIfMobile()) {
             
             handleEnhancedMouseOver(event, d);
         })
-        .on('mouseleave', function(event, d) {
+        .on('mouseleave.node', function(event, d) {
             // Remove visual feedback
             d3.select(this)
                 .style('text-decoration', 'none')
@@ -7197,8 +7272,10 @@ if (!checkIfMobile()) {
             .duration(duration)
             .attr('transform', d => `translate(${d.y},${d.x})`);
         
-        // Update circle attributes
+        // Update circle attributes and ensure click handlers work
         nodeUpdate.select('circle')
+            .attr('class', 'node-circle') // Ensure class is set
+            .style('pointer-events', 'all') // Ensure clicks are enabled
             .transition()
             .duration(duration)
             .attr('r', nodeRadius)
@@ -7215,24 +7292,8 @@ if (!checkIfMobile()) {
             .style('fill', isDark ? '#ffffff' : '#333333'); // Ensure theme is applied
             
             
-            // Reapply hover effects for desktop after update
-if (!checkIfMobile()) {
-    nodeUpdate.select('text')
-        .on('mouseenter', function(event, d) {
-            d3.select(this)
-                .style('text-decoration', 'underline')
-                .style('font-weight', '600');
-            
-            handleEnhancedMouseOver(event, d);
-        })
-        .on('mouseleave', function(event, d) {
-            d3.select(this)
-                .style('text-decoration', 'none')
-                .style('font-weight', '500');
-            
-            handleEnhancedMouseOut(event, d);
-        });
-}
+            // DON'T reapply event handlers - they're already attached during node creation
+            // This prevents duplicate handlers which cause unclickable nodes
         
         // EXIT - Remove old nodes
         const nodeExit = node.exit()
@@ -8043,6 +8104,40 @@ function calculateDynamicHeight(node) {
         console.error("Error in resetZoom:", error);
     }
 }
+
+        // Zoom In function
+        window.zoomIn = function() {
+            if (!svg || !globalZoom) return;
+            
+            const currentTransform = d3.zoomTransform(svg.node());
+            const newScale = Math.min(currentTransform.k * 1.3, 3); // Max scale 3
+            
+            svg.transition()
+                .duration(300)
+                .call(
+                    globalZoom.transform,
+                    d3.zoomIdentity
+                        .translate(currentTransform.x, currentTransform.y)
+                        .scale(newScale)
+                );
+        }
+        
+        // Zoom Out function
+        window.zoomOut = function() {
+            if (!svg || !globalZoom) return;
+            
+            const currentTransform = d3.zoomTransform(svg.node());
+            const newScale = Math.max(currentTransform.k * 0.7, 0.1); // Min scale 0.1
+            
+            svg.transition()
+                .duration(300)
+                .call(
+                    globalZoom.transform,
+                    d3.zoomIdentity
+                        .translate(currentTransform.x, currentTransform.y)
+                        .scale(newScale)
+                );
+        }
         
         
         
