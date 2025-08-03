@@ -5538,19 +5538,13 @@ function hideTooltipCompletely() {
     // Reset flags
     tooltipMouseOver = false;
     
-    // Hide tooltip completely and immediately
+    // Hide tooltip
     if (enhancedTooltip) {
         enhancedTooltip
-            .interrupt()  // Stop any transitions immediately
             .classed("visible", false)
             .style("opacity", 0)
             .style("pointer-events", "none")
-            .style("display", "none")
-            .style("z-index", -1)  // Send to back
-            .style("left", "-9999px")  // Move off screen
-            .style("top", "-9999px");
-        
-        // Don't remove event listeners - they're needed for when tooltip is shown again
+            .style("display", "none");
     }
 }
 
@@ -7581,36 +7575,38 @@ function handleMouseOut(event, d) {
 
 
 
-// Simplified tooltip handlers
+// Fixed tooltip handlers
 function handleEnhancedMouseOver(event, d) {
     // Skip completely on mobile - use click instead
     if (isMobile) return;
     
+    // Only show if no tooltip is currently visible
+    if (enhancedTooltip && enhancedTooltip.classed("visible")) {
+        return;
+    }
+    
     // Clear any existing timeout
     if (tooltipTimeout) clearTimeout(tooltipTimeout);
     
-    // Show tooltip immediately for better responsiveness
-    showEnhancedTooltip(event, d);
+    // Show tooltip after delay to prevent rapid fire
+    tooltipTimeout = setTimeout(() => {
+        showEnhancedTooltip(event, d);
+    }, 300);
 }
 
 function handleEnhancedMouseOut(event, d) {
-    // Clear any timeouts
+    // Clear show timeout
     if (tooltipTimeout) {
         clearTimeout(tooltipTimeout);
         tooltipTimeout = null;
     }
     
-    // Simple approach: hide tooltip immediately when mouse leaves node
-    // The tooltip's own mouse events will keep it visible if user hovers over it
-    if (enhancedTooltip) {
-        // Check if mouse is moving to the tooltip
-        const relatedTarget = event.relatedTarget;
-        const isMovingToTooltip = relatedTarget && relatedTarget.closest('.enhanced-tooltip');
-        
-        if (!isMovingToTooltip) {
+    // Hide after short delay
+    setTimeout(() => {
+        if (!tooltipMouseOver) {
             hideTooltipCompletely();
         }
-    }
+    }, 200);
 }
 
 function showEnhancedTooltip(event, d) {
@@ -7791,16 +7787,18 @@ if (d.parent) {
         .duration(200)
         .style("opacity", 1);
         
-        // Simplified tooltip mouse events
+        // Tooltip mouse events
     enhancedTooltip
         .on("mouseenter", function() {
-            // Tooltip stays visible while hovering over it
             tooltipMouseOver = true;
         })
         .on("mouseleave", function() {
-            // Hide tooltip when mouse leaves
             tooltipMouseOver = false;
-            hideTooltipCompletely();
+            setTimeout(() => {
+                if (!tooltipMouseOver) {
+                    hideTooltipCompletely();
+                }
+            }, 100);
         });
 
 }
@@ -12626,13 +12624,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // EXPOSE TO WINDOW FOR GSC INTEGRATION
     window.enhancedTooltip = enhancedTooltip;
     
-    // Global click handler to ensure tooltips always hide
-    document.addEventListener('click', function(event) {
-        // If clicking anywhere except the tooltip itself, hide it
-        if (!event.target.closest('.enhanced-tooltip')) {
-            hideTooltipCompletely();
-        }
-    }, true);  // Use capture phase
+    // Disabled global click handler - was causing interference
+    // document.addEventListener('click', function(event) {
+    //     if (!event.target.closest('.enhanced-tooltip')) {
+    //         hideTooltipCompletely();
+    //     }
+    // }, true);
     
     // Global escape key handler
     document.addEventListener('keydown', function(event) {
