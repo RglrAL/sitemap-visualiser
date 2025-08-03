@@ -1825,13 +1825,17 @@ function calculateTrend(currentValue, previousValue, inverted = false) {
 
 // Modal display function (customize to match your UI style)
 function showDashboardModal(htmlContent) {
-
-    hideDashboardLoading();
-
+    console.log('🎭 showDashboardModal called with content length:', htmlContent?.length);
     
+    hideDashboardLoading();
+    
+    console.log('💡 Loading hidden, checking for existing modal...');
     // Remove existing modal if present
     const existingModal = document.getElementById('unified-dashboard-modal');
-    if (existingModal) existingModal.remove();
+    if (existingModal) {
+        console.log('🗑️ Removing existing modal');
+        existingModal.remove();
+    }
     
     // Create modal backdrop
     const modal = document.createElement('div');
@@ -1902,15 +1906,23 @@ function showDashboardModal(htmlContent) {
     });
     
     // Add dashboard content
+    console.log('📄 Setting modal content HTML...');
     modalContent.innerHTML = htmlContent;
+    console.log('🔘 Adding close button...');
     modalContent.appendChild(closeBtn);
+    console.log('📦 Adding content to modal...');
     modal.appendChild(modalContent);
+    console.log('🌐 Adding modal to document body...');
     document.body.appendChild(modal);
+    console.log('✅ Modal added to DOM, modal element:', modal);
     
     // Show with animation
+    console.log('🎬 Starting modal animation...');
     requestAnimationFrame(() => {
+        console.log('📺 Setting modal opacity and scale...');
         modal.style.opacity = '1';
         modalContent.style.transform = 'scale(1)';
+        console.log('🎉 Modal should now be visible!');
     });
     
     // Close on backdrop click
