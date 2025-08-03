@@ -7331,24 +7331,86 @@ if (!checkIfMobile()) {
         nodeUpdate.select('circle')
             .attr('class', 'node-circle') // Ensure class is set
             .style('pointer-events', 'all') // Ensure clicks are enabled
+            // Re-attach click handlers to ensure they work after updates
+            .on('click.node', function(event, d) {  // Use namespaced events
+                event.stopPropagation();
+                
+                // Hide any tooltip on circle click
+                if (enhancedTooltip) {
+                    enhancedTooltip
+                        .classed("visible", false)
+                        .style("opacity", 0)
+                        .style("pointer-events", "none");
+                }
+                
+                // Handle expand/collapse
+                if (checkIfMobile()) {
+                    handleMobileNodeTap(event, d);
+                } else {
+                    click(event, d);
+                }
+            })
+            .on('touchstart.node', function(event, d) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Trigger the click handler
+                d3.select(this).dispatch('click.node');
+            })
             .transition()
             .duration(duration)
             .attr('r', nodeRadius)
             .style('fill', d => getNodeColour(d));
         
-        // Update text attributes - only update what changed
+        // Update text attributes and re-attach handlers for reliability
         nodeUpdate.select('text')
             .attr('x', d => d.children || d._children ? 
                 (textOffset) : Math.abs(textOffset))
             .text(d => d.displayName)
+            // Re-attach click handlers to ensure text remains clickable
+            .on('click.node', function(event, d) {
+                event.stopPropagation();
+                
+                // Hide any tooltip on text click
+                if (enhancedTooltip) {
+                    enhancedTooltip
+                        .classed("visible", false)
+                        .style("opacity", 0)
+                        .style("pointer-events", "none");
+                }
+                
+                // Handle expand/collapse
+                if (checkIfMobile()) {
+                    handleMobileNodeTap(event, d);
+                } else {
+                    click(event, d);
+                }
+            })
             .transition()
             .duration(duration)
             .style('fill-opacity', 1)
             .style('fill', isDark ? '#ffffff' : '#333333'); // Ensure theme is applied
-            
-            
-            // DON'T reapply event handlers - they're already attached during node creation
-            // This prevents duplicate handlers which cause unclickable nodes
+
+        // Re-attach hover handlers for desktop text
+        if (!checkIfMobile()) {
+            nodeUpdate.select('text')
+                .on('mouseenter.node', function(event, d) {
+                    // Visual feedback on hover
+                    d3.select(this)
+                        .style('text-decoration', 'underline')
+                        .style('font-weight', '600');
+                    
+                    handleEnhancedMouseOver(event, d);
+                })
+                .on('mouseleave.node', function(event, d) {
+                    // Remove visual feedback
+                    d3.select(this)
+                        .style('text-decoration', 'none')
+                        .style('font-weight', '500');
+                    
+                    handleEnhancedMouseOut(event, d);
+                });
+        }
         
         // EXIT - Remove old nodes
         const nodeExit = node.exit()
