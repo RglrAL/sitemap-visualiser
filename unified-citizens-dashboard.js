@@ -4,7 +4,6 @@
 (function() {
     'use strict';
 
-    console.log('🚀 Loading Unified Citizens Dashboard...');
 
     // ===========================================
     // UTILITY FUNCTIONS
@@ -854,47 +853,6 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
 }
 
 // HELPER FUNCTIONS FOR DETAILED PANELS
-function createVolumeSurgesPanel(volumeSurges) {
-    if (volumeSurges.length === 0) {
-        return '<div class="no-data">No volume surges detected</div>';
-    }
-    
-    return `
-        <div class="volume-surges-list">
-            ${volumeSurges.map(surge => `
-                <div class="surge-item urgency-${surge.urgencyLevel}">
-                    <div class="surge-query">"${surge.query}"</div>
-                    <div class="surge-metrics">
-                        <div class="metric">
-                            <span class="metric-label">Increase:</span>
-                            <span class="metric-value increase">${surge.percentIncrease}%</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Volume:</span>
-                            <span class="metric-value">${formatNumber(surge.currentImpressions)}</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Category:</span>
-                            <span class="metric-value">${SURGE_CATEGORIES[surge.category]?.icon || '📊'} ${surge.category}</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Citizens Affected:</span>
-                            <span class="metric-value">${surge.estimatedCitizensAffected}</span>
-                        </div>
-                    </div>
-                    <div class="surge-context">
-                        ${surge.contextualFactors.map(factor => `<span class="context-tag">${factor}</span>`).join('')}
-                    </div>
-                    <div class="surge-actions">
-                        ${surge.recommendedActions.slice(0, 2).map(action => `
-                            <div class="recommended-action">${action}</div>
-                        `).join('')}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
 
 // ==================================================
 // MISSING HELPER FUNCTIONS FOR SURGE DETECTION
@@ -1275,13 +1233,6 @@ function analyzeSeasonalPatterns(analysis, currentDate) {
     return patterns;
 }
 
-// FORMAT NUMBER FUNCTION (if not already defined)
-function formatNumber(num) {
-    if (typeof num !== 'number' || isNaN(num)) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return Math.round(num).toLocaleString();
-}
 
 // ADDITIONAL HELPER FUNCTIONS THAT MIGHT BE MISSING
 
@@ -1343,33 +1294,7 @@ if (typeof SURGE_CATEGORIES === 'undefined') {
     window.SURGE_CATEGORIES = SURGE_CATEGORIES;
 }
 
-// ESCAPE HTML FUNCTION (if not already defined)
-if (typeof escapeHtml === 'undefined') {
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    // Make it available globally
-    window.escapeHtml = escapeHtml;
-}
 
-// GET CTR BENCHMARK FUNCTION (if not already defined)
-if (typeof getCTRBenchmark === 'undefined') {
-    function getCTRBenchmark(position) {
-        if (position <= 1) return 0.28;
-        if (position <= 2) return 0.15;
-        if (position <= 3) return 0.11;
-        if (position <= 5) return 0.06;
-        if (position <= 10) return 0.03;
-        return 0.01;
-    }
-    
-    // Make it available globally
-    window.getCTRBenchmark = getCTRBenchmark;
-}
 
 // CATEGORIZE SURGE QUERY FUNCTION (ensure it's available)
 if (typeof categorizeSurgeQuery === 'undefined') {
@@ -1476,30 +1401,7 @@ window.safeExecuteSurgeDetection = safeExecuteSurgeDetection;
 window.safeGetQuery = safeGetQuery;
 window.safeGetMetric = safeGetMetric;
 
-console.log('✅ All Surge Detection helper functions loaded successfully!');
-console.log('📋 Functions available:', [
-    'createVolumeSurgesPanel',
-    'createEmergingTopicsPanel', 
-    'createUnmetNeedsPanel',
-    'createCriticalAlert',
-    'createUnmetNeedAlert',
-    'createEmergingQueryObject',
-    'createUnmetNeedObject',
-    'estimateAffectedCitizens',
-    'generateQuerySpecificActions',
-    'getHistoricalContext',
-    'findRelatedQueries',
-    'assessBusinessImpact',
-    'identifyTrendingTopics',
-    'analyzeSeasonalPatterns',
-    'safeExecuteSurgeDetection'
-]);
 
-function formatNumber(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-}
 
 
 
@@ -4653,7 +4555,6 @@ function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
 window.createGovernmentIntelligencePanel = createGovernmentIntelligencePanel;
 window.createSafeCitizenNeedSurgeDetection = createSafeCitizenNeedSurgeDetection;
 
-console.log('✅ Safe Government Intelligence Panel functions loaded!');
 
 
 
@@ -5502,10 +5403,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             }
 
 
-/* ================================================== */
 /* SURGE DETECTION SYSTEM STYLES */
-/* Comprehensive styling for citizen need surge detection */
-/* ================================================== */
 
 /* Main Container */
 .surge-detection-enhanced {
@@ -10243,6 +10141,376 @@ function formatDuration(seconds) {
                     }
                 }
                 
+                /* Mobile Tab Navigation */
+                @media (max-width: 768px) {
+                    .dashboard-tabs {
+                        position: relative;
+                    }
+                    
+                    .tab-nav {
+                        flex-direction: column;
+                        overflow-x: visible;
+                        background: white;
+                        border-radius: 0 0 12px 12px;
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+                        border: 1px solid #e2e8f0;
+                        border-top: none;
+                    }
+                    
+                    /* Add mobile tab toggle */
+                    .mobile-tab-toggle {
+                        display: block !important; /* Override inline style */
+                        width: 100%;
+                        padding: 16px 20px;
+                        background: #4f46e5;
+                        color: white;
+                        border: none;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        position: relative;
+                        border-radius: 8px 8px 0 0;
+                        min-height: 44px; /* Touch-friendly */
+                        text-align: left;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    }
+                    
+                    .mobile-menu-text {
+                        font-weight: 500;
+                        opacity: 0.9;
+                    }
+                    
+                    .current-tab-label {
+                        font-weight: 700;
+                        color: #ffffff;
+                    }
+                    
+                    .mobile-tab-toggle::after {
+                        content: '▼';
+                        font-size: 14px;
+                        margin-left: 12px;
+                        transition: transform 0.2s ease;
+                        opacity: 0.8;
+                    }
+                    
+                    .mobile-tab-toggle.collapsed::after {
+                        transform: rotate(-90deg);
+                    }
+                    
+                    .tab-nav.collapsed {
+                        max-height: 0;
+                        overflow: hidden;
+                        transition: max-height 0.3s ease;
+                    }
+                    
+                    .tab-nav.expanded {
+                        max-height: 300px;
+                        transition: max-height 0.3s ease;
+                    }
+                    
+                    .tab-btn {
+                        flex: none;
+                        min-width: auto;
+                        width: 100%;
+                        padding: 16px 20px;
+                        text-align: left;
+                        justify-content: flex-start;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        border-bottom: 1px solid #e2e8f0;
+                        border-radius: 0;
+                        min-height: 60px; /* More space for descriptions */
+                        background: white;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .tab-btn:last-child {
+                        border-bottom: none;
+                    }
+                    
+                    .tab-btn:hover {
+                        background: #f8fafc;
+                        transform: translateX(4px);
+                    }
+                    
+                    .tab-btn.active {
+                        background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+                        border-left: 5px solid #4f46e5;
+                        border-bottom-color: transparent;
+                        box-shadow: inset 0 1px 3px rgba(79, 70, 229, 0.1);
+                    }
+                    
+                    .tab-btn.active::after {
+                        display: none; /* Remove bottom border indicator */
+                    }
+                    
+                    .tab-header {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 4px;
+                        width: 100%;
+                    }
+                    
+                    .tab-icon {
+                        margin-right: 12px;
+                        font-size: 18px;
+                        min-width: 20px;
+                    }
+                    
+                    .tab-label {
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: #1f2937;
+                        flex-grow: 1;
+                    }
+                    
+                    .tab-description {
+                        font-size: 12px;
+                        color: #6b7280;
+                        line-height: 1.3;
+                        margin-left: 32px; /* Align with label */
+                        font-weight: 400;
+                    }
+                    
+                    .tab-btn.active .tab-label {
+                        color: #4f46e5;
+                        font-weight: 700;
+                    }
+                    
+                    .tab-btn.active .tab-description {
+                        color: #5b21b6;
+                    }
+                    
+                    /* Compact mobile header */
+                    .dashboard-header h1 {
+                        font-size: 20px;
+                    }
+                    
+                    .panel-content {
+                        padding: 20px 16px;
+                    }
+                    
+                    /* Enhanced Touch Targets for Mobile */
+                    .breakdown-btn {
+                        min-height: 44px;
+                        padding: 12px 20px;
+                        font-size: 14px;
+                        margin: 8px 4px;
+                        border-radius: 12px;
+                    }
+                    
+                    .alert-action-btn {
+                        min-height: 44px;
+                        padding: 12px 20px;
+                        font-size: 14px;
+                        margin: 8px 4px;
+                        border-radius: 12px;
+                    }
+                    
+                    .header-refresh-btn {
+                        min-height: 48px;
+                        padding: 14px 24px;
+                        font-size: 15px;
+                        border-radius: 16px;
+                        width: 100%;
+                        justify-content: center;
+                        margin: 12px 0;
+                    }
+                    
+                    /* Surge Detection Tabs */
+                    .surge-tab {
+                        min-height: 44px;
+                        padding: 12px 16px;
+                        font-size: 14px;
+                        border-radius: 8px;
+                        margin: 4px 2px;
+                    }
+                    
+                    /* Help Button */
+                    .help-btn {
+                        min-height: 44px;
+                        min-width: 44px;
+                        padding: 12px;
+                        font-size: 18px;
+                        border-radius: 12px;
+                        margin: 8px 4px;
+                    }
+                    
+                    /* Clickable Elements */
+                    .clickable {
+                        min-height: 44px;
+                        padding: 12px 16px;
+                        border-radius: 8px;
+                        margin: 4px 0;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .clickable:hover,
+                    .clickable:focus {
+                        background-color: rgba(79, 70, 229, 0.1);
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    }
+                    
+                    /* Service and Intent Bars */
+                    .service-bar,
+                    .intent-bar {
+                        min-height: 48px;
+                        padding: 14px 16px;
+                        margin: 8px 0;
+                        border-radius: 12px;
+                        font-size: 14px;
+                    }
+                    
+                    /* Tab Badge for Mobile */
+                    .tab-badge {
+                        min-height: 24px;
+                        min-width: 24px;
+                        padding: 4px 8px;
+                        font-size: 12px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    /* Filter Buttons */
+                    .filter-btn,
+                    .toggle-btn {
+                        min-height: 44px;
+                        padding: 12px 20px;
+                        font-size: 14px;
+                        border-radius: 12px;
+                        margin: 6px 4px;
+                    }
+                    
+                    /* Improved Focus States for Accessibility */
+                    .tab-btn:focus,
+                    .breakdown-btn:focus,
+                    .alert-action-btn:focus,
+                    .header-refresh-btn:focus,
+                    .surge-tab:focus,
+                    .help-btn:focus,
+                    .clickable:focus {
+                        outline: 3px solid #4f46e5;
+                        outline-offset: 2px;
+                        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+                    }
+                    
+                    /* Touch-friendly spacing */
+                    .section {
+                        margin-bottom: 24px;
+                        padding: 20px 16px;
+                    }
+                    
+                    .section-title {
+                        font-size: 18px;
+                        margin-bottom: 16px;
+                        line-height: 1.4;
+                    }
+                    
+                    /* Better button groups */
+                    .button-group {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                        margin: 16px 0;
+                    }
+                    
+                    .button-group .btn {
+                        flex: 1;
+                        min-width: 120px;
+                        min-height: 44px;
+                    }
+                    
+                    /* Mobile Form Elements */
+                    input[type="text"],
+                    input[type="search"],
+                    select,
+                    textarea {
+                        min-height: 44px;
+                        padding: 12px 16px;
+                        font-size: 16px; /* Prevents zoom on iOS */
+                        border-radius: 12px;
+                        border: 2px solid #e2e8f0;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    input:focus,
+                    select:focus,
+                    textarea:focus {
+                        border-color: #4f46e5;
+                        outline: none;
+                        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                    }
+                    
+                    /* Mobile-friendly tooltips */
+                    [data-tooltip] {
+                        position: relative;
+                    }
+                    
+                    /* Improved mobile cards */
+                    .card,
+                    .panel {
+                        margin: 12px 0;
+                        padding: 20px 16px;
+                        border-radius: 16px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    }
+                    
+                    /* Better mobile typography */
+                    h1, h2, h3, h4, h5, h6 {
+                        line-height: 1.3;
+                        margin-bottom: 12px;
+                    }
+                    
+                    p, li {
+                        line-height: 1.5;
+                        font-size: 14px;
+                    }
+                    
+                    /* Mobile-optimized grid layouts */
+                    .grid {
+                        display: grid;
+                        gap: 16px;
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .grid-2 {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                    
+                    /* Improved mobile navigation */
+                    .breadcrumb {
+                        font-size: 12px;
+                        padding: 8px 0;
+                    }
+                    
+                    /* Mobile-friendly loading states */
+                    .loading {
+                        min-height: 60px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    .spinner {
+                        width: 24px;
+                        height: 24px;
+                        border: 3px solid #e2e8f0;
+                        border-top: 3px solid #4f46e5;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    }
+                    
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                }
+                
                 .panel-content {
                     padding: 30px;
                 }
@@ -11977,31 +12245,45 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
             
             
             <div class="dashboard-tabs">
+                <button class="mobile-tab-toggle" onclick="toggleMobileTabs()" style="display: none;" aria-label="Toggle dashboard navigation menu">
+                    <span class="mobile-menu-text">📊 Dashboard Menu: </span>
+                    <span class="current-tab-label">Overview</span>
+                </button>
                 <div class="tab-nav">
                     <button class="tab-btn active" data-tab="overview">
-                        <span class="tab-icon">📊</span>
-                        <span class="tab-label">Overview</span>
+                        <div class="tab-header">
+                            <span class="tab-icon">📊</span>
+                            <span class="tab-label">Overview</span>
+                        </div>
+                        <div class="tab-description">Key metrics and performance summary</div>
                     </button>
                     <button class="tab-btn" data-tab="search">
-                        <span class="tab-icon"> <svg width="16" height="16" viewBox="0 0 24 24" style="opacity: 0.7;">
-                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg></span>
-                        <span class="tab-label">Search Performance</span>
+                        <div class="tab-header">
+                            <span class="tab-icon">🔍</span>
+                            <span class="tab-label">Search Performance</span>
+                        </div>
+                        <div class="tab-description">GSC clicks, impressions, and rankings</div>
                     </button>
                     <button class="tab-btn" data-tab="content">
-                        <span class="tab-icon">📝</span>
-                        <span class="tab-label">Content Analysis</span>
+                        <div class="tab-header">
+                            <span class="tab-icon">📝</span>
+                            <span class="tab-label">Content Analysis</span>
+                        </div>
+                        <div class="tab-description">Content quality and user engagement</div>
                     </button>
                     <button class="tab-btn" data-tab="government">
-                        <span class="tab-icon">🏛️</span>
-                        <span class="tab-label">Government Benchmarks</span>
+                        <div class="tab-header">
+                            <span class="tab-icon">🏛️</span>
+                            <span class="tab-label">Government Benchmarks</span>
+                        </div>
+                        <div class="tab-description">Compare against public sector standards</div>
                     </button>
                     <button class="tab-btn" data-tab="geographic">
-                        <span class="tab-icon">🌍</span>
-                        <span class="tab-label">Geographic Intelligence</span>
+                        <div class="tab-header">
+                            <span class="tab-icon">🌍</span>
+                            <span class="tab-label">Geographic Intelligence</span>
+                        </div>
+                        <div class="tab-description">Regional performance and insights</div>
                     </button>
                 </div>
                 
@@ -12094,6 +12376,81 @@ function initializeUnifiedDashboard(dashboardId) {
                 console.error('❌ Target panel not found:', targetTab);
             }
         });
+    });
+    
+    // Add mobile tab toggle functionality
+    window.toggleMobileTabs = function() {
+        const tabNav = document.querySelector('.tab-nav');
+        const toggleBtn = document.querySelector('.mobile-tab-toggle');
+        
+        if (tabNav && toggleBtn) {
+            if (tabNav.classList.contains('collapsed')) {
+                tabNav.classList.remove('collapsed');
+                tabNav.classList.add('expanded');
+                toggleBtn.classList.remove('collapsed');
+            } else {
+                tabNav.classList.add('collapsed');
+                tabNav.classList.remove('expanded');
+                toggleBtn.classList.add('collapsed');
+            }
+        }
+    };
+    
+    // Update mobile toggle label when tab changes
+    dashboard.addEventListener('click', function(e) {
+        if (e.target.closest('.tab-btn')) {
+            const clickedTab = e.target.closest('.tab-btn');
+            const tabLabelElement = clickedTab.querySelector('.tab-label');
+            const tabLabel = tabLabelElement ? tabLabelElement.textContent : 'Dashboard';
+            const mobileToggle = document.querySelector('.current-tab-label');
+            
+            if (mobileToggle) {
+                mobileToggle.textContent = tabLabel;
+            }
+            
+            // Auto-collapse mobile nav after selection
+            const tabNav = document.querySelector('.tab-nav');
+            if (window.innerWidth <= 768 && tabNav) {
+                tabNav.classList.add('collapsed');
+                tabNav.classList.remove('expanded');
+                document.querySelector('.mobile-tab-toggle')?.classList.add('collapsed');
+            }
+        }
+    });
+    
+    // Initialize mobile tab state on load
+    if (window.innerWidth <= 768) {
+        setTimeout(() => {
+            const tabNav = document.querySelector('.tab-nav');
+            if (tabNav) {
+                tabNav.classList.add('collapsed');
+                document.querySelector('.mobile-tab-toggle')?.classList.add('collapsed');
+            }
+        }, 100);
+    }
+    
+    // Handle window resize for responsive behavior
+    window.addEventListener('resize', function() {
+        const tabNav = document.querySelector('.tab-nav');
+        const toggleBtn = document.querySelector('.mobile-tab-toggle');
+        
+        if (window.innerWidth > 768) {
+            // Desktop: Reset mobile states
+            if (tabNav) {
+                tabNav.classList.remove('collapsed', 'expanded');
+            }
+            if (toggleBtn) {
+                toggleBtn.classList.remove('collapsed');
+            }
+        } else {
+            // Mobile: Initialize collapsed state
+            if (tabNav && !tabNav.classList.contains('expanded')) {
+                tabNav.classList.add('collapsed');
+            }
+            if (toggleBtn && !tabNav?.classList.contains('expanded')) {
+                toggleBtn.classList.add('collapsed');
+            }
+        }
     });
     
     // Handle both quality and impact breakdown toggles
@@ -13492,35 +13849,8 @@ function getIntentIcon(intent) {
     return icons[intent] || '💡';
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
 
-function formatNumber(num) {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    } else if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-}
 
-function getCTRBenchmark(position) {
-    const benchmarks = {
-        1: 0.284, 2: 0.155, 3: 0.110, 4: 0.077, 5: 0.061,
-        6: 0.050, 7: 0.041, 8: 0.034, 9: 0.029, 10: 0.025
-    };
-    
-    if (position <= 10) {
-        return benchmarks[Math.round(position)] || benchmarks[10];
-    } else if (position <= 20) {
-        return 0.015;
-    } else {
-        return 0.005;
-    }
-}
 
 // STYLING AND INITIALIZATION
 function createCitizenQueryIntelligenceStyles() {
@@ -15354,12 +15684,6 @@ if (document.readyState === 'loading') {
 // MISSING HELPER FUNCTIONS FROM YOUR ORIGINAL CODE
 // ==================================================
 
-function formatNumberEnhanced(num) {
-    if (typeof num !== 'number' || isNaN(num)) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return Math.round(num).toLocaleString();
-}
 
 function formatRegionNameEnhanced(region) {
     return region.replace(/^(County|City)\s+/i, '').trim();
