@@ -1249,6 +1249,26 @@ body.dark-theme .tooltip-header > span:first-child {
         .node.transitioning circle {
             will-change: auto;
         }
+        
+        /* Focus Mode Styles */
+        .node.focus-dimmed {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        .node.focus-highlight {
+            opacity: 1;
+            filter: drop-shadow(0 0 10px rgba(114, 163, 0, 0.5));
+        }
+        
+        .link.focus-dimmed {
+            opacity: 0.2;
+        }
+        
+        .link.focus-highlight {
+            opacity: 1;
+            stroke-width: 3px;
+        }
 
         /* Dark Mode */
         body.dark-theme {
@@ -6469,6 +6489,9 @@ window.loadQuickSite = async function(url) {
             
             createVisualization();
             
+            // Initialize 2D tree keyboard navigation
+            init2DKeyboardNavigation();
+            
             // Auto-collapse upload section after successful load
             autoCollapseUploadSection();
             
@@ -7135,6 +7158,17 @@ function reapplyThemeStyles() {
                 </svg>
                 <span class="btn-text">Reset View</span>`);
                 
+            treeControls.append("button")
+                .attr("class", "tree-control-btn")
+                .attr("onclick", "zoomToFit()")
+                .attr("aria-label", "Zoom to Fit")
+                .attr("title", "Fit entire tree in view")
+                .html(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span class="btn-text">Fit to View</span>`);
+                
                 treeControls.append("button")
     .attr("class", "tree-control-btn")
     .attr("id", "freshnessToggleBtn")
@@ -7146,6 +7180,19 @@ function reapplyThemeStyles() {
         <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
     </svg>
     <span class="btn-text">Freshness</span>`);
+    
+    treeControls.append("button")
+        .attr("class", "tree-control-btn")
+        .attr("id", "focusModeBtn")
+        .attr("onclick", "toggleFocusMode()")
+        .attr("aria-label", "Toggle Focus Mode")
+        .attr("title", "Dim distant branches for better focus")
+        .html(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+            <circle cx="11" cy="11" r="3"></circle>
+        </svg>
+        <span class="btn-text">Focus</span>`);
 
             svg = d3.select("#treeContainer")
         .append("svg")
@@ -7300,6 +7347,7 @@ function reapplyThemeStyles() {
         // ENTER - Create new nodes
         const nodeEnter = node.enter().append('g')
     .attr('class', 'node')
+    .attr('data-node-id', d => d.id || d.data?.id || Math.random())
     .attr('transform', d => `translate(${source.y0},${source.x0})`)
     .style('cursor', 'pointer');
 
@@ -8172,13 +8220,295 @@ function cleanupVisualization() {
 
 
 
+        // 2D Tree UX Enhancement Functions
+        function scrollToNode(node) {
+            const treeContainer = document.getElementById('treeContainer');
+            if (!treeContainer || !node) return;
+            
+            // Try to find the actual SVG node element
+            const nodeElements = g.selectAll('g.node').nodes();
+            let targetElement = null;
+            
+            // Find the DOM element that corresponds to our data node
+            for (let element of nodeElements) {
+                const elementData = d3.select(element).datum();
+                if (elementData === node || elementData.id === node.id || 
+                    (elementData.data && elementData.data.name === node.data?.name)) {
+                    targetElement = element;
+                    break;
+                }
+            }
+            
+            if (targetElement) {
+                // Get the actual transform of the node
+                const transform = targetElement.getAttribute('transform');
+                const match = transform.match(/translate\(([^,]+),([^)]+)\)/);
+                
+                if (match) {
+                    const nodeX = parseFloat(match[1]);
+                    const nodeY = parseFloat(match[2]);
+                    
+                    // Account for the SVG's position within the container
+                    const svg = document.querySelector('#treeContainer svg');
+                    const svgRect = svg.getBoundingClientRect();
+                    const containerRect = treeContainer.getBoundingClientRect();
+                    
+                    // Calculate target scroll position to center the node
+                    const targetScrollLeft = nodeX - (containerRect.width / 2);
+                    const targetScrollTop = nodeY - (containerRect.height / 2);
+                    
+                    // Smooth scroll to node
+                    treeContainer.scrollTo({
+                        left: Math.max(0, targetScrollLeft),
+                        top: Math.max(0, targetScrollTop),
+                        behavior: 'smooth'
+                    });
+                    
+                    return; // Successfully scrolled
+                }
+            }
+            
+            // Fallback: Use node's layout coordinates if available
+            if (node.x !== undefined && node.y !== undefined) {
+                treeContainer.scrollTo({
+                    left: Math.max(0, node.y - (treeContainer.clientWidth / 2)),
+                    top: Math.max(0, node.x - (treeContainer.clientHeight / 2)),
+                    behavior: 'smooth'
+                });
+            }
+        }
+        
+        function highlightNodePath(targetNode) {
+            if (!targetNode) return;
+            
+            // Clear previous highlights
+            clearNodeHighlights();
+            
+            // Build path from root to target node
+            const pathNodes = [];
+            let current = targetNode;
+            
+            // Traverse up to root
+            while (current) {
+                pathNodes.unshift(current);
+                current = current.parent;
+            }
+            
+            // Apply visual effects to path nodes
+            pathNodes.forEach((node, index) => {
+                const nodeGroup = g.selectAll('g.node').filter(d => d === node);
+                
+                if (index === pathNodes.length - 1) {
+                    // Target node - strongest highlight
+                    nodeGroup.select('circle')
+                        .transition()
+                        .duration(300)
+                        .style('fill', '#ff6b6b')
+                        .style('stroke', '#ff6b6b')
+                        .style('stroke-width', '4px')
+                        .style('filter', 'drop-shadow(0 4px 12px rgba(255, 107, 107, 0.5))');
+                        
+                    nodeGroup.select('text')
+                        .transition()
+                        .duration(300)
+                        .style('font-weight', 'bold')
+                        .style('font-size', '14px')
+                        .style('fill', '#ff6b6b');
+                } else {
+                    // Path nodes - secondary highlight
+                    const intensity = (pathNodes.length - index) / pathNodes.length;
+                    const color = `rgba(78, 205, 196, ${intensity})`;
+                    
+                    nodeGroup.select('circle')
+                        .transition()
+                        .duration(300)
+                        .style('stroke', '#4ecdc4')
+                        .style('stroke-width', '3px')
+                        .style('filter', `drop-shadow(0 2px 8px ${color})`);
+                        
+                    nodeGroup.select('text')
+                        .transition()
+                        .duration(300)
+                        .style('fill', '#4ecdc4')
+                        .style('font-weight', '600');
+                }
+            });
+            
+            // Highlight connecting links in the path
+            for (let i = 0; i < pathNodes.length - 1; i++) {
+                const source = pathNodes[i];
+                const target = pathNodes[i + 1];
+                
+                g.selectAll('path.link')
+                    .filter(d => (d.source === source && d.target === target) || 
+                                (d.target === source && d.source === target))
+                    .transition()
+                    .duration(300)
+                    .style('stroke', '#4ecdc4')
+                    .style('stroke-width', '3px')
+                    .style('filter', 'drop-shadow(0 2px 6px rgba(78, 205, 196, 0.3))');
+            }
+            
+            // Auto-clear highlights after 3 seconds
+            setTimeout(clearNodeHighlights, 3000);
+        }
+        
+        function clearNodeHighlights() {
+            const isDark = document.body.classList.contains('dark-theme');
+            
+            // Reset all nodes to default styling
+            g.selectAll('g.node circle')
+                .transition()
+                .duration(500)
+                .style('fill', d => d._children ? 'lightsteelblue' : '#fff')
+                .style('stroke', '#fff')
+                .style('stroke-width', '2px')
+                .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+                
+            g.selectAll('g.node text')
+                .transition()
+                .duration(500)
+                .style('fill', isDark ? '#ffffff' : '#333333')
+                .style('font-weight', '500')
+                .style('font-size', null);
+                
+            // Reset all links to default styling
+            g.selectAll('path.link')
+                .transition()
+                .duration(500)
+                .style('stroke', isDark ? '#555' : '#ccc')
+                .style('stroke-width', '1.5px')
+                .style('filter', null);
+        }
+        
+        // Enhanced search navigation with visual feedback
+        function enhancedNavigateToResult(index) {
+            if (!searchResults || searchResults.length === 0) return;
+            
+            currentResultIndex = index;
+            const targetNode = searchResults[currentResultIndex];
+            
+            // Expand path and scroll to node
+            expandPathToNode(targetNode);
+            
+            // Wait for expansion animation, then highlight and scroll
+            setTimeout(() => {
+                highlightNodePath(targetNode);
+                scrollToNode(targetNode);
+                updateBreadcrumb(targetNode);
+                updateSearchUI();
+            }, 800);
+        }
+        
+        // Keyboard navigation for 2D tree
+        function init2DKeyboardNavigation() {
+            let focusedNode = root;
+            
+            document.addEventListener('keydown', (event) => {
+                // Don't interfere with typing in input fields
+                if (document.activeElement && (
+                    document.activeElement.tagName === 'INPUT' || 
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.contentEditable === 'true'
+                )) {
+                    return;
+                }
+                
+                if (currentView !== 'tree' || !focusedNode) return;
+                
+                switch(event.key) {
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        if (focusedNode.children && focusedNode.children.length > 0) {
+                            focusedNode = focusedNode.children[0];
+                            highlightNodePath(focusedNode);
+                            scrollToNode(focusedNode);
+                        }
+                        break;
+                        
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        if (focusedNode.parent) {
+                            focusedNode = focusedNode.parent;
+                            highlightNodePath(focusedNode);
+                            scrollToNode(focusedNode);
+                        }
+                        break;
+                        
+                    case 'ArrowRight':
+                        event.preventDefault();
+                        if (focusedNode.parent && focusedNode.parent.children) {
+                            const siblings = focusedNode.parent.children;
+                            const currentIndex = siblings.indexOf(focusedNode);
+                            if (currentIndex < siblings.length - 1) {
+                                focusedNode = siblings[currentIndex + 1];
+                                highlightNodePath(focusedNode);
+                                scrollToNode(focusedNode);
+                            }
+                        }
+                        break;
+                        
+                    case 'ArrowLeft':
+                        event.preventDefault();
+                        if (focusedNode.parent && focusedNode.parent.children) {
+                            const siblings = focusedNode.parent.children;
+                            const currentIndex = siblings.indexOf(focusedNode);
+                            if (currentIndex > 0) {
+                                focusedNode = siblings[currentIndex - 1];
+                                highlightNodePath(focusedNode);
+                                scrollToNode(focusedNode);
+                            }
+                        }
+                        break;
+                        
+                    case 'Enter':
+                    case ' ':
+                        event.preventDefault();
+                        if (focusedNode) {
+                            const fakeEvent = { stopPropagation: () => {} };
+                            click(fakeEvent, focusedNode);
+                        }
+                        break;
+                        
+                    case 'Escape':
+                        event.preventDefault();
+                        clearNodeHighlights();
+                        focusedNode = root;
+                        break;
+                        
+                    case 'Home':
+                        event.preventDefault();
+                        focusedNode = root;
+                        highlightNodePath(focusedNode);
+                        scrollToNode(focusedNode);
+                        break;
+                }
+            });
+        }
+
         function click(event, d) {
+    // Auto-scroll to focused node for better UX
+    scrollToNode(d);
+    
+    // Apply visual focus effects
+    highlightNodePath(d);
+    
+    // Smart auto-collapse feature
+    const wasExpanding = !d.children && d._children; // About to expand
+    
     if (d.children) {
+        // Collapsing
         d._children = d.children;
         d.children = null;
     } else {
+        // Expanding
         d.children = d._children;
         d._children = null;
+        
+        // Auto-collapse distant branches when expanding
+        if (wasExpanding && root) {
+            autoCollapseSiblings(d);
+        }
     }
     
     // Recalculate tree size for better spacing
@@ -8372,6 +8702,143 @@ function calculateDynamicHeight(node) {
                         .translate(currentTransform.x, currentTransform.y)
                         .scale(newScale)
                 );
+        }
+        
+        // Auto-collapse distant siblings when expanding a node
+        function autoCollapseSiblings(expandedNode) {
+            if (!root || !expandedNode.parent) return;
+            
+            // Find siblings at the same level
+            const siblings = expandedNode.parent.children || [];
+            
+            siblings.forEach(sibling => {
+                // Collapse siblings that are not the expanded node and not ancestors
+                if (sibling !== expandedNode && sibling.children) {
+                    // Check if this sibling is more than 2 levels away from the expanded node
+                    const distance = getNodeDistance(expandedNode, sibling);
+                    if (distance > 2) {
+                        sibling._children = sibling.children;
+                        sibling.children = null;
+                    }
+                }
+            });
+            
+            // Also collapse distant cousins (same level, different parent)
+            if (expandedNode.parent.parent) {
+                const uncles = expandedNode.parent.parent.children || [];
+                uncles.forEach(uncle => {
+                    if (uncle !== expandedNode.parent && uncle.children) {
+                        uncle.children.forEach(cousin => {
+                            if (cousin.children) {
+                                cousin._children = cousin.children;
+                                cousin.children = null;
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Calculate distance between two nodes in the tree
+        function getNodeDistance(node1, node2) {
+            const path1 = getPathToRoot(node1);
+            const path2 = getPathToRoot(node2);
+            
+            // Find common ancestor
+            let commonAncestorDepth = 0;
+            for (let i = 0; i < Math.min(path1.length, path2.length); i++) {
+                if (path1[i] === path2[i]) {
+                    commonAncestorDepth = i + 1;
+                } else {
+                    break;
+                }
+            }
+            
+            return (path1.length - commonAncestorDepth) + (path2.length - commonAncestorDepth);
+        }
+        
+        // Get path from node to root
+        function getPathToRoot(node) {
+            const path = [];
+            let current = node;
+            while (current) {
+                path.unshift(current);
+                current = current.parent;
+            }
+            return path;
+        }
+        
+        // Zoom to Fit function
+        window.zoomToFit = function() {
+            if (!svg || !globalZoom || !g) return;
+            
+            try {
+                // Get all visible nodes
+                const allNodes = g.selectAll('g.node').nodes();
+                if (allNodes.length === 0) return;
+                
+                // Calculate bounding box of all nodes
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                
+                allNodes.forEach(nodeElement => {
+                    const transform = nodeElement.getAttribute('transform');
+                    if (transform) {
+                        const match = transform.match(/translate\(([^,]+),([^)]+)\)/);
+                        if (match) {
+                            const x = parseFloat(match[1]);
+                            const y = parseFloat(match[2]);
+                            minX = Math.min(minX, x);
+                            maxX = Math.max(maxX, x);
+                            minY = Math.min(minY, y);
+                            maxY = Math.max(maxY, y);
+                        }
+                    }
+                });
+                
+                // Add padding
+                const padding = 50;
+                const contentWidth = maxX - minX + 2 * padding;
+                const contentHeight = maxY - minY + 2 * padding;
+                
+                // Get SVG dimensions
+                const svgRect = svg.node().getBoundingClientRect();
+                const svgWidth = svgRect.width;
+                const svgHeight = svgRect.height;
+                
+                // Calculate scale to fit
+                const scaleX = svgWidth / contentWidth;
+                const scaleY = svgHeight / contentHeight;
+                const scale = Math.min(scaleX, scaleY, 2); // Max scale of 2x
+                
+                // Calculate center position
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + minY) / 2;
+                const translateX = svgWidth / 2 - centerX * scale;
+                const translateY = svgHeight / 2 - centerY * scale;
+                
+                // Apply the transform with smooth transition
+                svg.transition()
+                    .duration(750)
+                    .call(
+                        globalZoom.transform,
+                        d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+                    );
+                    
+                // Visual feedback
+                const btn = document.querySelector('.tree-control-btn[aria-label="Zoom to Fit"]');
+                if (btn) {
+                    btn.style.background = 'var(--success)';
+                    btn.style.color = 'white';
+                    setTimeout(() => {
+                        btn.style.background = '';
+                        btn.style.color = '';
+                    }, 500);
+                }
+                
+            } catch (error) {
+                console.error("Error in zoomToFit:", error);
+            }
         }
         
         
@@ -8874,14 +9341,14 @@ searchTimeout = setTimeout(() => {
             if (searchResults.length === 0) return;
             
             const nextIndex = (currentResultIndex + 1) % searchResults.length;
-            navigateToResult(nextIndex);
+            enhancedNavigateToResult(nextIndex);
         }
 
         function navigateToPreviousResult() {
             if (searchResults.length === 0) return;
             
             const prevIndex = currentResultIndex - 1 < 0 ? searchResults.length - 1 : currentResultIndex - 1;
-            navigateToResult(prevIndex);
+            enhancedNavigateToResult(prevIndex);
         }
 
         function updateSearchUI() {
@@ -13085,6 +13552,9 @@ function show3DView() {
     
     addStats3D();
     optimizeRendering();
+    
+    // Initialize keyboard navigation for 3D view
+    initKeyboardNavigation();
 }
 
 // Add a control to toggle labels
@@ -14844,27 +15314,256 @@ function toggleControlPanel3D() {
     }
 }
 
+// Contextual shading system for unfocused nodes
+function applyContextualShading(focusedNode) {
+    if (!Graph3D || !focusedNode) return;
+    
+    // Get all related nodes (parent, children, siblings)
+    const relatedNodes = getRelatedNodes(focusedNode);
+    
+    // Apply opacity based on relationship to focused node
+    Graph3D.nodeColor(node => {
+        if (node.id === focusedNode.id) {
+            // Focused node - bright highlight
+            return '#ff6b6b';
+        } else if (relatedNodes.parents.has(node.id)) {
+            // Parent nodes - secondary highlight
+            return '#4ecdc4';
+        } else if (relatedNodes.children.has(node.id)) {
+            // Child nodes - tertiary highlight  
+            return '#ffe66d';
+        } else if (relatedNodes.siblings.has(node.id)) {
+            // Sibling nodes - subtle highlight
+            return '#a8e6cf';
+        } else {
+            // Unrelated nodes - dimmed
+            const originalColor = getNodeColor3D(node);
+            return dimColor(originalColor, 0.3);
+        }
+    });
+    
+    // Adjust link opacity too
+    Graph3D.linkColor(link => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        
+        if (sourceId === focusedNode.id || targetId === focusedNode.id) {
+            return '#ff6b6b'; // Connected links bright
+        } else if (relatedNodes.all.has(sourceId) && relatedNodes.all.has(targetId)) {
+            return '#666666'; // Related links normal
+        } else {
+            return '#333333'; // Unrelated links dimmed
+        }
+    });
+}
+
+// Get nodes related to the focused node
+function getRelatedNodes(focusedNode) {
+    const parents = new Set();
+    const children = new Set();
+    const siblings = new Set();
+    
+    // Find direct relationships
+    graphData.links.forEach(link => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        
+        if (sourceId === focusedNode.id) {
+            children.add(targetId);
+        } else if (targetId === focusedNode.id) {
+            parents.add(sourceId);
+        }
+    });
+    
+    // Find siblings (nodes with same parent)
+    parents.forEach(parentId => {
+        graphData.links.forEach(link => {
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            
+            if (sourceId === parentId && targetId !== focusedNode.id) {
+                siblings.add(targetId);
+            }
+        });
+    });
+    
+    const all = new Set([...parents, ...children, ...siblings, focusedNode.id]);
+    
+    return { parents, children, siblings, all };
+}
+
+// Utility function to dim a color
+function dimColor(color, factor) {
+    if (color.startsWith('#')) {
+        const r = parseInt(color.substr(1, 2), 16);
+        const g = parseInt(color.substr(3, 2), 16);
+        const b = parseInt(color.substr(5, 2), 16);
+        
+        const dimR = Math.floor(r * factor);
+        const dimG = Math.floor(g * factor);
+        const dimB = Math.floor(b * factor);
+        
+        return `#${dimR.toString(16).padStart(2, '0')}${dimG.toString(16).padStart(2, '0')}${dimB.toString(16).padStart(2, '0')}`;
+    }
+    return color;
+}
+
+// Clear contextual shading (reset to normal)
+function clearContextualShading() {
+    if (!Graph3D) return;
+    
+    Graph3D.nodeColor(node => getNodeColor3D(node));
+    Graph3D.linkColor(link => getLinkColor3D(link));
+}
+
+// Enhanced zoom system with smooth transitions
+let zoomState = {
+    level: 1,
+    targetNode: null,
+    isAnimating: false
+};
+
+function smoothZoomToNode(node, zoomLevel = 2, duration = 1500) {
+    if (!Graph3D || !node || zoomState.isAnimating) return;
+    
+    zoomState.isAnimating = true;
+    zoomState.targetNode = node;
+    zoomState.level = zoomLevel;
+    
+    const nodePos = {
+        x: node.x || 0,
+        y: node.y || 0,
+        z: node.z || 0
+    };
+    
+    // Calculate optimal camera distance based on zoom level
+    const baseDistance = 100;
+    const distance = baseDistance / zoomLevel;
+    const distRatio = 1 + distance / Math.hypot(nodePos.x, nodePos.y, nodePos.z);
+    
+    // Auto-scroll to container
+    const container = document.getElementById('3d-graph-container');
+    if (container) {
+        container.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'center' 
+        });
+    }
+    
+    // Smooth camera transition
+    Graph3D.cameraPosition(
+        {
+            x: nodePos.x * distRatio,
+            y: nodePos.y * distRatio,
+            z: nodePos.z * distRatio
+        },
+        nodePos,
+        duration
+    );
+    
+    // Apply contextual effects
+    setTimeout(() => {
+        applyContextualShading(node);
+        highlightNodeConnections(node);
+        zoomState.isAnimating = false;
+    }, duration * 0.8);
+}
+
+// Connection highlighting system
+function highlightNodeConnections(node) {
+    if (!Graph3D || !node) return;
+    
+    const connectedNodes = new Set();
+    
+    // Find all connected nodes
+    graphData.links.forEach(link => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        
+        if (sourceId === node.id || targetId === node.id) {
+            connectedNodes.add(sourceId);
+            connectedNodes.add(targetId);
+        }
+    });
+    
+    // Enhance link visibility for connected links
+    Graph3D.linkWidth(link => {
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        
+        if ((sourceId === node.id || targetId === node.id)) {
+            return 3; // Thicker for direct connections
+        } else if (connectedNodes.has(sourceId) && connectedNodes.has(targetId)) {
+            return 2; // Medium for related connections
+        }
+        return 1; // Normal for others
+    });
+}
+
+// Viewport management for better navigation
+function resetViewport() {
+    if (!Graph3D) return;
+    
+    zoomState = { level: 1, targetNode: null, isAnimating: false };
+    
+    // Reset to overview
+    Graph3D.cameraPosition(
+        { x: 0, y: 0, z: 1000 }, 
+        { x: 0, y: 0, z: 0 }, 
+        1500
+    );
+    
+    // Reset visual effects
+    clearContextualShading();
+    Graph3D.linkWidth(1); // Reset link widths
+    
+    // Auto-scroll to center
+    const container = document.getElementById('3d-graph-container');
+    if (container) {
+        container.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+    }
+}
+
+// Keyboard navigation system
+function initKeyboardNavigation() {
+    document.addEventListener('keydown', (event) => {
+        if (!is3DViewActive) return;
+        
+        switch(event.key) {
+            case 'Home':
+                event.preventDefault();
+                resetViewport();
+                break;
+            case 'Escape':
+                event.preventDefault();
+                clearContextualShading();
+                break;
+            case '+':
+            case '=':
+                event.preventDefault();
+                if (zoomState.targetNode) {
+                    smoothZoomToNode(zoomState.targetNode, Math.min(zoomState.level * 1.2, 5));
+                }
+                break;
+            case '-':
+                event.preventDefault();
+                if (zoomState.targetNode) {
+                    smoothZoomToNode(zoomState.targetNode, Math.max(zoomState.level * 0.8, 0.5));
+                }
+                break;
+        }
+    });
+}
+
 function focusOnNode3D(node, duration = 1500) {
     if (!Graph3D || !node) return;
     
-    // Ensure node has position data
-    const x = node.x || 0;
-    const y = node.y || 0; 
-    const z = node.z || 0;
-    
-    const distance = 100;
-    const distRatio = 1 + distance / Math.hypot(x, y, z);
-    
-    // Focus on node without hiding others
-    Graph3D.cameraPosition(
-        { 
-            x: x * distRatio,
-            y: y * distRatio,
-            z: z * distRatio
-        },
-        { x, y, z }, // Look at the node
-        duration
-    );
+    // Use the enhanced smooth zoom system
+    smoothZoomToNode(node, 2, duration);
     
     // Make sure we don't accidentally hide nodes
     setTimeout(() => {
