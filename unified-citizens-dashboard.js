@@ -3247,7 +3247,7 @@ function createCleanCountyAnalysis(regions, geoInsights) {
                     <div class="county-performance-item">
                         <div class="county-name">${formatRegionNameEnhanced(region.region)}</div>
                         <div class="county-metrics">
-                            <span class="metric-value">${formatNumberEnhanced(region.users)}</span>
+                            <span class="metric-value">${formatNumber(region.users)}</span>
                             <span class="metric-label">users</span>
                         </div>
                         <div class="county-share">${region.percentage.toFixed(1)}%</div>
@@ -3485,7 +3485,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
     
     // Irish user analysis
     const ireland = countries.find(c => c.country === 'Ireland');
-    const totalIrishUsers = ireland ? formatNumberEnhanced(ireland.users) : '0';
+    const totalIrishUsers = ireland ? formatNumber(ireland.users) : '0';
     
     // International analysis
     const internationalCountries = countries.filter(c => c.country !== 'Ireland');
@@ -3539,7 +3539,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
     return {
         totalIrishUsers,
         dublinPercentage: dublinPercentage.toFixed(1),
-        internationalUsers: formatNumberEnhanced(internationalUsers),
+        internationalUsers: formatNumber(internationalUsers),
         topInternationalCountry,
         countiesCovered,
         coveragePercentage,
@@ -3840,7 +3840,7 @@ function createInteractiveIrelandMap(regions, geoInsights) {
         return `
             <div class="region-bubble ${intensity}" 
                  data-region="${region.region}"
-                 title="${region.region}: ${formatNumberEnhanced(region.users)} users (${region.percentage.toFixed(1)}%)"
+                 title="${region.region}: ${formatNumber(region.users)} users (${region.percentage.toFixed(1)}%)"
                  style="--size: ${Math.max(20, region.percentage * 2)}px; --delay: ${index * 0.1}s">
                 <div class="bubble-content">
                     <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
@@ -3873,7 +3873,7 @@ function createInteractiveWorldMap(countries) {
         return `
             <div class="country-marker" 
                  data-country="${country.country}"
-                 title="${country.country}: ${formatNumberEnhanced(country.users)} users"
+                 title="${country.country}: ${formatNumber(country.users)} users"
                  style="--delay: ${index * 0.2}s">
                 <span class="country-flag">${flag}</span>
                 <span class="country-label">${country.country}</span>
@@ -16311,7 +16311,7 @@ function createCountyAnalysisTable(regions, geoInsights, pageContext) {
             ${regions.slice(0, 10).map(region => `
                 <div class="table-row">
                     <span class="county-name">${formatRegionNameEnhanced(region.region)}</span>
-                    <span class="county-users">${formatNumberEnhanced(region.users)}</span>
+                    <span class="county-users">${formatNumber(region.users)}</span>
                     <span class="county-share">${region.percentage.toFixed(1)}%</span>
                     <span class="county-trend">📈 +2%</span>
                     <span class="county-focus">${getServiceFocus(region, pageContext)}</span>
@@ -16657,7 +16657,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
     
     // Irish user analysis
     const ireland = countries.find(c => c.country === 'Ireland');
-    const totalIrishUsers = ireland ? formatNumberEnhanced(ireland.users) : '0';
+    const totalIrishUsers = ireland ? formatNumber(ireland.users) : '0';
     
     // International analysis
     const internationalCountries = countries.filter(c => c.country !== 'Ireland');
@@ -16711,7 +16711,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
     return {
         totalIrishUsers,
         dublinPercentage: dublinPercentage.toFixed(1),
-        internationalUsers: formatNumberEnhanced(internationalUsers),
+        internationalUsers: formatNumber(internationalUsers),
         topInternationalCountry,
         countiesCovered,
         coveragePercentage,
@@ -16802,7 +16802,7 @@ function createInteractiveIrelandMap(regions, geoInsights) {
         return `
             <div class="region-bubble ${intensity}" 
                  data-region="${region.region}"
-                 title="${region.region}: ${formatNumberEnhanced(region.users)} users (${region.percentage.toFixed(1)}%)"
+                 title="${region.region}: ${formatNumber(region.users)} users (${region.percentage.toFixed(1)}%)"
                  style="--size: ${Math.max(20, region.percentage * 2)}px; --delay: ${index * 0.1}s">
                 <div class="bubble-content">
                     <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
@@ -16835,7 +16835,7 @@ function createInteractiveWorldMap(countries) {
         return `
             <div class="country-marker" 
                  data-country="${country.country}"
-                 title="${country.country}: ${formatNumberEnhanced(country.users)} users"
+                 title="${country.country}: ${formatNumber(country.users)} users"
                  style="--delay: ${index * 0.2}s">
                 <span class="country-flag">${flag}</span>
                 <span class="country-label">${country.country}</span>
@@ -16872,7 +16872,7 @@ function createTopRegionsTable(regions) {
                     <div class="region-bar">
                         <div class="region-fill" style="width: ${(region.percentage / regions[0].percentage) * 100}%; background: ${getRegionColor(region.percentage)}"></div>
                     </div>
-                    <div class="region-users">${formatNumberEnhanced(region.users)} users</div>
+                    <div class="region-users">${formatNumber(region.users)} users</div>
                 </div>
             `).join('')}
         </div>
