@@ -4448,6 +4448,94 @@ API Status: ${gapiInited && gisInited ? '✅ Ready' : '⏳ Loading...'}
 // ADD THESE FUNCTIONS TO YOUR gsc-integration-module (24).js
 // Add these functions to the GSCIntegration object at the end
 
+// Function to fetch geographic data for GSC for a specific period
+window.GSCIntegration.fetchGeographicDataForPeriod = async function(nodeData, startDate, endDate) {
+    if (!nodeData || !nodeData.url || !gscConnected || !gscSiteUrl) {
+        debugLog('GSC not connected or missing data for geographic period fetch');
+        return null;
+    }
+
+    debugLog('Fetching GSC geographic data for period:', {
+        url: nodeData.url,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+    });
+
+    const urlVariations = createEnhancedUrlVariations(nodeData.url);
+    
+    for (const variation of urlVariations) {
+        try {
+            const result = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0],
+                        dimensions: ['page', 'country'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 25
+                    }
+                });
+            });
+
+            if (result.result && result.result.rows && result.result.rows.length > 0) {
+                const geographic = {
+                    countries: [],
+                    topCountries: [],
+                    international: false
+                };
+                
+                const countries = {};
+                
+                result.result.rows.forEach(row => {
+                    const country = row.keys[1] || 'Unknown';
+                    const clicks = row.clicks || 0;
+                    const impressions = row.impressions || 0;
+                    
+                    if (!countries[country]) {
+                        countries[country] = {
+                            clicks: 0,
+                            impressions: 0,
+                            queries: []
+                        };
+                    }
+                    
+                    countries[country].clicks += clicks;
+                    countries[country].impressions += impressions;
+                });
+                
+                geographic.countries = Object.entries(countries)
+                    .map(([country, data]) => ({
+                        country,
+                        clicks: data.clicks,
+                        impressions: data.impressions,
+                        ctr: data.impressions > 0 ? (data.clicks / data.impressions) : 0
+                    }))
+                    .sort((a, b) => b.clicks - a.clicks);
+                
+                geographic.topCountries = geographic.countries.slice(0, 10);
+                geographic.international = geographic.countries.some(c => 
+                    c.country !== 'irl' && c.country !== 'ie' && c.country !== 'ireland'
+                );
+                
+                debugLog('✅ GSC geographic data fetched for period');
+                return geographic;
+            }
+        } catch (error) {
+            debugLog('Error fetching GSC geographic data for variation:', variation, error);
+        }
+    }
+    
+    return null;
+};
+
 // Period comparison functions for GSC trends
 window.GSCIntegration.fetchNodeDataForPeriod = async function(nodeData, startDate, endDate) {
     if (!nodeData || !nodeData.url || !gscConnected || !gscSiteUrl) {
