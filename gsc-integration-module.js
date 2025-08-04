@@ -4472,7 +4472,7 @@ window.GSCIntegration.fetchGeographicDataForPeriod = async function(nodeData, st
                     body: {
                         startDate: startDate.toISOString().split('T')[0],
                         endDate: endDate.toISOString().split('T')[0],
-                        dimensions: ['page', 'country'],
+                        dimensions: ['page', 'country', 'query'],
                         dimensionFilterGroups: [{
                             filters: [{
                                 dimension: 'page',
@@ -4480,7 +4480,7 @@ window.GSCIntegration.fetchGeographicDataForPeriod = async function(nodeData, st
                                 expression: variation
                             }]
                         }],
-                        rowLimit: 25
+                        rowLimit: 50
                     }
                 });
             });
@@ -4496,6 +4496,7 @@ window.GSCIntegration.fetchGeographicDataForPeriod = async function(nodeData, st
                 
                 result.result.rows.forEach(row => {
                     const country = row.keys[1] || 'Unknown';
+                    const query = row.keys[2] || 'Unknown';
                     const clicks = row.clicks || 0;
                     const impressions = row.impressions || 0;
                     
@@ -4509,6 +4510,14 @@ window.GSCIntegration.fetchGeographicDataForPeriod = async function(nodeData, st
                     
                     countries[country].clicks += clicks;
                     countries[country].impressions += impressions;
+                    
+                    // Add query data
+                    countries[country].queries.push({
+                        query: query,
+                        clicks: clicks,
+                        impressions: impressions,
+                        ctr: impressions > 0 ? (clicks / impressions) : 0
+                    });
                 });
                 
                 geographic.countries = Object.entries(countries)
@@ -4516,7 +4525,8 @@ window.GSCIntegration.fetchGeographicDataForPeriod = async function(nodeData, st
                         country,
                         clicks: data.clicks,
                         impressions: data.impressions,
-                        ctr: data.impressions > 0 ? (data.clicks / data.impressions) : 0
+                        ctr: data.impressions > 0 ? (data.clicks / data.impressions) : 0,
+                        queries: data.queries.sort((a, b) => b.clicks - a.clicks).slice(0, 5)
                     }))
                     .sort((a, b) => b.clicks - a.clicks);
                 
