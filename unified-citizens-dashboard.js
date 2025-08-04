@@ -139,6 +139,9 @@
 
     // Global variable to track current date range
     window.currentDateRange = getDateRangeForPeriod('30d');
+    
+    // Global variable to track the current dashboard URL
+    window.currentDashboardUrl = null;
 
     // Helper function to get period-aware metric label
     function getPeriodMetricLabel(baseLabel) {
@@ -233,12 +236,14 @@
         updatePeriodLabels(period);
         
         // Refresh dashboard data with new date range
-        const currentUrl = window.location.href.includes('#') ? 
-            decodeURIComponent(window.location.href.split('#')[1]) : 
-            window.location.href;
+        // Use the stored dashboard URL, not the current page URL
+        const dashboardUrl = window.currentDashboardUrl;
         
-        if (currentUrl) {
-            refreshUnifiedDashboard(currentUrl);
+        if (dashboardUrl) {
+            console.log('📅 Refreshing dashboard for URL:', dashboardUrl, 'with period:', period);
+            refreshUnifiedDashboard(dashboardUrl);
+        } else {
+            console.error('❌ No dashboard URL stored. Cannot refresh data.');
         }
     };
 
@@ -12850,6 +12855,9 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         hasNodeData: !!nodeData
     });
     
+    // Store the current dashboard URL globally
+    window.currentDashboardUrl = url;
+    
     try {
         const dashboardId = 'unified-dashboard-' + Date.now();
     
@@ -17954,6 +17962,9 @@ window.resetDashboardFilters = resetDashboardFilters;
 // REPLACE the existing refreshUnifiedDashboard function with this fixed version:
 window.refreshUnifiedDashboard = async function(url) {
     console.log('🔄 Refreshing Unified Citizens Dashboard for:', url);
+
+    // Store/update the dashboard URL
+    window.currentDashboardUrl = url;
 
     // RESET FILTERS FIRST
     resetDashboardFilters();
