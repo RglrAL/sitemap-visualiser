@@ -13157,28 +13157,14 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         }
     }, 10);
     
+    // Create floating indicator separately and append to body
+    setTimeout(() => {
+        createFloatingDateIndicator(dashboardId, currentRange, compStartDate, compEndDate);
+    }, 100);
+    
     return `
         ${createUnifiedDashboardStyles()}
         ${createEnhancedQueryAnalysisStyles()}
-        
-        <!-- Floating Date Range Indicator - Outside container for true floating -->
-        <div class="floating-date-indicator" id="floating-date-indicator-${dashboardId}">
-            <div class="date-indicator-content">
-                <div class="date-periods">
-                    <div class="current-period">
-                        <span class="period-label">Current:</span>
-                        <span class="period-dates">${formatDateRange(currentRange.startDate, currentRange.endDate)}</span>
-                    </div>
-                    <div class="comparison-period">
-                        <span class="period-label">vs</span>
-                        <span class="period-dates">${formatDateRange(compStartDate.toISOString().split('T')[0], compEndDate.toISOString().split('T')[0])}</span>
-                    </div>
-                </div>
-                <button class="date-indicator-toggle" onclick="toggleDateIndicator('${dashboardId}')" title="Toggle date display">
-                    <span class="toggle-icon">📅</span>
-                </button>
-            </div>
-        </div>
         
         <div id="${dashboardId}" class="unified-dashboard-container">
             ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
@@ -17976,6 +17962,11 @@ function showDashboardModal(htmlContent) {
     closeBtn.addEventListener('click', () => {
         modal.style.opacity = '0';
         modalContent.style.transform = 'scale(0.9)';
+        
+        // Remove floating date indicators when modal closes
+        const floatingIndicators = document.querySelectorAll('.floating-date-indicator');
+        floatingIndicators.forEach(indicator => indicator.remove());
+        
         setTimeout(() => modal.remove(), 300);
     });
     
@@ -18286,6 +18277,41 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initMobileUX);
 } else {
     initMobileUX();
+}
+
+// Create floating date indicator function
+function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, compEndDate) {
+    // Remove any existing floating indicators first
+    const existingIndicators = document.querySelectorAll('.floating-date-indicator');
+    existingIndicators.forEach(indicator => indicator.remove());
+    
+    // Create the floating indicator element
+    const floatingIndicator = document.createElement('div');
+    floatingIndicator.className = 'floating-date-indicator';
+    floatingIndicator.id = `floating-date-indicator-${dashboardId}`;
+    
+    floatingIndicator.innerHTML = `
+        <div class="date-indicator-content">
+            <div class="date-periods">
+                <div class="current-period">
+                    <span class="period-label">Current:</span>
+                    <span class="period-dates">${formatDateRange(currentRange.startDate, currentRange.endDate)}</span>
+                </div>
+                <div class="comparison-period">
+                    <span class="period-label">vs</span>
+                    <span class="period-dates">${formatDateRange(compStartDate.toISOString().split('T')[0], compEndDate.toISOString().split('T')[0])}</span>
+                </div>
+            </div>
+            <button class="date-indicator-toggle" onclick="toggleDateIndicator('${dashboardId}')" title="Toggle date display">
+                <span class="toggle-icon">📅</span>
+            </button>
+        </div>
+    `;
+    
+    // Append directly to body for true floating behavior
+    document.body.appendChild(floatingIndicator);
+    
+    console.log('📅 Created floating date indicator outside modal');
 }
 
 // Add to the GLOBAL EXPORTS section
@@ -18610,6 +18636,16 @@ window.refreshUnifiedDashboard = async function(url) {
                 setTimeout(() => {
                     try {
                         initializeUnifiedDashboard(dashboardId);
+                        
+                        // Recreate floating date indicator after refresh
+                        const currentRange = window.currentDateRange || getDateRangeForPeriod('30d');
+                        const compStartDate = new Date(currentRange.startDate);
+                        compStartDate.setDate(compStartDate.getDate() - (compStartDate - new Date(currentRange.endDate)) / (1000 * 60 * 60 * 24));
+                        const compEndDate = new Date(currentRange.startDate);
+                        compEndDate.setDate(compEndDate.getDate() - 1);
+                        
+                        createFloatingDateIndicator(dashboardId, currentRange, compStartDate, compEndDate);
+                        
                         console.log('✅ Dashboard re-initialized after refresh');
                     } catch (error) {
                         console.error('❌ Error re-initializing dashboard:', error);
