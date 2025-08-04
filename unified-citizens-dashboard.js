@@ -13181,6 +13181,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         </div>
         
         <div id="${dashboardId}" class="unified-dashboard-container">
+            ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
             
             <div class="dashboard-tabs">
                 <button class="mobile-tab-toggle" onclick="toggleMobileTabs()" style="display: none;" aria-label="Toggle dashboard navigation menu">
