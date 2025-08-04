@@ -18027,15 +18027,25 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDateObj, endDateObj);
                 
-                // Calculate previous period for comparison
-                const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
-                
-                const prevEndDateObj = new Date(startDateObj);
-                prevEndDateObj.setDate(prevEndDateObj.getDate() - 1);
-                const prevStartDateObj = new Date(prevEndDateObj);
-                prevStartDateObj.setDate(prevStartDateObj.getDate() - periodDays);
-                
-                gscPrevious = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, prevStartDateObj, prevEndDateObj);
+                // If no period data found, try the original fetchNodeData method as fallback
+                if (!gscData || gscData.noDataFound) {
+                    console.log('🔍 No period data found, trying original fetchNodeData method...');
+                    gscData = await window.GSCIntegration.fetchNodeData({ url });
+                    gscPrevious = await window.GSCIntegration.fetchPreviousPeriodData({ url });
+                    
+                    // Note: when using fallback, we lose the custom date range but get working data
+                    console.log('📅 Using default 30-day period from original method due to no period data');
+                } else {
+                    // Calculate previous period for comparison
+                    const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
+                    
+                    const prevEndDateObj = new Date(startDateObj);
+                    prevEndDateObj.setDate(prevEndDateObj.getDate() - 1);
+                    const prevStartDateObj = new Date(prevEndDateObj);
+                    prevStartDateObj.setDate(prevStartDateObj.getDate() - periodDays);
+                    
+                    gscPrevious = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, prevStartDateObj, prevEndDateObj);
+                }
                 
                 if (gscData && gscPrevious && !gscData.noDataFound && !gscPrevious.noDataFound) {
                     gscTrends = {
@@ -18069,15 +18079,25 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
                 
-                // Calculate previous period for comparison
-                const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
-                
-                const prevEndDateObj = new Date(startDateObj);
-                prevEndDateObj.setDate(prevEndDateObj.getDate() - 1);
-                const prevStartDateObj = new Date(prevEndDateObj);
-                prevStartDateObj.setDate(prevStartDateObj.getDate() - periodDays);
-                
-                ga4Previous = await window.GA4Integration.fetchDataForPeriod(url, prevStartDateObj, prevEndDateObj);
+                // If no period data found, try the original fetchData method as fallback
+                if (!ga4Data || ga4Data.noDataFound) {
+                    console.log('📊 No period data found, trying original fetchData method...');
+                    ga4Data = await window.GA4Integration.fetchData(url);
+                    ga4Previous = await window.GA4Integration.fetchPreviousPeriodData(url);
+                    
+                    // Note: when using fallback, we lose the custom date range but get working data
+                    console.log('📅 Using default 30-day period from original method due to no period data');
+                } else {
+                    // Calculate previous period for comparison
+                    const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
+                    
+                    const prevEndDateObj = new Date(startDateObj);
+                    prevEndDateObj.setDate(prevEndDateObj.getDate() - 1);
+                    const prevStartDateObj = new Date(prevEndDateObj);
+                    prevStartDateObj.setDate(prevStartDateObj.getDate() - periodDays);
+                    
+                    ga4Previous = await window.GA4Integration.fetchDataForPeriod(url, prevStartDateObj, prevEndDateObj);
+                }
                 
                 if (ga4Data && ga4Previous && !ga4Data.noDataFound && !ga4Previous.noDataFound) {
                     ga4Trends = {
