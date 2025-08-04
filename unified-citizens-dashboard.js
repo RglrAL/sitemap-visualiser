@@ -74,29 +74,37 @@
         
         switch (period) {
             case '7d':
-                startDate.setDate(now.getDate() - 7);
+                startDate.setDate(startDate.getDate() - 7);
                 break;
             case '30d':
-                startDate.setDate(now.getDate() - 30);
+                startDate.setDate(startDate.getDate() - 30);
                 break;
             case '3m':
-                startDate.setMonth(now.getMonth() - 3);
+                startDate.setMonth(startDate.getMonth() - 3);
                 break;
             case '6m':
-                startDate.setMonth(now.getMonth() - 6);
+                startDate.setMonth(startDate.getMonth() - 6);
                 break;
             case '12m':
-                startDate.setFullYear(now.getFullYear() - 1);
+                startDate.setFullYear(startDate.getFullYear() - 1);
                 break;
             default:
-                startDate.setDate(now.getDate() - 30); // Default to 30 days
+                startDate.setDate(startDate.getDate() - 30); // Default to 30 days
         }
         
         startDate.setHours(0, 0, 0, 0);
         
+        // Format dates as YYYY-MM-DD
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
         return {
-            startDate: startDate.toISOString().split('T')[0],
-            endDate: endDate.toISOString().split('T')[0],
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
             period: period
         };
     }
@@ -18005,19 +18013,22 @@ window.refreshUnifiedDashboard = async function(url) {
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
             try {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
-                const startDate = new Date(dateRange.startDate);
-                const endDate = new Date(dateRange.endDate);
+                console.log('📅 Using date range:', dateRange);
                 
-                gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDate, endDate);
+                const startDateObj = new Date(dateRange.startDate);
+                const endDateObj = new Date(dateRange.endDate);
+                
+                gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDateObj, endDateObj);
                 
                 // Calculate previous period for comparison
-                const periodDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
-                const prevEndDate = new Date(startDate);
-                prevEndDate.setDate(prevEndDate.getDate() - 1);
-                const prevStartDate = new Date(prevEndDate);
-                prevStartDate.setDate(prevStartDate.getDate() - periodDays);
+                const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
                 
-                gscPrevious = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, prevStartDate, prevEndDate);
+                const prevEndDateObj = new Date(startDateObj);
+                prevEndDateObj.setDate(prevEndDateObj.getDate() - 1);
+                const prevStartDateObj = new Date(prevEndDateObj);
+                prevStartDateObj.setDate(prevStartDateObj.getDate() - periodDays);
+                
+                gscPrevious = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, prevStartDateObj, prevEndDateObj);
                 
                 if (gscData && gscPrevious && !gscData.noDataFound && !gscPrevious.noDataFound) {
                     gscTrends = {
@@ -18044,19 +18055,22 @@ window.refreshUnifiedDashboard = async function(url) {
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
             try {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
-                const startDate = new Date(dateRange.startDate);
-                const endDate = new Date(dateRange.endDate);
+                console.log('📅 Using date range for GA4:', dateRange);
                 
-                ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDate, endDate);
+                const startDateObj = new Date(dateRange.startDate);
+                const endDateObj = new Date(dateRange.endDate);
+                
+                ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
                 
                 // Calculate previous period for comparison
-                const periodDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
-                const prevEndDate = new Date(startDate);
-                prevEndDate.setDate(prevEndDate.getDate() - 1);
-                const prevStartDate = new Date(prevEndDate);
-                prevStartDate.setDate(prevStartDate.getDate() - periodDays);
+                const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
                 
-                ga4Previous = await window.GA4Integration.fetchDataForPeriod(url, prevStartDate, prevEndDate);
+                const prevEndDateObj = new Date(startDateObj);
+                prevEndDateObj.setDate(prevEndDateObj.getDate() - 1);
+                const prevStartDateObj = new Date(prevEndDateObj);
+                prevStartDateObj.setDate(prevStartDateObj.getDate() - periodDays);
+                
+                ga4Previous = await window.GA4Integration.fetchDataForPeriod(url, prevStartDateObj, prevEndDateObj);
                 
                 if (ga4Data && ga4Previous && !ga4Data.noDataFound && !ga4Previous.noDataFound) {
                     ga4Trends = {
