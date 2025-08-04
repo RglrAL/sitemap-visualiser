@@ -66,7 +66,11 @@
     // ===========================================
 
     function getDateRangeForPeriod(period) {
+        // Use a date that's 3 days ago to ensure data is available (GA4/GSC have processing delays)
         const now = new Date();
+        now.setDate(now.getDate() - 3); // Go back 3 days to ensure data availability
+        console.log('🗓️ Using end date (3 days ago for data availability):', now.toISOString().split('T')[0]);
+        
         const endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
         
@@ -102,11 +106,14 @@
             return `${year}-${month}-${day}`;
         };
         
-        return {
+        const result = {
             startDate: formatDate(startDate),
             endDate: formatDate(endDate),
             period: period
         };
+        
+        console.log('📅 Date range calculated:', result);
+        return result;
     }
 
     function formatPeriodLabel(period) {
