@@ -1603,6 +1603,7 @@ window.GA4Integration.fetchGeographicDataForPeriod = async function(pageUrl, sta
             }],
             dimensions: [
                 { name: 'country' },
+                { name: 'region' },
                 { name: 'city' }
             ],
             metrics: [
@@ -1646,16 +1647,21 @@ window.GA4Integration.fetchGeographicDataForPeriod = async function(pageUrl, sta
         
         if (data.rows && data.rows.length > 0) {
             const countries = {};
+            const regions = {};
             const cities = {};
             let totalUsers = 0;
             
             data.rows.forEach(row => {
                 const country = row.dimensionValues[0]?.value || 'Unknown';
-                const city = row.dimensionValues[1]?.value || 'Unknown';
+                const region = row.dimensionValues[1]?.value || 'Unknown';
+                const city = row.dimensionValues[2]?.value || 'Unknown';
                 const users = parseInt(row.metricValues[0]?.value || 0);
                 
                 if (!countries[country]) countries[country] = 0;
                 countries[country] += users;
+                
+                if (!regions[region]) regions[region] = 0;
+                regions[region] += users;
                 
                 if (!cities[city]) cities[city] = 0;
                 cities[city] += users;
@@ -1666,6 +1672,14 @@ window.GA4Integration.fetchGeographicDataForPeriod = async function(pageUrl, sta
             geographic.countries = Object.entries(countries)
                 .map(([country, users]) => ({ 
                     country, 
+                    users, 
+                    percentage: totalUsers > 0 ? (users / totalUsers) * 100 : 0 
+                }))
+                .sort((a, b) => b.users - a.users);
+                
+            geographic.regions = Object.entries(regions)
+                .map(([region, users]) => ({ 
+                    region, 
                     users, 
                     percentage: totalUsers > 0 ? (users / totalUsers) * 100 : 0 
                 }))
