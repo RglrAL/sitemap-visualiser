@@ -12909,12 +12909,6 @@ function formatDuration(seconds) {
                 }
             }
 
-           
-
-
-
-            ${createEnhancedQueryAnalysisStyles()}
-
             /* Floating Date Range Indicator */
             .floating-date-indicator {
                 position: fixed;
@@ -13080,6 +13074,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
     
     return `
         ${createUnifiedDashboardStyles()}
+        ${createEnhancedQueryAnalysisStyles()}
         
         <div id="${dashboardId}" class="unified-dashboard-container">
             ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
