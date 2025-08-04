@@ -136,6 +136,25 @@
         };
         return labels[period] || 'Last 30 Days';
     }
+    
+    function formatDateRange(startDate, endDate) {
+        if (!startDate || !endDate) return '';
+        
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // If same year, don't repeat it
+        if (start.getFullYear() === end.getFullYear()) {
+            const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const endStr = end.toLocaleDateString('en-US', options);
+            return `${startStr} - ${endStr}`;
+        } else {
+            const startStr = start.toLocaleDateString('en-US', options);
+            const endStr = end.toLocaleDateString('en-US', options);
+            return `${startStr} - ${endStr}`;
+        }
+    }
 
     // Global variable to track current date range
     window.currentDateRange = getDateRangeForPeriod('30d');
@@ -220,6 +239,43 @@
     // Date range change handler
     window.changeDateRange = function(period) {
         // Changing date range
+        console.log('📅 Changing date range to:', period);
+        
+        // Show loading state immediately
+        const modal = document.getElementById('unified-dashboard-modal');
+        if (modal) {
+            // Create a simple loading indicator immediately
+            const quickLoader = document.createElement('div');
+            quickLoader.id = 'quick-loading-indicator';
+            quickLoader.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 20px 30px;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                z-index: 100001;
+                font-weight: 600;
+                color: #374151;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            `;
+            quickLoader.innerHTML = `
+                <div style="
+                    width: 24px;
+                    height: 24px;
+                    border: 3px solid #e5e7eb;
+                    border-top-color: #3b82f6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <span>Updating to ${formatPeriodLabel(period)}...</span>
+            `;
+            modal.appendChild(quickLoader);
+        }
         
         // Update global date range
         window.currentDateRange = getDateRangeForPeriod(period);
@@ -241,7 +297,13 @@
         
         if (dashboardUrl) {
             console.log('📅 Refreshing dashboard for URL:', dashboardUrl, 'with period:', period);
-            refreshUnifiedDashboard(dashboardUrl);
+            // Small delay to ensure loading indicator is visible
+            setTimeout(() => {
+                // Remove quick loader as full refresh will show its own
+                const quickLoader = document.getElementById('quick-loading-indicator');
+                if (quickLoader) quickLoader.remove();
+                refreshUnifiedDashboard(dashboardUrl);
+            }, 100);
         } else {
             console.error('❌ No dashboard URL stored. Cannot refresh data.');
         }
@@ -1935,11 +1997,11 @@ function getRelativeTime(lastModified) {
                     <div class="date-range-selector">
                         <div class="date-range-label">Time Period:</div>
                         <div class="date-range-options">
-                            <button class="date-range-btn active" data-period="30d" onclick="changeDateRange('30d')">Last 30 Days</button>
-                            <button class="date-range-btn" data-period="7d" onclick="changeDateRange('7d')">Last 7 Days</button>
-                            <button class="date-range-btn" data-period="3m" onclick="changeDateRange('3m')">3 Months</button>
-                            <button class="date-range-btn" data-period="6m" onclick="changeDateRange('6m')">6 Months</button>
-                            <button class="date-range-btn" data-period="12m" onclick="changeDateRange('12m')">12 Months</button>
+                            <button class="date-range-btn ${window.currentDateRange?.period === '30d' ? 'active' : ''}" data-period="30d" onclick="changeDateRange('30d')">Last 30 Days</button>
+                            <button class="date-range-btn ${window.currentDateRange?.period === '7d' ? 'active' : ''}" data-period="7d" onclick="changeDateRange('7d')">Last 7 Days</button>
+                            <button class="date-range-btn ${window.currentDateRange?.period === '3m' ? 'active' : ''}" data-period="3m" onclick="changeDateRange('3m')">3 Months</button>
+                            <button class="date-range-btn ${window.currentDateRange?.period === '6m' ? 'active' : ''}" data-period="6m" onclick="changeDateRange('6m')">6 Months</button>
+                            <button class="date-range-btn ${window.currentDateRange?.period === '12m' ? 'active' : ''}" data-period="12m" onclick="changeDateRange('12m')">12 Months</button>
                         </div>
                     </div>
                     
@@ -17997,7 +18059,7 @@ window.refreshUnifiedDashboard = async function(url) {
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 20000;
+        z-index: 100000;
         backdrop-filter: blur(4px);
     `;
     
@@ -18025,11 +18087,26 @@ window.refreshUnifiedDashboard = async function(url) {
                 animation: spin 1s linear infinite;
             "></div>
             <div style="font-size: 1.1rem; color: #1f2937;">Refreshing Dashboard</div>
-            <div style="font-size: 0.9rem; color: #6b7280; font-weight: 500;">Fetching latest data from Google Search Console and Analytics...</div>
+            <div style="font-size: 0.9rem; color: #6b7280; font-weight: 500; line-height: 1.6;">
+                Fetching data for <strong style="color: #3b82f6;">${formatPeriodLabel(window.currentDateRange?.period || '30d')}</strong>
+                <br>
+                <span style="font-size: 0.85rem; color: #9ca3af;">
+                    ${window.currentDateRange ? formatDateRange(window.currentDateRange.startDate, window.currentDateRange.endDate) : ''}
+                </span>
+                <br>
+                <span style="font-size: 0.8rem; color: #9ca3af; margin-top: 4px; display: inline-block;">
+                    from Google Search Console and Analytics
+                </span>
+            </div>
         </div>
     `;
     
-    document.body.appendChild(loadingOverlay);
+    // Append to modal if it exists, otherwise to body
+    if (modal) {
+        modal.appendChild(loadingOverlay);
+    } else {
+        document.body.appendChild(loadingOverlay);
+    }
     
     try {
         // Re-fetch all data (same as initial load)
@@ -18137,6 +18214,15 @@ window.refreshUnifiedDashboard = async function(url) {
                 ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
                 
                 console.log('🔍 GA4 period data result:', { hasData: !!ga4Data, noDataFound: ga4Data?.noDataFound, url });
+                
+                // Fetch geographic data for the period
+                if (ga4Data && !ga4Data.noDataFound) {
+                    const geoData = await window.GA4Integration.fetchGeographicDataForPeriod(url, startDateObj, endDateObj);
+                    if (geoData) {
+                        ga4Data.geographic = geoData;
+                        console.log('🌍 Geographic data fetched for period');
+                    }
+                }
                 
                 // If no period data found, try the original fetchData method as fallback
                 if (!ga4Data || ga4Data.noDataFound === true) {
