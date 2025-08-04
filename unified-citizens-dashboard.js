@@ -62,6 +62,186 @@
     }
 
     // ===========================================
+    // DATE RANGE UTILITIES
+    // ===========================================
+
+    function getDateRangeForPeriod(period) {
+        const now = new Date();
+        const endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999);
+        
+        let startDate = new Date(now);
+        
+        switch (period) {
+            case '7d':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case '30d':
+                startDate.setDate(now.getDate() - 30);
+                break;
+            case '3m':
+                startDate.setMonth(now.getMonth() - 3);
+                break;
+            case '6m':
+                startDate.setMonth(now.getMonth() - 6);
+                break;
+            case '12m':
+                startDate.setFullYear(now.getFullYear() - 1);
+                break;
+            default:
+                startDate.setDate(now.getDate() - 30); // Default to 30 days
+        }
+        
+        startDate.setHours(0, 0, 0, 0);
+        
+        return {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            period: period
+        };
+    }
+
+    function formatPeriodLabel(period) {
+        const labels = {
+            '7d': 'Last 7 Days',
+            '30d': 'Last 30 Days', 
+            '3m': 'Last 3 Months',
+            '6m': 'Last 6 Months',
+            '12m': 'Last 12 Months'
+        };
+        return labels[period] || 'Last 30 Days';
+    }
+
+    // Global variable to track current date range
+    window.currentDateRange = getDateRangeForPeriod('30d');
+
+    // Helper function to get period-aware metric label
+    function getPeriodMetricLabel(baseLabel) {
+        const period = window.currentDateRange?.period || '30d';
+        const periodLabel = formatPeriodLabel(period);
+        
+        // Get the time unit without "Last"
+        const periodUnit = periodLabel.replace('Last ', '').toLowerCase();
+        
+        // Replace common time-based words
+        return baseLabel
+            .replace(/monthly searches/gi, periodUnit + ' searches')
+            .replace(/monthly visitors/gi, periodUnit + ' visitors')
+            .replace(/monthly/gi, 'in ' + periodUnit)
+            .replace(/Monthly/gi, 'In ' + periodUnit)
+            .replace(/last 30 days/gi, periodLabel.toLowerCase())
+            .replace(/Last 30 Days/gi, periodLabel)
+            .replace(/30 days/gi, periodUnit)
+            .replace(/30 Days/gi, periodLabel.replace('Last ', ''));
+    }
+
+    // Helper function to check if we're showing annual data
+    function isAnnualPeriod() {
+        return window.currentDateRange?.period === '12m';
+    }
+
+    // Helper function to get appropriate time unit
+    function getPeriodUnit() {
+        const period = window.currentDateRange?.period || '30d';
+        switch(period) {
+            case '7d': return 'week';
+            case '30d': return 'month';
+            case '3m': return 'quarter';
+            case '6m': return 'half-year';
+            case '12m': return 'year';
+            default: return 'period';
+        }
+    }
+
+    // Helper function to scale metrics based on period length
+    function scaleMetricForPeriod(value, fromPeriod = '30d') {
+        const period = window.currentDateRange?.period || '30d';
+        if (period === fromPeriod) return value;
+        
+        // Define period lengths in days
+        const periodDays = {
+            '7d': 7,
+            '30d': 30,
+            '3m': 90,
+            '6m': 180,
+            '12m': 365
+        };
+        
+        const currentDays = periodDays[period] || 30;
+        const baseDays = periodDays[fromPeriod] || 30;
+        
+        // Scale the value proportionally
+        return Math.round(value * (currentDays / baseDays));
+    }
+
+    // Helper function to get period-appropriate threshold
+    function getPeriodThreshold(baseThreshold, metric = 'traffic') {
+        const period = window.currentDateRange?.period || '30d';
+        
+        // Different metrics might scale differently
+        const scalingFactors = {
+            'traffic': { '7d': 0.25, '30d': 1, '3m': 3, '6m': 6, '12m': 12 },
+            'impressions': { '7d': 0.23, '30d': 1, '3m': 2.8, '6m': 5.5, '12m': 11 },
+            'engagement': { '7d': 1, '30d': 1, '3m': 1, '6m': 1, '12m': 1 } // Engagement rates don't scale
+        };
+        
+        const factor = scalingFactors[metric]?.[period] || 1;
+        return Math.round(baseThreshold * factor);
+    }
+
+    // Date range change handler
+    window.changeDateRange = function(period) {
+        console.log('🗓️ Changing date range to:', period);
+        
+        // Update global date range
+        window.currentDateRange = getDateRangeForPeriod(period);
+        
+        // Update button states
+        document.querySelectorAll('.date-range-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.period === period) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Update all period labels in the dashboard
+        updatePeriodLabels(period);
+        
+        // Refresh dashboard data with new date range
+        const currentUrl = window.location.href.includes('#') ? 
+            decodeURIComponent(window.location.href.split('#')[1]) : 
+            window.location.href;
+        
+        if (currentUrl) {
+            refreshUnifiedDashboard(currentUrl);
+        }
+    };
+
+    function updatePeriodLabels(period) {
+        const label = formatPeriodLabel(period);
+        
+        // Update all instances of period text in the dashboard
+        document.querySelectorAll('.impact-label, .metric-label, .period-text').forEach(element => {
+            if (element.textContent.includes('Last 30 Days') || 
+                element.textContent.includes('Last 7 Days') ||
+                element.textContent.includes('Last 3 Months') ||
+                element.textContent.includes('Last 6 Months') ||
+                element.textContent.includes('Last 12 Months')) {
+                element.textContent = element.textContent.replace(
+                    /Last \d+\s*(Days?|Months?)/g, 
+                    label.replace('Last ', '')
+                );
+            }
+        });
+        
+        // Update impact card labels specifically
+        const citizensReachedCard = document.querySelector('.impact-card .impact-label');
+        if (citizensReachedCard && citizensReachedCard.textContent.includes('Citizens Reached')) {
+            citizensReachedCard.textContent = `Citizens Reached (${label})`;
+        }
+    }
+
+    // ===========================================
     // GOVERNMENT FRAMEWORK FUNCTIONS
     // ===========================================
 
@@ -141,7 +321,7 @@
         
         // Low CTR with high impressions
         queries.forEach(query => {
-            if (query.impressions > 1000 && query.ctr < 0.02) {
+            if (query.impressions > getPeriodThreshold(1000, 'impressions') && query.ctr < 0.02) {
                 problems.push({
                     query: query.query,
                     position: query.position,
@@ -166,7 +346,7 @@
         if (gscData?.topQueries) {
             gscData.topQueries.forEach(query => {
                 // High opportunity: 1000+ impressions, <2% CTR
-                if (query.impressions >= 1000 && query.ctr < 0.02) {
+                if (query.impressions >= getPeriodThreshold(1000, 'impressions') && query.ctr < 0.02) {
                     gaps.highOpportunity.push({
                         query: query.query,
                         impressions: query.impressions,
@@ -175,8 +355,9 @@
                     });
                 }
                 
-                // Missing content: 100+ impressions, low clicks
-                if (query.impressions >= 100 && query.clicks < 5) {
+                // Missing content: scaled impressions threshold, low clicks
+                const impressionThreshold = getPeriodThreshold(100, 'impressions');
+                if (query.impressions >= impressionThreshold && query.clicks < 5) {
                     gaps.missingContent.push({
                         query: query.query,
                         impressions: query.impressions,
@@ -193,8 +374,9 @@
         // Government framework weights: Traffic (40%), Growth (25%), Search (20%), Discovery (15%)
         
         // Traffic component (40%)
-        const monthlyViews = (ga4Data?.pageViews || 0) + (gscData?.clicks || 0);
-        const trafficScore = Math.min(100, (monthlyViews / 1000) * 10);
+        const periodViews = (ga4Data?.pageViews || 0) + (gscData?.clicks || 0);
+        const trafficThreshold = getPeriodThreshold(1000, 'traffic');
+        const trafficScore = Math.min(100, (periodViews / trafficThreshold) * 10);
         
         // Growth component (25%)
         const clickGrowth = gscTrends?.trends?.clicks?.percentChange || 0;
@@ -228,7 +410,7 @@
             recommendation = 'Strong optimization candidate - schedule for next sprint';
         } else if (totalScore >= 40) {
             level = 'medium';
-            recommendation = 'Moderate opportunity - include in monthly review';
+            recommendation = `Moderate opportunity - include in ${getPeriodUnit()} review`;
         }
         
         return {
@@ -623,7 +805,7 @@ function generateContextualInsights(analysis, currentDate) {
             type: 'unmet',
             icon: '❌',
             title: `${analysis.unmetNeeds.length} High-Demand, Low-Performance Queries`,
-            description: `${formatNumber(totalUnmetVolume)} monthly searches not being served effectively`,
+            description: `${formatNumber(totalUnmetVolume)} ${getPeriodMetricLabel('monthly searches')} not being served effectively`,
             action: 'Priority content creation and SEO optimization needed'
         });
     }
@@ -670,7 +852,7 @@ function generateSurgeRecommendations(analysis) {
             timeframe: '1_week',
             category: query.category,
             action: `Create Content: "${query.query}"`,
-            details: `New topic with ${query.impressions} monthly searches`,
+            details: `New topic with ${query.impressions} ${getPeriodMetricLabel('monthly searches')}`,
             assignee: 'content_team',
             expectedImpact: 'Address emerging citizen information need',
             resources: 'Content team, policy research'
@@ -732,7 +914,7 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
             <div class="surge-summary-dashboard">
                 <div class="dashboard-header">
                     <h3>📊 Citizen Need Surge Analysis</h3>
-                    <div class="surge-period">Last 30 days vs Previous period</div>
+                    <div class="surge-period">${formatPeriodLabel(window.currentDateRange?.period || '30d')} vs Previous period</div>
                 </div>
                 
                 <div class="surge-stats-grid">
@@ -972,7 +1154,7 @@ function createCriticalAlert(surge) {
         id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         category: surge.category || 'general',
         title: `Critical Surge: ${surge.query || 'Unknown Query'}`,
-        details: `${surge.percentIncrease}% increase in searches (${formatNumber(surge.currentImpressions)} monthly searches)`,
+        details: `${surge.percentIncrease}% increase in searches (${formatNumber(surge.currentImpressions)} ${getPeriodMetricLabel('monthly searches')})`,
         urgency: surge.urgencyLevel || 'high',
         responseTime: SURGE_CATEGORIES[surge.category]?.responseTime || '24_hours',
         escalationPath: SURGE_CATEGORIES[surge.category]?.escalation || 'content_team'
@@ -985,7 +1167,7 @@ function createUnmetNeedAlert(unmetNeed) {
         id: `unmet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         category: 'unmet_need',
         title: `High-Volume Unmet Need: ${unmetNeed.query || 'Unknown Query'}`,
-        details: `${formatNumber(unmetNeed.impressions)} monthly searches with poor performance`,
+        details: `${formatNumber(unmetNeed.impressions)} ${getPeriodMetricLabel('monthly searches')} with poor performance`,
         urgency: 'high',
         responseTime: '48_hours',
         escalationPath: 'content_optimization_team'
@@ -1001,7 +1183,7 @@ function createEmergingQueryObject(query, currentDate) {
         category: categorizeSurgeQuery(query.query),
         isNew: true,
         detectionDate: currentDate,
-        potentialImpact: query.impressions > 100 ? 'high' : query.impressions > 50 ? 'medium' : 'low'
+        potentialImpact: query.impressions > getPeriodThreshold(100, 'impressions') ? 'high' : query.impressions > getPeriodThreshold(50, 'impressions') ? 'medium' : 'low'
     };
 }
 
@@ -1015,7 +1197,7 @@ function createUnmetNeedObject(query, currentDate) {
         position: query.position || 0,
         category: categorizeSurgeQuery(query.query),
         gapType: 'performance',
-        severity: query.impressions >= 1000 ? 'critical' : query.impressions >= 500 ? 'high' : 'medium'
+        severity: query.impressions >= getPeriodThreshold(1000, 'impressions') ? 'critical' : query.impressions >= getPeriodThreshold(500, 'impressions') ? 'high' : 'medium'
     };
 }
 
@@ -1136,9 +1318,9 @@ function assessBusinessImpact(impressions, category, urgencyLevel) {
     let score = 0;
     
     // Volume impact
-    if (impressions >= 1000) score += 3;
-    else if (impressions >= 500) score += 2;
-    else if (impressions >= 100) score += 1;
+    if (impressions >= getPeriodThreshold(1000, 'impressions')) score += 3;
+    else if (impressions >= getPeriodThreshold(500, 'impressions')) score += 2;
+    else if (impressions >= getPeriodThreshold(100, 'impressions')) score += 1;
     
     // Category impact
     const categoryScores = {
@@ -1684,10 +1866,10 @@ function getRelativeTime(lastModified) {
     
     return `
         <div class="dashboard-header">
-        
-<div class="help-corner">
-    <button class="help-btn" onclick="DashboardGlossary.open()" data-tooltip="Glossary">📚</button>
-</div>
+            <div class="help-corner">
+                <button class="help-btn" onclick="DashboardGlossary.open()" data-tooltip="Glossary">📚</button>
+            </div>
+            
             <div class="header-content">
                 <div class="page-info">
                     <div class="page-breadcrumb">
@@ -1720,9 +1902,19 @@ function getRelativeTime(lastModified) {
                         </div>
                     </div>
                     
-                    <!-- Refresh Button - BELOW URL -->
+                    <div class="date-range-selector">
+                        <div class="date-range-label">Time Period:</div>
+                        <div class="date-range-options">
+                            <button class="date-range-btn active" data-period="30d" onclick="changeDateRange('30d')">Last 30 Days</button>
+                            <button class="date-range-btn" data-period="7d" onclick="changeDateRange('7d')">Last 7 Days</button>
+                            <button class="date-range-btn" data-period="3m" onclick="changeDateRange('3m')">3 Months</button>
+                            <button class="date-range-btn" data-period="6m" onclick="changeDateRange('6m')">6 Months</button>
+                            <button class="date-range-btn" data-period="12m" onclick="changeDateRange('12m')">12 Months</button>
+                        </div>
+                    </div>
+                    
                     <div class="header-actions">
-                        <button class="header-refresh-btn" onclick="refreshUnifiedDashboard('${escapeHtml(url)}')" title="Refresh all dashboard data from Google Search Console and Analytics">
+                        <button class="header-refresh-btn" onclick="refreshUnifiedDashboard('${escapeHtml(url)}')" title="Refresh all dashboard data">
                             <span class="refresh-icon">🔄</span>
                             <span class="refresh-text">Refresh Data</span>
                         </button>
@@ -1732,7 +1924,7 @@ function getRelativeTime(lastModified) {
                 <div class="impact-summary">
                     <div class="impact-card">
                         <div class="impact-number">${citizenImpact.monthlyReach}</div>
-                        <div class="impact-label">Citizens Reached (Last 30 Days)</div>
+                        <div class="impact-label">Citizens Reached (${formatPeriodLabel(window.currentDateRange?.period || '30d')})</div>
                         <div class="impact-trend">${citizenImpact.reachTrend}</div>
                         <div class="impact-explanation">Search clicks + unique visitors</div>
                     </div>
@@ -1755,7 +1947,7 @@ function getRelativeTime(lastModified) {
 }
 
     function calculateCitizenImpact(gscData, ga4Data) {
-        const monthlyReach = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
+        const periodReach = formatNumber((gscData?.clicks || 0) + (ga4Data?.users || 0));
         
         let helpfulnessScore = 65;
         if (ga4Data && !ga4Data.noDataFound) {
@@ -1767,7 +1959,7 @@ function getRelativeTime(lastModified) {
         const avgTimeToInfo = ga4Data?.avgSessionDuration ? 
             formatDuration(ga4Data.avgSessionDuration) : '2:15';
         
-        return { monthlyReach, helpfulnessScore, avgTimeToInfo };
+        return { monthlyReach: periodReach, helpfulnessScore, avgTimeToInfo };
     }
 
     function createPerformanceOverview(gscData, ga4Data, gscTrends, ga4Trends) {
@@ -1958,7 +2150,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                                 <span class="detail-value">${gscData?.ctr ? (gscData.ctr * 100).toFixed(1) + '%' : 'No data'}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Monthly Impressions:</span>
+                                <span class="detail-label">${formatPeriodLabel(window.currentDateRange?.period || '30d').replace('Last ', '')} Impressions:</span>
                                 <span class="detail-value">${gscData?.impressions ? formatNumber(gscData.impressions) : 'No data'}</span>
                             </div>
                         </div>
@@ -2326,10 +2518,10 @@ function calculateFindabilityScore(gscData) {
     
     // Visibility score - Are people searching for this info?
     let visibilityScore = 0;
-    if (impressions >= 1000) visibilityScore = 100;      // High demand
-    else if (impressions >= 500) visibilityScore = 80;   // Good demand  
-    else if (impressions >= 100) visibilityScore = 60;   // Some demand
-    else if (impressions >= 50) visibilityScore = 40;    // Low demand
+    if (impressions >= getPeriodThreshold(1000, 'impressions')) visibilityScore = 100;      // High demand
+    else if (impressions >= getPeriodThreshold(500, 'impressions')) visibilityScore = 80;   // Good demand  
+    else if (impressions >= getPeriodThreshold(100, 'impressions')) visibilityScore = 60;   // Some demand
+    else if (impressions >= getPeriodThreshold(50, 'impressions')) visibilityScore = 40;    // Low demand
     else visibilityScore = 20;                           // Very low demand
     
     // Click appeal - Do titles/descriptions attract citizens?
@@ -2553,7 +2745,7 @@ function generateActionableRecommendations(scores, gscData, ga4Data) {
                 'Ensure content includes terms citizens actually search for'
             ],
             timeframe: '1-2 weeks',
-            impact: `Could help ${gscData?.impressions ? Math.round(gscData.impressions * 0.3) : 'more'} citizens find this information monthly`
+            impact: `Could help ${gscData?.impressions ? Math.round(gscData.impressions * 0.3) : 'more'} citizens find this information ${getPeriodMetricLabel('monthly').toLowerCase()}`
         });
     }
     
@@ -2859,7 +3051,7 @@ const citizensInfoStyles = `
             <div class="impact-metric">
                 <span class="citizen-impact-label">Information Seekers:</span>
                 <span class="impact-value">${impact.seekers}</span>
-                <span class="impact-explain" title="Search clicks + unique visitors in last 30 days">ℹ️</span>
+                <span class="impact-explain" title="${`Search clicks + unique visitors in ${formatPeriodLabel(window.currentDateRange?.period || '30d').toLowerCase()}`}">ℹ️</span>
             </div>
             <div class="impact-metric">
                 <span class="citizen-impact-label">Query Types Found:</span>
@@ -3794,7 +3986,7 @@ function createOpportunitiesContent(servicePatterns, accessibilityInsights, tren
         <div class="opportunities-content">
             <!-- Quick Wins -->
             <div class="opportunity-section">
-                <h3>🎯 Immediate Opportunities (0-30 days)</h3>
+                <h3>🎯 Immediate Opportunities (Next ${getPeriodUnit()})</h3>
                 <div class="opportunities-grid quick-wins">
                     ${opportunities.quickWins.map(opp => createOpportunityCard(opp, 'quick')).join('')}
                 </div>
@@ -3802,7 +3994,7 @@ function createOpportunitiesContent(servicePatterns, accessibilityInsights, tren
             
             <!-- Strategic Opportunities -->
             <div class="opportunity-section">
-                <h3>🚀 Strategic Opportunities (30-90 days)</h3>
+                <h3>🚀 Strategic Opportunities (Next 2-3 ${getPeriodUnit()}s)</h3>
                 <div class="opportunities-grid strategic">
                     ${opportunities.strategic.map(opp => createOpportunityCard(opp, 'strategic')).join('')}
                 </div>
@@ -4466,7 +4658,7 @@ function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
                 <div class="surge-summary-dashboard">
                     <div class="dashboard-header">
                         <h3>📊 Citizen Need Surge Analysis</h3>
-                        <div class="surge-period">Last 30 days vs Previous period</div>
+                        <div class="surge-period">${formatPeriodLabel(window.currentDateRange?.period || '30d')} vs Previous period</div>
                     </div>
                     
                     <div class="surge-stats-grid">
@@ -9377,7 +9569,7 @@ function formatDuration(seconds) {
             <div class="workflow-recommendations">
                 <div class="workflow-item">
                     <div class="workflow-title">Regular Performance Review</div>
-                    <div class="workflow-description">Monthly assessment based on government benchmarks</div>
+                    <div class="workflow-description">${formatPeriodLabel(window.currentDateRange?.period || '30d').replace('Last ', '')} assessment based on government benchmarks</div>
                 </div>
             </div>
         `;
@@ -9617,6 +9809,58 @@ function formatDuration(seconds) {
     justify-content: flex-start;
 }
 
+.date-range-selector {
+    margin: 16px 0;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.date-range-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 8px;
+}
+
+.date-range-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.date-range-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: var(--text-secondary, #e0e0e0);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.date-range-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--text-primary, #ffffff);
+}
+
+.date-range-btn.active {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.date-range-btn.active:hover {
+    background: rgba(34, 197, 94, 0.3);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
 
                 /* Header Refresh Button */
 .header-refresh-btn {
@@ -9698,6 +9942,29 @@ function formatDuration(seconds) {
         width: 100%;
         justify-content: center;
     }
+    
+    .date-range-selector {
+        margin: 12px 0;
+        padding: 12px;
+    }
+    
+    .date-range-label {
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+    }
+    
+    .date-range-options {
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    .date-range-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+    }
 }
                 
                 .page-title {
@@ -9767,6 +10034,8 @@ function formatDuration(seconds) {
                     transition: all 0.2s ease;
                 }
                 
+                /* Enhanced Header Layout - removed, reverted to original */
+                
                 .url-link:hover {
                     background: rgba(255,255,255,0.2);
                     color: white;
@@ -9800,6 +10069,8 @@ function formatDuration(seconds) {
                     opacity: 0.9;
                     font-weight: 500;
                 }
+                
+                /* Enhanced Impact Card Layout - removed, reverted to original */
                 
                 /* Performance Overview */
                 .performance-overview {
@@ -10084,9 +10355,16 @@ function formatDuration(seconds) {
                     align-items: center;
                     justify-content: center;
                     gap: 8px;
+                    text-align: center;
+                    position: relative;
                     font-family: inherit;
                     font-size: 0.9rem;
                     font-weight: 600;
+                }
+                
+                /* Hide descriptions on desktop */
+                .tab-description {
+                    display: none;
                 }
                 
                 .tab-btn:hover:not(.active) {
@@ -10185,56 +10463,7 @@ function formatDuration(seconds) {
                         width: 100%;
                     }
                     
-                    .mobile-connection-status {
-                        display: flex;
-                        gap: 16px;
-                        align-items: center;
-                    }
-                    
-                    .connection-indicator {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        font-size: 12px;
-                        opacity: 0.9;
-                    }
-                    
-                    .status-dot {
-                        width: 10px;
-                        height: 10px;
-                        border-radius: 50%;
-                        background: #ef4444;
-                        transition: all 0.3s ease;
-                        animation: pulse-disconnected 2s infinite;
-                        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-                    }
-                    
-                    .connection-indicator.connected .status-dot {
-                        background: #10b981;
-                        animation: pulse-connected 2s infinite;
-                        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-                    }
-                    
-                    .status-text {
-                        font-weight: 600;
-                        font-size: 12px;
-                        letter-spacing: 0.5px;
-                        color: #374151;
-                    }
-                    
-                    .connection-indicator.connected .status-text {
-                        color: #059669;
-                    }
-                    
-                    @keyframes pulse-connected {
-                        0%, 100% { opacity: 1; transform: scale(1); }
-                        50% { opacity: 0.7; transform: scale(1.1); }
-                    }
-                    
-                    @keyframes pulse-disconnected {
-                        0%, 100% { opacity: 0.6; }
-                        50% { opacity: 0.3; }
-                    }
+                    /* Mobile connection status CSS removed - indicators removed from mobile menu */
                     
                     .mobile-menu-text {
                         font-weight: 500;
@@ -10265,7 +10494,7 @@ function formatDuration(seconds) {
                     }
                     
                     .tab-nav.expanded {
-                        max-height: 300px;
+                        max-height: 400px;
                         transition: max-height 0.3s ease;
                     }
                     
@@ -10273,14 +10502,14 @@ function formatDuration(seconds) {
                         flex: none;
                         min-width: auto;
                         width: 100%;
-                        padding: 16px 20px;
+                        padding: 12px 20px;
                         text-align: left;
                         justify-content: flex-start;
                         flex-direction: column;
                         align-items: flex-start;
                         border-bottom: 1px solid #e2e8f0;
                         border-radius: 0;
-                        min-height: 60px; /* More space for descriptions */
+                        min-height: 52px; /* Reduced from 60px */
                         background: white;
                         transition: all 0.2s ease;
                     }
@@ -10326,11 +10555,13 @@ function formatDuration(seconds) {
                     }
                     
                     .tab-description {
-                        font-size: 12px;
+                        display: block; /* Show on mobile */
+                        font-size: 11px;
                         color: #6b7280;
-                        line-height: 1.3;
+                        line-height: 1.2;
                         margin-left: 32px; /* Align with label */
                         font-weight: 400;
+                        margin-top: 2px;
                     }
                     
                     .tab-btn.active .tab-label {
@@ -11451,11 +11682,103 @@ function formatDuration(seconds) {
                         font-size: 12px;
                     }
                     
-                    .page-title {
-                        font-size: 1.4rem;
-                        line-height: 1.3;
-                        margin: 8px 0 12px 0;
+                    /* Compact Mobile Header */
+                    .dashboard-header {
+                        padding: 12px !important;
                     }
+                    
+                    .page-title {
+                        font-size: 1.3rem !important;
+                        margin-bottom: 12px !important;
+                    }
+                    
+                    .page-breadcrumb {
+                        font-size: 11px !important;
+                        margin-bottom: 6px !important;
+                    }
+                    
+                    .breadcrumb-item {
+                        font-size: 11px !important;
+                    }
+                    
+                    .breadcrumb-separator {
+                        margin: 0 6px !important;
+                    }
+                    
+                    .page-metadata {
+                        margin-top: 12px !important;
+                        margin-bottom: 12px !important;
+                    }
+                    
+                    .metadata-grid {
+                        gap: 8px !important;
+                    }
+                    
+                    .metadata-item {
+                        font-size: 0.8rem !important;
+                        gap: 6px !important;
+                    }
+                    
+                    .metadata-label {
+                        min-width: 80px !important;
+                        font-size: 0.75rem !important;
+                    }
+                    
+                    .metadata-value {
+                        font-size: 0.8rem !important;
+                    }
+                    
+                    .metadata-badge {
+                        font-size: 0.65rem !important;
+                        padding: 2px 6px !important;
+                    }
+                    
+                    .url-link {
+                        font-size: 0.7rem !important;
+                        padding: 2px 6px !important;
+                    }
+                    
+                    .header-actions {
+                        margin-top: 10px !important;
+                    }
+                    
+                    .header-refresh-btn {
+                        padding: 8px 14px !important;
+                        font-size: 0.8rem !important;
+                    }
+                    
+                    .impact-summary {
+                        grid-template-columns: 1fr !important;
+                        gap: 10px !important;
+                        min-width: auto !important;
+                    }
+                    
+                    .impact-card {
+                        padding: 12px !important;
+                        border-radius: 12px !important;
+                    }
+                    
+                    .impact-number {
+                        font-size: 1.3rem !important;
+                        margin-bottom: 2px !important;
+                    }
+                    
+                    .impact-label {
+                        font-size: 0.75rem !important;
+                        margin-bottom: 2px !important;
+                    }
+                    
+                    .impact-explanation {
+                        font-size: 0.65rem !important;
+                        margin-top: 2px !important;
+                    }
+                    
+                    .impact-trend {
+                        font-size: 0.65rem !important;
+                        padding: 2px 6px !important;
+                    }
+                    
+                    /* Duplicate rule removed */
                     
                     .metadata-grid {
                         grid-template-columns: 1fr;
@@ -12546,16 +12869,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         <span class="mobile-menu-text">📊 Dashboard Menu: </span>
                         <span class="current-tab-label">Overview</span>
                     </div>
-                    <div class="mobile-connection-status">
-                        <div class="connection-indicator ga4-status" data-service="ga4">
-                            <div class="status-dot"></div>
-                            <span class="status-text">GA4</span>
-                        </div>
-                        <div class="connection-indicator gsc-status" data-service="gsc">
-                            <div class="status-dot"></div>
-                            <span class="status-text">GSC</span>
-                        </div>
-                    </div>
                 </button>
                 <div class="tab-nav">
                     <button class="tab-btn active" data-tab="overview">
@@ -12665,8 +12978,7 @@ function initializeUnifiedDashboard(dashboardId) {
     
     console.log('✅ Found', tabButtons.length, 'buttons and', tabPanels.length, 'panels');
     
-    // Update mobile connection status indicators
-    updateMobileConnectionStatus();
+    // Connection status indicators removed from mobile menu as requested
     
     // Handle tab clicks
     tabButtons.forEach((button, index) => {
@@ -12847,62 +13159,9 @@ function initializeUnifiedDashboard(dashboardId) {
 // MOBILE CONNECTION STATUS FUNCTIONS
 // ===========================================
 
-function updateMobileConnectionStatus() {
-    console.log('📡 Updating mobile connection status indicators');
-    
-    // Check GA4 connection status
-    const ga4Connected = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
-    const gscConnected = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
-    
-    console.log('🔍 Connection status:', { ga4Connected, gscConnected });
-    
-    // Find and update GA4 status indicator
-    const ga4Indicator = document.querySelector('.ga4-status');
-    console.log('📊 GA4 indicator element found:', !!ga4Indicator);
-    if (ga4Indicator) {
-        if (ga4Connected) {
-            ga4Indicator.classList.add('connected');
-            console.log('✅ GA4 marked as connected');
-        } else {
-            ga4Indicator.classList.remove('connected');
-            console.log('❌ GA4 marked as disconnected');
-        }
-    }
-    
-    // Find and update GSC status indicator
-    const gscIndicator = document.querySelector('.gsc-status');
-    console.log('🔍 GSC indicator element found:', !!gscIndicator);
-    if (gscIndicator) {
-        if (gscConnected) {
-            gscIndicator.classList.add('connected');
-            console.log('✅ GSC marked as connected');
-        } else {
-            gscIndicator.classList.remove('connected');
-            console.log('❌ GSC marked as disconnected');
-        }
-    }
-    
-    // Debug: List all connection indicators
-    const allIndicators = document.querySelectorAll('.connection-indicator');
-    console.log('🔍 Total connection indicators found:', allIndicators.length);
-    allIndicators.forEach((indicator, index) => {
-        console.log(`Indicator ${index}:`, indicator.className, indicator.dataset.service);
-    });
-    
-    console.log('✅ Mobile connection status updated');
-}
+// updateMobileConnectionStatus function removed - connection indicators removed from mobile menu
 
-// Listen for connection status changes
-if (typeof window !== 'undefined') {
-    // Listen for custom events that might indicate connection changes
-    document.addEventListener('ga4Connected', updateMobileConnectionStatus);
-    document.addEventListener('gscConnected', updateMobileConnectionStatus);
-    document.addEventListener('ga4Disconnected', updateMobileConnectionStatus);
-    document.addEventListener('gscDisconnected', updateMobileConnectionStatus);
-    
-    // Also check periodically in case we miss events
-    setInterval(updateMobileConnectionStatus, 5000);
-}
+// Connection status event listeners removed - indicators removed from mobile menu
 
 
 
@@ -13495,14 +13754,14 @@ function calculateCitizenOpportunities(topQueries) {
                                  query.query.toLowerCase().includes('medical card') ||
                                  query.query.toLowerCase().includes('housing');
         
-        if (isHighValueService && query.impressions >= 100) {
+        if (isHighValueService && query.impressions >= getPeriodThreshold(100, 'impressions')) {
             opportunityScore += 5;
             factors.push('High-value citizen service with good search volume');
             citizenImpact = 'high';
         }
         
         // Urgency and citizen need
-        if (queryIntent.hasUrgency && query.impressions >= 50) {
+        if (queryIntent.hasUrgency && query.impressions >= getPeriodThreshold(50, 'impressions')) {
             opportunityScore += 4;
             factors.push('Urgent citizen need requiring immediate attention');
             citizenImpact = 'high';
@@ -13528,7 +13787,7 @@ function calculateCitizenOpportunities(topQueries) {
         const expectedCTR = getCTRBenchmark(query.position);
         const ctrGap = expectedCTR - query.ctr;
         
-        if (ctrGap > 0.02 && query.impressions >= 100) {
+        if (ctrGap > 0.02 && query.impressions >= getPeriodThreshold(100, 'impressions')) {
             opportunityScore += 4;
             factors.push('Large gap between citizen searches and clicks');
             citizenImpact = citizenImpact === 'low' ? 'medium' : 'high';
@@ -13746,7 +14005,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                     </div>
                     <div class="service-stat">
                         <span class="stat-number">${formatNumber(irishServiceAnalysis.totalImpressions)}</span>
-                        <span class="stat-label">Monthly Irish Service Searches</span>
+                        <span class="stat-label">${formatPeriodLabel(window.currentDateRange?.period || '30d').replace('Last ', '')} Irish Service Searches</span>
                     </div>
                 </div>
                 
@@ -13848,7 +14107,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                 </div>
                             </div>
                             <div class="query-metrics">
-                                <span class="metric">${formatNumber(item.impressions)} monthly searches</span>
+                                <span class="metric">${formatNumber(item.impressions)} ${getPeriodMetricLabel('monthly searches')}</span>
                                 <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
                                 <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
                             </div>
@@ -13876,7 +14135,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                     </div>
                                 </div>
                                 <div class="query-metrics">
-                                    <span class="metric">${formatNumber(item.impressions)} monthly searches</span>
+                                    <span class="metric">${formatNumber(item.impressions)} ${getPeriodMetricLabel('monthly searches')}</span>
                                     <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
                                     <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
                                 </div>
@@ -13923,7 +14182,7 @@ function createCitizenOpportunitiesPanel(opportunities) {
                 <p><strong>Opportunities to Better Serve Citizens:</strong> These are specific ways you can improve your content to help more citizens find what they need and complete their tasks successfully.</p>
                 <div class="opportunities-stats">
                     <span class="stat-item">Found <strong>${opportunities.length}</strong> improvement opportunities</span>
-                    <span class="stat-item">Could help <strong>${opportunities.reduce((sum, item) => sum + item.estimatedCitizensHelped, 0)}</strong> more citizens monthly</span>
+                    <span class="stat-item">Could help <strong>${opportunities.reduce((sum, item) => sum + item.estimatedCitizensHelped, 0)}</strong> more citizens ${getPeriodMetricLabel('monthly').toLowerCase()}</span>
                 </div>
             </div>
             
@@ -13954,7 +14213,7 @@ function createCitizenOpportunitiesPanel(opportunities) {
                             <div class="performance-metrics">
                                 <div class="metric-group">
                                     <div class="metric-item">
-                                        <span class="metric-label">Citizens searching monthly:</span>
+                                        <span class="metric-label">Citizens searching ${getPeriodMetricLabel('monthly').toLowerCase()}:</span>
                                         <span class="metric-value">${formatNumber(item.impressions)}</span>
                                     </div>
                                     <div class="metric-item">
@@ -14030,7 +14289,7 @@ function createCitizenOpportunitiesPanel(opportunities) {
                                 <div class="performance-metrics">
                                     <div class="metric-group">
                                         <div class="metric-item">
-                                            <span class="metric-label">Citizens searching monthly:</span>
+                                            <span class="metric-label">Citizens searching ${getPeriodMetricLabel('monthly').toLowerCase()}:</span>
                                             <span class="metric-value">${formatNumber(item.impressions)}</span>
                                         </div>
                                         <div class="metric-item">
@@ -14063,7 +14322,7 @@ function createCitizenOpportunitiesPanel(opportunities) {
                                 <div class="results-grid">
                                     <div class="result-item">
                                         <span class="result-icon">👆</span>
-                                        <span class="result-text">+${item.potentialClicks} more citizens clicking monthly</span>
+                                        <span class="result-text">+${item.potentialClicks} more citizens clicking ${getPeriodMetricLabel('monthly').toLowerCase()}</span>
                                     </div>
                                     <div class="result-item">
                                         <span class="result-icon">🎯</span>
@@ -17469,7 +17728,7 @@ function resetDashboardFilters() {
 function calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends) {
     // Current period data
     const currentReach = (gscData?.clicks || 0) + (ga4Data?.users || 0);
-    const monthlyReach = formatNumber(currentReach);
+    const periodReach = formatNumber(currentReach);
     
     // Use the same helpfulness calculation as detailed quality assessment
     const helpfulnessScore = calculateHelpfulnessScore(ga4Data);
@@ -17536,7 +17795,7 @@ function calculateCitizenImpactWithTrends(gscData, ga4Data, gscTrends, ga4Trends
     }
     
     return { 
-        monthlyReach, 
+        monthlyReach: periodReach, 
         helpfulnessScore, 
         avgTimeToInfo,
         reachTrend,
@@ -17745,8 +18004,20 @@ window.refreshUnifiedDashboard = async function(url) {
         // Fetch GSC data if connected
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
             try {
-                gscData = await window.GSCIntegration.fetchNodeData({ url });
-                gscPrevious = await window.GSCIntegration.fetchPreviousPeriodData({ url });
+                const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
+                const startDate = new Date(dateRange.startDate);
+                const endDate = new Date(dateRange.endDate);
+                
+                gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDate, endDate);
+                
+                // Calculate previous period for comparison
+                const periodDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const prevEndDate = new Date(startDate);
+                prevEndDate.setDate(prevEndDate.getDate() - 1);
+                const prevStartDate = new Date(prevEndDate);
+                prevStartDate.setDate(prevStartDate.getDate() - periodDays);
+                
+                gscPrevious = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, prevStartDate, prevEndDate);
                 
                 if (gscData && gscPrevious && !gscData.noDataFound && !gscPrevious.noDataFound) {
                     gscTrends = {
@@ -17772,8 +18043,20 @@ window.refreshUnifiedDashboard = async function(url) {
         // Fetch GA4 data if connected
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
             try {
-                ga4Data = await window.GA4Integration.fetchData(url);
-                ga4Previous = await window.GA4Integration.fetchPreviousPeriodData(url);
+                const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
+                const startDate = new Date(dateRange.startDate);
+                const endDate = new Date(dateRange.endDate);
+                
+                ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDate, endDate);
+                
+                // Calculate previous period for comparison
+                const periodDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const prevEndDate = new Date(startDate);
+                prevEndDate.setDate(prevEndDate.getDate() - 1);
+                const prevStartDate = new Date(prevEndDate);
+                prevStartDate.setDate(prevStartDate.getDate() - periodDays);
+                
+                ga4Previous = await window.GA4Integration.fetchDataForPeriod(url, prevStartDate, prevEndDate);
                 
                 if (ga4Data && ga4Previous && !ga4Data.noDataFound && !ga4Previous.noDataFound) {
                     ga4Trends = {
