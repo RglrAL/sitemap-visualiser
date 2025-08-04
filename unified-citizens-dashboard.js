@@ -3610,18 +3610,22 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
                         </div>
                         
                         <div class="country-queries">
-                            ${country.queries.slice(0, 4).map((query, index) => `
-                                <div class="query-pattern-item">
-                                    <div class="query-rank">#${index + 1}</div>
-                                    <div class="query-content">
-                                        <div class="query-text">"${escapeHtml(query.query)}"</div>
-                                        <div class="query-stats">
-                                            <span class="clicks-stat">${formatNumber(query.clicks)} clicks</span>
-                                            <span class="flag-mini">${getCountryFlagEnhanced(country.country)}</span>
+                            ${(country.queries && country.queries.length > 0) ? 
+                                (country.queries || []).slice(0, 4).map((query, index) => `
+                                    <div class="query-pattern-item">
+                                        <div class="query-rank">#${index + 1}</div>
+                                        <div class="query-content">
+                                            <div class="query-text">"${escapeHtml(query.query)}"</div>
+                                            <div class="query-stats">
+                                                <span class="clicks-stat">${formatNumber(query.clicks)} clicks</span>
+                                                <span class="flag-mini">${getCountryFlagEnhanced(country.country)}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            `).join('')}
+                                `).join('') 
+                                : 
+                                '<div class="no-queries" style="padding: 12px; color: #6b7280; font-style: italic;">No specific query data available for this period</div>'
+                            }
                         </div>
                     </div>
                 `).join('')}
