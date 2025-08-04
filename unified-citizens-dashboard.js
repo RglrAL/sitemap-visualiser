@@ -242,13 +242,26 @@
         console.log('📅 Changing date range to:', period);
         
         // Hide any active tooltips on mobile to prevent overlay issues
-        const isMobile = window.innerWidth <= 768;
+        const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
         if (isMobile) {
-            const activeTooltips = document.querySelectorAll('.tooltip-content, .tabbed-tooltip, .enhanced-tooltip');
+            const activeTooltips = document.querySelectorAll('.tooltip-content, .tabbed-tooltip, .enhanced-tooltip, [data-tooltip], .tooltip, .tooltip-wrapper');
             activeTooltips.forEach(tooltip => {
                 if (tooltip && tooltip.style.display !== 'none') {
                     tooltip.style.display = 'none';
+                    tooltip.style.visibility = 'hidden';
+                    tooltip.style.opacity = '0';
                     console.log('📱 Hiding tooltip on mobile during date range change');
+                }
+            });
+            
+            // Also hide any tooltip parents/containers
+            const tooltipContainers = document.querySelectorAll('.has-tooltip, .tooltip-trigger');
+            tooltipContainers.forEach(container => {
+                const tooltip = container.querySelector('.tooltip-content, .tooltip, .enhanced-tooltip');
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                    tooltip.style.visibility = 'hidden';
+                    tooltip.style.opacity = '0';
                 }
             });
         }
@@ -9951,10 +9964,18 @@ function formatDuration(seconds) {
     white-space: nowrap;
 }
 
-.date-range-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: var(--text-primary, #ffffff);
+/* Only show hover states on devices that can hover */
+@media (hover: hover) {
+    .date-range-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--text-primary, #ffffff);
+    }
+    
+    .date-range-btn.active:hover {
+        background: rgba(34, 197, 94, 0.3);
+        border-color: rgba(34, 197, 94, 0.5);
+    }
 }
 
 .date-range-btn.active {
@@ -9964,10 +9985,6 @@ function formatDuration(seconds) {
     font-weight: 600;
 }
 
-.date-range-btn.active:hover {
-    background: rgba(34, 197, 94, 0.3);
-    border-color: rgba(34, 197, 94, 0.5);
-}
 
 
                 /* Header Refresh Button */
@@ -10063,15 +10080,35 @@ function formatDuration(seconds) {
     
     .date-range-options {
         justify-content: center;
-        gap: 6px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    /* Stack buttons vertically on very small screens */
+    @media (max-width: 480px) {
+        .date-range-options {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .date-range-btn {
+            width: 100%;
+            min-height: 48px;
+        }
     }
     
     .date-range-btn {
-        padding: 6px 12px;
-        font-size: 0.8rem;
+        padding: 12px 16px;
+        font-size: 0.85rem;
         flex: 1;
         min-width: 0;
+        min-height: 44px;
         text-align: center;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 }
                 
@@ -12911,7 +12948,7 @@ function formatDuration(seconds) {
 
             /* Floating Date Range Indicator */
             .floating-date-indicator {
-                position: fixed;
+                position: fixed !important;
                 bottom: 20px;
                 right: 20px;
                 background: rgba(255, 255, 255, 0.95);
@@ -12919,11 +12956,12 @@ function formatDuration(seconds) {
                 border-radius: 12px;
                 padding: 12px 16px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
-                z-index: 1000;
+                z-index: 10001 !important;
                 font-size: 13px;
                 transition: all 0.3s ease;
                 backdrop-filter: blur(10px);
                 max-width: 280px;
+                pointer-events: auto;
             }
 
             .floating-date-indicator.minimized {
@@ -12998,12 +13036,50 @@ function formatDuration(seconds) {
                 font-size: 16px;
             }
 
+            /* Prevent tooltips on touch devices */
+            @media (hover: none) and (pointer: coarse) {
+                .tooltip-content, 
+                .tabbed-tooltip, 
+                .enhanced-tooltip,
+                .tooltip,
+                [data-tooltip]::after,
+                [data-tooltip]::before {
+                    display: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                }
+                
+                .has-tooltip:hover .tooltip-content,
+                .tooltip-trigger:hover .tooltip {
+                    display: none !important;
+                }
+            }
+            
             @media (max-width: 768px) {
                 .floating-date-indicator {
-                    bottom: 70px;
-                    right: 10px;
+                    bottom: 80px !important;
+                    right: 15px !important;
                     font-size: 12px;
                     max-width: 240px;
+                    z-index: 10001 !important;
+                    position: fixed !important;
+                }
+                
+                .floating-date-indicator.minimized {
+                    bottom: 80px !important;
+                    right: 15px !important;
+                }
+                
+                /* Additional tooltip prevention on small screens */
+                .tooltip-content, 
+                .tabbed-tooltip, 
+                .enhanced-tooltip,
+                .tooltip,
+                [data-tooltip]::after,
+                [data-tooltip]::before {
+                    display: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
                 }
             }
  
@@ -18165,6 +18241,36 @@ window.exportUnifiedReport = exportUnifiedReport;
 window.copyUnifiedSummary = copyUnifiedSummary;
 window.scheduleUnifiedReview = scheduleUnifiedReview;
 window.resetDashboardFilters = resetDashboardFilters;
+
+// Mobile UX Initialization
+function initMobileUX() {
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isMobile = window.innerWidth <= 768 || isTouchDevice;
+    
+    if (isMobile) {
+        // Add mobile class to body for CSS targeting
+        document.body.classList.add('mobile-device', 'touch-device');
+        
+        // Prevent tooltip shows on initial load
+        setTimeout(() => {
+            const tooltips = document.querySelectorAll('.tooltip-content, .tabbed-tooltip, .enhanced-tooltip, .tooltip');
+            tooltips.forEach(tooltip => {
+                tooltip.style.display = 'none';
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+            });
+        }, 500);
+        
+        console.log('📱 Mobile UX initialized');
+    }
+}
+
+// Call mobile UX init on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileUX);
+} else {
+    initMobileUX();
+}
 
 // Add to the GLOBAL EXPORTS section
 // REPLACE the existing refreshUnifiedDashboard function with this fixed version:
