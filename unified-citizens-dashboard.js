@@ -13740,9 +13740,10 @@ function initializeUnifiedDashboard(dashboardId) {
         if (aiSection) {
             // Look for stored timeline data or fetch it
             const timelineData = window.currentAITimelineData || [];
-            // Extract dashboard ID for unique canvas identification
+            // Use the dashboard ID directly since HTML template now matches
             const dashboardIdPart = dashboardId.replace('unified-dashboard-', '');
             createAIDivergenceChart(timelineData, dashboardIdPart);
+            console.log('🎯 Chart initialization called with ID:', dashboardIdPart);
         }
     }, 500);
     
@@ -18785,8 +18786,20 @@ function createAIDivergenceChart(timelineData, dashboardId) {
     const loadingEl = document.getElementById(`chart-loading-${dashboardId || 'default'}`);
     const noDataEl = document.getElementById(`chart-no-data-${dashboardId || 'default'}`);
     
+    console.log('🎯 Looking for canvas with ID:', canvasId);
+    console.log('🔍 Canvas found:', !!canvas);
+    console.log('📋 Available canvases:', Array.from(document.querySelectorAll('canvas')).map(c => c.id));
+    
     if (!canvas) {
-        console.warn('AI divergence chart canvas not found:', canvasId);
+        console.warn('❌ AI divergence chart canvas not found:', canvasId);
+        // Try to find any AI chart canvas as fallback
+        const fallbackCanvas = document.querySelector('[id*="ai-divergence-chart"]');
+        if (fallbackCanvas) {
+            console.log('🔄 Found fallback canvas:', fallbackCanvas.id);
+            // Update IDs to match
+            const fallbackId = fallbackCanvas.id.replace('ai-divergence-chart-', '');
+            return createAIDivergenceChart(timelineData, fallbackId);
+        }
         return;
     }
     
@@ -19270,12 +19283,12 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                         </div>
                     </div>
                     <div class="chart-canvas-wrapper">
-                        <canvas id="ai-divergence-chart-${dashboardId}" class="divergence-chart"></canvas>
-                        <div class="chart-loading" id="chart-loading-${dashboardId}" style="display: none;">
+                        <canvas id="ai-divergence-chart-${dashboardId.replace('unified-dashboard-', '')}" class="divergence-chart"></canvas>
+                        <div class="chart-loading" id="chart-loading-${dashboardId.replace('unified-dashboard-', '')}" style="display: none;">
                             <div class="loading-spinner"></div>
                             <div class="loading-text">Loading chart data...</div>
                         </div>
-                        <div class="chart-no-data" id="chart-no-data-${dashboardId}" style="display: none;">
+                        <div class="chart-no-data" id="chart-no-data-${dashboardId.replace('unified-dashboard-', '')}" style="display: none;">
                             <div class="no-data-icon">📊</div>
                             <div class="no-data-text">Insufficient data for 12-month analysis</div>
                             <div class="no-data-subtext">Try selecting a longer time period in your date range settings</div>
