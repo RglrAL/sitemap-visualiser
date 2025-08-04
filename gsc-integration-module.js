@@ -4776,6 +4776,105 @@ window.GSCIntegration.fetchTrendComparison = async function(nodeData) {
     }
 };
 
+// New function to fetch 12-month time-series data for AI Overview Impact analysis
+window.GSCIntegration.fetch12MonthTimeSeriesData = async function(nodeData) {
+    if (!nodeData || !nodeData.url || !gscConnected || !gscSiteUrl) {
+        debugLog('❌ Cannot fetch time-series data: missing requirements');
+        return { timelineData: [], error: 'Missing requirements' };
+    }
+
+    debugLog('🔄 Fetching 12-month time-series data for:', nodeData.url);
+
+    const today = new Date();
+    const twelveMonthsAgo = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000));
+    
+    // Adjust dates to avoid GSC's 3-day delay
+    const endDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
+    const startDate = new Date(endDate.getTime() - (365 * 24 * 60 * 60 * 1000));
+
+    const urlVariations = createEnhancedUrlVariations(nodeData.url);
+    let timelineData = [];
+
+    for (const variation of urlVariations) {
+        try {
+            debugLog(`🔍 Trying time-series for variation:`, variation);
+
+            const result = await robustGSCApiCall(async () => {
+                return await gapi.client.request({
+                    path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                    method: 'POST',
+                    body: {
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0],
+                        dimensions: ['date', 'page'],
+                        dimensionFilterGroups: [{
+                            filters: [{
+                                dimension: 'page',
+                                operator: 'equals',
+                                expression: variation
+                            }]
+                        }],
+                        rowLimit: 1000, // Increased to handle daily data for 12 months
+                        aggregationType: 'auto'
+                    }
+                });
+            });
+
+            if (result.result && result.result.rows && result.result.rows.length > 0) {
+                debugLog(`✅ Found ${result.result.rows.length} daily data points for:`, variation);
+                
+                // Process the daily data points
+                timelineData = result.result.rows.map(row => ({
+                    date: row.keys[0], // First dimension is date
+                    page: row.keys[1], // Second dimension is page
+                    clicks: row.clicks || 0,
+                    impressions: row.impressions || 0,
+                    ctr: row.ctr || 0,
+                    position: row.position || 0
+                }));
+
+                // Sort by date to ensure chronological order
+                timelineData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                debugLog(`📊 Processed ${timelineData.length} time-series data points`);
+                break; // Found data, no need to try other variations
+            }
+
+        } catch (error) {
+            debugLog(`❌ Error fetching time-series for ${variation}:`, error.message);
+            
+            if (error.status === 429) {
+                debugLog('Rate limited, waiting 2 seconds...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+    }
+
+    if (timelineData.length === 0) {
+        debugLog('⚠️ No time-series data found for any URL variation');
+        return { 
+            timelineData: [], 
+            error: 'No time-series data available',
+            triedVariations: urlVariations.length,
+            period: {
+                start: startDate.toISOString().split('T')[0],
+                end: endDate.toISOString().split('T')[0]
+            }
+        };
+    }
+
+    return {
+        timelineData: timelineData,
+        totalDataPoints: timelineData.length,
+        period: {
+            start: startDate.toISOString().split('T')[0],
+            end: endDate.toISOString().split('T')[0]
+        },
+        fetchedAt: Date.now(),
+        url: nodeData.url
+    };
+};
+
 // Calculate trend percentages and insights
 function calculateGSCTrends(currentData, previousData) {
     const trends = {};
