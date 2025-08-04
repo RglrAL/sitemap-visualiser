@@ -19198,6 +19198,13 @@ function drawAxesLabels(ctx, padding, chartWidth, chartHeight, months, maxImpres
 
 function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
     console.log('🤖 Creating AI Overview Impact section for:', url);
+    console.log('📋 GSC Data passed to section:', {
+        hasData: !!gscData,
+        type: typeof gscData,
+        keys: gscData ? Object.keys(gscData) : [],
+        hasRows: !!gscData?.rows,
+        rowCount: gscData?.rows?.length || 0
+    });
     
     // Calculate divergence metrics using real data
     const impactMetrics = calculateAIOverviewImpact(gscData, url);
@@ -19336,14 +19343,36 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
 
 function calculateAIOverviewImpact(gscData, url) {
     console.log('🤖 Calculating AI Overview impact for:', url);
+    console.log('📊 GSC Data structure:', {
+        hasGscData: !!gscData,
+        hasRows: !!gscData?.rows,
+        rowCount: gscData?.rows?.length || 0,
+        dataKeys: gscData ? Object.keys(gscData) : [],
+        sampleRow: gscData?.rows?.[0] || null
+    });
     
-    if (!gscData?.rows || gscData.rows.length === 0) {
-        console.warn('No GSC data available for AI impact calculation');
+    // Check different possible GSC data structures
+    let gscRows = null;
+    if (gscData?.rows && Array.isArray(gscData.rows)) {
+        gscRows = gscData.rows;
+    } else if (Array.isArray(gscData)) {
+        gscRows = gscData;
+    } else if (gscData?.data?.rows) {
+        gscRows = gscData.data.rows;
+    } else if (gscData?.response?.rows) {
+        gscRows = gscData.response.rows;
+    }
+    
+    if (!gscRows || gscRows.length === 0) {
+        console.warn('❌ No GSC data available for AI impact calculation');
+        console.log('💡 Available GSC data structure:', gscData);
         return getDefaultImpactMetrics();
     }
     
+    console.log('✅ Found GSC data with', gscRows.length, 'rows');
+    
     // Process real GSC data by date to show timeline
-    const processedData = processGSCDataByDate(gscData.rows);
+    const processedData = processGSCDataByDate(gscRows);
     
     // Calculate real metrics from actual data
     const now = new Date();
