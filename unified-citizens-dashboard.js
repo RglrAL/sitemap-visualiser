@@ -18137,6 +18137,15 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 console.log('🔍 GSC period data result:', { hasData: !!gscData, noDataFound: gscData?.noDataFound, url });
                 
+                // Fetch geographic data for GSC for the period
+                if (gscData && !gscData.noDataFound) {
+                    const gscGeoData = await window.GSCIntegration.fetchGeographicDataForPeriod({ url }, startDateObj, endDateObj);
+                    if (gscGeoData) {
+                        gscData.geographic = gscGeoData;
+                        console.log('🌍 GSC Geographic data fetched for period');
+                    }
+                }
+                
                 // If no period data found, try the original fetchNodeData method as fallback
                 if (!gscData || gscData.noDataFound === true) {
                     console.log(`🔍 No GSC data found for ${period} period (${dateRange.startDate} to ${dateRange.endDate}), trying original fetchNodeData method...`);
