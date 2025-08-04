@@ -68,6 +68,10 @@
     function getDateRangeForPeriod(period) {
         // Use a date that's 3 days ago to ensure data is available (GA4/GSC have processing delays)
         const now = new Date();
+        
+        // Log the current date for debugging
+        console.log('📅 Current system date:', now.toISOString().split('T')[0]);
+        
         now.setDate(now.getDate() - 3); // Go back 3 days to ensure data availability
         console.log('🗓️ Using end date (3 days ago for data availability):', now.toISOString().split('T')[0]);
         
@@ -18026,6 +18030,7 @@ window.refreshUnifiedDashboard = async function(url) {
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
             try {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
+                const period = dateRange.period || '30d';
                 // Using date range for GSC
                 
                 // Parse dates properly to avoid timezone issues
@@ -18046,7 +18051,7 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 // If no period data found, try the original fetchNodeData method as fallback
                 if (!gscData || gscData.noDataFound === true) {
-                    console.log('🔍 No period data found, trying original fetchNodeData method...');
+                    console.log(`🔍 No GSC data found for ${period} period (${dateRange.startDate} to ${dateRange.endDate}), trying original fetchNodeData method...`);
                     
                     // Try enhanced URL matching if available
                     if (window.fetchCombinedAnalyticsData) {
@@ -18103,6 +18108,7 @@ window.refreshUnifiedDashboard = async function(url) {
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
             try {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
+                const period = dateRange.period || '30d';
                 // Using date range for GA4
                 
                 // Parse dates properly to avoid timezone issues
@@ -18123,7 +18129,7 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 // If no period data found, try the original fetchData method as fallback
                 if (!ga4Data || ga4Data.noDataFound === true) {
-                    console.log('📊 No period data found, trying original fetchData method...');
+                    console.log(`📊 No GA4 data found for ${period} period (${dateRange.startDate} to ${dateRange.endDate}), trying original fetchData method...`);
                     
                     // Try enhanced URL matching if available
                     if (window.fetchCombinedAnalyticsData) {
