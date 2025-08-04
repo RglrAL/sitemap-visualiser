@@ -53,7 +53,7 @@
                 z-index: 15000;
                 max-width: calc(100vw - 20px);
                 width: calc(100vw - 20px);
-                max-height: calc(100vh - 40px);
+                max-height: calc(85vh - 40px);
                 opacity: 0;
                 transform: translateY(-20px) scale(0.95);
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -406,8 +406,8 @@ onmouseout="
             <!-- Tab Content -->
             <div class="tab-content" style="
                 padding: 24px;
-                min-height: 320px;
-                max-height: 400px;
+                min-height: 280px;
+                max-height: 320px;
                 overflow-y: auto;
             ">
                 <!-- Search Console Tab -->
@@ -626,7 +626,7 @@ onmouseout="
                     
                     .enhanced-tabbed-tooltip .tab-content {
                         padding: 16px !important;
-                        max-height: calc(60vh) !important;
+                        max-height: calc(50vh) !important;
                         overflow-y: auto !important;
                     }
                     
@@ -1228,19 +1228,37 @@ onmouseout="
     }
 
     function hideExistingTooltip(currentData) {
-        if (window.currentEnhancedTooltip) {
-            const existingNodeName = window.currentEnhancedTooltip._nodeData?.name;
-            if (existingNodeName !== currentData.name) {
-                window.currentEnhancedTooltip.style.opacity = '0';
-                window.currentEnhancedTooltip.style.transform = 'translateY(12px) scale(0.94)';
-                setTimeout(() => {
-                    if (window.currentEnhancedTooltip) {
-                        window.currentEnhancedTooltip.remove();
-                        window.currentEnhancedTooltip = null;
-                    }
-                }, 300);
+        console.log('🧹 hideExistingTooltip called');
+        
+        // Remove ALL existing tooltips regardless of content
+        const existingTooltips = document.querySelectorAll('.enhanced-tabbed-tooltip, .enhanced-tooltip');
+        console.log(`🔍 Found ${existingTooltips.length} existing tooltips`);
+        
+        existingTooltips.forEach((tooltip, index) => {
+            console.log(`🗑️ Removing tooltip ${index + 1}`);
+            
+            // Remove backdrop immediately
+            if (tooltip._backdrop) {
+                console.log(`🚪 Removing backdrop for existing tooltip ${index + 1}`);
+                tooltip._backdrop.remove();
             }
-        }
+            
+            tooltip.style.opacity = '0';
+            tooltip.style.transform = 'translateY(12px) scale(0.94)';
+            setTimeout(() => tooltip.remove(), 100);
+        });
+        
+        // Also clean up any orphaned backdrops
+        const orphanedBackdrops = document.querySelectorAll('[style*="backdrop-filter: blur(2px)"]');
+        orphanedBackdrops.forEach((backdrop, index) => {
+            console.log(`🧹 Removing orphaned backdrop from hideExistingTooltip ${index + 1}`);
+            backdrop.remove();
+        });
+        
+        // Clear global reference
+        window.currentEnhancedTooltip = null;
+        
+        console.log('✅ All existing tooltips cleaned up');
     }
 
     function positionTooltip(tooltip, event) {
@@ -1366,6 +1384,7 @@ onmouseout="
             }
             
             const closeHandler = (e) => {
+                console.log('🔘 Tooltip close button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 hideEnhancedTooltip(true); // Force immediate close
@@ -1394,32 +1413,47 @@ onmouseout="
     }
 
     function hideEnhancedTooltip(immediate = false) {
+        console.log('🚪 hideEnhancedTooltip called, immediate:', immediate);
         const delay = immediate ? 0 : 200;
         
         window.enhancedHideTimer = setTimeout(() => {
-            if (window.currentEnhancedTooltip) {
+            // Remove ALL tooltips, not just the tracked one
+            const allTooltips = document.querySelectorAll('.enhanced-tabbed-tooltip, .enhanced-tooltip');
+            console.log(`🧹 Found ${allTooltips.length} tooltips to hide`);
+            
+            allTooltips.forEach((tooltip, index) => {
+                console.log(`🗑️ Hiding tooltip ${index + 1}`);
                 const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 
-                window.currentEnhancedTooltip.style.opacity = '0';
+                tooltip.style.opacity = '0';
                 
                 if (isMobileDevice) {
-                    window.currentEnhancedTooltip.style.transform = 'translateY(-20px) scale(0.95)';
+                    tooltip.style.transform = 'translateY(-20px) scale(0.95)';
                 } else {
-                    window.currentEnhancedTooltip.style.transform = 'translateY(12px) scale(0.94)';
+                    tooltip.style.transform = 'translateY(12px) scale(0.94)';
+                }
+                
+                // Remove mobile backdrop IMMEDIATELY, don't wait
+                if (tooltip._backdrop) {
+                    console.log(`🚪 Removing backdrop for tooltip ${index + 1}`);
+                    tooltip._backdrop.remove();
                 }
                 
                 setTimeout(() => {
-                    if (window.currentEnhancedTooltip) {
-                        // Remove mobile backdrop if it exists
-                        if (window.currentEnhancedTooltip._backdrop) {
-                            window.currentEnhancedTooltip._backdrop.remove();
-                        }
-                        
-                        window.currentEnhancedTooltip.remove();
-                        window.currentEnhancedTooltip = null;
-                    }
+                    tooltip.remove();
                 }, 300);
-            }
+            });
+            
+            // ALSO remove any orphaned backdrops that might exist
+            const orphanedBackdrops = document.querySelectorAll('[style*="backdrop-filter: blur(2px)"]');
+            orphanedBackdrops.forEach((backdrop, index) => {
+                console.log(`🧹 Removing orphaned backdrop ${index + 1}`);
+                backdrop.remove();
+            });
+            
+            // Clear global reference
+            window.currentEnhancedTooltip = null;
+            console.log('✅ All tooltips hidden and removed');
         }, delay);
     }
 
@@ -1505,6 +1539,12 @@ onmouseout="
         
             const nodeData = tooltip._nodeData;
             console.log('📊 Opening dashboard with node data:', nodeData);
+            
+            // Store original tooltip data for restoration on mobile
+            window.originalTooltipData = {
+                event: { target: tooltip._originalEvent?.target },
+                nodeData: nodeData
+            };
             
             // Call your dashboard function and hide loading when done
             console.log('🚀 Calling showUnifiedDashboardReport...');
@@ -1740,6 +1780,7 @@ function hideDashboardLoading() {
 window.showUnifiedDashboardReport = async function(url, nodeData = null) {
     console.log('🚀 Opening Unified Citizens Dashboard for:', url);
     console.log('📄 Using node data:', nodeData);
+    console.log('📅 Current date range:', window.currentDateRange);
 
     // RESET FILTERS WHEN OPENING NEW DASHBOARD
     if (window.resetDashboardFilters) {
@@ -1830,6 +1871,17 @@ window.showUnifiedDashboardReport = async function(url, nodeData = null) {
         // Show in modal
         showDashboardModal(dashboardHtml);
         
+        // On mobile, if currentDateRange is not default, refresh to ensure correct data
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobileDevice && window.currentDateRange && window.currentDateRange.period !== '30d') {
+            console.log('📱 Mobile device detected with non-default date range, refreshing dashboard...');
+            setTimeout(() => {
+                if (window.refreshUnifiedDashboard) {
+                    window.refreshUnifiedDashboard(url);
+                }
+            }, 500); // Small delay to ensure modal is fully loaded
+        }
+        
     } catch (error) {
         console.error('❌ Error loading unified dashboard:');
         console.error('Error message:', error.message);
@@ -1898,6 +1950,11 @@ function showDashboardModal(htmlContent) {
     // Create modal backdrop
     const modal = document.createElement('div');
     modal.id = 'unified-dashboard-modal';
+    
+    // Store original tooltip data for restoration
+    if (window.originalTooltipData) {
+        modal._originalTooltipData = window.originalTooltipData;
+    }
     modal.style.cssText = `
         position: fixed;
         top: 0;
@@ -1962,9 +2019,21 @@ function showDashboardModal(htmlContent) {
     `;
     
     closeBtn.addEventListener('click', () => {
+        console.log('🚪 Closing dashboard modal');
         modal.style.opacity = '0';
         modalContent.style.transform = 'scale(0.9)';
-        setTimeout(() => modal.remove(), 300);
+        
+        // On mobile, restore the original tooltip when modal closes
+        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        setTimeout(() => {
+            modal.remove();
+            console.log('🗑️ Dashboard modal removed');
+            
+            // Don't restore tooltip automatically - let user re-trigger if needed
+            // This prevents conflicts with existing tooltips
+            console.log('📱 Dashboard closed, tooltip restoration disabled to prevent conflicts');
+        }, 300);
     });
     
     closeBtn.addEventListener('mouseenter', () => {
