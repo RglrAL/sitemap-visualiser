@@ -199,7 +199,7 @@
 
     // Date range change handler
     window.changeDateRange = function(period) {
-        console.log('🗓️ Changing date range to:', period);
+        // Changing date range
         
         // Update global date range
         window.currentDateRange = getDateRangeForPeriod(period);
@@ -1866,7 +1866,7 @@ function getRelativeTime(lastModified) {
         nodeData = findNode(window.treeData, url);
     }
     
-    console.log('📅 Using node data for header:', nodeData);
+    // Using node data for header
     
     // Use the simplified date logic (pass nodeData directly)
     const lastModified = getLastModifiedInfo(nodeData);
@@ -13971,12 +13971,12 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     const showPagination = intentAnalysis.length > initialDisplayCount;
     
     // FIX: Validate and correct intent counts
-    console.log('📊 About to validate intent counts...');
+    // Validating intent counts
     const correctedIntentCounts = validateIntentCounts(intentAnalysis, intentCounts);
     console.log('✅ Intent counts validated successfully:', correctedIntentCounts);
     
     // Create intent distribution chart using corrected counts
-    console.log('📈 Creating intent distribution chart...');
+    // Creating intent distribution chart
     const topIntents = Object.entries(correctedIntentCounts)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 6)
@@ -18008,12 +18008,12 @@ window.refreshUnifiedDashboard = async function(url) {
         let gscData = null, ga4Data = null, gscTrends = null, ga4Trends = null;
         let gscPrevious = null, ga4Previous = null;
         
-        console.log('📊 Fetching GSC data...');
+        // Fetching GSC data
         // Fetch GSC data if connected
         if (window.GSCIntegration && window.GSCIntegration.isConnected()) {
             try {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
-                console.log('📅 Using date range:', dateRange);
+                // Using date range for GSC
                 
                 const startDateObj = new Date(dateRange.startDate);
                 const endDateObj = new Date(dateRange.endDate);
@@ -18050,12 +18050,12 @@ window.refreshUnifiedDashboard = async function(url) {
             gscData = { noDataFound: true };
         }
         
-        console.log('📈 Fetching GA4 data...');
+        // Fetching GA4 data
         // Fetch GA4 data if connected
         if (window.GA4Integration && window.GA4Integration.isConnected()) {
             try {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
-                console.log('📅 Using date range for GA4:', dateRange);
+                // Using date range for GA4
                 
                 const startDateObj = new Date(dateRange.startDate);
                 const endDateObj = new Date(dateRange.endDate);
@@ -18093,7 +18093,7 @@ window.refreshUnifiedDashboard = async function(url) {
             ga4Data = { noDataFound: true };
         }
         
-        console.log('🔄 Generating new dashboard...');
+        // Generating new dashboard
         // Generate completely new dashboard HTML
         const newDashboardHtml = createUnifiedCitizensDashboard(
             url, 
@@ -18156,11 +18156,11 @@ window.debugUnifiedTabs = function(dashboardId) {
 
 console.log('✅ UNIFIED Enhanced Citizens Dashboard loaded successfully!');
 console.log('📋 Complete feature set:');
-console.log('   - 📊 Enhanced Overview with Geographic Intelligence');
+// Enhanced Overview with Geographic Intelligence
 console.log('   - 🔍 Search Performance with Problem Detection');
 console.log('   - 📝 Content Analysis with Evidence-Based Actions');
 console.log('   - 👥 User Behavior with Regional Patterns');
-console.log('   - 📈 Trends with Geographic Analysis');
+// Trends with Geographic Analysis
 console.log('   - 🏛️ Government Intelligence (NEW TAB)');
 console.log('   - ⚡ Action Items with Government Context');
 console.log('   - 🌍 Geographic Service Intelligence');
