@@ -4444,7 +4444,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
     // PANEL CREATION FUNCTIONS
     // ===========================================
 
-    function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url) {
+    function createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url, dashboardId) {
     return `
         <div class="panel-content">
             <!-- Analytics and Search Performance Cards -->
@@ -4556,7 +4556,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             </div>
             
             <!-- AI Overview Impact Analysis Section -->
-            ${createAIOverviewImpactSection(gscData, url)}
+            ${createAIOverviewImpactSection(gscData, url, dashboardId)}
             
             <div class="section">
                 <h2 class="section-title">💡 Key Insights</h2>
@@ -13306,16 +13306,62 @@ function formatDuration(seconds) {
             
             .chart-canvas-wrapper {
                 position: relative;
-                height: 300px;
+                height: 350px;
                 background: rgba(255, 255, 255, 0.02);
                 border-radius: 12px;
                 padding: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             
             .divergence-chart {
-                width: 100%;
-                height: 100%;
+                width: 100% !important;
+                height: 100% !important;
                 border-radius: 8px;
+            }
+            
+            .chart-loading, .chart-no-data {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                color: rgba(255, 255, 255, 0.8);
+            }
+            
+            .loading-spinner {
+                width: 40px;
+                height: 40px;
+                border: 3px solid rgba(255, 255, 255, 0.3);
+                border-top: 3px solid rgba(255, 255, 255, 0.8);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 16px;
+            }
+            
+            .loading-text, .no-data-text {
+                font-size: 1rem;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+            
+            .no-data-icon {
+                font-size: 3rem;
+                margin-bottom: 16px;
+                opacity: 0.6;
+            }
+            
+            .no-data-subtext {
+                font-size: 0.85rem;
+                opacity: 0.7;
+                max-width: 250px;
+                line-height: 1.4;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
             }
             
             .chart-annotations {
@@ -13619,7 +13665,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                 
                 <div class="tab-content">
                     <div class="tab-panel active" data-panel="overview">
-                        ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url)}
+                        ${createOverviewPanel(gscData, ga4Data, gscTrends, ga4Trends, url, dashboardId)}
                     </div>
                     
                     <div class="tab-panel" data-panel="search">
@@ -13694,7 +13740,9 @@ function initializeUnifiedDashboard(dashboardId) {
         if (aiSection) {
             // Look for stored timeline data or fetch it
             const timelineData = window.currentAITimelineData || [];
-            createAIDivergenceChart(timelineData);
+            // Extract dashboard ID for unique canvas identification
+            const dashboardIdPart = dashboardId.replace('unified-dashboard-', '');
+            createAIDivergenceChart(timelineData, dashboardIdPart);
         }
     }, 500);
     
@@ -18728,76 +18776,224 @@ function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, c
     console.log('📅 Created floating date indicator outside modal');
 }
 
-// AI Overview Impact Chart Creation
-function createAIDivergenceChart(timelineData) {
-    console.log('📊 Creating AI Overview divergence chart with real data...');
+// AI Overview Impact Chart Creation with Chart.js
+function createAIDivergenceChart(timelineData, dashboardId) {
+    console.log('📊 Creating interactive AI Overview divergence chart...');
     
-    const canvas = document.getElementById('ai-divergence-chart');
+    const canvasId = `ai-divergence-chart-${dashboardId || 'default'}`;
+    const canvas = document.getElementById(canvasId);
+    const loadingEl = document.getElementById(`chart-loading-${dashboardId || 'default'}`);
+    const noDataEl = document.getElementById(`chart-no-data-${dashboardId || 'default'}`);
+    
     if (!canvas) {
-        console.warn('AI divergence chart canvas not found');
+        console.warn('AI divergence chart canvas not found:', canvasId);
         return;
     }
     
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
+    // Show loading
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (noDataEl) noDataEl.style.display = 'none';
     
-    // Set canvas size for high DPI displays
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    ctx.scale(dpr, dpr);
-    
-    const width = rect.width;
-    const height = rect.height;
-    const padding = { top: 40, right: 60, bottom: 60, left: 80 };
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
-    
-    // Use real timeline data or generate mock data if none available
-    const data = timelineData && timelineData.length > 0 ? 
-        processTimelineForChart(timelineData) : 
-        generateDivergenceData(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
-    
-    // Calculate scales
-    const maxImpressions = Math.max(...data.impressions) * 1.1;
-    const maxClicks = Math.max(...data.clicks) * 1.1;
-    const minClicks = Math.min(...data.clicks) * 0.9;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-    
-    // Draw background gradient
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-    bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.02)');
-    bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.01)');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, width, height);
-    
-    // Get labels for x-axis
-    const labels = data.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Draw grid lines
-    drawGridLines(ctx, padding, chartWidth, chartHeight, labels);
-    
-    // Draw divergence area (the gap between impressions and clicks)
-    drawDivergenceArea(ctx, padding, chartWidth, chartHeight, data, maxImpressions, maxClicks);
-    
-    // Draw impression line
-    drawLine(ctx, padding, chartWidth, chartHeight, data.impressions, maxImpressions, '#10b981', 3);
-    
-    // Draw clicks line  
-    drawLine(ctx, padding, chartWidth, chartHeight, data.clicks, maxClicks, '#3b82f6', 3);
-    
-    // Draw data points
-    drawDataPoints(ctx, padding, chartWidth, chartHeight, data.impressions, maxImpressions, '#10b981');
-    drawDataPoints(ctx, padding, chartWidth, chartHeight, data.clicks, maxClicks, '#3b82f6');
-    
-    // Draw axes labels
-    drawAxesLabels(ctx, padding, chartWidth, chartHeight, labels, maxImpressions, maxClicks);
-    
-    console.log('✅ AI divergence chart created');
+    // Load Chart.js if not already loaded
+    loadChartJS().then(() => {
+        // Generate 12-month timeline data
+        const chartData = generate12MonthTimeline(timelineData);
+        
+        // Check if we have sufficient data
+        if (!chartData.hasData) {
+            showNoDataState(canvasId, loadingEl, noDataEl);
+            return;
+        }
+        
+        // Hide loading, show chart
+        if (loadingEl) loadingEl.style.display = 'none';
+        canvas.style.display = 'block';
+        
+        // Create Chart.js instance
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart if present
+        if (window.aiDivergenceChart) {
+            window.aiDivergenceChart.destroy();
+        }
+        
+        window.aiDivergenceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [
+                    {
+                        label: 'Impressions',
+                        data: chartData.impressions,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: false,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Clicks',
+                        data: chartData.clicks,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Timeline (Last 12 Months)',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            font: { size: 12 }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Impressions',
+                            color: '#10b981',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        ticks: {
+                            color: '#10b981',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Clicks',
+                            color: '#3b82f6',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        ticks: {
+                            color: '#3b82f6',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: false // We have custom legend
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            afterTitle: function(context) {
+                                // Add AI Overviews launch annotation
+                                const month = context[0].label;
+                                if (month === 'May \'24') {
+                                    return '🤖 AI Overviews Launch';
+                                }
+                                return '';
+                            },
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                if (context.datasetIndex === 0) {
+                                    return `Impressions: ${Math.round(value).toLocaleString()}`;
+                                } else {
+                                    return `Clicks: ${Math.round(value).toLocaleString()}`;
+                                }
+                            },
+                            afterBody: function(context) {
+                                // Calculate CTR for this point
+                                const impressions = context[0].chart.data.datasets[0].data[context[0].dataIndex];
+                                const clicks = context[0].chart.data.datasets[1].data[context[0].dataIndex];
+                                const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : '0.00';
+                                return `CTR: ${ctr}%`;
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: chartData.aiLaunchIndex >= 0 ? {
+                            aiLaunch: {
+                                type: 'line',
+                                xMin: chartData.aiLaunchIndex,
+                                xMax: chartData.aiLaunchIndex,
+                                borderColor: '#ef4444',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    display: true,
+                                    content: 'AI Overviews Launch',
+                                    position: 'top',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                                    color: '#ffffff',
+                                    font: { size: 11, weight: 'bold' }
+                                }
+                            }
+                        } : {}
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+        
+        console.log('✅ Interactive AI divergence chart created');
+        
+    }).catch(error => {
+        console.error('❌ Failed to load Chart.js:', error);
+        showNoDataState(canvasId, loadingEl, noDataEl, 'Failed to load chart library');
+    });
 }
 
 function generateDivergenceData(months) {
@@ -18987,7 +19183,7 @@ function drawAxesLabels(ctx, padding, chartWidth, chartHeight, months, maxImpres
 // AI OVERVIEW IMPACT ANALYSIS SECTION
 // ===========================================
 
-function createAIOverviewImpactSection(gscData, url) {
+function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
     console.log('🤖 Creating AI Overview Impact section for:', url);
     
     // Calculate divergence metrics using real data
@@ -19074,15 +19270,15 @@ function createAIOverviewImpactSection(gscData, url) {
                         </div>
                     </div>
                     <div class="chart-canvas-wrapper">
-                        <canvas id="ai-divergence-chart" class="divergence-chart"></canvas>
-                        <div class="chart-annotations">
-                            <div class="annotation ai-overview-launch" style="left: 65%;">
-                                <div class="annotation-line"></div>
-                                <div class="annotation-label">
-                                    <div class="annotation-title">AI Overviews Launch</div>
-                                    <div class="annotation-date">May 2024</div>
-                                </div>
-                            </div>
+                        <canvas id="ai-divergence-chart-${dashboardId}" class="divergence-chart"></canvas>
+                        <div class="chart-loading" id="chart-loading-${dashboardId}" style="display: none;">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">Loading chart data...</div>
+                        </div>
+                        <div class="chart-no-data" id="chart-no-data-${dashboardId}" style="display: none;">
+                            <div class="no-data-icon">📊</div>
+                            <div class="no-data-text">Insufficient data for 12-month analysis</div>
+                            <div class="no-data-subtext">Try selecting a longer time period in your date range settings</div>
                         </div>
                     </div>
                 </div>
@@ -19387,6 +19583,153 @@ function getDefaultImpactMetrics() {
         topAffectedQueries: 'N/A',
         timelineData: []
     };
+}
+
+// Chart.js Loading and Helper Functions
+function loadChartJS() {
+    return new Promise((resolve, reject) => {
+        // Check if Chart.js is already loaded
+        if (typeof Chart !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        // Load Chart.js from CDN
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js';
+        script.onload = () => {
+            console.log('✅ Chart.js loaded successfully');
+            resolve();
+        };
+        script.onerror = () => {
+            console.error('❌ Failed to load Chart.js');
+            reject(new Error('Failed to load Chart.js'));
+        };
+        document.head.appendChild(script);
+    });
+}
+
+function generate12MonthTimeline(timelineData) {
+    console.log('📊 Generating 12-month timeline...');
+    
+    // Generate last 12 months labels
+    const months = [];
+    const now = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        months.push({
+            label: monthLabel,
+            year: date.getFullYear(),
+            month: date.getMonth() + 1,
+            key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        });
+    }
+    
+    // Process real timeline data into 12-month buckets
+    const monthlyData = {};
+    let hasRealData = false;
+    
+    if (timelineData && timelineData.length > 0) {
+        timelineData.forEach(item => {
+            const date = new Date(item.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    clicks: 0,
+                    impressions: 0,
+                    count: 0
+                };
+            }
+            
+            monthlyData[monthKey].clicks += item.clicks || 0;
+            monthlyData[monthKey].impressions += item.impressions || 0;
+            monthlyData[monthKey].count++;
+            hasRealData = true;
+        });
+    }
+    
+    // Fill in data for each month
+    const impressions = [];
+    const clicks = [];
+    let aiLaunchIndex = -1;
+    
+    months.forEach((month, index) => {
+        const monthData = monthlyData[month.key];
+        
+        if (monthData && monthData.count > 0) {
+            // Use real data (daily average)
+            impressions.push(Math.round(monthData.impressions / monthData.count));
+            clicks.push(Math.round(monthData.clicks / monthData.count));
+        } else if (!hasRealData) {
+            // Generate representative data if no real data available
+            const mockData = generateMonthlyMockData(index, month);
+            impressions.push(mockData.impressions);
+            clicks.push(mockData.clicks);
+        } else {
+            // Fill gaps with interpolated data or zeros
+            impressions.push(0);
+            clicks.push(0);
+        }
+        
+        // Mark AI Overviews launch month (May 2024)
+        if (month.year === 2024 && month.month === 5) {
+            aiLaunchIndex = index;
+        }
+    });
+    
+    // Check if we have sufficient data for analysis
+    const nonZeroMonths = impressions.filter(val => val > 0).length;
+    const hasData = hasRealData && nonZeroMonths >= 6; // At least 6 months of data
+    
+    return {
+        labels: months.map(m => m.label),
+        impressions,
+        clicks,
+        aiLaunchIndex,
+        hasData,
+        monthCount: nonZeroMonths
+    };
+}
+
+function generateMonthlyMockData(monthIndex, month) {
+    // Generate representative data showing AI Overview impact
+    const baseImpressions = 8000 + Math.random() * 4000;
+    const baseClicks = 600 + Math.random() * 200;
+    
+    // Simulate AI Overview impact starting from May 2024
+    const isAfterAILaunch = month.year === 2024 && month.month >= 5;
+    const monthsAfterLaunch = isAfterAILaunch ? month.month - 5 : 0;
+    
+    let impressionMultiplier = 1 + (monthIndex * 0.02); // Gradual growth
+    let clickMultiplier = 1 - (monthIndex * 0.01); // Gradual decline
+    
+    if (isAfterAILaunch) {
+        // Accelerated impression growth after AI launch
+        impressionMultiplier += monthsAfterLaunch * 0.05;
+        // Steeper click decline after AI launch
+        clickMultiplier -= monthsAfterLaunch * 0.03;
+    }
+    
+    return {
+        impressions: Math.round(baseImpressions * impressionMultiplier),
+        clicks: Math.round(baseClicks * Math.max(clickMultiplier, 0.3))
+    };
+}
+
+function showNoDataState(canvasId, loadingEl, noDataEl, customMessage) {
+    const canvas = document.getElementById(canvasId);
+    if (canvas) canvas.style.display = 'none';
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (noDataEl) {
+        noDataEl.style.display = 'block';
+        if (customMessage) {
+            const textEl = noDataEl.querySelector('.no-data-text');
+            if (textEl) textEl.textContent = customMessage;
+        }
+    }
 }
 
 // Add to the GLOBAL EXPORTS section
