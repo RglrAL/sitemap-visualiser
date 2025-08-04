@@ -14,9 +14,22 @@
     let ga4TokenClient = null;
     let ga4DataCache = new Map();
 
-    // Debug logging
+    // Debug logging - only log important events
     function ga4Log(message, data = null) {
-        console.log(`[GA4 Integration] ${message}`, data || '');
+        // Only log important events, not routine operations
+        const importantEvents = [
+            'GA4 connected successfully',
+            'GA4 disconnected',
+            'Authentication failed',
+            'Connection error',
+            'Property selection failed',
+            'Critical error',
+            'Fatal error'
+        ];
+        
+        if (importantEvents.some(event => message.includes(event))) {
+            console.log(`[GA4 Integration] ${message}`, data || '');
+        }
     }
 
     // ===========================================
