@@ -32,9 +32,22 @@
     let hideTimer = null;
     let showTimer = null;
 
-    // Debug logging helper
+    // Debug logging helper - only log important events
     function debugLog(message, data = null) {
-        console.log(`[GSC Integration] ${message}`, data || '');
+        // Only log important events, not routine operations
+        const importantEvents = [
+            'GSC connected successfully',
+            'GSC disconnected',
+            'Authentication failed',
+            'Connection error',
+            'Site verification failed',
+            'Critical error',
+            'Fatal error'
+        ];
+        
+        if (importantEvents.some(event => message.includes(event))) {
+            console.log(`[GSC Integration] ${message}`, data || '');
+        }
     }
 
     // Create event system
