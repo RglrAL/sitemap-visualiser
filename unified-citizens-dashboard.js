@@ -12969,16 +12969,24 @@ function formatDuration(seconds) {
                 max-width: 50px;
             }
 
-            .floating-date-indicator.minimized .date-indicator-content > div:not(.date-indicator-toggle) {
+            .floating-date-indicator.minimized .date-periods {
                 display: none;
             }
 
             .date-indicator-content {
                 display: flex;
-                flex-direction: column;
+                flex-direction: row;
                 gap: 8px;
-                align-items: flex-start;
+                align-items: center;
                 position: relative;
+                flex-wrap: wrap;
+            }
+            
+            .date-periods {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                flex: 1;
             }
 
             .current-period, .comparison-period {
@@ -13015,16 +13023,17 @@ function formatDuration(seconds) {
             }
 
             .date-indicator-toggle {
-                position: absolute;
-                top: -4px;
-                right: -4px;
+                position: relative;
                 background: none;
                 border: none;
                 cursor: pointer;
-                padding: 4px;
+                padding: 8px;
                 border-radius: 6px;
                 transition: all 0.2s;
                 opacity: 0.7;
+                margin-left: 12px;
+                flex-shrink: 0;
+                align-self: flex-start;
             }
 
             .date-indicator-toggle:hover {
@@ -13152,12 +13161,10 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         ${createUnifiedDashboardStyles()}
         ${createEnhancedQueryAnalysisStyles()}
         
-        <div id="${dashboardId}" class="unified-dashboard-container">
-            ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
-            
-            <!-- Floating Date Range Indicator -->
-            <div class="floating-date-indicator">
-                <div class="date-indicator-content">
+        <!-- Floating Date Range Indicator - Outside container for true floating -->
+        <div class="floating-date-indicator" id="floating-date-indicator-${dashboardId}">
+            <div class="date-indicator-content">
+                <div class="date-periods">
                     <div class="current-period">
                         <span class="period-label">Current:</span>
                         <span class="period-dates">${formatDateRange(currentRange.startDate, currentRange.endDate)}</span>
@@ -13166,11 +13173,14 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         <span class="period-label">vs</span>
                         <span class="period-dates">${formatDateRange(compStartDate.toISOString().split('T')[0], compEndDate.toISOString().split('T')[0])}</span>
                     </div>
-                    <button class="date-indicator-toggle" onclick="toggleDateIndicator()" title="Toggle date display">
-                        <span class="toggle-icon">📅</span>
-                    </button>
                 </div>
+                <button class="date-indicator-toggle" onclick="toggleDateIndicator('${dashboardId}')" title="Toggle date display">
+                    <span class="toggle-icon">📅</span>
+                </button>
             </div>
+        </div>
+        
+        <div id="${dashboardId}" class="unified-dashboard-container">
             
             <div class="dashboard-tabs">
                 <button class="mobile-tab-toggle" onclick="toggleMobileTabs()" style="display: none;" aria-label="Toggle dashboard navigation menu">
@@ -13321,10 +13331,15 @@ function initializeUnifiedDashboard(dashboardId) {
     });
     
     // Add date indicator toggle functionality
-    window.toggleDateIndicator = function() {
-        const indicator = document.querySelector('.floating-date-indicator');
+    window.toggleDateIndicator = function(dashboardId) {
+        // Find the specific indicator for this dashboard, or fallback to any indicator
+        const indicator = dashboardId 
+            ? document.getElementById(`floating-date-indicator-${dashboardId}`)
+            : document.querySelector('.floating-date-indicator');
+        
         if (indicator) {
             indicator.classList.toggle('minimized');
+            console.log('📅 Toggled date indicator:', indicator.classList.contains('minimized') ? 'minimized' : 'expanded');
         }
     };
 
