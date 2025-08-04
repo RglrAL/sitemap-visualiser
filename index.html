@@ -54,6 +54,7 @@
             --gray-500: #6b7280;
             --gray-600: #4b5563;
             --gray-700: #374151;
+            --gray-750: #2d3748;
             --gray-800: #1f2937;
             --gray-900: #111827;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -773,9 +774,11 @@ body.dark-theme .tree-control-btn {
 }
 
 .tree-connection-status .status-icon {
-    font-size: 16px;
-    filter: grayscale(100%);
-    transition: filter 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: grayscale(100%) opacity(0.5);
+    transition: all 0.3s ease;
 }
 
 .tree-connection-status .status-info {
@@ -810,6 +813,7 @@ body.dark-theme .tree-control-btn {
 .tree-connection-status .connection-indicator.connected .status-icon {
     filter: none;
     animation: tree-icon-bounce 2s infinite;
+    opacity: 1;
 }
 
 .tree-connection-status .connection-indicator.connected .status-dot {
@@ -885,8 +889,9 @@ body.dark-theme .tree-connection-status .connection-indicator.connected .status-
         gap: 6px;
     }
     
-    .tree-connection-status .status-icon {
-        font-size: 14px;
+    .tree-connection-status .status-icon svg {
+        width: 14px;
+        height: 14px;
     }
     
     .tree-connection-status .status-dot {
@@ -7472,14 +7477,25 @@ function reapplyThemeStyles() {
             
             connectionStatus.html(`
                 <div class="connection-indicator tree-ga4-status" data-service="ga4">
-                    <div class="status-icon">📊</div>
+                    <div class="status-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                            <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                        </svg>
+                    </div>
                     <div class="status-info">
                         <div class="status-dot"></div>
                         <span class="status-label">GA4</span>
                     </div>
                 </div>
                 <div class="connection-indicator tree-gsc-status" data-service="gsc">
-                    <div class="status-icon">🔍</div>
+                    <div class="status-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
+                            <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                    </div>
                     <div class="status-info">
                         <div class="status-dot"></div>
                         <span class="status-label">GSC</span>
@@ -10870,7 +10886,7 @@ window.switchView = function(viewType) {
     
     const isDark = document.body.classList.contains('dark-theme');
     
-    // Reset container styles
+    // Reset container styles with proper dark mode
     treeContainer.style.marginTop = '0';
     treeContainer.style.paddingTop = '0';
     treeContainer.style.background = isDark ? 'var(--gray-900)' : 'var(--gray-50)';
@@ -10884,7 +10900,7 @@ window.switchView = function(viewType) {
     // Add a test element to verify rendering
     console.log('Dashboard container created:', !!container.node());
     
-    // Dashboard header
+    // Simple dashboard header - matches other reports
     const header = container.append("div")
         .attr("class", "dashboard-header");
     
@@ -10906,94 +10922,170 @@ window.switchView = function(viewType) {
         }
 
         function createMetricsSection(container) {
-    // First, add the responsive styles to the dashboard
-    const styleElement = container.append("style")
-        .text(`
-            .dashboard-metrics-grid {
-                display: grid !important;
-                grid-template-columns: repeat(6, 1fr) !important;
-                gap: 20px !important;
-                margin-bottom: 30px !important;
-            }
-            
-            @media (max-width: 1400px) {
-                .dashboard-metrics-grid {
-                    grid-template-columns: repeat(3, 1fr) !important;
-                }
-            }
-            
-            @media (max-width: 768px) {
-                .dashboard-metrics-grid {
-                    grid-template-columns: repeat(2, 1fr) !important;
-                    gap: 15px !important;
-                }
-            }
-            
-            @media (max-width: 480px) {
-                .dashboard-metrics-grid {
-                    grid-template-columns: repeat(1, 1fr) !important;
-                }
-            }
-        `);
+    const isDark = document.body.classList.contains('dark-theme');
     
-    const metricsSection = container.append("div")
-        .attr("class", "dashboard-metrics-grid");
+    // Performance Overview Section
+    const performanceSection = container.append("div")
+        .style("padding", "30px")
+        .style("background", isDark ? "var(--gray-800)" : "white")
+        .style("border-radius", "16px")
+        .style("margin-bottom", "24px")
+        .style("box-shadow", isDark ? "0 4px 6px -1px rgb(0 0 0 / 0.3)" : "0 4px 6px -1px rgb(0 0 0 / 0.1)");
+    
+    performanceSection.append("h3")
+        .style("font-size", "1.4rem")
+        .style("font-weight", "700")
+        .style("color", isDark ? "var(--gray-100)" : "#1f2937")
+        .style("margin", "0 0 24px 0")
+        .style("text-align", "center")
+        .text("📊 Site Performance Overview");
+    
+    // Metrics grid
+    const metricsGrid = performanceSection.append("div")
+        .style("display", "grid")
+        .style("grid-template-columns", "repeat(2, 1fr)")
+        .style("grid-template-rows", "repeat(2, 1fr)")
+        .style("gap", "20px")
+        .style("max-width", "1100px")
+        .style("margin", "0 auto");
     
     const metrics = [
         {
+            title: "📄 Site Structure",
             value: siteStats.totalPages.toLocaleString(),
             label: "Total Pages",
-            change: "Indexed Content",
-            changeType: "neutral"
+            subtitle: `Across ${siteStats.categoryCount} main categories`,
+            trend: "neutral",
+            color: "#3b82f6"
         },
         {
-            value: siteStats.categoryCount,
-            label: "Main Categories",
-            change: "Content Sections",
-            changeType: "neutral"
-        },
-        {
-            value: siteStats.maxDepth,
-            label: "Maximum Depth",
-            change: siteStats.maxDepth <= 4 ? "Optimal" : "Review Needed",
-            changeType: siteStats.maxDepth <= 4 ? "positive" : "neutral"
-        },
-        {
-            value: siteStats.avgDepth,
-            label: "Average Depth",
-            change: "Navigation Level",
-            changeType: "neutral"
-        },
-        {
+            title: "🎯 Navigation Quality",
             value: siteAnalysis.score + "/100",
             label: "Structure Score",
-            change: siteAnalysis.score >= 80 ? "Excellent" : siteAnalysis.score >= 60 ? "Good" : "Needs Work",
-            changeType: siteAnalysis.score >= 80 ? "positive" : "neutral"
+            subtitle: siteAnalysis.score >= 80 ? "Excellent organization" : siteAnalysis.score >= 60 ? "Good structure" : "Needs improvement",
+            trend: siteAnalysis.score >= 80 ? "positive" : siteAnalysis.score >= 60 ? "neutral" : "negative",
+            color: "#10b981"
         },
         {
+            title: "📊 Content Depth",
+            value: siteStats.maxDepth,
+            label: "Maximum Depth",
+            subtitle: `Average: ${siteStats.avgDepth} levels`,
+            trend: siteStats.maxDepth <= 4 ? "positive" : "neutral",
+            color: "#f59e0b"
+        },
+        {
+            title: "🔍 Category Analysis",
             value: siteStats.largestCategory.percentage + "%",
             label: "Largest Category",
-            change: siteStats.largestCategory.name,
-            changeType: "neutral"
+            subtitle: siteStats.largestCategory.name,
+            trend: "neutral",
+            color: "#8b5cf6"
         }
     ];
     
     metrics.forEach(metric => {
-        const card = metricsSection.append("div")
-            .attr("class", "metric-card");
+        const card = metricsGrid.append("div")
+            .style("background", isDark ? "linear-gradient(145deg, var(--gray-700) 0%, var(--gray-750) 100%)" : "linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)")
+            .style("border", isDark ? "1px solid var(--gray-600)" : "1px solid #e2e8f0")
+            .style("border-radius", "16px")
+            .style("padding", "24px")
+            .style("position", "relative")
+            .style("overflow", "hidden")
+            .style("transition", "all 0.3s ease")
+            .on("mouseenter", function() {
+                d3.select(this)
+                    .style("transform", "translateY(-2px)")
+                    .style("box-shadow", isDark ? "0 10px 25px rgba(0, 0, 0, 0.4)" : "0 10px 25px rgba(0, 0, 0, 0.1)");
+            })
+            .on("mouseleave", function() {
+                d3.select(this)
+                    .style("transform", "translateY(0)")
+                    .style("box-shadow", "none");
+            });
         
+        // Accent border
         card.append("div")
-            .attr("class", "metric-value")
+            .style("position", "absolute")
+            .style("top", "0")
+            .style("left", "0")
+            .style("right", "0")
+            .style("height", "4px")
+            .style("background", metric.color);
+        
+        // Title
+        card.append("div")
+            .style("font-size", "0.9rem")
+            .style("font-weight", "600")
+            .style("color", isDark ? "var(--gray-300)" : "#64748b")
+            .style("margin-bottom", "12px")
+            .text(metric.title);
+        
+        // Value
+        card.append("div")
+            .style("font-size", "2.2rem")
+            .style("font-weight", "800")
+            .style("color", isDark ? "var(--gray-100)" : "#1e293b")
+            .style("line-height", "1")
+            .style("margin-bottom", "8px")
             .text(metric.value);
         
+        // Label
         card.append("div")
-            .attr("class", "metric-label")
+            .style("font-size", "1rem")
+            .style("font-weight", "600")
+            .style("color", isDark ? "var(--gray-200)" : "#475569")
+            .style("margin-bottom", "6px")
             .text(metric.label);
         
+        // Subtitle
         card.append("div")
-            .attr("class", `metric-change ${metric.changeType}`)
-            .text(metric.change);
+            .style("font-size", "0.85rem")
+            .style("color", isDark ? "var(--gray-400)" : "#64748b")
+            .style("line-height", "1.4")
+            .text(metric.subtitle);
+        
+        // Trend indicator
+        if (metric.trend === "positive") {
+            card.append("div")
+                .style("position", "absolute")
+                .style("top", "20px")
+                .style("right", "20px")
+                .style("background", "#10b981")
+                .style("color", "white")
+                .style("padding", "4px 8px")
+                .style("border-radius", "12px")
+                .style("font-size", "0.7rem")
+                .style("font-weight", "600")
+                .text("✓ Good");
+        } else if (metric.trend === "negative") {
+            card.append("div")
+                .style("position", "absolute")
+                .style("top", "20px")
+                .style("right", "20px")
+                .style("background", "#ef4444")
+                .style("color", "white")
+                .style("padding", "4px 8px")
+                .style("border-radius", "12px")
+                .style("font-size", "0.7rem")
+                .style("font-weight", "600")
+                .text("⚠ Review");
+        }
     });
+    
+    // Mobile responsive styles
+    performanceSection.append("style")
+        .text(`
+            @media (max-width: 768px) {
+                .dashboard-analytics .performance-overview {
+                    padding: 20px !important;
+                }
+                .dashboard-analytics .metrics-grid {
+                    grid-template-columns: 1fr !important;
+                    gap: 16px !important;
+                }
+            }
+        `);
 }
 
         function createChartsSection(container) {
@@ -11461,29 +11553,82 @@ function createDepthChart(container) {
     
     const analysis = generateFreshnessAnalysis();
     
-    // Create modal overlay
+    // Create unified dashboard modal
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
+        background: rgba(0,0,0,0.8); z-index: 99999; display: flex; 
         align-items: center; justify-content: center; padding: 20px;
+        backdrop-filter: blur(4px);
     `;
     
     modal.onclick = () => modal.remove();
     
     const content = document.createElement('div');
     content.style.cssText = `
-        background: white; padding: 30px; border-radius: 15px; 
-        max-width: 1200px; max-height: 85vh; overflow-y: auto;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        background: white; border-radius: 16px; 
+        max-width: 1200px; max-height: 85vh; 
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        display: flex; flex-direction: column; overflow: hidden;
     `;
     content.onclick = e => e.stopPropagation();
     
-    content.innerHTML = analysis;
+    // Create unified header
+    const header = document.createElement('div');
+    header.style.cssText = `
+        background: linear-gradient(135deg, #5a8200 0%, #72A300 100%);
+        color: white; padding: 30px; position: relative; overflow: hidden;
+    `;
     
+    // Add pattern background
+    const pattern = document.createElement('div');
+    pattern.style.cssText = `
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="25" cy="25" r="2" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1.5" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.1"/></svg>');
+        background-size: 100px 100px;
+    `;
+    header.appendChild(pattern);
     
-    // Then create and append the X button
-const closeBtn = document.createElement('button');
+    const headerContent = document.createElement('div');
+    headerContent.style.cssText = 'position: relative; z-index: 2;';
+    
+    // Breadcrumb
+    const breadcrumb = document.createElement('div');
+    breadcrumb.style.cssText = 'font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;';
+    breadcrumb.innerHTML = 'Site Analytics <span style="margin: 0 8px; opacity: 0.7;">›</span> Content Freshness Analysis';
+    
+    // Title
+    const title = document.createElement('h1');
+    title.style.cssText = 'font-size: 1.8rem; font-weight: 700; margin: 0; line-height: 1.3;';
+    title.textContent = '🕐 Content Freshness Analysis';
+    
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.style.cssText = `
+        position: absolute; top: 20px; right: 20px; z-index: 3;
+        background: rgba(255,255,255,0.2); color: white; border: none;
+        width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; transition: all 0.3s ease;
+    `;
+    closeBtn.innerHTML = '×';
+    closeBtn.onclick = () => modal.remove();
+    
+    headerContent.appendChild(breadcrumb);
+    headerContent.appendChild(title);
+    header.appendChild(headerContent);
+    header.appendChild(closeBtn);
+    
+    // Content area
+    const contentArea = document.createElement('div');
+    contentArea.style.cssText = 'flex: 1; overflow-y: auto; padding: 30px;';
+    contentArea.innerHTML = analysis;
+    
+    content.appendChild(header);
+    content.appendChild(contentArea);
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
 closeBtn.innerHTML = '×';
 closeBtn.style.cssText = `
     position: absolute;
@@ -11503,25 +11648,7 @@ closeBtn.style.cssText = `
     transition: all 0.2s ease;
     z-index: 1000;
 `;
-closeBtn.onmouseover = () => {
-    closeBtn.style.background = '#f0f0f0';
-    closeBtn.style.color = '#333';
-};
-closeBtn.onmouseout = () => {
-    closeBtn.style.background = 'none';
-    closeBtn.style.color = '#666';
-};
-closeBtn.onclick = () => modal.remove();
-
-// Append the button AFTER setting innerHTML
-content.appendChild(closeBtn);
-    
-    
-    
-    
-    
-    modal.appendChild(content);
-    document.body.appendChild(modal);
+    // Content freshness modal is now complete
     
     // NOW initialize pagination after modal is in DOM
     if (window.allPagesData) {
