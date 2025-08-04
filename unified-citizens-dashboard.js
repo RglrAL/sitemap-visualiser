@@ -3476,7 +3476,7 @@ function createCleanInternationalView(countries, geoInsights) {
         `;
     }
     
-    const international = countries.filter(c => c.country !== 'Ireland').slice(0, 5);
+    const international = countries.filter(c => c.country !== 'Ireland');
     
     return `
         <div class="clean-international-overview">
@@ -4152,7 +4152,7 @@ function createInteractiveWorldMap(countries) {
         return `<div class="no-data-placeholder">🌍 No international data available</div>`;
     }
     
-    const topCountries = countries.slice(0, 6).map((country, index) => {
+    const topCountries = countries.map((country, index) => {
         const flag = getCountryFlagEnhanced(country.country);
         return `
             <div class="country-marker" 
@@ -16900,7 +16900,7 @@ function generateInternationalInsights(countries, pageContext) {
         return '<div class="no-insights">No international data available</div>';
     }
     
-    const topCountries = countries.filter(c => c.country !== 'Ireland').slice(0, 3);
+    const topCountries = countries.filter(c => c.country !== 'Ireland');
     
     return `
         <div class="international-insights-list">
@@ -17237,7 +17237,7 @@ function identifyDecliningRegions(regions) {
 
 function identifyEmergingMarkets(countries) {
     // Mock implementation
-    const emerging = countries?.filter(c => c.country !== 'Ireland').slice(0, 2) || [];
+    const emerging = countries?.filter(c => c.country !== 'Ireland') || [];
     return emerging.map(c => c.country);
 }
 
@@ -17536,7 +17536,7 @@ function createInteractiveWorldMap(countries) {
         return `<div class="no-data-placeholder">🌍 No international data available</div>`;
     }
     
-    const topCountries = countries.slice(0, 6).map((country, index) => {
+    const topCountries = countries.map((country, index) => {
         const flag = getCountryFlagEnhanced(country.country);
         return `
             <div class="country-marker" 
