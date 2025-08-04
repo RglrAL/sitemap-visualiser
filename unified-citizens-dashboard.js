@@ -112,7 +112,13 @@
             period: period
         };
         
-        console.log('📅 Date range calculated:', result);
+        console.log('📅 Date range calculated:', {
+            period: period,
+            startDate: result.startDate,
+            endDate: result.endDate,
+            startDateObj: startDate.toISOString(),
+            endDateObj: endDate.toISOString()
+        });
         return result;
     }
 
@@ -18022,8 +18028,17 @@ window.refreshUnifiedDashboard = async function(url) {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
                 // Using date range for GSC
                 
-                const startDateObj = new Date(dateRange.startDate);
-                const endDateObj = new Date(dateRange.endDate);
+                // Parse dates properly to avoid timezone issues
+                const [startYear, startMonth, startDay] = dateRange.startDate.split('-').map(Number);
+                const [endYear, endMonth, endDay] = dateRange.endDate.split('-').map(Number);
+                const startDateObj = new Date(startYear, startMonth - 1, startDay);
+                const endDateObj = new Date(endYear, endMonth - 1, endDay);
+                
+                console.log('🔍 GSC Date parsing:', {
+                    dateRange: dateRange,
+                    parsedStart: startDateObj.toISOString(),
+                    parsedEnd: endDateObj.toISOString()
+                });
                 
                 gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDateObj, endDateObj);
                 
@@ -18090,8 +18105,17 @@ window.refreshUnifiedDashboard = async function(url) {
                 const dateRange = window.currentDateRange || getDateRangeForPeriod('30d');
                 // Using date range for GA4
                 
-                const startDateObj = new Date(dateRange.startDate);
-                const endDateObj = new Date(dateRange.endDate);
+                // Parse dates properly to avoid timezone issues
+                const [startYear, startMonth, startDay] = dateRange.startDate.split('-').map(Number);
+                const [endYear, endMonth, endDay] = dateRange.endDate.split('-').map(Number);
+                const startDateObj = new Date(startYear, startMonth - 1, startDay);
+                const endDateObj = new Date(endYear, endMonth - 1, endDay);
+                
+                console.log('📊 GA4 Date parsing:', {
+                    dateRange: dateRange,
+                    parsedStart: startDateObj.toISOString(),
+                    parsedEnd: endDateObj.toISOString()
+                });
                 
                 ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
                 
