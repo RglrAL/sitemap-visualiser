@@ -18302,11 +18302,39 @@ window.refreshUnifiedDashboard = async function(url) {
             ga4Trends
         );
         
-        // Close current modal
-        modal.remove();
-        
-        // Show new modal with refreshed data
-        showDashboardModal(newDashboardHtml);
+        // Update modal content instead of removing/recreating to prevent mobile issues
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            console.log('🔄 Updating existing modal content...');
+            // Find just the dashboard content, not the close button
+            const dashboardContainer = modalContent.querySelector('div:not(.close-btn)');
+            if (dashboardContainer) {
+                dashboardContainer.innerHTML = newDashboardHtml;
+            } else {
+                // Fallback: replace all content but preserve close button
+                const closeBtn = modalContent.querySelector('.close-btn');
+                modalContent.innerHTML = newDashboardHtml;
+                if (closeBtn) modalContent.appendChild(closeBtn);
+            }
+            
+            // Re-initialize dashboard functionality
+            const dashboardId = modalContent.querySelector('[id^="unified-dashboard-"]')?.id;
+            if (dashboardId) {
+                setTimeout(() => {
+                    try {
+                        initializeUnifiedDashboard(dashboardId);
+                        console.log('✅ Dashboard re-initialized after refresh');
+                    } catch (error) {
+                        console.error('❌ Error re-initializing dashboard:', error);
+                    }
+                }, 100);
+            }
+        } else {
+            // Fallback to old method if modal structure is unexpected
+            console.log('⚠️ Modal content not found, using fallback method');
+            modal.remove();
+            showDashboardModal(newDashboardHtml);
+        }
         
         console.log('✅ Dashboard refreshed successfully');
         showUnifiedNotification('✅ Dashboard data refreshed successfully!');
