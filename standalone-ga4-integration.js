@@ -1575,6 +1575,125 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
     }
 };
 
+// Function to fetch geographic data for a specific period
+window.GA4Integration.fetchGeographicDataForPeriod = async function(pageUrl, startDate, endDate) {
+    if (!window.GA4Integration.isConnected()) {
+        console.log('[GA4] Not connected, cannot fetch geographic data');
+        return null;
+    }
+    
+    const propertyId = window.GA4Integration.getPropertyId();
+    if (!propertyId) {
+        console.log('[GA4] No property ID available');
+        return null;
+    }
+    
+    const pagePath = window.GA4Integration.urlToPath(pageUrl);
+    console.log('[GA4] Fetching geographic data for period:', {
+        pagePath: pagePath,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+    });
+    
+    try {
+        const requestBody = {
+            dateRanges: [{
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            }],
+            dimensions: [
+                { name: 'country' },
+                { name: 'city' }
+            ],
+            metrics: [
+                { name: 'totalUsers' }
+            ],
+            dimensionFilter: {
+                filter: {
+                    fieldName: 'pagePath',
+                    stringFilter: { matchType: 'EXACT', value: pagePath }
+                }
+            },
+            orderBys: [{
+                metric: { metricName: 'totalUsers' },
+                desc: true
+            }],
+            limit: 50
+        };
+        
+        const response = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        const geographic = {
+            countries: [],
+            cities: [],
+            regions: [],
+            topCountry: 'Unknown',
+            internationalTraffic: 0
+        };
+        
+        if (data.rows && data.rows.length > 0) {
+            const countries = {};
+            const cities = {};
+            let totalUsers = 0;
+            
+            data.rows.forEach(row => {
+                const country = row.dimensionValues[0]?.value || 'Unknown';
+                const city = row.dimensionValues[1]?.value || 'Unknown';
+                const users = parseInt(row.metricValues[0]?.value || 0);
+                
+                if (!countries[country]) countries[country] = 0;
+                countries[country] += users;
+                
+                if (!cities[city]) cities[city] = 0;
+                cities[city] += users;
+                
+                totalUsers += users;
+            });
+            
+            geographic.countries = Object.entries(countries)
+                .map(([country, users]) => ({ 
+                    country, 
+                    users, 
+                    percentage: totalUsers > 0 ? (users / totalUsers) * 100 : 0 
+                }))
+                .sort((a, b) => b.users - a.users);
+                
+            geographic.cities = Object.entries(cities)
+                .map(([city, users]) => ({ 
+                    city, 
+                    users, 
+                    percentage: totalUsers > 0 ? (users / totalUsers) * 100 : 0 
+                }))
+                .sort((a, b) => b.users - a.users)
+                .slice(0, 10);
+                
+            geographic.topCountry = geographic.countries[0]?.country || 'Unknown';
+            geographic.internationalTraffic = geographic.countries
+                .filter(c => c.country !== 'Ireland')
+                .reduce((sum, c) => sum + c.percentage, 0);
+        }
+        
+        return geographic;
+        
+    } catch (error) {
+        console.error('[GA4] Error fetching geographic data:', error);
+        return null;
+    }
+};
+
 // Helper function to get previous period data (30-60 days ago)
 window.GA4Integration.fetchPreviousPeriodData = async function(pageUrl) {
     const today = new Date();
