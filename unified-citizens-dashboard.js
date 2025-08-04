@@ -18448,14 +18448,37 @@ window.refreshUnifiedDashboard = async function(url) {
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
             console.log('🔄 Updating existing modal content...');
+            
+            // Extract and inject styles to prevent CSS appearing as text
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newDashboardHtml;
+            
+            // Find and inject style tags into document head
+            const styleTags = tempDiv.querySelectorAll('style');
+            styleTags.forEach(styleTag => {
+                // Remove existing dashboard styles to prevent duplicates
+                const existingStyles = document.querySelectorAll('style[data-dashboard-styles]');
+                existingStyles.forEach(style => style.remove());
+                
+                // Add new styles to head
+                styleTag.setAttribute('data-dashboard-styles', 'true');
+                document.head.appendChild(styleTag);
+            });
+            
+            // Remove style tags from HTML content
+            styleTags.forEach(style => style.remove());
+            
+            // Update content without style tags
+            const htmlContent = tempDiv.innerHTML;
+            
             // Find just the dashboard content, not the close button
             const dashboardContainer = modalContent.querySelector('div:not(.close-btn)');
             if (dashboardContainer) {
-                dashboardContainer.innerHTML = newDashboardHtml;
+                dashboardContainer.innerHTML = htmlContent;
             } else {
                 // Fallback: replace all content but preserve close button
                 const closeBtn = modalContent.querySelector('.close-btn');
-                modalContent.innerHTML = newDashboardHtml;
+                modalContent.innerHTML = htmlContent;
                 if (closeBtn) modalContent.appendChild(closeBtn);
             }
             
