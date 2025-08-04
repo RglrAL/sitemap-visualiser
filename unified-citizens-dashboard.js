@@ -18027,6 +18027,8 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDateObj, endDateObj);
                 
+                console.log('🔍 GSC period data result:', { hasData: !!gscData, noDataFound: gscData?.noDataFound, url });
+                
                 // If no period data found, try the original fetchNodeData method as fallback
                 if (!gscData || gscData.noDataFound === true) {
                     console.log('🔍 No period data found, trying original fetchNodeData method...');
@@ -18092,6 +18094,8 @@ window.refreshUnifiedDashboard = async function(url) {
                 const endDateObj = new Date(dateRange.endDate);
                 
                 ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
+                
+                console.log('🔍 GA4 period data result:', { hasData: !!ga4Data, noDataFound: ga4Data?.noDataFound, url });
                 
                 // If no period data found, try the original fetchData method as fallback
                 if (!ga4Data || ga4Data.noDataFound === true) {
