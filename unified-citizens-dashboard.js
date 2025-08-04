@@ -18028,9 +18028,23 @@ window.refreshUnifiedDashboard = async function(url) {
                 gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDateObj, endDateObj);
                 
                 // If no period data found, try the original fetchNodeData method as fallback
-                if (!gscData || gscData.noDataFound) {
+                if (!gscData || gscData.noDataFound === true) {
                     console.log('🔍 No period data found, trying original fetchNodeData method...');
-                    gscData = await window.GSCIntegration.fetchNodeData({ url });
+                    
+                    // Try enhanced URL matching if available
+                    if (window.fetchCombinedAnalyticsData) {
+                        console.log('🔗 Using enhanced URL matching...');
+                        const combinedData = await window.fetchCombinedAnalyticsData({ url });
+                        if (combinedData && combinedData.gsc && !combinedData.gsc.noDataFound) {
+                            gscData = combinedData.gsc;
+                            console.log('✅ Enhanced URL matching found GSC data');
+                        } else {
+                            gscData = await window.GSCIntegration.fetchNodeData({ url });
+                        }
+                    } else {
+                        gscData = await window.GSCIntegration.fetchNodeData({ url });
+                    }
+                    
                     gscPrevious = await window.GSCIntegration.fetchPreviousPeriodData({ url });
                     
                     // Note: when using fallback, we lose the custom date range but get working data
@@ -18080,9 +18094,23 @@ window.refreshUnifiedDashboard = async function(url) {
                 ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
                 
                 // If no period data found, try the original fetchData method as fallback
-                if (!ga4Data || ga4Data.noDataFound) {
+                if (!ga4Data || ga4Data.noDataFound === true) {
                     console.log('📊 No period data found, trying original fetchData method...');
-                    ga4Data = await window.GA4Integration.fetchData(url);
+                    
+                    // Try enhanced URL matching if available
+                    if (window.fetchCombinedAnalyticsData) {
+                        console.log('🔗 Using enhanced URL matching...');
+                        const combinedData = await window.fetchCombinedAnalyticsData({ url });
+                        if (combinedData && combinedData.ga4 && !combinedData.ga4.noDataFound) {
+                            ga4Data = combinedData.ga4;
+                            console.log('✅ Enhanced URL matching found GA4 data');
+                        } else {
+                            ga4Data = await window.GA4Integration.fetchData(url);
+                        }
+                    } else {
+                        ga4Data = await window.GA4Integration.fetchData(url);
+                    }
+                    
                     ga4Previous = await window.GA4Integration.fetchPreviousPeriodData(url);
                     
                     // Note: when using fallback, we lose the custom date range but get working data
