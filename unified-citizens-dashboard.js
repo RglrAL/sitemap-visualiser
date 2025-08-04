@@ -241,6 +241,18 @@
         // Changing date range
         console.log('📅 Changing date range to:', period);
         
+        // Hide any active tooltips on mobile to prevent overlay issues
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            const activeTooltips = document.querySelectorAll('.tooltip-content, .tabbed-tooltip, .enhanced-tooltip');
+            activeTooltips.forEach(tooltip => {
+                if (tooltip && tooltip.style.display !== 'none') {
+                    tooltip.style.display = 'none';
+                    console.log('📱 Hiding tooltip on mobile during date range change');
+                }
+            });
+        }
+        
         // Show loading state immediately
         const modal = document.getElementById('unified-dashboard-modal');
         if (modal) {
@@ -12903,6 +12915,103 @@ function formatDuration(seconds) {
 
             ${createEnhancedQueryAnalysisStyles()}
 
+            /* Floating Date Range Indicator */
+            .floating-date-indicator {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 12px 16px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+                z-index: 1000;
+                font-size: 13px;
+                transition: all 0.3s ease;
+                backdrop-filter: blur(10px);
+                max-width: 280px;
+            }
+
+            .floating-date-indicator.minimized {
+                padding: 8px 12px;
+                max-width: 50px;
+            }
+
+            .floating-date-indicator.minimized .date-indicator-content > div:not(.date-indicator-toggle) {
+                display: none;
+            }
+
+            .date-indicator-content {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+                position: relative;
+            }
+
+            .current-period, .comparison-period {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                white-space: nowrap;
+            }
+
+            .period-label {
+                font-weight: 600;
+                color: #6b7280;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .period-dates {
+                color: #1f2937;
+                font-weight: 500;
+            }
+
+            .current-period .period-dates {
+                color: #0ea5e9;
+            }
+
+            .comparison-period {
+                padding-left: 12px;
+                position: relative;
+            }
+
+            .comparison-period .period-label {
+                color: #9ca3af;
+            }
+
+            .date-indicator-toggle {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 6px;
+                transition: all 0.2s;
+                opacity: 0.7;
+            }
+
+            .date-indicator-toggle:hover {
+                background: #f3f4f6;
+                opacity: 1;
+            }
+
+            .toggle-icon {
+                font-size: 16px;
+            }
+
+            @media (max-width: 768px) {
+                .floating-date-indicator {
+                    bottom: 70px;
+                    right: 10px;
+                    font-size: 12px;
+                    max-width: 240px;
+                }
+            }
  
             
         </style>
@@ -12923,6 +13032,20 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
     
     // Store the current dashboard URL globally
     window.currentDashboardUrl = url;
+    
+    // Calculate comparison period dates
+    const currentRange = window.currentDateRange || getDateRangeForPeriod('30d');
+    const period = currentRange.period;
+    
+    // Calculate comparison period
+    const startDate = new Date(currentRange.startDate);
+    const endDate = new Date(currentRange.endDate);
+    const periodDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    
+    const compEndDate = new Date(startDate);
+    compEndDate.setDate(compEndDate.getDate() - 1);
+    const compStartDate = new Date(compEndDate);
+    compStartDate.setDate(compStartDate.getDate() - periodDays + 1);
     
     try {
         const dashboardId = 'unified-dashboard-' + Date.now();
@@ -12961,6 +13084,22 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
         <div id="${dashboardId}" class="unified-dashboard-container">
             ${createEnhancedHeader(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData)}
             
+            <!-- Floating Date Range Indicator -->
+            <div class="floating-date-indicator">
+                <div class="date-indicator-content">
+                    <div class="current-period">
+                        <span class="period-label">Current:</span>
+                        <span class="period-dates">${formatDateRange(currentRange.startDate, currentRange.endDate)}</span>
+                    </div>
+                    <div class="comparison-period">
+                        <span class="period-label">vs</span>
+                        <span class="period-dates">${formatDateRange(compStartDate.toISOString().split('T')[0], compEndDate.toISOString().split('T')[0])}</span>
+                    </div>
+                    <button class="date-indicator-toggle" onclick="toggleDateIndicator()" title="Toggle date display">
+                        <span class="toggle-icon">📅</span>
+                    </button>
+                </div>
+            </div>
             
             <div class="dashboard-tabs">
                 <button class="mobile-tab-toggle" onclick="toggleMobileTabs()" style="display: none;" aria-label="Toggle dashboard navigation menu">
@@ -13110,6 +13249,14 @@ function initializeUnifiedDashboard(dashboardId) {
         });
     });
     
+    // Add date indicator toggle functionality
+    window.toggleDateIndicator = function() {
+        const indicator = document.querySelector('.floating-date-indicator');
+        if (indicator) {
+            indicator.classList.toggle('minimized');
+        }
+    };
+
     // Add mobile tab toggle functionality
     window.toggleMobileTabs = function() {
         const tabNav = document.querySelector('.tab-nav');
