@@ -13231,18 +13231,19 @@ function formatDuration(seconds) {
                 font-weight: 700;
                 margin-bottom: 4px;
                 text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                color: rgba(255, 255, 255, 1);
             }
             
             .impact-metric-card .metric-label {
                 font-size: 0.9rem;
                 font-weight: 600;
-                opacity: 0.9;
                 margin-bottom: 2px;
+                color: rgba(255, 255, 255, 0.95);
             }
             
             .impact-metric-card .metric-period {
                 font-size: 0.75rem;
-                opacity: 0.7;
+                color: rgba(255, 255, 255, 0.8);
             }
             
             .divergence-chart-container {
@@ -13345,6 +13346,7 @@ function formatDuration(seconds) {
                 font-size: 1rem;
                 font-weight: 600;
                 margin-bottom: 8px;
+                color: rgba(255, 255, 255, 0.9);
             }
             
             .no-data-icon {
@@ -13355,9 +13357,9 @@ function formatDuration(seconds) {
             
             .no-data-subtext {
                 font-size: 0.85rem;
-                opacity: 0.7;
                 max-width: 250px;
                 line-height: 1.4;
+                color: rgba(255, 255, 255, 0.7);
             }
             
             /* Dynamic Narrative Styles */
@@ -19970,6 +19972,38 @@ function calculateAIOverviewImpact(gscData, url) {
     return getDefaultImpactMetrics();
 }
 
+function findPeakDivergenceMonthFromAggregated(currentClicks, currentImpressions, currentCTR) {
+    // Since we don't have time-series data, estimate peak divergence month based on AI Overview rollout patterns
+    // AI Overviews had major rollout phases: May 2024 (initial), July 2024 (expansion), October 2024 (peak impact)
+    
+    const now = new Date();
+    const aiLaunchDate = new Date('2024-05-01');
+    
+    // Calculate months since AI launch
+    const monthsSinceLaunch = Math.floor((now - aiLaunchDate) / (1000 * 60 * 60 * 24 * 30));
+    
+    // Determine peak month based on current performance patterns
+    let peakMonth;
+    
+    if (currentCTR < 0.015) {
+        // Very low CTR suggests heavy AI Overview impact - likely peaked in October 2024
+        peakMonth = new Date('2024-10-01');
+    } else if (currentCTR < 0.025) {
+        // Moderate impact - likely peaked in July-September 2024
+        peakMonth = new Date('2024-08-01');
+    } else {
+        // Lower impact - earlier peak or more recent impact
+        peakMonth = new Date('2024-06-01');
+    }
+    
+    // Don't predict future peak months
+    if (peakMonth > now) {
+        peakMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    }
+    
+    return peakMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
 function calculateImpactFromAggregatedData(gscData, url) {
     console.log('📊 Calculating impact from aggregated GSC data...');
     
@@ -20019,7 +20053,7 @@ function calculateImpactFromAggregatedData(gscData, url) {
         severityIcon,
         severityText,
         keyInsight: `Based on current performance data (${currentClicks.toLocaleString()} clicks from ${currentImpressions.toLocaleString()} impressions), this page shows patterns consistent with AI Overview impact. The current CTR of ${(currentCTR * 100).toFixed(2)}% suggests potential traffic loss to AI-powered search results.`,
-        peakDivergenceMonth: 'October 2024',
+        peakDivergenceMonth: findPeakDivergenceMonthFromAggregated(currentClicks, currentImpressions, currentCTR),
         averagePositionChange: avgPosition > 10 ? `+${(avgPosition - 8).toFixed(1)}` : `-${(8 - avgPosition).toFixed(1)}`,
         topAffectedQueries: 'Government service queries',
         timelineData: timelineData
@@ -20314,7 +20348,7 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
         severityIcon,
         severityText,
         keyInsight: `Real data analysis shows ${ctrDecline > 0 ? `a ${ctrDecline}% CTR decline` : 'stable CTR'} and ${impressionGrowth > 0 ? `${impressionGrowth}% impression growth` : 'stable impressions'} since AI Overviews launched. This page has experienced ${estimatedLostClicks.toLocaleString()} estimated lost clicks due to AI-powered search results.`,
-        peakDivergenceMonth: peakDivergenceMonth || 'September 2024',
+        peakDivergenceMonth: peakDivergenceMonth || findPeakDivergenceMonthFromAggregated(postAIAvg.clicks, postAIAvg.impressions, postAIAvg.ctr),
         averagePositionChange: (postAIAvg.position - preAIAvg.position).toFixed(1),
         topAffectedQueries: 'Information-seeking queries',
         timelineData: sortedData,
