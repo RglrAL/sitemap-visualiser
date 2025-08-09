@@ -20100,6 +20100,9 @@ function calculateImpactFromAggregatedData(gscData, url) {
     const estimatedImpressionGrowth = Math.round(15 + Math.random() * 15); // 15-30% growth
     
     // Calculate estimated lost clicks
+    // Reconstruct estimated pre-AI CTR from the decline percentage
+    const declineFactor = 1 - (estimatedCTRDecline / 100);
+    const estimatedPreAICTR = declineFactor > 0 ? (currentCTR * 100) / declineFactor : currentCTR * 100 * 1.5;
     const potentialClicks = currentImpressions * (estimatedPreAICTR / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - currentClicks));
     
