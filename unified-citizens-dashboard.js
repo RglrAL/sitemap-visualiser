@@ -19159,6 +19159,9 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         // Calculate trend lines and anomalies
         const analysisData = analyzeTimelineData(chartData);
         
+        // Update the metrics display with real chart data
+        updateMetricsFromChartData(chartData, dashboardId);
+        
         // Create divergence gap data points
         const divergenceGapData = chartData.labels.map((label, index) => {
             const impressions = chartData.impressions[index];
@@ -19518,6 +19521,69 @@ function analyzeTimelineData(chartData) {
         divergenceIndices,
         baselineCTR
     };
+}
+
+// Update metrics cards with real chart data
+function updateMetricsFromChartData(chartData, dashboardId) {
+    console.log('📊 Updating metrics from chart data...');
+    
+    if (!chartData || !chartData.impressions || chartData.impressions.length < 7) {
+        console.warn('Insufficient chart data for metrics update');
+        return;
+    }
+    
+    // Calculate CTR for each month
+    const monthlyCtrs = chartData.impressions.map((imp, idx) => {
+        const clicks = chartData.clicks[idx] || 0;
+        return imp > 0 ? (clicks / imp) * 100 : 0;
+    });
+    
+    // Get latest complete month CTR and 6 months ago CTR
+    const latestCtr = monthlyCtrs[monthlyCtrs.length - 1];
+    const sixMonthsAgoCtr = monthlyCtrs[monthlyCtrs.length - 7];
+    
+    // Calculate actual CTR decline
+    const actualCtrDecline = sixMonthsAgoCtr > 0 ? 
+        Math.round(((sixMonthsAgoCtr - latestCtr) / sixMonthsAgoCtr) * 100) : 0;
+    
+    // Calculate impression growth
+    const latestImpressions = chartData.impressions[chartData.impressions.length - 1];
+    const sixMonthsAgoImpressions = chartData.impressions[chartData.impressions.length - 7];
+    const impressionGrowth = sixMonthsAgoImpressions > 0 ?
+        Math.round(((latestImpressions - sixMonthsAgoImpressions) / sixMonthsAgoImpressions) * 100) : 0;
+    
+    console.log('📈 Calculated metrics:', {
+        latestCtr,
+        sixMonthsAgoCtr,
+        actualCtrDecline,
+        impressionGrowth
+    });
+    
+    // Update the display
+    const dashboardContainer = document.querySelector(`[data-dashboard-id="${dashboardId}"]`);
+    if (!dashboardContainer) return;
+    
+    // Update CTR decline card
+    const ctrDeclineCard = dashboardContainer.querySelector('.impact-metric-card.ctr-decline .metric-value');
+    if (ctrDeclineCard) {
+        ctrDeclineCard.textContent = `${actualCtrDecline}%`;
+    }
+    
+    // Update impression growth card
+    const impressionGrowthCard = dashboardContainer.querySelector('.impact-metric-card.impression-growth .metric-value');
+    if (impressionGrowthCard) {
+        impressionGrowthCard.textContent = `${impressionGrowth}%`;
+    }
+    
+    // Update lost clicks calculation based on new CTR decline
+    const potentialClicks = latestImpressions * (sixMonthsAgoCtr / 100);
+    const actualClicks = latestImpressions * (latestCtr / 100);
+    const lostClicks = Math.max(0, Math.round(potentialClicks - actualClicks));
+    
+    const lostClicksCard = dashboardContainer.querySelector('.impact-metric-card.lost-clicks .metric-value');
+    if (lostClicksCard) {
+        lostClicksCard.textContent = lostClicks.toLocaleString();
+    }
 }
 
 // Add metrics overlay to chart
@@ -20013,10 +20079,22 @@ function calculateImpactFromAggregatedData(gscData, url) {
     const currentCTR = gscData.ctr || 0;
     const avgPosition = gscData.position || 0;
     
-    // Since we don't have historical data, we'll estimate impact based on industry patterns
-    // AI Overviews typically cause 15-40% CTR decline for informational pages
-    const estimatedPreAICTR = currentCTR * 1.25; // Assume 20% decline from pre-AI levels
-    const estimatedCTRDecline = Math.round(((estimatedPreAICTR - currentCTR) / estimatedPreAICTR) * 100);
+    // Calculate CTR decline based on page performance
+    // Instead of assuming 20%, use a variable estimation based on current CTR
+    let estimatedCTRDecline = 20; // Default fallback
+    
+    // If CTR is very low, assume higher historical CTR and bigger decline
+    if (currentCTR < 0.01) {
+        estimatedCTRDecline = 50; // Very low CTR suggests heavy AI impact
+    } else if (currentCTR < 0.02) {
+        estimatedCTRDecline = 40; // Low CTR suggests significant impact
+    } else if (currentCTR < 0.03) {
+        estimatedCTRDecline = 30; // Moderate CTR suggests moderate impact
+    } else if (currentCTR < 0.05) {
+        estimatedCTRDecline = 20; // Normal range
+    } else {
+        estimatedCTRDecline = 10; // High CTR suggests less impact
+    }
     
     // Estimate impression growth (AI Overviews often increase impressions 10-30%)
     const estimatedImpressionGrowth = Math.round(15 + Math.random() * 15); // 15-30% growth
