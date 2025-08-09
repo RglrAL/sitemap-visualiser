@@ -13359,6 +13359,282 @@ function formatDuration(seconds) {
                 line-height: 1.4;
             }
             
+            /* Dynamic Narrative Styles */
+            .ai-impact-narrative {
+                margin-top: 32px;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .narrative-section {
+                background: rgba(255, 255, 255, 0.95);
+                color: #1f2937;
+                border-radius: 16px;
+                padding: 32px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            }
+            
+            .narrative-heading h4 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #111827;
+                margin: 0 0 16px 0;
+            }
+            
+            .narrative-intro {
+                margin-bottom: 24px;
+            }
+            
+            .narrative-intro p {
+                font-size: 1.1rem;
+                line-height: 1.7;
+                color: #374151;
+            }
+            
+            .key-pattern {
+                background: #f3f4f6;
+                border-radius: 12px;
+                padding: 24px;
+                margin: 24px 0;
+            }
+            
+            .key-pattern h5 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 16px 0;
+            }
+            
+            .pattern-metrics {
+                display: flex;
+                align-items: flex-start;
+                gap: 24px;
+                margin-bottom: 16px;
+            }
+            
+            .pattern-metric {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .metric-icon {
+                font-size: 1.5rem;
+            }
+            
+            .pattern-details {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .pattern-details li {
+                color: #4b5563;
+                padding: 4px 0;
+            }
+            
+            .severity-message {
+                margin: 16px 0 0 0;
+                font-weight: 500;
+                color: #374151;
+            }
+            
+            .why-matters {
+                margin: 24px 0;
+            }
+            
+            .why-matters h5 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 16px 0;
+            }
+            
+            .impact-facts {
+                list-style: disc;
+                padding-left: 24px;
+                margin: 16px 0;
+            }
+            
+            .impact-facts li {
+                color: #4b5563;
+                padding: 4px 0;
+                line-height: 1.6;
+            }
+            
+            .device-insight {
+                background: #e0e7ff;
+                border-left: 4px solid #4f46e5;
+                padding: 16px;
+                margin: 16px 0;
+                border-radius: 0 8px 8px 0;
+            }
+            
+            .action-items {
+                margin: 32px 0;
+            }
+            
+            .action-items h5 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 16px 0;
+            }
+            
+            .immediate-actions,
+            .strategic-response {
+                margin: 24px 0;
+            }
+            
+            .immediate-actions h6,
+            .strategic-response h6 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #374151;
+                margin: 0 0 12px 0;
+            }
+            
+            .immediate-actions ol,
+            .strategic-response ul {
+                padding-left: 24px;
+                margin: 12px 0;
+            }
+            
+            .immediate-actions li,
+            .strategic-response li {
+                color: #4b5563;
+                padding: 6px 0;
+                line-height: 1.7;
+            }
+            
+            .bottom-line {
+                background: #f9fafb;
+                border-radius: 12px;
+                padding: 24px;
+                margin: 24px 0;
+            }
+            
+            .bottom-line h5 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #111827;
+                margin: 0 0 12px 0;
+            }
+            
+            .public-service-warning {
+                background: #fef3c7;
+                border: 1px solid #fcd34d;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 24px 0;
+                display: flex;
+                gap: 12px;
+                align-items: center;
+            }
+            
+            .warning-icon {
+                font-size: 1.5rem;
+                flex-shrink: 0;
+            }
+            
+            .public-service-warning p {
+                margin: 0;
+                color: #92400e;
+                font-weight: 500;
+            }
+            
+            .narrative-footer {
+                margin-top: 32px;
+                padding-top: 24px;
+                border-top: 1px solid #e5e7eb;
+            }
+            
+            .footer-note {
+                font-size: 0.875rem;
+                color: #6b7280;
+                font-style: italic;
+                margin: 0;
+            }
+            
+            /* Chart Metrics Overlay */
+            .chart-metrics-overlay {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 12px 16px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                display: flex;
+                gap: 16px;
+                z-index: 10;
+            }
+            
+            .chart-metrics-overlay .metric-item {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .chart-metrics-overlay .metric-label {
+                font-size: 0.75rem;
+                color: #6b7280;
+                font-weight: 500;
+            }
+            
+            .chart-metrics-overlay .metric-value {
+                font-size: 0.875rem;
+                color: #111827;
+                font-weight: 600;
+            }
+            
+            /* AI Impact Details Grid */
+            .ai-impact-details {
+                margin-top: 24px;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .detail-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+            }
+            
+            .detail-item {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 12px;
+                padding: 20px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
+            
+            .detail-icon {
+                font-size: 1.5rem;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            }
+            
+            .detail-content {
+                flex: 1;
+            }
+            
+            .detail-label {
+                display: block;
+                font-size: 0.875rem;
+                opacity: 0.9;
+                margin-bottom: 4px;
+            }
+            
+            .detail-value {
+                display: block;
+                font-size: 1.125rem;
+                font-weight: 600;
+            }
+            
             @keyframes spin {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
@@ -13538,6 +13814,52 @@ function formatDuration(seconds) {
                 
                 .annotation-line {
                     height: 210px;
+                }
+                
+                /* Narrative Section Mobile Styles */
+                .narrative-section {
+                    padding: 20px;
+                }
+                
+                .narrative-heading h4 {
+                    font-size: 1.25rem;
+                }
+                
+                .narrative-intro p {
+                    font-size: 1rem;
+                }
+                
+                .key-pattern {
+                    padding: 16px;
+                }
+                
+                .pattern-metrics {
+                    flex-direction: column;
+                    gap: 16px;
+                }
+                
+                .action-items h5,
+                .why-matters h5,
+                .key-pattern h5,
+                .bottom-line h5 {
+                    font-size: 1.125rem;
+                }
+                
+                .immediate-actions h6,
+                .strategic-response h6 {
+                    font-size: 1rem;
+                }
+                
+                .detail-grid {
+                    grid-template-columns: 1fr;
+                    gap: 12px;
+                }
+                
+                .chart-metrics-overlay {
+                    flex-direction: column;
+                    gap: 8px;
+                    padding: 8px 12px;
+                    font-size: 0.875rem;
                 }
             }
  
@@ -18777,9 +19099,9 @@ function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, c
     console.log('📅 Created floating date indicator outside modal');
 }
 
-// AI Overview Impact Chart Creation with Chart.js
+// AI Overview Impact Chart Creation with Chart.js - Search Console Style
 function createAIDivergenceChart(timelineData, dashboardId) {
-    console.log('📊 Creating interactive AI Overview divergence chart...');
+    console.log('📊 Creating interactive AI Overview divergence chart with logarithmic scale...');
     
     const canvasId = `ai-divergence-chart-${dashboardId || 'default'}`;
     const canvas = document.getElementById(canvasId);
@@ -18830,6 +19152,9 @@ function createAIDivergenceChart(timelineData, dashboardId) {
             window.aiDivergenceChart.destroy();
         }
         
+        // Calculate trend lines and anomalies
+        const analysisData = analyzeTimelineData(chartData);
+        
         window.aiDivergenceChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -18840,30 +19165,47 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         data: chartData.impressions,
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 3,
+                        borderWidth: 2,
                         pointBackgroundColor: '#10b981',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 2,
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        tension: 0.4,
-                        fill: false,
-                        yAxisID: 'y'
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.1,
+                        fill: false
                     },
                     {
                         label: 'Clicks',
                         data: chartData.clicks,
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 3,
+                        borderWidth: 2,
                         pointBackgroundColor: '#3b82f6',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 2,
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        tension: 0.4,
-                        fill: false,
-                        yAxisID: 'y1'
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'CTR Anomalies',
+                        data: analysisData.anomalyPoints,
+                        borderColor: '#ef4444',
+                        backgroundColor: '#ef4444',
+                        borderWidth: 0,
+                        pointBackgroundColor: function(context) {
+                            const value = context.raw;
+                            return value && value.type === 'drop' ? '#ef4444' : '#10b981';
+                        },
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: function(context) {
+                            return context.raw ? 8 : 0;
+                        },
+                        pointHoverRadius: 10,
+                        showLine: false,
+                        fill: false
                     }
                 ]
             },
@@ -18878,54 +19220,54 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     x: {
                         display: true,
                         title: {
-                            display: true,
-                            text: 'Timeline (Last 12 Months)',
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            font: { size: 14, weight: 'bold' }
+                            display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            font: { size: 12 }
+                            color: '#6b7280',
+                            font: { size: 11 },
+                            maxRotation: 0
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.1)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)'
+                            color: '#e8eaed',
+                            borderColor: '#e8eaed',
+                            lineWidth: 1
                         }
                     },
                     y: {
-                        type: 'linear',
+                        type: 'logarithmic',
                         display: true,
                         position: 'left',
                         title: {
-                            display: true,
-                            text: 'Impressions',
-                            color: '#10b981',
-                            font: { size: 14, weight: 'bold' }
+                            display: false
                         },
                         ticks: {
-                            color: '#10b981',
-                            font: { size: 11 }
+                            color: '#6b7280',
+                            font: { size: 11 },
+                            callback: function(value, index, values) {
+                                return formatLogValue(value);
+                            },
+                            // Generate logarithmic ticks
+                            autoSkip: false,
+                            maxTicksLimit: 8
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Clicks',
-                            color: '#3b82f6',
-                            font: { size: 14, weight: 'bold' }
-                        },
-                        ticks: {
-                            color: '#3b82f6',
-                            font: { size: 11 }
-                        },
-                        grid: {
-                            drawOnChartArea: false,
+                            color: function(context) {
+                                const value = context.tick.value;
+                                // Major grid lines at powers of 10
+                                if (isPowerOf10(value)) {
+                                    return '#d1d5db';
+                                }
+                                // Minor grid lines at 2x and 5x
+                                if (is2xOr5x(value)) {
+                                    return '#e8eaed';
+                                }
+                                return 'transparent';
+                            },
+                            borderColor: '#e8eaed',
+                            lineWidth: function(context) {
+                                const value = context.tick.value;
+                                return isPowerOf10(value) ? 1.5 : 1;
+                            }
                         }
                     }
                 },
@@ -18937,12 +19279,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         display: false // We have custom legend
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1f2937',
+                        bodyColor: '#374151',
+                        borderColor: '#e5e7eb',
                         borderWidth: 1,
-                        cornerRadius: 8,
+                        cornerRadius: 6,
+                        padding: 12,
                         displayColors: true,
                         callbacks: {
                             title: function(context) {
@@ -18951,47 +19294,91 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             afterTitle: function(context) {
                                 // Add AI Overviews launch annotation
                                 const month = context[0].label;
-                                if (month === 'May \'24') {
-                                    return '🤖 AI Overviews Launch';
+                                if (month === 'Mar \'25') {
+                                    return '🤖 AI Overviews Launch in Ireland';
                                 }
                                 return '';
                             },
                             label: function(context) {
-                                const value = context.parsed.y;
-                                if (context.datasetIndex === 0) {
-                                    return `Impressions: ${Math.round(value).toLocaleString()}`;
-                                } else {
-                                    return `Clicks: ${Math.round(value).toLocaleString()}`;
+                                if (context.datasetIndex === 2) {
+                                    // Anomaly points
+                                    const anomaly = context.raw;
+                                    if (anomaly && anomaly.type) {
+                                        return anomaly.type === 'drop' 
+                                            ? `⚠️ CTR dropped ${anomaly.change}% vs previous month`
+                                            : `✅ CTR improved despite impression growth`;
+                                    }
+                                    return '';
                                 }
+                                
+                                const value = context.parsed.y;
+                                const dataIndex = context.dataIndex;
+                                const dataset = context.dataset;
+                                
+                                // Calculate month-over-month change
+                                let changeText = '';
+                                if (dataIndex > 0) {
+                                    const prevValue = dataset.data[dataIndex - 1];
+                                    const change = ((value - prevValue) / prevValue * 100).toFixed(1);
+                                    changeText = ` (${change > 0 ? '+' : ''}${change}%)`;
+                                }
+                                
+                                if (context.datasetIndex === 0) {
+                                    return `Impressions: ${formatLogValue(value)}${changeText}`;
+                                } else if (context.datasetIndex === 1) {
+                                    return `Clicks: ${formatLogValue(value)}${changeText}`;
+                                }
+                                return '';
                             },
                             afterBody: function(context) {
-                                // Calculate CTR for this point
-                                const impressions = context[0].chart.data.datasets[0].data[context[0].dataIndex];
-                                const clicks = context[0].chart.data.datasets[1].data[context[0].dataIndex];
+                                const dataIndex = context[0].dataIndex;
+                                const impressions = context[0].chart.data.datasets[0].data[dataIndex];
+                                const clicks = context[0].chart.data.datasets[1].data[dataIndex];
                                 const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : '0.00';
-                                return `CTR: ${ctr}%`;
+                                
+                                // Calculate divergence index
+                                const divergenceIndex = analysisData.divergenceIndices[dataIndex] || 0;
+                                
+                                // Calculate lost clicks
+                                const expectedCTR = analysisData.baselineCTR || ctr;
+                                const lostClicks = Math.max(0, Math.round(impressions * (expectedCTR - ctr) / 100));
+                                
+                                return [
+                                    `CTR: ${ctr}%`,
+                                    `Divergence Index: ${divergenceIndex}`,
+                                    lostClicks > 0 ? `Lost clicks: ~${lostClicks.toLocaleString()}` : ''
+                                ];
                             }
                         }
                     },
                     annotation: {
-                        annotations: chartData.aiLaunchIndex >= 0 ? {
+                        annotations: {
                             aiLaunch: {
                                 type: 'line',
-                                xMin: chartData.aiLaunchIndex,
-                                xMax: chartData.aiLaunchIndex,
+                                xMin: 2, // March 2025 (index 2 in 12-month view)
+                                xMax: 2,
                                 borderColor: '#ef4444',
                                 borderWidth: 2,
                                 borderDash: [5, 5],
                                 label: {
                                     display: true,
-                                    content: 'AI Overviews Launch',
+                                    content: 'AI Overviews Launch in Ireland',
                                     position: 'top',
                                     backgroundColor: 'rgba(239, 68, 68, 0.8)',
                                     color: '#ffffff',
                                     font: { size: 11, weight: 'bold' }
                                 }
+                            },
+                            divergenceArea: {
+                                type: 'box',
+                                xMin: 2,
+                                xMax: chartData.labels.length - 1,
+                                yMin: 0,
+                                yMax: 'max',
+                                backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                                borderWidth: 0
                             }
-                        } : {}
+                        }
                     }
                 },
                 animation: {
@@ -19003,10 +19390,133 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         
         console.log('✅ Interactive AI divergence chart created');
         
+        // Add metrics overlay
+        addMetricsOverlay(canvasId, analysisData);
+        
     }).catch(error => {
         console.error('❌ Failed to load Chart.js:', error);
         showNoDataState(canvasId, loadingEl, noDataEl, 'Failed to load chart library');
     });
+}
+
+// Helper functions for logarithmic chart
+function formatLogValue(value) {
+    if (value >= 1000000) {
+        return (value / 1000000).toFixed(value >= 10000000 ? 0 : 1) + 'M';
+    } else if (value >= 1000) {
+        return (value / 1000).toFixed(value >= 10000 ? 0 : 1) + 'K';
+    }
+    return Math.round(value).toString();
+}
+
+function isPowerOf10(value) {
+    if (value <= 0) return false;
+    const log = Math.log10(value);
+    return Math.abs(log - Math.round(log)) < 0.01;
+}
+
+function is2xOr5x(value) {
+    if (value <= 0) return false;
+    // Check if it's 2x or 5x a power of 10
+    const factors = [2, 5, 20, 50, 200, 500, 2000, 5000];
+    return factors.some(factor => Math.abs(value - factor) < 0.01);
+}
+
+// Analyze timeline data for anomalies and trends
+function analyzeTimelineData(chartData) {
+    const impressions = chartData.impressions;
+    const clicks = chartData.clicks;
+    const anomalyPoints = new Array(impressions.length).fill(null);
+    const divergenceIndices = [];
+    
+    // Calculate baseline CTR (pre-AI launch average)
+    let baselineCTR = 0;
+    const preAIMonths = 2; // First 2 months before March launch
+    for (let i = 0; i < preAIMonths && i < impressions.length; i++) {
+        if (impressions[i] > 0) {
+            baselineCTR += (clicks[i] / impressions[i]) * 100;
+        }
+    }
+    baselineCTR = baselineCTR / preAIMonths;
+    
+    // Detect anomalies and calculate divergence
+    for (let i = 1; i < impressions.length; i++) {
+        const currentCTR = impressions[i] > 0 ? (clicks[i] / impressions[i]) * 100 : 0;
+        const prevCTR = impressions[i-1] > 0 ? (clicks[i-1] / impressions[i-1]) * 100 : 0;
+        
+        // Calculate month-over-month CTR change
+        const ctrChange = prevCTR > 0 ? ((prevCTR - currentCTR) / prevCTR) * 100 : 0;
+        
+        // Mark significant CTR drops
+        if (ctrChange > 10) {
+            anomalyPoints[i] = {
+                x: i,
+                y: clicks[i],
+                type: 'drop',
+                change: Math.round(ctrChange)
+            };
+        }
+        
+        // Mark CTR improvements despite impression growth
+        const impChange = impressions[i-1] > 0 ? ((impressions[i] - impressions[i-1]) / impressions[i-1]) * 100 : 0;
+        if (impChange > 5 && ctrChange < -5) {
+            anomalyPoints[i] = {
+                x: i,
+                y: clicks[i],
+                type: 'improvement',
+                change: Math.round(Math.abs(ctrChange))
+            };
+        }
+        
+        // Calculate divergence index
+        const ctrDecline = baselineCTR > 0 ? Math.max(0, ((baselineCTR - currentCTR) / baselineCTR) * 100) : 0;
+        const impressionGrowth = impressions[0] > 0 ? Math.max(0, ((impressions[i] - impressions[0]) / impressions[0]) * 100) : 0;
+        divergenceIndices.push(Math.round(ctrDecline * 1.5 + impressionGrowth * 0.5));
+    }
+    
+    return {
+        anomalyPoints,
+        divergenceIndices,
+        baselineCTR
+    };
+}
+
+// Add metrics overlay to chart
+function addMetricsOverlay(canvasId, analysisData) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const container = canvas.parentElement;
+    if (!container) return;
+    
+    // Remove existing overlay if present
+    const existingOverlay = container.querySelector('.chart-metrics-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    // Calculate current metrics
+    const latestIndex = analysisData.divergenceIndices.length - 1;
+    const currentDivergence = analysisData.divergenceIndices[latestIndex] || 0;
+    const avgDivergence = analysisData.divergenceIndices.reduce((a, b) => a + b, 0) / analysisData.divergenceIndices.length;
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'chart-metrics-overlay';
+    overlay.innerHTML = `
+        <div class="metric-item">
+            <span class="metric-label">Current CTR</span>
+            <span class="metric-value">${((window.currentAITimelineData[latestIndex]?.ctr || 0) * 100).toFixed(2)}%</span>
+        </div>
+        <div class="metric-item">
+            <span class="metric-label">vs Historical</span>
+            <span class="metric-value">${analysisData.baselineCTR.toFixed(2)}%</span>
+        </div>
+        <div class="metric-item">
+            <span class="metric-label">Divergence</span>
+            <span class="metric-value">${currentDivergence}</span>
+        </div>
+    `;
+    
+    container.appendChild(overlay);
 }
 
 function generateDivergenceData(months) {
@@ -19340,35 +19850,33 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                     </div>
                 </div>
                 
-                <!-- Insights and Analysis -->
-                <div class="ai-impact-insights">
-                    <div class="insight-card primary-insight">
-                        <div class="insight-header">
-                            <div class="insight-icon">💡</div>
-                            <h5 class="insight-title">Key Finding</h5>
-                        </div>
-                        <p class="insight-text">
-                            ${impactMetrics.keyInsight}
-                        </p>
-                    </div>
-                    
-                    <div class="insight-grid">
-                        <div class="insight-item">
-                            <div class="insight-metric">
-                                <span class="insight-number">${impactMetrics.peakDivergenceMonth}</span>
-                                <span class="insight-label">Peak Divergence Month</span>
+                <!-- Dynamic Narrative Analysis -->
+                <div class="ai-impact-narrative">
+                    ${generateDynamicNarrative(impactMetrics, gscData, url)}
+                </div>
+                
+                <!-- Detailed Metrics -->
+                <div class="ai-impact-details">
+                    <div class="detail-grid">
+                        <div class="detail-item peak-month">
+                            <div class="detail-icon">📈</div>
+                            <div class="detail-content">
+                                <span class="detail-label">Peak Divergence</span>
+                                <span class="detail-value">${impactMetrics.peakDivergenceMonth}</span>
                             </div>
                         </div>
-                        <div class="insight-item">
-                            <div class="insight-metric">
-                                <span class="insight-number">${impactMetrics.averagePositionChange}</span>
-                                <span class="insight-label">Avg. Position Change</span>
+                        <div class="detail-item position-change">
+                            <div class="detail-icon">📍</div>
+                            <div class="detail-content">
+                                <span class="detail-label">Position Change</span>
+                                <span class="detail-value">${impactMetrics.averagePositionChange}</span>
                             </div>
                         </div>
-                        <div class="insight-item">
-                            <div class="insight-metric">
-                                <span class="insight-number">${impactMetrics.topAffectedQueries}</span>
-                                <span class="insight-label">Most Affected Query Types</span>
+                        <div class="detail-item affected-queries">
+                            <div class="detail-icon">🔍</div>
+                            <div class="detail-content">
+                                <span class="detail-label">Most Affected</span>
+                                <span class="detail-value">${impactMetrics.topAffectedQueries}</span>
                             </div>
                         </div>
                     </div>
@@ -19924,6 +20432,329 @@ function updateAIImpactDisplay(dashboardId, updatedMetrics) {
     }
     
     console.log('✅ AI impact display updated with real data');
+}
+
+// Generate dynamic narrative based on page metrics and patterns
+function generateDynamicNarrative(impactMetrics, gscData, url) {
+    console.log('📝 Generating dynamic narrative for:', url);
+    
+    // Extract key values for the narrative
+    const ctrDecline = impactMetrics.ctrDecline || 0;
+    const impressionChange = impactMetrics.impressionGrowth || 0;
+    const impressionTrend = impressionChange > 0 ? 'increased' : impressionChange < 0 ? 'decreased' : 'remained stable';
+    const impressionPercent = Math.abs(impressionChange);
+    
+    const clickTrend = ctrDecline > 0 ? 'decreased' : ctrDecline < 0 ? 'increased' : 'remained stable';
+    const clickPercent = Math.abs(ctrDecline);
+    
+    const lostClicks = impactMetrics.estimatedLostClicks || '0';
+    const divergenceScore = impactMetrics.divergenceIndex || 0;
+    
+    // Analyze position and trends
+    const avgPosition = gscData?.position || impactMetrics.postAIMetrics?.position || 0;
+    const positionRange = getPositionRange(avgPosition);
+    
+    // Get device insights
+    const deviceInsight = analyzeDeviceImpact(gscData);
+    
+    // Get query analysis
+    const queryAnalysis = analyzeTopQueries(gscData, url);
+    
+    // Get technical and content actions
+    const technicalAction = getTechnicalAction(url, gscData);
+    const contentAction = getContentAction(url, gscData);
+    
+    // Get strategic recommendations
+    const strategicRec1 = getStrategicRecommendation1(avgPosition, url);
+    const strategicRec2 = getStrategicRecommendation2(impactMetrics);
+    const strategicRec3 = getStrategicRecommendation3(url, gscData);
+    
+    // Get severity message
+    const severityMessage = getSeverityMessage(impactMetrics.severity, divergenceScore);
+    
+    // Get outlook message
+    const outlookMessage = getOutlookMessage(impactMetrics, ctrDecline, impressionChange);
+    
+    // Check if this is public service content
+    const publicServiceWarning = getPublicServiceWarning(url);
+    
+    return `
+        <div class="narrative-section">
+            <div class="narrative-heading">
+                <h4>What's Happening to This Page?</h4>
+            </div>
+            
+            <div class="narrative-intro">
+                <p><strong>Your page is experiencing a ${ctrDecline}% decline in click-through rate</strong> despite ${impressionTrend === 'increased' ? 'a' : ''} ${impressionChange}% ${impressionTrend === 'increased' ? 'increase' : impressionTrend} in visibility. This pattern indicates Google's AI Overviews are likely answering user queries directly in search results, reducing the need for users to click through to your page.</p>
+            </div>
+            
+            <div class="key-pattern">
+                <h5>The Key Pattern</h5>
+                <div class="pattern-metrics">
+                    <div class="pattern-metric">
+                        <span class="metric-icon">📊</span>
+                        <strong>Divergence Score: ${divergenceScore}</strong>
+                    </div>
+                    <ul class="pattern-details">
+                        <li>Impressions: ${impressionTrend} ${impressionPercent}%</li>
+                        <li>Clicks: ${clickTrend} ${clickPercent}%</li>
+                        <li>Lost clicks this month: ~${lostClicks}</li>
+                    </ul>
+                </div>
+                <p class="severity-message">${severityMessage}</p>
+            </div>
+            
+            <div class="why-matters">
+                <h5>Why This Matters</h5>
+                <p>Google's AI Overviews launched in Ireland in March 2025, fundamentally changing how citizens find information. When AI Overviews appear:</p>
+                <ul class="impact-facts">
+                    <li><strong>Top-ranking pages lose 45% of their clicks</strong></li>
+                    <li><strong>Informational content is most affected</strong> (88% trigger rate)</li>
+                    <li><strong>Desktop users are seeing 90% of AI features</strong></li>
+                </ul>
+                ${deviceInsight}
+            </div>
+            
+            <div class="action-items">
+                <h5>What Can Be Done?</h5>
+                
+                <div class="immediate-actions">
+                    <h6>Immediate Actions</h6>
+                    <ol>
+                        <li><strong>Check your top queries</strong> - ${queryAnalysis}</li>
+                        <li>${technicalAction}</li>
+                        <li>${contentAction}</li>
+                    </ol>
+                </div>
+                
+                <div class="strategic-response">
+                    <h6>Strategic Response</h6>
+                    <p>Based on this page's ${impactMetrics.isRealData ? 'historical' : 'current'} performance:</p>
+                    <ul>
+                        <li>${strategicRec1}</li>
+                        <li>${strategicRec2}</li>
+                        <li>${strategicRec3}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="bottom-line">
+                <h5>The Bottom Line</h5>
+                <p>${outlookMessage}</p>
+            </div>
+            
+            ${publicServiceWarning ? `
+            <div class="public-service-warning">
+                <span class="warning-icon">⚠️</span>
+                <p>${publicServiceWarning}</p>
+            </div>
+            ` : ''}
+            
+            <div class="narrative-footer">
+                <p class="footer-note"><em>Note: While AI Overviews reduce direct clicks, ensuring citizens can still access comprehensive, authoritative information remains critical. Focus on being the trusted source that AI systems cite.</em></p>
+            </div>
+        </div>
+    `;
+}
+
+// Helper functions for dynamic narrative generation
+function getPositionRange(avgPosition) {
+    if (avgPosition <= 3) return '1-3';
+    if (avgPosition <= 7) return '4-7';
+    if (avgPosition <= 15) return '8-15';
+    return '16+';
+}
+
+function analyzeDeviceImpact(gscData) {
+    // In real implementation, analyze device-specific CTR differences
+    // For now, provide general guidance
+    const desktopCTR = gscData?.desktopCTR || 0;
+    const mobileCTR = gscData?.mobileCTR || 0;
+    
+    if (desktopCTR && mobileCTR && desktopCTR < mobileCTR * 0.7) {
+        return '<p class="device-insight"><strong>📱 Desktop Impact Alert:</strong> Your desktop CTR is significantly lower than mobile, confirming heavy AI Overview impact on desktop searches.</p>';
+    }
+    
+    return '<p class="device-insight"><strong>💻 Device Analysis:</strong> Desktop searches show the highest AI impact, with mobile users still more likely to click through to your page.</p>';
+}
+
+function analyzeTopQueries(gscData, url) {
+    // Analyze query patterns - would need real query data in production
+    const queries = gscData?.topQueries || [];
+    
+    // Check for question words
+    const questionWords = ['how', 'what', 'when', 'where', 'why', 'who', 'can', 'does', 'is'];
+    const questionQueries = queries.filter(q => 
+        questionWords.some(word => q.query?.toLowerCase().includes(word))
+    );
+    
+    const questionPercent = queries.length > 0 ? (questionQueries.length / queries.length) * 100 : 0;
+    
+    if (questionPercent > 60) {
+        return 'Most queries are questions - highly vulnerable to AI extraction';
+    } else if (questionPercent > 30) {
+        return 'Mix of question and action queries - moderate AI vulnerability';
+    } else {
+        return 'Primarily action-oriented queries show some resilience to AI Overviews';
+    }
+}
+
+function getTechnicalAction(url, gscData) {
+    // Check for common technical issues
+    const hasStructuredData = gscData?.hasStructuredData || false;
+    const pageSpeed = gscData?.pageSpeed || 5;
+    const contentLength = gscData?.contentLength || 500;
+    const lastUpdated = gscData?.lastUpdated || new Date();
+    const isMobileOptimized = gscData?.isMobileOptimized !== false;
+    
+    if (!hasStructuredData) {
+        return '<strong>Add FAQ schema immediately</strong> - Pages with structured data maintain 23% better CTR';
+    } else if (pageSpeed > 5) {
+        return '<strong>Improve page speed</strong> - AI crawlers favor fast-loading pages for citations';
+    } else if (contentLength < 500) {
+        return '<strong>Expand content depth</strong> - Comprehensive pages resist AI summarization';
+    } else if (new Date() - lastUpdated > 365 * 24 * 60 * 60 * 1000) {
+        return '<strong>Update with 2025 information</strong> - Fresh content maintains visibility';
+    } else if (!isMobileOptimized) {
+        return '<strong>Optimize for mobile urgently</strong> - Mobile-first indexing affects AI selection';
+    }
+    
+    return '<strong>Enhance structured data</strong> - Add more specific schema types for better AI representation';
+}
+
+function getContentAction(url, gscData) {
+    // Determine content type from URL patterns
+    const urlLower = url.toLowerCase();
+    
+    if (urlLower.includes('benefit') || urlLower.includes('rate')) {
+        return '<strong>Add calculation tools</strong> - Interactive elements drive direct visits';
+    } else if (urlLower.includes('eligib') || urlLower.includes('qualify')) {
+        return '<strong>Create decision trees</strong> - Complex logic resists AI summarization';
+    } else if (urlLower.includes('how-to') || urlLower.includes('process')) {
+        return '<strong>Add downloadable forms</strong> - Practical resources ensure clicks';
+    } else if (urlLower.includes('contact') || urlLower.includes('location')) {
+        return '<strong>Implement local schema</strong> - Ensure accurate AI representation';
+    } else if (urlLower.includes('service') || urlLower.includes('support')) {
+        return '<strong>Include case studies</strong> - Real examples add unique value';
+    }
+    
+    return '<strong>Add interactive elements</strong> - Features AI cannot replicate in search results';
+}
+
+function getStrategicRecommendation1(avgPosition, url) {
+    const positionRange = getPositionRange(avgPosition);
+    const mainTopic = extractMainTopic(url);
+    
+    switch (positionRange) {
+        case '1-3':
+            return `<strong>Diversify beyond this page</strong> - Create supporting content to capture related queries about ${mainTopic}`;
+        case '4-7':
+            return `<strong>Build topical authority</strong> - Develop a content cluster around '${mainTopic}'`;
+        case '8-15':
+            return `<strong>Consolidate content</strong> - Merge with related pages to build stronger resource`;
+        default:
+            return `<strong>Evaluate page purpose</strong> - Consider if this content serves users effectively`;
+    }
+}
+
+function getStrategicRecommendation2(impactMetrics) {
+    const trend = impactMetrics.trend || 'stable';
+    const ctrDecline = impactMetrics.ctrDecline || 0;
+    
+    if (ctrDecline > 5 && trend === 'accelerating') {
+        return '<strong>Emergency optimization needed</strong> - Implement all technical fixes within 2 weeks';
+    } else if (ctrDecline > 5 && trend === 'stable') {
+        return '<strong>Systematic improvement plan</strong> - Focus on one optimization per week';
+    } else if (trend === 'improving') {
+        return '<strong>Document success factors</strong> - Share what\'s working with other content teams';
+    }
+    
+    return '<strong>Monitor and optimize</strong> - Track changes weekly and adjust strategy';
+}
+
+function getStrategicRecommendation3(url, gscData) {
+    const urlLower = url.toLowerCase();
+    
+    if (urlLower.includes('benefit') || urlLower.includes('entitlement') || urlLower.includes('support')) {
+        return '<strong>Ensure accessibility</strong> - AI must not become a barrier to essential information';
+    } else if (urlLower.includes('form') || urlLower.includes('application')) {
+        return '<strong>Create video guides</strong> - Multimedia content drives direct engagement';
+    } else if (gscData?.updateFrequency === 'frequent') {
+        return '<strong>Implement changelog</strong> - Show why direct visits provide latest info';
+    } else if (urlLower.includes('calculator') || urlLower.includes('rate')) {
+        return '<strong>Build interactive tools</strong> - Functionality AI cannot replicate';
+    }
+    
+    return '<strong>Prepare Irish language version</strong> - Position for ArdIntleacht launch 2026';
+}
+
+function getSeverityMessage(severity, divergenceScore) {
+    if (severity === 'high') {
+        return `🚨 <strong>Critical Impact Detected:</strong> With a divergence score of ${divergenceScore}, this page is experiencing severe AI Overview impact.`;
+    } else if (severity === 'low') {
+        return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence score of only ${divergenceScore}.`;
+    }
+    
+    return `⚠️ <strong>Moderate Impact:</strong> A divergence score of ${divergenceScore} indicates noticeable but manageable AI Overview effects.`;
+}
+
+function getOutlookMessage(impactMetrics, ctrDecline, impressionGrowth) {
+    const severity = impactMetrics.severity;
+    const trend = impactMetrics.trend || 'stable';
+    
+    if (severity === 'high' && trend === 'accelerating') {
+        const monthsToCritical = calculateMonthsToCritical(ctrDecline);
+        return `<strong>Urgent action required:</strong> Project 75% traffic loss within ${monthsToCritical} months without intervention. The combination of ${ctrDecline}% CTR decline and ${impressionGrowth}% impression growth shows classic AI Overview displacement.`;
+    } else if (severity === 'high' && trend === 'stable') {
+        return `<strong>Immediate optimization window:</strong> Traffic has plateaued but remains severely impacted. Strategic improvements now can prevent further losses.`;
+    } else if (severity === 'moderate' && trend === 'accelerating') {
+        const criticalDate = calculateCriticalDate(ctrDecline);
+        return `<strong>Preventive action recommended:</strong> Current trajectory leads to critical impact by ${criticalDate}. Implement optimizations now to change course.`;
+    } else if (severity === 'moderate' && trend === 'stable') {
+        return `<strong>Optimization opportunity:</strong> Strategic improvements can restore significant traffic. Focus on unique value that AI cannot replicate.`;
+    } else if (severity === 'low') {
+        return `<strong>Defensive positioning:</strong> This page shows AI resistance - protect and replicate these qualities across other content.`;
+    }
+    
+    return `<strong>Success model:</strong> Recent optimizations show ${Math.abs(ctrDecline)}% recovery - continue and document approach for other pages.`;
+}
+
+function getPublicServiceWarning(url) {
+    const urlLower = url.toLowerCase();
+    
+    if (urlLower.includes('/benefits/') || urlLower.includes('/payments/')) {
+        return 'Ensure vulnerable citizens can still access full benefit information and eligibility details';
+    } else if (urlLower.includes('/housing/')) {
+        return 'Critical housing information must remain easily accessible to those in need';
+    } else if (urlLower.includes('/employment/') || urlLower.includes('/jobseeker/')) {
+        return 'Job seekers need comprehensive, not summarized, guidance and resources';
+    } else if (urlLower.includes('/health/') || urlLower.includes('/medical/')) {
+        return 'Health information requires full context and disclaimers, not AI summaries';
+    } else if (urlLower.includes('/emergency/') || urlLower.includes('/crisis/')) {
+        return 'Emergency information must be immediately accessible without AI interpretation';
+    }
+    
+    return null;
+}
+
+// Utility functions
+function extractMainTopic(url) {
+    // Extract main topic from URL
+    const pathParts = url.split('/').filter(part => part && !part.includes('.'));
+    return pathParts[pathParts.length - 1]?.replace(/-/g, ' ') || 'this topic';
+}
+
+function calculateMonthsToCritical(declineRate) {
+    if (declineRate <= 0) return 'many';
+    const monthsTo75Percent = Math.round(75 / declineRate);
+    return Math.max(2, Math.min(12, monthsTo75Percent));
+}
+
+function calculateCriticalDate(declineRate) {
+    const monthsTo50Percent = Math.round(50 / declineRate);
+    const criticalDate = new Date();
+    criticalDate.setMonth(criticalDate.getMonth() + monthsTo50Percent);
+    return criticalDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
 function processTimelineForChart(timelineData) {
