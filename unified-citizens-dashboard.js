@@ -19560,8 +19560,18 @@ function updateMetricsFromChartData(chartData, dashboardId) {
     });
     
     // Update the display
-    const dashboardContainer = document.querySelector(`[data-dashboard-id="${dashboardId}"]`);
-    if (!dashboardContainer) return;
+    // Try multiple selectors to find the dashboard container
+    let dashboardContainer = document.querySelector(`[data-dashboard-id="${dashboardId}"]`);
+    if (!dashboardContainer) {
+        dashboardContainer = document.getElementById(`unified-dashboard-${dashboardId}`);
+    }
+    if (!dashboardContainer) {
+        dashboardContainer = document.querySelector('.ai-overview-impact-section')?.closest('.unified-dashboard-container');
+    }
+    if (!dashboardContainer) {
+        console.warn('Could not find dashboard container for metrics update');
+        return;
+    }
     
     // Update CTR decline card
     const ctrDeclineCard = dashboardContainer.querySelector('.impact-metric-card.ctr-decline .metric-value');
