@@ -20072,16 +20072,46 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     const beforeAvg = calculateAverages(beforeAI);
     const afterAvg = calculateAverages(afterAI);
     
-    const recentPeriod = processedData.slice(-30);
-    const olderPeriod = processedData.slice(0, 30);
+    // Calculate CTR decline comparing 6 months ago to latest complete month
+    let recentCTR = 0;
+    let olderCTR = 0;
     
-    const recentCTR = calculateAverages(recentPeriod).ctr;
-    const olderCTR = calculateAverages(olderPeriod).ctr;
+    if (processedData.length >= 7) {
+        // If we have enough data, compare 6 months ago to latest month
+        const latestMonth = processedData[processedData.length - 1];
+        const sixMonthsAgo = processedData[processedData.length - 7];
+        
+        recentCTR = latestMonth.impressions > 0 ? (latestMonth.clicks / latestMonth.impressions) * 100 : 0;
+        olderCTR = sixMonthsAgo.impressions > 0 ? (sixMonthsAgo.clicks / sixMonthsAgo.impressions) * 100 : 0;
+    } else {
+        // Fallback to comparing first half vs second half
+        const recentPeriod = processedData.slice(Math.floor(processedData.length / 2));
+        const olderPeriod = processedData.slice(0, Math.floor(processedData.length / 2));
+        
+        recentCTR = calculateAverages(recentPeriod).ctr;
+        olderCTR = calculateAverages(olderPeriod).ctr;
+    }
     
     const ctrDecline = olderCTR > 0 ? Math.round(((olderCTR - recentCTR) / olderCTR) * 100) : 0;
     
-    const recentImpressions = calculateAverages(recentPeriod).impressions;
-    const olderImpressions = calculateAverages(olderPeriod).impressions;
+    // Calculate impression growth using the same comparison
+    let recentImpressions = 0;
+    let olderImpressions = 0;
+    
+    if (processedData.length >= 7) {
+        const latestMonth = processedData[processedData.length - 1];
+        const sixMonthsAgo = processedData[processedData.length - 7];
+        
+        recentImpressions = latestMonth.impressions || 0;
+        olderImpressions = sixMonthsAgo.impressions || 0;
+    } else {
+        const recentPeriod = processedData.slice(Math.floor(processedData.length / 2));
+        const olderPeriod = processedData.slice(0, Math.floor(processedData.length / 2));
+        
+        recentImpressions = calculateAverages(recentPeriod).impressions;
+        olderImpressions = calculateAverages(olderPeriod).impressions;
+    }
+    
     const impressionGrowth = olderImpressions > 0 ? Math.round(((recentImpressions - olderImpressions) / olderImpressions) * 100) : 0;
     
     const potentialClicks = recentImpressions * (olderCTR / 100);
