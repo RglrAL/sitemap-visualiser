@@ -19542,7 +19542,7 @@ function addMetricsOverlay(canvasId, analysisData) {
     overlay.className = 'chart-metrics-overlay';
     overlay.innerHTML = `
         <div class="metric-item">
-            <span class="metric-label">Current CTR</span>
+            <span class="metric-label">Latest CTR</span>
             <span class="metric-value">${((window.currentAITimelineData[latestIndex]?.ctr || 0) * 100).toFixed(2)}%</span>
         </div>
         <div class="metric-item">
@@ -20925,13 +20925,13 @@ function loadChartJS() {
 }
 
 function generate12MonthTimeline(timelineData) {
-    console.log('📊 Generating 12-month timeline...');
+    console.log('📊 Generating 11-month timeline (excluding current month)...');
     
-    // Generate last 12 months labels
+    // Generate last 11 months labels (excluding current month)
     const months = [];
     const now = new Date();
     
-    for (let i = 11; i >= 0; i--) {
+    for (let i = 11; i >= 1; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         months.push({
