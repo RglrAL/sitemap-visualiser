@@ -13284,6 +13284,7 @@ function formatDuration(seconds) {
                 gap: 8px;
                 font-size: 0.85rem;
                 font-weight: 500;
+                color: rgba(255, 255, 255, 0.9);
             }
             
             .legend-color {
@@ -13559,16 +13560,17 @@ function formatDuration(seconds) {
             /* Chart Metrics Overlay */
             .chart-metrics-overlay {
                 position: absolute;
-                top: 16px;
-                right: 16px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 1px solid #e5e7eb;
+                bottom: 16px;
+                left: 16px;
+                background: rgba(0, 0, 0, 0.75);
+                border: 1px solid rgba(255, 255, 255, 0.2);
                 border-radius: 8px;
                 padding: 12px 16px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
                 display: flex;
                 gap: 16px;
                 z-index: 10;
+                backdrop-filter: blur(10px);
             }
             
             .chart-metrics-overlay .metric-item {
@@ -13579,13 +13581,13 @@ function formatDuration(seconds) {
             
             .chart-metrics-overlay .metric-label {
                 font-size: 0.75rem;
-                color: #6b7280;
+                color: rgba(255, 255, 255, 0.7);
                 font-weight: 500;
             }
             
             .chart-metrics-overlay .metric-value {
                 font-size: 0.875rem;
-                color: #111827;
+                color: #ffffff;
                 font-weight: 600;
             }
             
@@ -19155,25 +19157,19 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         // Calculate trend lines and anomalies
         const analysisData = analyzeTimelineData(chartData);
         
+        // Create divergence gap data points
+        const divergenceGapData = chartData.labels.map((label, index) => {
+            const impressions = chartData.impressions[index];
+            const clicks = chartData.clicks[index];
+            // Return the difference between impressions and clicks (the gap)
+            return impressions > clicks ? impressions : null;
+        });
+        
         window.aiDivergenceChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: chartData.labels,
                 datasets: [
-                    {
-                        label: 'Impressions',
-                        data: chartData.impressions,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#10b981',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        tension: 0.1,
-                        fill: false
-                    },
                     {
                         label: 'Clicks',
                         data: chartData.clicks,
@@ -19186,7 +19182,33 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         pointRadius: 4,
                         pointHoverRadius: 6,
                         tension: 0.1,
-                        fill: false
+                        fill: false,
+                        order: 3
+                    },
+                    {
+                        label: 'Divergence Gap',
+                        data: chartData.impressions, // Use impressions data
+                        borderWidth: 0,
+                        pointRadius: 0,
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        fill: '-1', // Fill to previous dataset (clicks)
+                        tension: 0.1,
+                        order: 1
+                    },
+                    {
+                        label: 'Impressions',
+                        data: chartData.impressions,
+                        borderColor: '#10b981',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.1,
+                        fill: false,
+                        order: 2
                     },
                     {
                         label: 'CTR Anomalies',
@@ -19223,13 +19245,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             display: false
                         },
                         ticks: {
-                            color: '#6b7280',
+                            color: 'rgba(255, 255, 255, 0.8)',
                             font: { size: 11 },
                             maxRotation: 0
                         },
                         grid: {
-                            color: '#e8eaed',
-                            borderColor: '#e8eaed',
+                            color: 'rgba(255, 255, 255, 0.1)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
                             lineWidth: 1
                         }
                     },
@@ -19241,7 +19263,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             display: false
                         },
                         ticks: {
-                            color: '#6b7280',
+                            color: 'rgba(255, 255, 255, 0.8)',
                             font: { size: 11 },
                             callback: function(value, index, values) {
                                 return formatLogValue(value);
@@ -19255,15 +19277,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 const value = context.tick.value;
                                 // Major grid lines at powers of 10
                                 if (isPowerOf10(value)) {
-                                    return '#d1d5db';
+                                    return 'rgba(255, 255, 255, 0.3)';
                                 }
                                 // Minor grid lines at 2x and 5x
                                 if (is2xOr5x(value)) {
-                                    return '#e8eaed';
+                                    return 'rgba(255, 255, 255, 0.1)';
                                 }
                                 return 'transparent';
                             },
-                            borderColor: '#e8eaed',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
                             lineWidth: function(context) {
                                 const value = context.tick.value;
                                 return isPowerOf10(value) ? 1.5 : 1;
@@ -19276,7 +19298,11 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         display: false
                     },
                     legend: {
-                        display: false // We have custom legend
+                        display: false, // We have custom legend
+                        filter: function(item, chart) {
+                            // Hide divergence gap from legend as it's just a visual fill
+                            return item.text !== 'Divergence Gap';
+                        }
                     },
                     tooltip: {
                         backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -19300,7 +19326,12 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 return '';
                             },
                             label: function(context) {
-                                if (context.datasetIndex === 2) {
+                                // Skip divergence gap dataset in tooltips
+                                if (context.dataset.label === 'Divergence Gap') {
+                                    return null;
+                                }
+                                
+                                if (context.dataset.label === 'CTR Anomalies') {
                                     // Anomaly points
                                     const anomaly = context.raw;
                                     if (anomaly && anomaly.type) {
@@ -19323,17 +19354,23 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                     changeText = ` (${change > 0 ? '+' : ''}${change}%)`;
                                 }
                                 
-                                if (context.datasetIndex === 0) {
+                                if (context.dataset.label === 'Impressions') {
                                     return `Impressions: ${formatLogValue(value)}${changeText}`;
-                                } else if (context.datasetIndex === 1) {
+                                } else if (context.dataset.label === 'Clicks') {
                                     return `Clicks: ${formatLogValue(value)}${changeText}`;
                                 }
                                 return '';
                             },
                             afterBody: function(context) {
                                 const dataIndex = context[0].dataIndex;
-                                const impressions = context[0].chart.data.datasets[0].data[dataIndex];
-                                const clicks = context[0].chart.data.datasets[1].data[dataIndex];
+                                const datasets = context[0].chart.data.datasets;
+                                
+                                // Find impressions and clicks datasets by label
+                                const impressionsDataset = datasets.find(d => d.label === 'Impressions');
+                                const clicksDataset = datasets.find(d => d.label === 'Clicks');
+                                
+                                const impressions = impressionsDataset ? impressionsDataset.data[dataIndex] : 0;
+                                const clicks = clicksDataset ? clicksDataset.data[dataIndex] : 0;
                                 const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : '0.00';
                                 
                                 // Calculate divergence index
@@ -20356,10 +20393,17 @@ function calculateImpactFromCurrentData(sortedData, url) {
     const ctrChange = earlierAvg.ctr > 0 ? Math.round(((earlierAvg.ctr - recentAvg.ctr) / earlierAvg.ctr) * 100) : 0;
     const impressionChange = earlierAvg.impressions > 0 ? Math.round(((recentAvg.impressions - earlierAvg.impressions) / earlierAvg.impressions) * 100) : 0;
     
+    // Calculate estimated lost clicks even for limited data
+    const avgImpressions = (recentAvg.impressions + earlierAvg.impressions) / 2;
+    const potentialCTR = earlierAvg.ctr > 0 ? earlierAvg.ctr : 2.5; // Assume 2.5% baseline if no earlier data
+    const potentialClicks = avgImpressions * (potentialCTR / 100);
+    const actualClicks = avgImpressions * (recentAvg.ctr / 100);
+    const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - actualClicks));
+    
     return {
         ctrDecline: Math.max(ctrChange, 0),
         impressionGrowth: Math.max(impressionChange, 0),
-        estimatedLostClicks: '0',
+        estimatedLostClicks: estimatedLostClicks > 0 ? estimatedLostClicks.toLocaleString() : '0',
         divergenceIndex: Math.max(ctrChange, 0) + Math.max(impressionChange, 0),
         severity: 'moderate',
         severityIcon: '⚠️',
