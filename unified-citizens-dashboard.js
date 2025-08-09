@@ -19573,16 +19573,28 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         return;
     }
     
-    // Update CTR decline card
+    // Update CTR change card
     const ctrDeclineCard = dashboardContainer.querySelector('.impact-metric-card.ctr-decline .metric-value');
     if (ctrDeclineCard) {
-        ctrDeclineCard.textContent = `${actualCtrDecline}%`;
+        ctrDeclineCard.textContent = `${actualCtrDecline > 0 ? '-' : '+'}${Math.abs(actualCtrDecline)}%`;
+    }
+    
+    // Update icon if needed
+    const ctrIcon = dashboardContainer.querySelector('.impact-metric-card.ctr-decline .metric-icon');
+    if (ctrIcon) {
+        ctrIcon.textContent = actualCtrDecline > 0 ? '📉' : '📈';
     }
     
     // Update impression growth card
     const impressionGrowthCard = dashboardContainer.querySelector('.impact-metric-card.impression-growth .metric-value');
     if (impressionGrowthCard) {
-        impressionGrowthCard.textContent = `${impressionGrowth}%`;
+        impressionGrowthCard.textContent = `${impressionGrowth >= 0 ? '+' : ''}${impressionGrowth}%`;
+    }
+    
+    // Update impression icon if needed
+    const impressionIcon = dashboardContainer.querySelector('.impact-metric-card.impression-growth .metric-icon');
+    if (impressionIcon) {
+        impressionIcon.textContent = impressionGrowth >= 0 ? '📈' : '📉';
     }
     
     // Update lost clicks calculation based on new CTR decline
@@ -19896,20 +19908,20 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                 <!-- Key Metrics Row -->
                 <div class="impact-metrics-row">
                     <div class="impact-metric-card ctr-decline">
-                        <div class="metric-icon">📉</div>
+                        <div class="metric-icon">${impactMetrics.ctrDecline > 0 ? '📉' : '📈'}</div>
                         <div class="metric-content">
-                            <div class="metric-value">${impactMetrics.ctrDecline}%</div>
-                            <div class="metric-label">CTR Decline</div>
+                            <div class="metric-value">${impactMetrics.ctrDecline > 0 ? '-' : '+'}${Math.abs(impactMetrics.ctrDecline)}%</div>
+                            <div class="metric-label">CTR Change</div>
                             <div class="metric-period">vs. 6 months ago</div>
                         </div>
                     </div>
                     
                     <div class="impact-metric-card impression-growth">
-                        <div class="metric-icon">👀</div>
+                        <div class="metric-icon">${impactMetrics.impressionGrowth >= 0 ? '📈' : '📉'}</div>
                         <div class="metric-content">
-                            <div class="metric-value">+${impactMetrics.impressionGrowth}%</div>
-                            <div class="metric-label">Impression Growth</div>
-                            <div class="metric-period">same period</div>
+                            <div class="metric-value">${impactMetrics.impressionGrowth >= 0 ? '+' : ''}${impactMetrics.impressionGrowth}%</div>
+                            <div class="metric-label">Impression Change</div>
+                            <div class="metric-period">vs. 6 months ago</div>
                         </div>
                     </div>
                     
