@@ -4558,10 +4558,6 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             <!-- AI Overview Impact Analysis Section -->
             ${createAIOverviewImpactSection(gscData, url, dashboardId)}
             
-            <div class="section">
-                <h2 class="section-title">💡 Key Insights</h2>
-                ${createKeyInsights(gscData, ga4Data, gscTrends, ga4Trends)}
-            </div>
         </div>
     `;
 }
@@ -19967,7 +19963,7 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                         <div class="metric-content">
                             <div class="metric-value">${impactMetrics.divergenceIndex}</div>
                             <div class="metric-label">Divergence Index</div>
-                            <div class="metric-period">AI impact score</div>
+                            <div class="metric-period">6-month impact</div>
                         </div>
                     </div>
                 </div>
@@ -20010,32 +20006,6 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                     ${generateDynamicNarrative(impactMetrics, gscData, url)}
                 </div>
                 
-                <!-- Detailed Metrics -->
-                <div class="ai-impact-details">
-                    <div class="detail-grid">
-                        <div class="detail-item peak-month">
-                            <div class="detail-icon">📈</div>
-                            <div class="detail-content">
-                                <span class="detail-label">Peak Divergence</span>
-                                <span class="detail-value">${impactMetrics.peakDivergenceMonth}</span>
-                            </div>
-                        </div>
-                        <div class="detail-item position-change">
-                            <div class="detail-icon">📍</div>
-                            <div class="detail-content">
-                                <span class="detail-label">Position Change</span>
-                                <span class="detail-value">${impactMetrics.averagePositionChange}</span>
-                            </div>
-                        </div>
-                        <div class="detail-item affected-queries">
-                            <div class="detail-icon">🔍</div>
-                            <div class="detail-content">
-                                <span class="detail-label">Most Affected</span>
-                                <span class="detail-value">${impactMetrics.topAffectedQueries}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     `;
