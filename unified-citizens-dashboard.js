@@ -19607,6 +19607,13 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         lostClicksCard.textContent = lostClicks.toLocaleString();
     }
     
+    // Update divergence index card
+    const divergenceIndex = Math.round(Math.max(actualCtrDecline, 0) * 1.5 + Math.max(impressionGrowth, 0) * 0.5);
+    const divergenceCard = dashboardContainer.querySelector('.impact-metric-card.divergence-index .metric-value');
+    if (divergenceCard) {
+        divergenceCard.textContent = divergenceIndex;
+    }
+    
     // Update the narrative with real data
     const narrativeContainer = dashboardContainer.querySelector('.ai-impact-narrative');
     if (narrativeContainer) {
@@ -19615,7 +19622,7 @@ function updateMetricsFromChartData(chartData, dashboardId) {
             ctrDecline: actualCtrDecline,
             impressionGrowth: impressionGrowth,
             estimatedLostClicks: lostClicks.toLocaleString(),
-            divergenceIndex: Math.round(Math.abs(actualCtrDecline) * 1.5 + Math.abs(impressionGrowth) * 0.5)
+            divergenceIndex: divergenceIndex // Use the same value we just calculated
         };
         
         // Get GSC data for additional context
@@ -20736,44 +20743,6 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                 <p class="severity-message">${severityMessage}</p>
             </div>
             
-            <div class="why-matters">
-                <h5>Why This Matters</h5>
-                <p>Google's AI Overviews launched in Ireland in March 2025, fundamentally changing how citizens find information. When AI Overviews appear:</p>
-                <ul class="impact-facts">
-                    <li><strong>Top-ranking pages lose 45% of their clicks</strong></li>
-                    <li><strong>Informational content is most affected</strong> (88% trigger rate)</li>
-                    <li><strong>Desktop users are seeing 90% of AI features</strong></li>
-                </ul>
-                ${deviceInsight}
-            </div>
-            
-            <div class="action-items">
-                <h5>What Can Be Done?</h5>
-                
-                <div class="immediate-actions">
-                    <h6>Immediate Actions</h6>
-                    <ol>
-                        <li><strong>Check your top queries</strong> - ${queryAnalysis}</li>
-                        <li>${technicalAction}</li>
-                        <li>${contentAction}</li>
-                    </ol>
-                </div>
-                
-                <div class="strategic-response">
-                    <h6>Strategic Response</h6>
-                    <p>Based on this page's ${impactMetrics.isRealData ? 'historical' : 'current'} performance:</p>
-                    <ul>
-                        <li>${strategicRec1}</li>
-                        <li>${strategicRec2}</li>
-                        <li>${strategicRec3}</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="bottom-line">
-                <h5>The Bottom Line</h5>
-                <p>${outlookMessage}</p>
-            </div>
             
             ${publicServiceWarning ? `
             <div class="public-service-warning">
