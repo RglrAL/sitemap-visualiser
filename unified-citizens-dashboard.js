@@ -20149,13 +20149,13 @@ function calculateImpactFromAggregatedData(gscData, url) {
     const potentialClicks = currentImpressions * (estimatedPreAICTR / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - currentClicks));
     
-    const divergenceIndex = Math.round(Math.max(estimatedCTRDecline, 0) * 1.2 + estimatedImpressionGrowth * 0.3);
+    const divergenceIndex = Math.round(Math.max(estimatedCTRDecline, 0) * 1.5 + estimatedImpressionGrowth * 0.5);
     
     let severity = 'moderate';
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 35) {
+    if (divergenceIndex > 40) {
         severity = 'high';
         severityIcon = '🚨';
         severityText = 'High Impact';
@@ -20242,13 +20242,13 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     const actualClicks = recentImpressions * (recentCTR / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - actualClicks));
     
-    const divergenceIndex = Math.round(Math.max(ctrDecline, 0) * 1.2 + Math.max(impressionGrowth, 0) * 0.3);
+    const divergenceIndex = Math.round(Math.max(ctrDecline, 0) * 1.5 + Math.max(impressionGrowth, 0) * 0.5);
     
     let severity = 'moderate';
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 35) {
+    if (divergenceIndex > 40) {
         severity = 'high';
         severityIcon = '🚨';
         severityText = 'High Impact';
@@ -20592,7 +20592,7 @@ function calculateImpactFromCurrentData(sortedData, url) {
         ctrDecline: Math.max(ctrChange, 0),
         impressionGrowth: Math.max(impressionChange, 0),
         estimatedLostClicks: estimatedLostClicks > 0 ? estimatedLostClicks.toLocaleString() : '0',
-        divergenceIndex: Math.max(ctrChange, 0) + Math.max(impressionChange, 0),
+        divergenceIndex: Math.round(Math.max(ctrChange, 0) * 1.5 + Math.max(impressionChange, 0) * 0.5),
         severity: 'moderate',
         severityIcon: '⚠️',
         severityText: 'Moderate Impact',
@@ -20680,7 +20680,7 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
     const clickPercent = Math.abs(ctrDecline);
     
     const lostClicks = impactMetrics.estimatedLostClicks || '0';
-    const divergenceScore = impactMetrics.divergenceIndex || 0;
+    const divergenceIndex = impactMetrics.divergenceIndex || 0;
     
     // Analyze position and trends
     const avgPosition = gscData?.position || impactMetrics.postAIMetrics?.position || 0;
@@ -20702,7 +20702,7 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
     const strategicRec3 = getStrategicRecommendation3(url, gscData);
     
     // Get severity message
-    const severityMessage = getSeverityMessage(impactMetrics.severity, divergenceScore);
+    const severityMessage = getSeverityMessage(impactMetrics.severity, divergenceIndex);
     
     // Get outlook message
     const outlookMessage = getOutlookMessage(impactMetrics, ctrDecline, impressionChange);
@@ -20725,7 +20725,7 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                 <div class="pattern-metrics">
                     <div class="pattern-metric">
                         <span class="metric-icon">📊</span>
-                        <strong>Divergence Score: ${divergenceScore}</strong>
+                        <strong>Divergence Index: ${divergenceIndex}</strong>
                     </div>
                     <ul class="pattern-details">
                         <li>Impressions: ${impressionTrend} ${impressionPercent}% vs 6 months ago</li>
@@ -20920,14 +20920,14 @@ function getStrategicRecommendation3(url, gscData) {
     return '<strong>Prepare Irish language version</strong> - Position for ArdIntleacht launch 2026';
 }
 
-function getSeverityMessage(severity, divergenceScore) {
+function getSeverityMessage(severity, divergenceIndex) {
     if (severity === 'high') {
-        return `🚨 <strong>Critical Impact Detected:</strong> With a divergence score of ${divergenceScore}, this page is experiencing severe AI Overview impact.`;
+        return `🚨 <strong>Critical Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing severe AI Overview impact.`;
     } else if (severity === 'low') {
-        return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence score of only ${divergenceScore}.`;
+        return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence index of only ${divergenceIndex}.`;
     }
     
-    return `⚠️ <strong>Moderate Impact:</strong> A divergence score of ${divergenceScore} indicates noticeable but manageable AI Overview effects.`;
+    return `⚠️ <strong>Moderate Impact:</strong> A divergence index of ${divergenceIndex} indicates noticeable but manageable AI Overview effects.`;
 }
 
 function getOutlookMessage(impactMetrics, ctrDecline, impressionGrowth) {
