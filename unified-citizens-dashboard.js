@@ -19606,6 +19606,25 @@ function updateMetricsFromChartData(chartData, dashboardId) {
     if (lostClicksCard) {
         lostClicksCard.textContent = lostClicks.toLocaleString();
     }
+    
+    // Update the narrative with real data
+    const narrativeContainer = dashboardContainer.querySelector('.ai-impact-narrative');
+    if (narrativeContainer) {
+        // Create updated impact metrics object with real data
+        const updatedMetrics = {
+            ctrDecline: actualCtrDecline,
+            impressionGrowth: impressionGrowth,
+            estimatedLostClicks: lostClicks.toLocaleString(),
+            divergenceIndex: Math.round(Math.abs(actualCtrDecline) * 1.5 + Math.abs(impressionGrowth) * 0.5)
+        };
+        
+        // Get GSC data for additional context
+        const gscData = window.currentGSCData || {};
+        
+        // Regenerate narrative with real data
+        const updatedNarrative = generateDynamicNarrative(updatedMetrics, gscData, window.currentPageUrl || '');
+        narrativeContainer.innerHTML = updatedNarrative;
+    }
 }
 
 // Add metrics overlay to chart
@@ -19848,6 +19867,8 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
     
     // Store timeline data globally for chart creation
     window.currentAITimelineData = impactMetrics.timelineData || [];
+    window.currentGSCData = gscData;
+    window.currentPageUrl = url;
     
     // Fetch real 12-month time-series data in the background and update chart
     if (window.GSCIntegration && window.GSCIntegration.fetch12MonthTimeSeriesData) {
@@ -20696,7 +20717,7 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
             </div>
             
             <div class="narrative-intro">
-                <p><strong>Your page is experiencing a ${ctrDecline}% decline in click-through rate</strong> despite ${impressionTrend === 'increased' ? 'a' : ''} ${impressionChange}% ${impressionTrend === 'increased' ? 'increase' : impressionTrend} in visibility. This pattern indicates Google's AI Overviews are likely answering user queries directly in search results, reducing the need for users to click through to your page.</p>
+                <p><strong>Your page is experiencing a ${Math.abs(ctrDecline)}% ${ctrDecline > 0 ? 'decline' : 'improvement'} in click-through rate</strong> ${impressionChange !== 0 ? `${impressionTrend === 'increased' ? 'despite' : 'along with'} ${impressionTrend === 'increased' ? 'a' : ''} ${Math.abs(impressionChange)}% ${impressionTrend === 'increased' ? 'increase' : 'decrease'} in visibility` : ''} <em>compared to 6 months ago</em>. ${ctrDecline > 0 ? 'This pattern indicates Google\'s AI Overviews are likely answering user queries directly in search results, reducing the need for users to click through to your page.' : 'This suggests your page is performing better despite AI Overview impact.'}</p>
             </div>
             
             <div class="key-pattern">
@@ -20707,9 +20728,9 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                         <strong>Divergence Score: ${divergenceScore}</strong>
                     </div>
                     <ul class="pattern-details">
-                        <li>Impressions: ${impressionTrend} ${impressionPercent}%</li>
-                        <li>Clicks: ${clickTrend} ${clickPercent}%</li>
-                        <li>Lost clicks this month: ~${lostClicks}</li>
+                        <li>Impressions: ${impressionTrend} ${impressionPercent}% vs 6 months ago</li>
+                        <li>Clicks: ${clickTrend} ${clickPercent}% vs 6 months ago</li>
+                        <li>Est. lost clicks (latest month): ~${lostClicks}</li>
                     </ul>
                 </div>
                 <p class="severity-message">${severityMessage}</p>
