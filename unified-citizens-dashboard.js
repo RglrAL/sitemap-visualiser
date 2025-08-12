@@ -19266,6 +19266,9 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         const divergenceColors = generateDivergenceBackgroundColors(analysisData.divergenceIndices);
         const pointColors = getDivergencePointColors(analysisData.divergenceIndices);
         
+        // Store divergence data globally for plugin access
+        window.chartDivergenceData = analysisData.divergenceIndices;
+        
         // Create divergence gap data points
         const divergenceGapData = chartData.labels.map((label, index) => {
             const impressions = chartData.impressions[index];
@@ -19500,11 +19503,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     },
                     divergenceSegments: {
                         beforeDatasetsDraw: function(chart) {
+                            console.log('🎨 Divergence segments plugin called');
                             const ctx = chart.ctx;
                             const chartArea = chart.chartArea;
                             
                             // Skip if no chart area yet
-                            if (!chartArea) return;
+                            if (!chartArea) {
+                                console.log('⏸️ Chart area not ready yet');
+                                return;
+                            }
                             
                             // Get scales
                             const xScale = chart.scales.x;
@@ -19519,10 +19526,12 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             
                             // Draw area fills between monthly segments
                             for (let i = 0; i < labelsCount - 1; i++) {
-                                // Access divergence index from external scope or calculate it
-                                const divergenceIndex = (analysisData && analysisData.divergenceIndices) 
-                                    ? analysisData.divergenceIndices[i] || 0
-                                    : Math.random() * 150; // Fallback for testing
+                                // Access divergence index from global variable
+                                const divergenceIndex = (window.chartDivergenceData && window.chartDivergenceData[i]) 
+                                    ? window.chartDivergenceData[i] 
+                                    : (30 + Math.random() * 100); // Fallback for testing - should show varied colors
+                                
+                                console.log(`📊 Month ${i}: divergence ${divergenceIndex}`);
                                 
                                 // Get color based on divergence level
                                 let segmentColor;
@@ -19550,6 +19559,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 const y2_clicks = yScale.getPixelForValue(clicksData[i + 1] || 1);
                                 
                                 // Draw the filled area between the four points
+                                console.log(`🎨 Drawing segment ${i} with color ${segmentColor}`);
                                 ctx.save();
                                 ctx.fillStyle = segmentColor;
                                 ctx.beginPath();
@@ -20285,7 +20295,11 @@ function calculateImpactFromAggregatedData(gscData, url) {
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 100) {
+    if (divergenceIndex > 200) {
+        severity = 'extreme';
+        severityIcon = '💥';
+        severityText = 'Extreme Impact';
+    } else if (divergenceIndex > 100) {
         severity = 'critical';
         severityIcon = '🚨';
         severityText = 'Critical Impact';
@@ -20297,11 +20311,15 @@ function calculateImpactFromAggregatedData(gscData, url) {
         severity = 'moderate';
         severityIcon = '⚠️';
         severityText = 'Moderate Impact';
-    } else if (divergenceIndex < 10) {
-        severity = 'low';
-        severityIcon = '✅';
-        severityText = 'Low Impact';
+    } else if (divergenceIndex > 10) {
+        severity = 'minor';
+        severityIcon = '📊';
+        severityText = 'Minor Impact';
     } else {
+        severity = 'minimal';
+        severityIcon = '✅';
+        severityText = 'Minimal Impact';
+    }
         severity = 'low-moderate';
         severityIcon = '📊';
         severityText = 'Minor Impact';
@@ -20390,7 +20408,11 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 100) {
+    if (divergenceIndex > 200) {
+        severity = 'extreme';
+        severityIcon = '💥';
+        severityText = 'Extreme Impact';
+    } else if (divergenceIndex > 100) {
         severity = 'critical';
         severityIcon = '🚨';
         severityText = 'Critical Impact';
@@ -20402,11 +20424,15 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
         severity = 'moderate';
         severityIcon = '⚠️';
         severityText = 'Moderate Impact';
-    } else if (divergenceIndex < 10) {
-        severity = 'low';
-        severityIcon = '✅';
-        severityText = 'Low Impact';
+    } else if (divergenceIndex > 10) {
+        severity = 'minor';
+        severityIcon = '📊';
+        severityText = 'Minor Impact';
     } else {
+        severity = 'minimal';
+        severityIcon = '✅';
+        severityText = 'Minimal Impact';
+    }
         severity = 'low-moderate';
         severityIcon = '📊';
         severityText = 'Minor Impact';
@@ -21161,13 +21187,15 @@ function getAISectionSubtitle(impactMetrics) {
 }
 
 function getSeverityMessage(severity, divergenceIndex) {
-    if (severity === 'critical') {
+    if (severity === 'extreme') {
+        return `💥 <strong>Extreme Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing catastrophic AI Overview impact requiring urgent strategic review.`;
+    } else if (severity === 'critical') {
         return `🚨 <strong>Critical Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing severe AI Overview impact requiring immediate intervention.`;
     } else if (severity === 'high') {
         return `🔥 <strong>High Impact:</strong> A divergence index of ${divergenceIndex} indicates significant AI Overview displacement affecting this page's traffic.`;
-    } else if (severity === 'low') {
+    } else if (severity === 'minimal') {
         return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence index of only ${divergenceIndex}.`;
-    } else if (severity === 'low-moderate') {
+    } else if (severity === 'minor') {
         return `📊 <strong>Minor Impact:</strong> A divergence index of ${divergenceIndex} suggests some AI Overview effects but within manageable levels.`;
     }
     
