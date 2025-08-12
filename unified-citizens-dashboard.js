@@ -19612,7 +19612,17 @@ function analyzeTimelineData(chartData) {
     }
     baselineCTR = baselineCTR / preAIMonths;
     
-    // Detect anomalies and calculate divergence
+    // Calculate divergence index for all months
+    for (let i = 0; i < impressions.length; i++) {
+        const currentCTR = impressions[i] > 0 ? (clicks[i] / impressions[i]) * 100 : 0;
+        
+        // Calculate divergence index for this month
+        const ctrDecline = baselineCTR > 0 ? Math.max(0, ((baselineCTR - currentCTR) / baselineCTR) * 100) : 0;
+        const impressionGrowth = impressions[0] > 0 ? Math.max(0, ((impressions[i] - impressions[0]) / impressions[0]) * 100) : 0;
+        divergenceIndices.push(Math.round(ctrDecline * 1.5 + impressionGrowth * 0.5));
+    }
+    
+    // Detect anomalies starting from second month
     for (let i = 1; i < impressions.length; i++) {
         const currentCTR = impressions[i] > 0 ? (clicks[i] / impressions[i]) * 100 : 0;
         const prevCTR = impressions[i-1] > 0 ? (clicks[i-1] / impressions[i-1]) * 100 : 0;
@@ -19640,11 +19650,6 @@ function analyzeTimelineData(chartData) {
                 change: Math.round(Math.abs(ctrChange))
             };
         }
-        
-        // Calculate divergence index
-        const ctrDecline = baselineCTR > 0 ? Math.max(0, ((baselineCTR - currentCTR) / baselineCTR) * 100) : 0;
-        const impressionGrowth = impressions[0] > 0 ? Math.max(0, ((impressions[i] - impressions[0]) / impressions[0]) * 100) : 0;
-        divergenceIndices.push(Math.round(ctrDecline * 1.5 + impressionGrowth * 0.5));
     }
     
     return {
