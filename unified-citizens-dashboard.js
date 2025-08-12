@@ -19498,80 +19498,40 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                     color: '#ffffff',
                                     font: { size: 11, weight: 'bold' }
                                 }
-                            }
-                        }
-                    },
-                    divergenceSegments: {
-                        beforeDatasetsDraw: function(chart) {
-                            const ctx = chart.ctx;
-                            const chartArea = chart.chartArea;
-                            
-                            // Skip if no chart area yet
-                            if (!chartArea) return;
-                            
-                            // Get scales
-                            const xScale = chart.scales.x;
-                            const yScale = chart.scales.y;
-                            
-                            // Find the impressions and clicks datasets
-                            const impressionsData = chart.data.datasets.find(d => d.label === 'Impressions')?.data || [];
-                            const clicksData = chart.data.datasets.find(d => d.label === 'Clicks')?.data || [];
-                            
-                            // Use chart data labels length instead of external variable
-                            const labelsCount = chart.data.labels.length;
-                            
-                            // Draw area fills between monthly segments
-                            for (let i = 0; i < labelsCount - 1; i++) {
-                                // Access divergence index from global variable
-                                const divergenceIndex = (window.chartDivergenceData && window.chartDivergenceData[i]) 
-                                    ? window.chartDivergenceData[i] 
-                                    : (30 + Math.random() * 100); // Fallback for testing - should show varied colors
-                                
-                                
-                                // Get color based on divergence level
-                                let segmentColor;
-                                if (divergenceIndex > 200) {
-                                    segmentColor = 'rgba(124, 45, 18, 0.25)'; // Extreme - dark brown
-                                } else if (divergenceIndex > 100) {
-                                    segmentColor = 'rgba(220, 38, 38, 0.3)'; // Critical - red
-                                } else if (divergenceIndex > 60) {
-                                    segmentColor = 'rgba(239, 68, 68, 0.25)'; // High - orange-red
-                                } else if (divergenceIndex > 30) {
-                                    segmentColor = 'rgba(245, 158, 11, 0.2)'; // Moderate - yellow
-                                } else if (divergenceIndex > 10) {
-                                    segmentColor = 'rgba(34, 197, 94, 0.15)'; // Minor - light green
-                                } else {
-                                    segmentColor = 'rgba(16, 185, 129, 0.1)'; // Minimal - very light green
-                                }
-                                
-                                // Get pixel coordinates for the four corner points of the segment
-                                const x1 = xScale.getPixelForValue(i);
-                                const x2 = xScale.getPixelForValue(i + 1);
-                                
-                                const y1_impressions = yScale.getPixelForValue(impressionsData[i] || 1);
-                                const y2_impressions = yScale.getPixelForValue(impressionsData[i + 1] || 1);
-                                const y1_clicks = yScale.getPixelForValue(clicksData[i] || 1);
-                                const y2_clicks = yScale.getPixelForValue(clicksData[i + 1] || 1);
-                                
-                                // Draw the filled area between the four points
-                                ctx.save();
-                                ctx.fillStyle = segmentColor;
-                                ctx.beginPath();
-                                
-                                // Start at impressions point 1
-                                ctx.moveTo(x1, y1_impressions);
-                                // Line to impressions point 2
-                                ctx.lineTo(x2, y2_impressions);
-                                // Line to clicks point 2
-                                ctx.lineTo(x2, y2_clicks);
-                                // Line to clicks point 1
-                                ctx.lineTo(x1, y1_clicks);
-                                // Close the path back to start
-                                ctx.closePath();
-                                
-                                ctx.fill();
-                                ctx.restore();
-                            }
+                            },
+                            // Add divergence colored boxes for each segment
+                            ...Object.fromEntries(
+                                chartData.labels.slice(0, -1).map((label, i) => {
+                                    const divergenceIndex = (window.chartDivergenceData && window.chartDivergenceData[i]) 
+                                        ? window.chartDivergenceData[i] 
+                                        : (30 + Math.random() * 100);
+                                    
+                                    let segmentColor;
+                                    if (divergenceIndex > 200) {
+                                        segmentColor = 'rgba(124, 45, 18, 0.15)';
+                                    } else if (divergenceIndex > 100) {
+                                        segmentColor = 'rgba(220, 38, 38, 0.2)';
+                                    } else if (divergenceIndex > 60) {
+                                        segmentColor = 'rgba(239, 68, 68, 0.15)';
+                                    } else if (divergenceIndex > 30) {
+                                        segmentColor = 'rgba(245, 158, 11, 0.12)';
+                                    } else if (divergenceIndex > 10) {
+                                        segmentColor = 'rgba(34, 197, 94, 0.08)';
+                                    } else {
+                                        segmentColor = 'rgba(16, 185, 129, 0.06)';
+                                    }
+                                    
+                                    return [`segment${i}`, {
+                                        type: 'box',
+                                        xMin: i - 0.4,
+                                        xMax: i + 0.4,
+                                        yMin: 0,
+                                        yMax: 'max',
+                                        backgroundColor: segmentColor,
+                                        borderWidth: 0
+                                    }];
+                                })
+                            )
                         }
                     }
                 },
@@ -21183,9 +21143,12 @@ function getSeverityMessage(severity, divergenceIndex) {
         return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence index of only ${divergenceIndex}.`;
     } else if (severity === 'minor') {
         return `📊 <strong>Minor Impact:</strong> A divergence index of ${divergenceIndex} suggests some AI Overview effects but within manageable levels.`;
+    } else if (severity === 'moderate') {
+        return `⚠️ <strong>Moderate Impact:</strong> A divergence index of ${divergenceIndex} indicates noticeable AI Overview effects requiring attention.`;
     }
     
-    return `⚠️ <strong>Moderate Impact:</strong> A divergence index of ${divergenceIndex} indicates noticeable AI Overview effects requiring attention.`;
+    // Fallback for any unmatched severity
+    return `⚠️ <strong>Impact Detected:</strong> A divergence index of ${divergenceIndex} indicates AI Overview effects requiring attention.`;
 }
 
 function getOutlookMessage(impactMetrics, ctrDecline, impressionGrowth) {
