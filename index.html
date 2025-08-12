@@ -607,6 +607,59 @@
             background: var(--gray-50);
         }
 
+        /* Tree Search Styles */
+        .tree-search-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .tree-search-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .tree-search-input {
+            width: 100%;
+            padding: 0.75rem 3rem 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 0.875rem;
+            background: white;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+        }
+
+        .tree-search-input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(0, 124, 182, 0.1);
+        }
+
+        .tree-search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 999;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            margin-top: -2px;
+        }
+
         .search-suggestion:last-child {
             border-bottom: none;
         }
@@ -5302,14 +5355,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
         <!-- Dynamic buttons from GSC and GA4 scripts will be added here -->
     </div>
     
-    <!-- Search (visible on all screen sizes) -->
-    <div class="nav-search">
-        <input type="text" 
-               id="navSearchInput" 
-               placeholder="Search pages..." 
-               autocomplete="off" />
-               <div class="search-suggestions" id="searchSuggestions"></div>
-    </div>
+    <!-- Search moved to tree visualization -->
     
     <!-- Theme toggle (visible on all screen sizes) -->
     <button class="nav-btn nav-theme-btn" onclick="toggleTheme()" aria-label="Toggle dark theme">
@@ -5486,6 +5532,29 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
         <!-- Replace your existing tree-container with this -->
 <div class="visualization-wrapper">
     <div class="tree-container" id="treeContainer">
+        <!-- Search bar integrated into tree visualization -->
+        <div class="tree-search-wrapper" id="treeSearchWrapper" style="display: none;">
+            <div class="tree-search-container">
+                <input type="text" 
+                       class="tree-search-input" 
+                       id="treeSearchInput" 
+                       placeholder="Search pages in tree..." 
+                       autocomplete="off" />
+                <div class="search-navigation" id="treeSearchNavigation">
+                    <button class="search-nav-btn" id="treeSearchPrevBtn" onclick="navigateToPreviousResult()" title="Previous result (Shift+Enter)">
+                        ↑
+                    </button>
+                    <button class="search-nav-btn" id="treeSearchNextBtn" onclick="navigateToNextResult()" title="Next result (Enter)">
+                        ↓
+                    </button>
+                </div>
+                <div class="search-results-info" id="treeSearchResultsInfo"></div>
+                <button class="search-clear" id="treeSearchClearBtn" onclick="clearSearch()" aria-label="Clear search">
+                    ✕
+                </button>
+                <div class="search-suggestions tree-search-suggestions" id="treeSearchSuggestions"></div>
+            </div>
+        </div>
         <!-- Visualisation will be rendered here -->
     </div>
     
@@ -5494,30 +5563,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
 
         <div class="controls" id="controls" style="display: none;">
             <div class="controls-inner">
-                <div class="search-wrapper">
-                    <input type="text" 
-                           class="search-input" 
-                           id="searchInput" 
-                           placeholder="Search pages..." 
-                           autocomplete="off" />
-                    
-                    <div class="search-navigation" id="searchNavigation">
-                        <button class="search-nav-btn" id="searchPrevBtn" onclick="navigateToPreviousResult()" title="Previous result (Shift+Enter)">
-                            ↑
-                        </button>
-                        <button class="search-nav-btn" id="searchNextBtn" onclick="navigateToNextResult()" title="Next result (Enter)">
-                            ↓
-                        </button>
-                    </div>
-                    
-                    <div class="search-results-info" id="searchResultsInfo"></div>
-                    
-                    <button class="search-clear" id="searchClearBtn" onclick="clearSearch()" aria-label="Clear search">
-                        ✕
-                    </button>
-                    
-                    <div class="search-suggestions" id="searchSuggestions"></div>
-                </div>
+                <!-- Search moved to tree visualization -->
 
                 
                 
@@ -9846,19 +9892,19 @@ function clearFreshnessFilter() {
             // Prevent multiple initializations
             if (searchInitialized) return;
             
-            // Get the original input and its container
-            const oldInput = document.getElementById('searchInput');
-            if (!oldInput) return;
+            // Try to get tree search input first, then fallback to old search
+            let searchInput = document.getElementById('treeSearchInput') || document.getElementById('searchInput');
+            if (!searchInput) return;
             
-            const container = oldInput.parentNode;
-            const clearBtn = document.getElementById('searchClearBtn');
+            const container = searchInput.parentNode;
+            const clearBtn = document.getElementById('treeSearchClearBtn') || document.getElementById('searchClearBtn');
             
             // Create a completely fresh input element
             const freshInput = document.createElement('input');
             freshInput.type = 'text';
-            freshInput.id = 'searchInput';
-            freshInput.className = 'search-input';
-            freshInput.placeholder = 'Search pages...';
+            freshInput.id = searchInput.id; // Use the same ID as the original
+            freshInput.className = searchInput.className; // Use the same class as the original
+            freshInput.placeholder = searchInput.placeholder || 'Search pages...';
             freshInput.autocomplete = 'off';
             
             // Apply explicit styles to ensure it works
@@ -9879,7 +9925,7 @@ function clearFreshnessFilter() {
             `;
             
             // Replace the old input with the fresh one
-            container.replaceChild(freshInput, oldInput);
+            container.replaceChild(freshInput, searchInput);
             
             // Now add event listeners to the fresh input
             let searchTimeout = null;
@@ -9905,7 +9951,7 @@ freshInput.addEventListener('input', function(e) {
 }
 
 // Show loading in suggestions
-const suggestionsDiv = document.getElementById('searchSuggestions');
+const suggestionsDiv = document.getElementById('treeSearchSuggestions') || document.getElementById('searchSuggestions');
 if (suggestionsDiv) {
     suggestionsDiv.innerHTML = '<div class="search-suggestion">Searching...</div>';
     suggestionsDiv.style.display = 'block';
@@ -9969,7 +10015,7 @@ searchTimeout = setTimeout(() => {
             
             // Add the document click listener for closing suggestions
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('.search-wrapper')) {
+                if (!e.target.closest('.search-wrapper') && !e.target.closest('.tree-search-wrapper')) {
                     hideSuggestions();
                 }
             });
@@ -10130,10 +10176,10 @@ searchTimeout = setTimeout(() => {
         }
 
         function updateSearchUI() {
-            const resultsInfo = document.getElementById('searchResultsInfo');
-            const searchNav = document.getElementById('searchNavigation');
-            const prevBtn = document.getElementById('searchPrevBtn');
-            const nextBtn = document.getElementById('searchNextBtn');
+            const resultsInfo = document.getElementById('treeSearchResultsInfo') || document.getElementById('searchResultsInfo');
+            const searchNav = document.getElementById('treeSearchNavigation') || document.getElementById('searchNavigation');
+            const prevBtn = document.getElementById('treeSearchPrevBtn') || document.getElementById('searchPrevBtn');
+            const nextBtn = document.getElementById('treeSearchNextBtn') || document.getElementById('searchNextBtn');
             
             if (!resultsInfo || !searchNav) return;
             
@@ -10158,7 +10204,7 @@ searchTimeout = setTimeout(() => {
         
 
         function showSuggestions(results) {
-    const suggestionsDiv = document.getElementById('searchSuggestions');
+    const suggestionsDiv = document.getElementById('treeSearchSuggestions') || document.getElementById('searchSuggestions');
     if (!suggestionsDiv) return;
     
     if (results.length === 0) {
@@ -10234,21 +10280,24 @@ if (node.data.lastModified) {
     suggestionsDiv.style.display = 'block';
     
     // Make sure it's visible and positioned correctly
-    const searchInput = document.getElementById('searchInput');
+    const searchInput = document.getElementById('treeSearchInput') || document.getElementById('searchInput');
     if (searchInput) {
         const inputRect = searchInput.getBoundingClientRect();
-        const containerRect = searchInput.closest('.search-wrapper').getBoundingClientRect();
-        
-        // Position suggestions relative to the search wrapper
-        suggestionsDiv.style.position = 'absolute';
-        suggestionsDiv.style.top = (inputRect.bottom - containerRect.top) + 'px';
-        suggestionsDiv.style.left = '0';
-        suggestionsDiv.style.right = '0';
+        const wrapper = searchInput.closest('.tree-search-wrapper') || searchInput.closest('.search-wrapper');
+        if (wrapper) {
+            const containerRect = wrapper.getBoundingClientRect();
+            
+            // Position suggestions relative to the search wrapper
+            suggestionsDiv.style.position = 'absolute';
+            suggestionsDiv.style.top = (inputRect.bottom - containerRect.top) + 'px';
+            suggestionsDiv.style.left = '0';
+            suggestionsDiv.style.right = '0';
+        }
     }
 }
 
         function hideSuggestions() {
-            const suggestionsDiv = document.getElementById('searchSuggestions');
+            const suggestionsDiv = document.getElementById('treeSearchSuggestions') || document.getElementById('searchSuggestions');
             if (suggestionsDiv) {
                 suggestionsDiv.style.display = 'none';
             }
@@ -10299,14 +10348,14 @@ if (node.data.lastModified) {
             hideSuggestions();
             updateSearchUI();
             
-            const searchNav = document.getElementById('searchNavigation');
+            const searchNav = document.getElementById('treeSearchNavigation') || document.getElementById('searchNavigation');
             if (searchNav) {
                 searchNav.classList.remove('show');
             }
         }
 
         window.clearSearch = function() {
-            const searchInput = document.getElementById('searchInput');
+            const searchInput = document.getElementById('treeSearchInput') || document.getElementById('searchInput');
             if (searchInput) {
                 searchInput.value = '';
                 // Make sure the input remains functional
@@ -10315,7 +10364,7 @@ if (node.data.lastModified) {
             
             clearSearchResults();
             
-            const clearBtn = document.getElementById('searchClearBtn');
+            const clearBtn = document.getElementById('treeSearchClearBtn') || document.getElementById('searchClearBtn');
             if (clearBtn) {
                 clearBtn.classList.remove('active');
             }
@@ -10678,6 +10727,12 @@ window.switchView = function(viewType) {
             treeContainer.innerHTML = ''; // Clear it first
         }
         
+        // Show tree search
+        const treeSearchWrapper = document.getElementById('treeSearchWrapper');
+        if (treeSearchWrapper) {
+            treeSearchWrapper.style.display = 'block';
+        }
+        
         // Show tree UI elements
         if (stats && treeData) {
             stats.style.display = 'flex';
@@ -10726,6 +10781,12 @@ window.switchView = function(viewType) {
         if (legend) legend.style.display = 'none';
         if (container3D) container3D.style.display = 'none';
         
+        // Hide tree search
+        const treeSearchWrapper = document.getElementById('treeSearchWrapper');
+        if (treeSearchWrapper) {
+            treeSearchWrapper.style.display = 'none';
+        }
+        
         // IMPORTANT: Ensure tree container is visible BEFORE creating dashboard
         if (treeContainer) {
             treeContainer.style.display = 'block';
@@ -10761,6 +10822,12 @@ window.switchView = function(viewType) {
         if (treeContainer) treeContainer.style.display = 'none';
         if (stats) stats.style.display = 'none';
         if (legend) legend.style.display = 'none';
+        
+        // Hide tree search
+        const treeSearchWrapper = document.getElementById('treeSearchWrapper');
+        if (treeSearchWrapper) {
+            treeSearchWrapper.style.display = 'none';
+        }
         
         // Show 3D view
         if (treeData) {
