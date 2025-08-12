@@ -19503,15 +19503,11 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     },
                     divergenceSegments: {
                         beforeDatasetsDraw: function(chart) {
-                            console.log('🎨 Divergence segments plugin called');
                             const ctx = chart.ctx;
                             const chartArea = chart.chartArea;
                             
                             // Skip if no chart area yet
-                            if (!chartArea) {
-                                console.log('⏸️ Chart area not ready yet');
-                                return;
-                            }
+                            if (!chartArea) return;
                             
                             // Get scales
                             const xScale = chart.scales.x;
@@ -19531,7 +19527,6 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                     ? window.chartDivergenceData[i] 
                                     : (30 + Math.random() * 100); // Fallback for testing - should show varied colors
                                 
-                                console.log(`📊 Month ${i}: divergence ${divergenceIndex}`);
                                 
                                 // Get color based on divergence level
                                 let segmentColor;
@@ -19559,7 +19554,6 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 const y2_clicks = yScale.getPixelForValue(clicksData[i + 1] || 1);
                                 
                                 // Draw the filled area between the four points
-                                console.log(`🎨 Drawing segment ${i} with color ${segmentColor}`);
                                 ctx.save();
                                 ctx.fillStyle = segmentColor;
                                 ctx.beginPath();
@@ -20320,10 +20314,6 @@ function calculateImpactFromAggregatedData(gscData, url) {
         severityIcon = '✅';
         severityText = 'Minimal Impact';
     }
-        severity = 'low-moderate';
-        severityIcon = '📊';
-        severityText = 'Minor Impact';
-    }
     
     // Generate synthetic timeline data for chart (based on current data point)
     const timelineData = generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR);
@@ -20432,10 +20422,6 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
         severity = 'minimal';
         severityIcon = '✅';
         severityText = 'Minimal Impact';
-    }
-        severity = 'low-moderate';
-        severityIcon = '📊';
-        severityText = 'Minor Impact';
     }
     
     const peakDivergenceMonth = findPeakDivergenceMonth(processedData);
