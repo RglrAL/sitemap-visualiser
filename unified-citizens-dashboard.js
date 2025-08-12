@@ -20300,7 +20300,7 @@ function calculateImpactFromAggregatedData(gscData, url) {
         severityText = 'Minimal Impact';
     }
     
-    console.log(`🎯 Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
+    console.log(`🎯 calculateImpactFromAggregatedData - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     // Generate synthetic timeline data for chart (based on current data point)
     const timelineData = generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR);
@@ -20410,6 +20410,8 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
         severityIcon = '✅';
         severityText = 'Minimal Impact';
     }
+    
+    console.log(`🎯 calculateImpactFromTimeSeriesData - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     const peakDivergenceMonth = findPeakDivergenceMonth(processedData);
     const avgPositionChange = afterAvg.position && beforeAvg.position ? 
@@ -20658,6 +20660,8 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
         severityIcon = '✅';
         severityText = 'Minimal Impact';
     }
+    
+    console.log(`🎯 calculateRealImpactMetrics - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     // Find peak divergence month
     const peakDivergenceMonth = findPeakDivergenceMonthReal(sortedData, aiLaunchDate);
