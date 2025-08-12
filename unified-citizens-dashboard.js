@@ -13902,34 +13902,251 @@ function formatDuration(seconds) {
                 .ai-overview-impact-section {
                     padding: 20px;
                     margin: 16px 0;
+                    border-radius: 16px;
                 }
                 
                 .ai-overview-impact-section .section-header {
                     flex-direction: column;
-                    gap: 16px;
+                    gap: 12px;
                     align-items: flex-start;
+                    margin-bottom: 24px;
                 }
                 
                 .ai-overview-impact-section .section-title {
-                    font-size: 1.4rem;
+                    font-size: 1.3rem;
+                    gap: 8px;
+                }
+                
+                .ai-overview-impact-section .section-icon {
+                    font-size: 1.5rem;
+                }
+                
+                .ai-overview-impact-section .section-subtitle {
+                    font-size: 0.9rem;
+                    line-height: 1.4;
+                }
+                
+                .impact-severity {
+                    padding: 10px 16px;
+                    font-size: 0.9rem;
+                    align-self: flex-start;
                 }
                 
                 .impact-metrics-row {
-                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    grid-template-columns: 1fr 1fr;
                     gap: 12px;
+                    margin-bottom: 24px;
                 }
                 
                 .impact-metric-card {
                     flex-direction: column;
                     text-align: center;
-                    gap: 12px;
+                    gap: 8px;
                     padding: 16px;
+                    border-radius: 12px;
+                    min-height: 120px;
+                }
+                
+                .impact-metric-card .metric-icon {
+                    font-size: 1.5rem;
+                }
+                
+                .impact-metric-card .metric-value {
+                    font-size: 1.4rem;
+                }
+                
+                .impact-metric-card .metric-label {
+                    font-size: 0.8rem;
+                    justify-content: center;
+                }
+                
+                .impact-metric-card .metric-period {
+                    font-size: 0.7rem;
+                }
+                
+                /* Special handling for lost clicks - full width */
+                .impact-metric-card.lost-clicks {
+                    grid-column: 1 / -1;
+                }
+                
+                /* Chart container mobile */
+                .divergence-chart-container {
+                    padding: 16px;
+                    border-radius: 16px;
+                    margin-bottom: 20px;
                 }
                 
                 .chart-header {
-                    flex-direction: column;
-                    align-items: flex-start;
+                    margin-bottom: 16px;
+                }
+                
+                .chart-header .chart-title {
+                    font-size: 1rem;
+                    text-align: center;
+                }
+                
+                .chart-canvas-wrapper {
+                    height: 280px;
+                    margin-bottom: 16px;
+                }
+                
+                /* Chart.js legend mobile */
+                .divergence-chart-container canvas + div {
+                    font-size: 0.8rem;
+                }
+                
+                /* Narrative section mobile */
+                .ai-impact-narrative {
+                    padding: 16px;
+                    border-radius: 16px;
+                }
+                
+                .narrative-section {
+                    padding: 0;
+                }
+                
+                .narrative-heading h4 {
+                    font-size: 1.1rem;
+                    margin-bottom: 12px;
+                }
+                
+                .narrative-intro p {
+                    font-size: 0.9rem;
+                    line-height: 1.5;
+                }
+                
+                .key-pattern h5 {
+                    font-size: 1rem;
+                    margin-bottom: 12px;
+                }
+                
+                .pattern-metrics {
+                    padding: 12px;
+                    border-radius: 12px;
+                    margin-bottom: 16px;
+                }
+                
+                .pattern-metric {
+                    font-size: 0.9rem;
+                    gap: 8px;
+                    margin-bottom: 8px;
+                }
+                
+                .pattern-details {
+                    font-size: 0.85rem;
+                    padding-left: 20px;
+                }
+                
+                .severity-message {
+                    font-size: 0.85rem;
+                    line-height: 1.4;
+                    padding: 12px;
+                    border-radius: 8px;
+                }
+                
+                /* Divergence info section mobile */
+                .divergence-info-section {
+                    margin-top: 16px;
+                    padding: 16px;
+                    border-radius: 12px;
+                }
+                
+                .divergence-info-section h6 {
+                    font-size: 0.95rem;
+                    margin-bottom: 8px;
+                }
+                
+                .divergence-explainer {
+                    font-size: 0.8rem;
+                    line-height: 1.4;
+                    margin-bottom: 12px;
+                }
+                
+                .divergence-scale-graphic {
                     gap: 12px;
+                }
+                
+                .scale-visual {
+                    height: 50px;
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                }
+                
+                .scale-ranges {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 6px;
+                    font-size: 0.75rem;
+                }
+                
+                .range-item {
+                    padding: 6px 8px;
+                    border-radius: 6px;
+                    text-align: center;
+                }
+                
+                .public-service-warning {
+                    font-size: 0.85rem;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin: 16px 0;
+                }
+                
+                .narrative-footer {
+                    margin-top: 16px;
+                    padding-top: 16px;
+                }
+                
+                .footer-note {
+                    font-size: 0.8rem;
+                    line-height: 1.4;
+                }
+            }
+            
+            /* Extra small devices (phones < 480px) */
+            @media (max-width: 480px) {
+                .ai-overview-impact-section {
+                    padding: 16px;
+                    margin: 12px 0;
+                }
+                
+                .ai-overview-impact-section .section-title {
+                    font-size: 1.1rem;
+                }
+                
+                .impact-metrics-row {
+                    grid-template-columns: 1fr;
+                    gap: 10px;
+                }
+                
+                .impact-metric-card {
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: center;
+                    text-align: left;
+                    padding: 14px;
+                    min-height: auto;
+                }
+                
+                .impact-metric-card .metric-content {
+                    flex: 1;
+                }
+                
+                .impact-metric-card .metric-icon {
+                    order: 2;
+                }
+                
+                .impact-metric-card .metric-value {
+                    font-size: 1.2rem;
+                }
+                
+                .chart-canvas-wrapper {
+                    height: 240px;
+                }
+                
+                .scale-ranges {
+                    grid-template-columns: 1fr;
+                    gap: 4px;
                 }
                 
                 .chart-legend {
