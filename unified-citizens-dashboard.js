@@ -19285,9 +19285,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
-                        pointBackgroundColor: function(context) {
-                            return pointColors[context.dataIndex] || '#3b82f6';
-                        },
+                        pointBackgroundColor: '#3b82f6',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
@@ -19312,9 +19310,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         borderColor: '#10b981',
                         backgroundColor: 'transparent',
                         borderWidth: 2,
-                        pointBackgroundColor: function(context) {
-                            return pointColors[context.dataIndex] || '#10b981';
-                        },
+                        pointBackgroundColor: '#10b981',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
@@ -19522,53 +19518,69 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         }
                     },
                     divergenceSegments: {
-                        beforeDraw: function(chart) {
+                        beforeDatasetsDraw: function(chart) {
                             const ctx = chart.ctx;
                             const chartArea = chart.chartArea;
-                            const datasets = chart.data.datasets;
                             
                             // Skip if no chart area yet
                             if (!chartArea) return;
                             
-                            // Get the x-axis scale
+                            // Get scales
                             const xScale = chart.scales.x;
+                            const yScale = chart.scales.y;
                             
-                            // Draw background segments for each month based on divergence level
-                            analysisData.divergenceIndices.forEach((divergenceIndex, index) => {
-                                if (index >= chartData.labels.length - 1) return; // Skip last month
-                                
-                                // Calculate segment position
-                                const x1 = xScale.getPixelForValue(index);
-                                const x2 = xScale.getPixelForValue(index + 1);
-                                const segmentWidth = x2 - x1;
+                            // Find the impressions and clicks datasets
+                            const impressionsData = chart.data.datasets.find(d => d.label === 'Impressions')?.data || [];
+                            const clicksData = chart.data.datasets.find(d => d.label === 'Clicks')?.data || [];
+                            
+                            // Draw area fills between monthly segments
+                            for (let i = 0; i < chartData.labels.length - 1; i++) {
+                                const divergenceIndex = analysisData.divergenceIndices[i] || 0;
                                 
                                 // Get color based on divergence level
                                 let segmentColor;
                                 if (divergenceIndex > 200) {
-                                    segmentColor = 'rgba(124, 45, 18, 0.1)'; // Extreme - dark brown
+                                    segmentColor = 'rgba(124, 45, 18, 0.15)'; // Extreme - dark brown
                                 } else if (divergenceIndex > 100) {
-                                    segmentColor = 'rgba(220, 38, 38, 0.15)'; // Critical - red
+                                    segmentColor = 'rgba(220, 38, 38, 0.2)'; // Critical - red
                                 } else if (divergenceIndex > 60) {
-                                    segmentColor = 'rgba(239, 68, 68, 0.12)'; // High - orange-red
+                                    segmentColor = 'rgba(239, 68, 68, 0.15)'; // High - orange-red
                                 } else if (divergenceIndex > 30) {
-                                    segmentColor = 'rgba(245, 158, 11, 0.08)'; // Moderate - yellow
+                                    segmentColor = 'rgba(245, 158, 11, 0.12)'; // Moderate - yellow
                                 } else if (divergenceIndex > 10) {
-                                    segmentColor = 'rgba(34, 197, 94, 0.06)'; // Minor - light green
+                                    segmentColor = 'rgba(34, 197, 94, 0.08)'; // Minor - light green
                                 } else {
-                                    segmentColor = 'rgba(16, 185, 129, 0.04)'; // Minimal - very light green
+                                    segmentColor = 'rgba(16, 185, 129, 0.06)'; // Minimal - very light green
                                 }
                                 
-                                // Draw the segment
+                                // Get pixel coordinates for the four corner points of the segment
+                                const x1 = xScale.getPixelForValue(i);
+                                const x2 = xScale.getPixelForValue(i + 1);
+                                
+                                const y1_impressions = yScale.getPixelForValue(impressionsData[i] || 0);
+                                const y2_impressions = yScale.getPixelForValue(impressionsData[i + 1] || 0);
+                                const y1_clicks = yScale.getPixelForValue(clicksData[i] || 0);
+                                const y2_clicks = yScale.getPixelForValue(clicksData[i + 1] || 0);
+                                
+                                // Draw the filled area between the four points
                                 ctx.save();
                                 ctx.fillStyle = segmentColor;
-                                ctx.fillRect(
-                                    x1 - segmentWidth * 0.4, 
-                                    chartArea.top, 
-                                    segmentWidth * 0.8, 
-                                    chartArea.bottom - chartArea.top
-                                );
+                                ctx.beginPath();
+                                
+                                // Start at impressions point 1
+                                ctx.moveTo(x1, y1_impressions);
+                                // Line to impressions point 2
+                                ctx.lineTo(x2, y2_impressions);
+                                // Line to clicks point 2
+                                ctx.lineTo(x2, y2_clicks);
+                                // Line to clicks point 1
+                                ctx.lineTo(x1, y1_clicks);
+                                // Close the path back to start
+                                ctx.closePath();
+                                
+                                ctx.fill();
                                 ctx.restore();
-                            });
+                            }
                         }
                     }
                 },
