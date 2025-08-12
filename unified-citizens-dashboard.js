@@ -19705,9 +19705,25 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         dashboardContainer = document.querySelector('.ai-overview-impact-section')?.closest('.unified-dashboard-container');
     }
     if (!dashboardContainer) {
-        console.warn('Could not find dashboard container for metrics update');
+        // Try looking for any dashboard container in modal
+        dashboardContainer = document.querySelector('#unified-dashboard-modal .unified-dashboard-container');
+    }
+    if (!dashboardContainer) {
+        // Final fallback - look for the AI impact section directly
+        dashboardContainer = document.querySelector('.ai-overview-impact-section');
+    }
+    if (!dashboardContainer) {
+        console.warn(`Could not find dashboard container for metrics update. Tried selectors:`, [
+            `[data-dashboard-id="${dashboardId}"]`,
+            `#unified-dashboard-${dashboardId}`,
+            '.ai-overview-impact-section .unified-dashboard-container',
+            '#unified-dashboard-modal .unified-dashboard-container',
+            '.ai-overview-impact-section'
+        ]);
         return;
     }
+    
+    console.log('✅ Found dashboard container:', dashboardContainer.className || dashboardContainer.id);
     
     // Update CTR change card
     const ctrDeclineCard = dashboardContainer.querySelector('.impact-metric-card.ctr-decline .metric-value');
@@ -19748,6 +19764,49 @@ function updateMetricsFromChartData(chartData, dashboardId) {
     const divergenceCard = dashboardContainer.querySelector('.impact-metric-card.divergence-index .metric-value');
     if (divergenceCard) {
         divergenceCard.textContent = divergenceIndex;
+    }
+    
+    // Calculate and update severity badge
+    let severity = 'moderate';
+    let severityIcon = '⚠️';
+    let severityText = 'Moderate Impact';
+    
+    if (divergenceIndex > 200) {
+        severity = 'extreme';
+        severityIcon = '💥';
+        severityText = 'Extreme Impact';
+    } else if (divergenceIndex > 100) {
+        severity = 'critical';
+        severityIcon = '🚨';
+        severityText = 'Critical Impact';
+    } else if (divergenceIndex > 60) {
+        severity = 'high';
+        severityIcon = '🔥';
+        severityText = 'High Impact';
+    } else if (divergenceIndex > 30) {
+        severity = 'moderate';
+        severityIcon = '⚠️';
+        severityText = 'Moderate Impact';
+    } else if (divergenceIndex > 10) {
+        severity = 'minor';
+        severityIcon = '📊';
+        severityText = 'Minor Impact';
+    } else {
+        severity = 'minimal';
+        severityIcon = '✅';
+        severityText = 'Minimal Impact';
+    }
+    
+    console.log(`🎯 updateMetricsFromChartData - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
+    
+    // Update severity indicator in header
+    const severityIndicator = dashboardContainer.querySelector('.impact-severity');
+    if (severityIndicator) {
+        severityIndicator.className = `impact-severity ${severity}`;
+        const severityIconElement = severityIndicator.querySelector('.severity-icon');
+        const severityTextElement = severityIndicator.querySelector('.severity-text');
+        if (severityIconElement) severityIconElement.textContent = severityIcon;
+        if (severityTextElement) severityTextElement.textContent = severityText;
     }
     
     // Divergence scale visual removed - now shown in narrative section
