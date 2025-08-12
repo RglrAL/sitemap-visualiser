@@ -19350,7 +19350,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Divergence Index',
                         data: analysisData.divergenceIndices,
-                        borderColor: '#8b5cf6',
+                        borderColor: '#c084fc',
                         backgroundColor: 'transparent',
                         borderWidth: 3,
                         borderDash: [8, 4],
@@ -19442,11 +19442,11 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         title: {
                             display: true,
                             text: 'Divergence Index',
-                            color: 'rgba(139, 92, 246, 0.8)',
+                            color: 'rgba(192, 132, 252, 0.9)',
                             font: { size: 11 }
                         },
                         ticks: {
-                            color: 'rgba(139, 92, 246, 0.8)',
+                            color: 'rgba(192, 132, 252, 0.8)',
                             font: { size: 10 },
                             maxTicksLimit: 6
                         },
@@ -19462,7 +19462,48 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         display: false
                     },
                     legend: {
-                        display: false // We have custom legend
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 11 },
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            filter: function(item, chart) {
+                                // Hide CTR Anomalies from legend as they're contextual
+                                return item.text !== 'CTR Anomalies';
+                            },
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                
+                                // Customize labels
+                                return labels.map(label => {
+                                    if (label.text === 'Divergence Index') {
+                                        label.pointStyle = 'line';
+                                        label.strokeStyle = '#c084fc';
+                                        label.lineDash = [8, 4];
+                                        label.lineWidth = 3;
+                                    } else if (label.text === 'Clicks') {
+                                        label.pointStyle = 'circle';
+                                        label.fillStyle = '#3b82f6';
+                                    } else if (label.text === 'Impressions') {
+                                        label.pointStyle = 'circle'; 
+                                        label.fillStyle = '#10b981';
+                                    }
+                                    return label;
+                                });
+                            }
+                        },
+                        onClick: function(e, legendItem, legend) {
+                            // Allow toggling datasets on/off
+                            const index = legendItem.datasetIndex;
+                            const chart = legend.chart;
+                            const meta = chart.getDatasetMeta(index);
+                            
+                            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                            chart.update();
+                        }
                     },
                     tooltip: {
                         backgroundColor: 'rgba(255, 255, 255, 0.95)',
