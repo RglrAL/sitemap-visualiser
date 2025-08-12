@@ -19282,10 +19282,6 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         // Update the metrics display with real chart data
         updateMetricsFromChartData(chartData, dashboardId);
         
-        // Generate divergence background colors for each month
-        const divergenceColors = generateDivergenceBackgroundColors(analysisData.divergenceIndices);
-        const pointColors = getDivergencePointColors(analysisData.divergenceIndices);
-        
         // Store divergence data globally for plugin access
         window.chartDivergenceData = analysisData.divergenceIndices;
         
@@ -19350,6 +19346,31 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         pointHoverRadius: 10,
                         showLine: false,
                         fill: false
+                    },
+                    {
+                        label: 'Divergence Index',
+                        data: analysisData.divergenceIndices,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        borderDash: [8, 4],
+                        pointBackgroundColor: function(context) {
+                            const divergenceIndex = analysisData.divergenceIndices[context.dataIndex] || 0;
+                            if (divergenceIndex > 200) return '#7c2d12';      // Extreme - dark brown
+                            if (divergenceIndex > 100) return '#dc2626';      // Critical - red
+                            if (divergenceIndex > 60) return '#ef4444';       // High - orange-red
+                            if (divergenceIndex > 30) return '#f59e0b';       // Moderate - yellow
+                            if (divergenceIndex > 10) return '#22c55e';       // Minor - green
+                            return '#10b981';                                 // Minimal - teal
+                        },
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.3,
+                        fill: false,
+                        order: 0,
+                        yAxisID: 'y1'
                     }
                 ]
             },
@@ -19413,6 +19434,27 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 return isPowerOf10(value) ? 1.5 : 1;
                             }
                         }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Divergence Index',
+                            color: 'rgba(139, 92, 246, 0.8)',
+                            font: { size: 11 }
+                        },
+                        ticks: {
+                            color: 'rgba(139, 92, 246, 0.8)',
+                            font: { size: 10 },
+                            maxTicksLimit: 6
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        min: 0,
+                        max: 300
                     }
                 },
                 plugins: {
@@ -19518,40 +19560,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                     color: '#ffffff',
                                     font: { size: 11, weight: 'bold' }
                                 }
-                            },
-                            // Add divergence colored boxes for each segment
-                            ...Object.fromEntries(
-                                chartData.labels.slice(0, -1).map((label, i) => {
-                                    const divergenceIndex = (window.chartDivergenceData && window.chartDivergenceData[i]) 
-                                        ? window.chartDivergenceData[i] 
-                                        : (30 + Math.random() * 100);
-                                    
-                                    let segmentColor;
-                                    if (divergenceIndex > 200) {
-                                        segmentColor = 'rgba(124, 45, 18, 0.15)';
-                                    } else if (divergenceIndex > 100) {
-                                        segmentColor = 'rgba(220, 38, 38, 0.2)';
-                                    } else if (divergenceIndex > 60) {
-                                        segmentColor = 'rgba(239, 68, 68, 0.15)';
-                                    } else if (divergenceIndex > 30) {
-                                        segmentColor = 'rgba(245, 158, 11, 0.12)';
-                                    } else if (divergenceIndex > 10) {
-                                        segmentColor = 'rgba(34, 197, 94, 0.08)';
-                                    } else {
-                                        segmentColor = 'rgba(16, 185, 129, 0.06)';
-                                    }
-                                    
-                                    return [`segment${i}`, {
-                                        type: 'box',
-                                        xMin: i - 0.4,
-                                        xMax: i + 0.4,
-                                        yMin: 0,
-                                        yMax: 'max',
-                                        backgroundColor: segmentColor,
-                                        borderWidth: 0
-                                    }];
-                                })
-                            )
+                            }
                         }
                     }
                 },
@@ -19831,39 +19840,8 @@ function updateMetricsFromChartData(chartData, dashboardId) {
     }
 }
 
-// Generate background colors for chart based on divergence levels
-function generateDivergenceBackgroundColors(divergenceIndices) {
-    return divergenceIndices.map(divergenceIndex => {
-        if (divergenceIndex > 100) {
-            return 'rgba(220, 38, 38, 0.2)'; // Critical - red
-        } else if (divergenceIndex > 60) {
-            return 'rgba(239, 68, 68, 0.15)'; // High - orange-red
-        } else if (divergenceIndex > 30) {
-            return 'rgba(245, 158, 11, 0.1)'; // Moderate - yellow
-        } else if (divergenceIndex > 10) {
-            return 'rgba(34, 197, 94, 0.08)'; // Minor - light green
-        } else {
-            return 'rgba(16, 185, 129, 0.05)'; // Minimal - very light green
-        }
-    });
-}
-
-// Get point colors based on divergence
-function getDivergencePointColors(divergenceIndices) {
-    return divergenceIndices.map(divergenceIndex => {
-        if (divergenceIndex > 100) {
-            return '#dc2626'; // Critical - dark red
-        } else if (divergenceIndex > 60) {
-            return '#ef4444'; // High - red
-        } else if (divergenceIndex > 30) {
-            return '#f59e0b'; // Moderate - yellow
-        } else if (divergenceIndex > 10) {
-            return '#22c55e'; // Minor - green
-        } else {
-            return '#10b981'; // Minimal - teal
-        }
-    });
-}
+// Removed: generateDivergenceBackgroundColors and getDivergencePointColors functions
+// These are no longer needed since we're using a trend line instead of background coloring
 
 // Divergence scale function removed - now using static visual in narrative
 
