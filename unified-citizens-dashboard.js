@@ -13466,7 +13466,7 @@ function formatDuration(seconds) {
             .divergence-explainer {
                 margin: 8px 0;
                 font-size: 0.9rem;
-                color: rgba(255, 255, 255, 0.8);
+                color: #374151;
                 line-height: 1.4;
             }
             
@@ -13481,7 +13481,7 @@ function formatDuration(seconds) {
             .divergence-info-section h6 {
                 margin: 0 0 12px 0;
                 font-size: 1rem;
-                color: rgba(255, 255, 255, 0.95);
+                color: #1f2937;
                 font-weight: 600;
             }
             
@@ -13575,9 +13575,9 @@ function formatDuration(seconds) {
             .range-item.minimal { background: rgba(16, 185, 129, 0.1); color: #10b981; }
             .range-item.low { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
             .range-item.moderate { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-            .range-item.significant { background: rgba(249, 115, 22, 0.1); color: #f97316; }
             .range-item.high { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
             .range-item.critical { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+            .range-item.extreme { background: rgba(124, 45, 18, 0.1); color: #7c2d12; }
             
             .why-matters {
                 margin: 24px 0;
@@ -19262,6 +19262,10 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         // Update the metrics display with real chart data
         updateMetricsFromChartData(chartData, dashboardId);
         
+        // Generate divergence background colors for each month
+        const divergenceColors = generateDivergenceBackgroundColors(analysisData.divergenceIndices);
+        const pointColors = getDivergencePointColors(analysisData.divergenceIndices);
+        
         // Create divergence gap data points
         const divergenceGapData = chartData.labels.map((label, index) => {
             const impressions = chartData.impressions[index];
@@ -19281,11 +19285,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         borderWidth: 2,
-                        pointBackgroundColor: '#3b82f6',
+                        pointBackgroundColor: function(context) {
+                            return pointColors[context.dataIndex] || '#3b82f6';
+                        },
                         pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
                         tension: 0.1,
                         fill: false,
                         order: 3
@@ -19306,11 +19312,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         borderColor: '#10b981',
                         backgroundColor: 'transparent',
                         borderWidth: 2,
-                        pointBackgroundColor: '#10b981',
+                        pointBackgroundColor: function(context) {
+                            return pointColors[context.dataIndex] || '#10b981';
+                        },
                         pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
                         tension: 0.1,
                         fill: false,
                         order: 2
@@ -19510,16 +19518,57 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                     color: '#ffffff',
                                     font: { size: 11, weight: 'bold' }
                                 }
-                            },
-                            divergenceArea: {
-                                type: 'box',
-                                xMin: 2,
-                                xMax: chartData.labels.length - 1,
-                                yMin: 0,
-                                yMax: 'max',
-                                backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                                borderWidth: 0
                             }
+                        }
+                    },
+                    divergenceSegments: {
+                        beforeDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const chartArea = chart.chartArea;
+                            const datasets = chart.data.datasets;
+                            
+                            // Skip if no chart area yet
+                            if (!chartArea) return;
+                            
+                            // Get the x-axis scale
+                            const xScale = chart.scales.x;
+                            
+                            // Draw background segments for each month based on divergence level
+                            analysisData.divergenceIndices.forEach((divergenceIndex, index) => {
+                                if (index >= chartData.labels.length - 1) return; // Skip last month
+                                
+                                // Calculate segment position
+                                const x1 = xScale.getPixelForValue(index);
+                                const x2 = xScale.getPixelForValue(index + 1);
+                                const segmentWidth = x2 - x1;
+                                
+                                // Get color based on divergence level
+                                let segmentColor;
+                                if (divergenceIndex > 200) {
+                                    segmentColor = 'rgba(124, 45, 18, 0.1)'; // Extreme - dark brown
+                                } else if (divergenceIndex > 100) {
+                                    segmentColor = 'rgba(220, 38, 38, 0.15)'; // Critical - red
+                                } else if (divergenceIndex > 60) {
+                                    segmentColor = 'rgba(239, 68, 68, 0.12)'; // High - orange-red
+                                } else if (divergenceIndex > 30) {
+                                    segmentColor = 'rgba(245, 158, 11, 0.08)'; // Moderate - yellow
+                                } else if (divergenceIndex > 10) {
+                                    segmentColor = 'rgba(34, 197, 94, 0.06)'; // Minor - light green
+                                } else {
+                                    segmentColor = 'rgba(16, 185, 129, 0.04)'; // Minimal - very light green
+                                }
+                                
+                                // Draw the segment
+                                ctx.save();
+                                ctx.fillStyle = segmentColor;
+                                ctx.fillRect(
+                                    x1 - segmentWidth * 0.4, 
+                                    chartArea.top, 
+                                    segmentWidth * 0.8, 
+                                    chartArea.bottom - chartArea.top
+                                );
+                                ctx.restore();
+                            });
                         }
                     }
                 },
@@ -19733,6 +19782,40 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         const updatedNarrative = generateDynamicNarrative(updatedMetrics, gscData, window.currentPageUrl || '');
         narrativeContainer.innerHTML = updatedNarrative;
     }
+}
+
+// Generate background colors for chart based on divergence levels
+function generateDivergenceBackgroundColors(divergenceIndices) {
+    return divergenceIndices.map(divergenceIndex => {
+        if (divergenceIndex > 100) {
+            return 'rgba(220, 38, 38, 0.2)'; // Critical - red
+        } else if (divergenceIndex > 60) {
+            return 'rgba(239, 68, 68, 0.15)'; // High - orange-red
+        } else if (divergenceIndex > 30) {
+            return 'rgba(245, 158, 11, 0.1)'; // Moderate - yellow
+        } else if (divergenceIndex > 10) {
+            return 'rgba(34, 197, 94, 0.08)'; // Minor - light green
+        } else {
+            return 'rgba(16, 185, 129, 0.05)'; // Minimal - very light green
+        }
+    });
+}
+
+// Get point colors based on divergence
+function getDivergencePointColors(divergenceIndices) {
+    return divergenceIndices.map(divergenceIndex => {
+        if (divergenceIndex > 100) {
+            return '#dc2626'; // Critical - dark red
+        } else if (divergenceIndex > 60) {
+            return '#ef4444'; // High - red
+        } else if (divergenceIndex > 30) {
+            return '#f59e0b'; // Moderate - yellow
+        } else if (divergenceIndex > 10) {
+            return '#22c55e'; // Minor - green
+        } else {
+            return '#10b981'; // Minimal - teal
+        }
+    });
 }
 
 // Divergence scale function removed - now using static visual in narrative
@@ -20203,14 +20286,26 @@ function calculateImpactFromAggregatedData(gscData, url) {
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 40) {
-        severity = 'high';
+    if (divergenceIndex > 100) {
+        severity = 'critical';
         severityIcon = '🚨';
+        severityText = 'Critical Impact';
+    } else if (divergenceIndex > 60) {
+        severity = 'high';
+        severityIcon = '🔥';
         severityText = 'High Impact';
-    } else if (divergenceIndex < 20) {
+    } else if (divergenceIndex > 30) {
+        severity = 'moderate';
+        severityIcon = '⚠️';
+        severityText = 'Moderate Impact';
+    } else if (divergenceIndex < 10) {
         severity = 'low';
         severityIcon = '✅';
         severityText = 'Low Impact';
+    } else {
+        severity = 'low-moderate';
+        severityIcon = '📊';
+        severityText = 'Minor Impact';
     }
     
     // Generate synthetic timeline data for chart (based on current data point)
@@ -20296,14 +20391,26 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 40) {
-        severity = 'high';
+    if (divergenceIndex > 100) {
+        severity = 'critical';
         severityIcon = '🚨';
+        severityText = 'Critical Impact';
+    } else if (divergenceIndex > 60) {
+        severity = 'high';
+        severityIcon = '🔥';
         severityText = 'High Impact';
-    } else if (divergenceIndex < 20) {
+    } else if (divergenceIndex > 30) {
+        severity = 'moderate';
+        severityIcon = '⚠️';
+        severityText = 'Moderate Impact';
+    } else if (divergenceIndex < 10) {
         severity = 'low';
         severityIcon = '✅';
         severityText = 'Low Impact';
+    } else {
+        severity = 'low-moderate';
+        severityIcon = '📊';
+        severityText = 'Minor Impact';
     }
     
     const peakDivergenceMonth = findPeakDivergenceMonth(processedData);
@@ -20528,14 +20635,26 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 40 || ctrDecline > 30) {
-        severity = 'high';
+    if (divergenceIndex > 100 || ctrDecline > 50) {
+        severity = 'critical';
         severityIcon = '🚨';
+        severityText = 'Critical Impact';
+    } else if (divergenceIndex > 60 || ctrDecline > 30) {
+        severity = 'high';
+        severityIcon = '🔥';
         severityText = 'High Impact';
-    } else if (divergenceIndex < 15 && ctrDecline < 10) {
+    } else if (divergenceIndex > 30 || ctrDecline > 15) {
+        severity = 'moderate';
+        severityIcon = '⚠️';
+        severityText = 'Moderate Impact';
+    } else if (divergenceIndex < 10 && ctrDecline < 5) {
         severity = 'low';
         severityIcon = '✅';
         severityText = 'Low Impact';
+    } else {
+        severity = 'low-moderate';
+        severityIcon = '📊';
+        severityText = 'Minor Impact';
     }
     
     // Find peak divergence month
@@ -20794,11 +20913,11 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                         </div>
                         <div class="scale-ranges">
                             <div class="range-item minimal">0-10: Minimal Impact</div>
-                            <div class="range-item low">10-20: Low Impact</div>
-                            <div class="range-item moderate">20-30: Moderate Impact</div>
-                            <div class="range-item significant">30-40: Significant Impact</div>
-                            <div class="range-item high">40-60: High Impact</div>
-                            <div class="range-item critical">60+: Critical Impact</div>
+                            <div class="range-item low">10-30: Minor Impact</div>
+                            <div class="range-item moderate">30-60: Moderate Impact</div>
+                            <div class="range-item high">60-100: High Impact</div>
+                            <div class="range-item critical">100-200: Critical Impact</div>
+                            <div class="range-item extreme">200+: Extreme Impact</div>
                         </div>
                     </div>
                 </div>
@@ -20953,11 +21072,11 @@ function getStrategicRecommendation3(url, gscData) {
 function generateDivergenceScaleVisual(currentIndex) {
     const ranges = [
         { min: 0, max: 10, label: 'Minimal', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.15)' },
-        { min: 10, max: 20, label: 'Low', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.15)' },
-        { min: 20, max: 30, label: 'Moderate', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.15)' },
-        { min: 30, max: 40, label: 'Significant', color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.15)' },
-        { min: 40, max: 60, label: 'High', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
-        { min: 60, max: 100, label: 'Critical', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.15)' }
+        { min: 10, max: 30, label: 'Minor', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.15)' },
+        { min: 30, max: 60, label: 'Moderate', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.15)' },
+        { min: 60, max: 100, label: 'High', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
+        { min: 100, max: 200, label: 'Critical', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.15)' },
+        { min: 200, max: 500, label: 'Extreme', color: '#7c2d12', bgColor: 'rgba(124, 45, 18, 0.15)' }
     ];
     
     let visual = '<div class="scale-bar-detailed">';
@@ -20976,7 +21095,7 @@ function generateDivergenceScaleVisual(currentIndex) {
     });
     
     // Add current position indicator
-    const position = Math.min(95, (currentIndex / 80) * 100);
+    const position = Math.min(95, (currentIndex / 300) * 100);
     visual += `
         <div class="current-indicator" style="left: ${position}%;">
             <div class="indicator-line"></div>
@@ -21043,13 +21162,17 @@ function getAISectionSubtitle(impactMetrics) {
 }
 
 function getSeverityMessage(severity, divergenceIndex) {
-    if (severity === 'high') {
-        return `🚨 <strong>Critical Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing severe AI Overview impact.`;
+    if (severity === 'critical') {
+        return `🚨 <strong>Critical Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing severe AI Overview impact requiring immediate intervention.`;
+    } else if (severity === 'high') {
+        return `🔥 <strong>High Impact:</strong> A divergence index of ${divergenceIndex} indicates significant AI Overview displacement affecting this page's traffic.`;
     } else if (severity === 'low') {
         return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence index of only ${divergenceIndex}.`;
+    } else if (severity === 'low-moderate') {
+        return `📊 <strong>Minor Impact:</strong> A divergence index of ${divergenceIndex} suggests some AI Overview effects but within manageable levels.`;
     }
     
-    return `⚠️ <strong>Moderate Impact:</strong> A divergence index of ${divergenceIndex} indicates noticeable but manageable AI Overview effects.`;
+    return `⚠️ <strong>Moderate Impact:</strong> A divergence index of ${divergenceIndex} indicates noticeable AI Overview effects requiring attention.`;
 }
 
 function getOutlookMessage(impactMetrics, ctrDecline, impressionGrowth) {
