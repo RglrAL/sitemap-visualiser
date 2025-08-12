@@ -7473,7 +7473,7 @@ function reapplyThemeStyles() {
             const connectionStatus = d3.select("#treeContainer")
                 .append("div")
                 .attr("class", "tree-connection-status")
-                .style("display", currentView === 'tree' ? 'flex' : 'none');
+                .style("display", "none"); // Let CSS media query control visibility
             
             connectionStatus.html(`
                 <div class="connection-indicator tree-ga4-status" data-service="ga4">
