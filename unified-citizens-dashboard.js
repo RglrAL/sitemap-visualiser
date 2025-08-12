@@ -13157,6 +13157,16 @@ function formatDuration(seconds) {
                 border: 1px solid rgba(255, 255, 255, 0.2);
             }
             
+            .impact-severity.extreme {
+                background: rgba(124, 45, 18, 0.25);
+                border-color: rgba(124, 45, 18, 0.4);
+            }
+            
+            .impact-severity.critical {
+                background: rgba(220, 38, 38, 0.25);
+                border-color: rgba(220, 38, 38, 0.4);
+            }
+            
             .impact-severity.high {
                 background: rgba(239, 68, 68, 0.2);
                 border-color: rgba(239, 68, 68, 0.3);
@@ -13165,6 +13175,16 @@ function formatDuration(seconds) {
             .impact-severity.moderate {
                 background: rgba(245, 158, 11, 0.2);
                 border-color: rgba(245, 158, 11, 0.3);
+            }
+            
+            .impact-severity.minor {
+                background: rgba(59, 130, 246, 0.15);
+                border-color: rgba(59, 130, 246, 0.3);
+            }
+            
+            .impact-severity.minimal {
+                background: rgba(34, 197, 94, 0.2);
+                border-color: rgba(34, 197, 94, 0.3);
             }
             
             .impact-severity.low {
@@ -20275,6 +20295,8 @@ function calculateImpactFromAggregatedData(gscData, url) {
         severityText = 'Minimal Impact';
     }
     
+    console.log(`🎯 Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
+    
     // Generate synthetic timeline data for chart (based on current data point)
     const timelineData = generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR);
     
@@ -20606,26 +20628,30 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
     let severityIcon = '⚠️';
     let severityText = 'Moderate Impact';
     
-    if (divergenceIndex > 100 || ctrDecline > 50) {
+    if (divergenceIndex > 200) {
+        severity = 'extreme';
+        severityIcon = '💥';
+        severityText = 'Extreme Impact';
+    } else if (divergenceIndex > 100) {
         severity = 'critical';
         severityIcon = '🚨';
         severityText = 'Critical Impact';
-    } else if (divergenceIndex > 60 || ctrDecline > 30) {
+    } else if (divergenceIndex > 60) {
         severity = 'high';
         severityIcon = '🔥';
         severityText = 'High Impact';
-    } else if (divergenceIndex > 30 || ctrDecline > 15) {
+    } else if (divergenceIndex > 30) {
         severity = 'moderate';
         severityIcon = '⚠️';
         severityText = 'Moderate Impact';
-    } else if (divergenceIndex < 10 && ctrDecline < 5) {
-        severity = 'low';
-        severityIcon = '✅';
-        severityText = 'Low Impact';
-    } else {
-        severity = 'low-moderate';
+    } else if (divergenceIndex > 10) {
+        severity = 'minor';
         severityIcon = '📊';
         severityText = 'Minor Impact';
+    } else {
+        severity = 'minimal';
+        severityIcon = '✅';
+        severityText = 'Minimal Impact';
     }
     
     // Find peak divergence month
@@ -20731,9 +20757,9 @@ function calculateImpactFromCurrentData(sortedData, url) {
         impressionGrowth: Math.max(impressionChange, 0),
         estimatedLostClicks: estimatedLostClicks > 0 ? estimatedLostClicks.toLocaleString() : '0',
         divergenceIndex: Math.round(Math.max(ctrChange, 0) * 1.5 + Math.max(impressionChange, 0) * 0.5),
-        severity: 'moderate',
-        severityIcon: '⚠️',
-        severityText: 'Moderate Impact',
+        severity: 'minor',
+        severityIcon: '📊',
+        severityText: 'Minor Impact',
         keyInsight: `Based on available time-series data, this page shows some patterns that may be related to AI Overview impact.`,
         peakDivergenceMonth: 'Recent months',
         averagePositionChange: '0.0',
