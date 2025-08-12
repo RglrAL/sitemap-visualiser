@@ -13242,6 +13242,108 @@ function formatDuration(seconds) {
                 color: rgba(255, 255, 255, 0.8);
             }
             
+            /* Info Tooltip for Divergence Index */
+            .info-tooltip {
+                display: inline-block;
+                margin-left: 4px;
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.5);
+                cursor: help;
+                font-style: normal;
+                vertical-align: super;
+                line-height: 1;
+                transition: color 0.2s ease;
+            }
+            
+            .info-tooltip:hover {
+                color: rgba(255, 255, 255, 0.9);
+            }
+            
+            .impact-metric-card .metric-label {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            /* Divergence Scale Mini Chart */
+            .divergence-scale {
+                margin-top: 12px;
+                position: relative;
+                height: 24px;
+            }
+            
+            .scale-bar {
+                display: flex;
+                height: 8px;
+                border-radius: 4px;
+                overflow: hidden;
+                background: rgba(255, 255, 255, 0.1);
+            }
+            
+            .scale-segment {
+                flex: 1;
+                position: relative;
+                opacity: 0.3;
+                transition: opacity 0.3s ease;
+            }
+            
+            .scale-segment.low {
+                background: linear-gradient(90deg, #10b981, #34d399);
+            }
+            
+            .scale-segment.moderate {
+                background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            }
+            
+            .scale-segment.high {
+                background: linear-gradient(90deg, #ef4444, #f87171);
+            }
+            
+            .scale-segment.active {
+                opacity: 1;
+            }
+            
+            .scale-label {
+                position: absolute;
+                bottom: -16px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 0.7rem;
+                color: rgba(255, 255, 255, 0.6);
+                font-weight: 500;
+            }
+            
+            .scale-segment.active .scale-label {
+                color: rgba(255, 255, 255, 0.9);
+            }
+            
+            .scale-indicator {
+                position: absolute;
+                top: -8px;
+                transform: translateX(-50%);
+                z-index: 2;
+            }
+            
+            .indicator-dot {
+                width: 8px;
+                height: 8px;
+                background: #ffffff;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                margin: 0 auto 2px;
+            }
+            
+            .indicator-value {
+                font-size: 0.65rem;
+                color: #ffffff;
+                text-align: center;
+                font-weight: 600;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 1px 4px;
+                border-radius: 3px;
+                min-width: 20px;
+            }
+            
             .divergence-chart-container {
                 background: rgba(255, 255, 255, 0.05);
                 backdrop-filter: blur(10px);
@@ -13438,6 +13540,13 @@ function formatDuration(seconds) {
                 color: #374151;
             }
             
+            .divergence-explainer {
+                margin: 12px 0 0 0;
+                font-size: 0.85rem;
+                color: rgba(255, 255, 255, 0.7);
+                text-align: center;
+            }
+            
             .why-matters {
                 margin: 24px 0;
             }
@@ -13555,39 +13664,7 @@ function formatDuration(seconds) {
                 margin: 0;
             }
             
-            /* Chart Metrics Overlay */
-            .chart-metrics-overlay {
-                position: absolute;
-                bottom: 16px;
-                left: 16px;
-                background: rgba(0, 0, 0, 0.75);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 8px;
-                padding: 12px 16px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                display: flex;
-                gap: 16px;
-                z-index: 10;
-                backdrop-filter: blur(10px);
-            }
-            
-            .chart-metrics-overlay .metric-item {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-            
-            .chart-metrics-overlay .metric-label {
-                font-size: 0.75rem;
-                color: rgba(255, 255, 255, 0.7);
-                font-weight: 500;
-            }
-            
-            .chart-metrics-overlay .metric-value {
-                font-size: 0.875rem;
-                color: #ffffff;
-                font-weight: 600;
-            }
+            /* Chart Metrics Overlay - Removed to avoid confusion with main KPI cards */
             
             /* AI Impact Details Grid */
             .ai-impact-details {
@@ -13855,12 +13932,7 @@ function formatDuration(seconds) {
                     gap: 12px;
                 }
                 
-                .chart-metrics-overlay {
-                    flex-direction: column;
-                    gap: 8px;
-                    padding: 8px 12px;
-                    font-size: 0.875rem;
-                }
+                /* Chart metrics overlay mobile styles removed */
             }
  
             
@@ -19428,8 +19500,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         
         console.log('✅ Interactive AI divergence chart created');
         
-        // Add metrics overlay
-        addMetricsOverlay(canvasId, analysisData);
+        // Metrics overlay removed - data shown in main KPI cards
         
     }).catch(error => {
         console.error('❌ Failed to load Chart.js:', error);
@@ -19610,6 +19681,9 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         divergenceCard.textContent = divergenceIndex;
     }
     
+    // Update divergence scale visual
+    updateDivergenceScale(dashboardContainer, divergenceIndex);
+    
     // Update the narrative with real data
     const narrativeContainer = dashboardContainer.querySelector('.ai-impact-narrative');
     if (narrativeContainer) {
@@ -19630,43 +19704,32 @@ function updateMetricsFromChartData(chartData, dashboardId) {
     }
 }
 
-// Add metrics overlay to chart
-function addMetricsOverlay(canvasId, analysisData) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+// Update the divergence scale visual indicator
+function updateDivergenceScale(container, divergenceIndex) {
+    // Update active segments
+    const segments = container.querySelectorAll('.scale-segment');
+    segments.forEach(segment => {
+        segment.classList.remove('active');
+        if (divergenceIndex < 20 && segment.classList.contains('low')) {
+            segment.classList.add('active');
+        } else if (divergenceIndex >= 20 && divergenceIndex < 40 && segment.classList.contains('moderate')) {
+            segment.classList.add('active');
+        } else if (divergenceIndex >= 40 && segment.classList.contains('high')) {
+            segment.classList.add('active');
+        }
+    });
     
-    const container = canvas.parentElement;
-    if (!container) return;
-    
-    // Remove existing overlay if present
-    const existingOverlay = container.querySelector('.chart-metrics-overlay');
-    if (existingOverlay) existingOverlay.remove();
-    
-    // Calculate current metrics
-    const latestIndex = analysisData.divergenceIndices.length - 1;
-    const currentDivergence = analysisData.divergenceIndices[latestIndex] || 0;
-    const avgDivergence = analysisData.divergenceIndices.reduce((a, b) => a + b, 0) / analysisData.divergenceIndices.length;
-    
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'chart-metrics-overlay';
-    overlay.innerHTML = `
-        <div class="metric-item">
-            <span class="metric-label">Latest CTR</span>
-            <span class="metric-value">${((window.currentAITimelineData[latestIndex]?.ctr || 0) * 100).toFixed(2)}%</span>
-        </div>
-        <div class="metric-item">
-            <span class="metric-label">vs Historical</span>
-            <span class="metric-value">${analysisData.baselineCTR.toFixed(2)}%</span>
-        </div>
-        <div class="metric-item">
-            <span class="metric-label">Divergence</span>
-            <span class="metric-value">${currentDivergence}</span>
-        </div>
-    `;
-    
-    container.appendChild(overlay);
+    // Update indicator position and value
+    const indicator = container.querySelector('.scale-indicator');
+    const indicatorValue = container.querySelector('.indicator-value');
+    if (indicator && indicatorValue) {
+        const position = Math.min(95, Math.max(5, (divergenceIndex / 80) * 100));
+        indicator.style.left = position + '%';
+        indicatorValue.textContent = divergenceIndex;
+    }
 }
+
+// Metrics overlay function removed - data now shown in main KPI cards above chart
 
 function generateDivergenceData(months) {
     const impressions = [];
@@ -19919,7 +19982,7 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                         AI Overview Impact Analysis
                     </h3>
                     <p class="section-subtitle">
-                        Tracking the divergence between impressions and clicks due to Google's AI-powered search results
+                        ${getAISectionSubtitle(impactMetrics)}
                     </p>
                 </div>
                 <div class="impact-severity ${impactMetrics.severity}">
@@ -19962,8 +20025,28 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                         <div class="metric-icon">📊</div>
                         <div class="metric-content">
                             <div class="metric-value">${impactMetrics.divergenceIndex}</div>
-                            <div class="metric-label">Divergence Index</div>
+                            <div class="metric-label">
+                                Divergence Index
+                                <span class="info-tooltip" title="Measures AI Overview impact: (CTR decline × 1.5) + (Impression growth × 0.5). Higher values indicate greater impact. Scale: 0-20 Low, 20-40 Moderate, 40+ High">ⓘ</span>
+                            </div>
                             <div class="metric-period">6-month impact</div>
+                        </div>
+                        <div class="divergence-scale">
+                            <div class="scale-bar">
+                                <div class="scale-segment low ${impactMetrics.divergenceIndex < 20 ? 'active' : ''}" data-range="0-20">
+                                    <span class="scale-label">Low</span>
+                                </div>
+                                <div class="scale-segment moderate ${impactMetrics.divergenceIndex >= 20 && impactMetrics.divergenceIndex < 40 ? 'active' : ''}" data-range="20-40">
+                                    <span class="scale-label">Moderate</span>
+                                </div>
+                                <div class="scale-segment high ${impactMetrics.divergenceIndex >= 40 ? 'active' : ''}" data-range="40+">
+                                    <span class="scale-label">High</span>
+                                </div>
+                            </div>
+                            <div class="scale-indicator" style="left: ${Math.min(95, Math.max(5, (impactMetrics.divergenceIndex / 80) * 100))}%;">
+                                <div class="indicator-dot"></div>
+                                <div class="indicator-value">${impactMetrics.divergenceIndex}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -19971,7 +20054,7 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                 <!-- Divergence Chart -->
                 <div class="divergence-chart-container">
                     <div class="chart-header">
-                        <h4 class="chart-title">Clicks vs Impressions Divergence Timeline</h4>
+                        <h4 class="chart-title">Search Performance Trends - Last 12 Months</h4>
                         <div class="chart-legend">
                             <div class="legend-item impressions">
                                 <div class="legend-color impressions-color"></div>
@@ -20694,7 +20777,7 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
             </div>
             
             <div class="narrative-intro">
-                <p><strong>Your page is experiencing a ${Math.abs(ctrDecline)}% ${ctrDecline > 0 ? 'decline' : 'improvement'} in click-through rate</strong> ${impressionChange !== 0 ? `${impressionTrend === 'increased' ? 'despite' : 'along with'} ${impressionTrend === 'increased' ? 'a' : ''} ${Math.abs(impressionChange)}% ${impressionTrend === 'increased' ? 'increase' : 'decrease'} in visibility` : ''} <em>compared to 6 months ago</em>. ${ctrDecline > 0 ? 'This pattern indicates Google\'s AI Overviews are likely answering user queries directly in search results, reducing the need for users to click through to your page.' : 'This suggests your page is performing better despite AI Overview impact.'}</p>
+                <p>${generateNarrativeIntro(ctrDecline, impressionChange, impressionTrend)}</p>
             </div>
             
             <div class="key-pattern">
@@ -20711,6 +20794,7 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                     </ul>
                 </div>
                 <p class="severity-message">${severityMessage}</p>
+                <p class="divergence-explainer"><em>The Divergence Index combines CTR change and impression change to measure overall AI Overview impact on your page.</em></p>
             </div>
             
             
@@ -20857,6 +20941,60 @@ function getStrategicRecommendation3(url, gscData) {
     }
     
     return '<strong>Prepare Irish language version</strong> - Position for ArdIntleacht launch 2026';
+}
+
+function generateNarrativeIntro(ctrDecline, impressionChange, impressionTrend) {
+    const ctrText = Math.abs(ctrDecline) + '%';
+    const impText = Math.abs(impressionChange) + '%';
+    
+    // No significant change
+    if (Math.abs(ctrDecline) < 5 && Math.abs(impressionChange) < 5) {
+        return `<strong>Your page performance has remained stable</strong> with minimal changes <em>compared to 6 months ago</em>. This suggests your content maintains consistent appeal despite the rollout of AI-powered search features.`;
+    }
+    
+    // CTR improving
+    if (ctrDecline <= -5) {
+        if (impressionChange > 0) {
+            return `<strong>Your page is experiencing a ${ctrText} improvement in click-through rate</strong> alongside a ${impText} increase in visibility <em>compared to 6 months ago</em>. This positive trend suggests your content is outperforming AI Overview responses for your target queries.`;
+        } else {
+            return `<strong>Your page is experiencing a ${ctrText} improvement in click-through rate</strong> despite a ${impText} decrease in visibility <em>compared to 6 months ago</em>. This indicates stronger user engagement when your page does appear in search results.`;
+        }
+    }
+    
+    // Classic divergence pattern (CTR down, impressions up)
+    if (ctrDecline > 10 && impressionChange > 10) {
+        return `<strong>Your page is experiencing a ${ctrText} decline in click-through rate</strong> despite a ${impText} increase in visibility <em>compared to 6 months ago</em>. This pattern indicates Google's AI Overviews are likely answering user queries directly in search results, reducing the need for users to click through to your page.`;
+    }
+    
+    // Both declining
+    if (ctrDecline > 5 && impressionChange < -5) {
+        return `<strong>Your page is experiencing a ${ctrText} decline in click-through rate</strong> along with a ${impText} decrease in visibility <em>compared to 6 months ago</em>. This suggests both ranking and engagement challenges that may be compounded by AI Overview features.`;
+    }
+    
+    // Moderate CTR decline
+    if (ctrDecline > 5) {
+        return `<strong>Your page is experiencing a ${ctrText} decline in click-through rate</strong> <em>compared to 6 months ago</em>. This may indicate that AI Overviews are beginning to satisfy some user queries that previously led to clicks on your page.`;
+    }
+    
+    // Default
+    return `<strong>Your page shows a ${ctrText} ${ctrDecline > 0 ? 'decline' : 'improvement'} in click-through rate</strong> ${impressionChange !== 0 ? `and a ${impText} ${impressionChange > 0 ? 'increase' : 'decrease'} in visibility` : ''} <em>compared to 6 months ago</em>.`;
+}
+
+function getAISectionSubtitle(impactMetrics) {
+    const ctrDecline = impactMetrics.ctrDecline || 0;
+    const impressionGrowth = impactMetrics.impressionGrowth || 0;
+    
+    if (ctrDecline <= 0 && impressionGrowth >= 0) {
+        return "Monitoring performance trends in the age of AI-powered search results";
+    } else if (ctrDecline < 10) {
+        return "Tracking minor shifts in click patterns as AI search features evolve";
+    } else if (ctrDecline >= 10 && ctrDecline < 30) {
+        return "Measuring the emerging impact of Google's AI-powered search results";
+    } else if (ctrDecline >= 30 && ctrDecline < 50) {
+        return "Tracking significant divergence between impressions and clicks due to AI search";
+    } else {
+        return "Monitoring severe traffic loss to Google's AI-powered search features";
+    }
 }
 
 function getSeverityMessage(severity, divergenceIndex) {
@@ -21018,13 +21156,13 @@ function loadChartJS() {
 }
 
 function generate12MonthTimeline(timelineData) {
-    console.log('📊 Generating 11-month timeline (excluding current month)...');
+    console.log('📊 Generating 12-month timeline (excluding current month)...');
     
-    // Generate last 11 months labels (excluding current month)
+    // Generate last 12 months labels (excluding current month)
     const months = [];
     const now = new Date();
     
-    for (let i = 11; i >= 1; i--) {
+    for (let i = 12; i >= 1; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         months.push({
