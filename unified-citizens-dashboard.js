@@ -19350,7 +19350,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Divergence Index',
                         data: analysisData.divergenceIndices,
-                        borderColor: '#c084fc',
+                        borderColor: '#ffffff',
                         backgroundColor: 'transparent',
                         borderWidth: 3,
                         borderDash: [8, 4],
@@ -19442,11 +19442,11 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         title: {
                             display: true,
                             text: 'Divergence Index',
-                            color: 'rgba(192, 132, 252, 0.9)',
+                            color: 'rgba(255, 255, 255, 0.9)',
                             font: { size: 11 }
                         },
                         ticks: {
-                            color: 'rgba(192, 132, 252, 0.8)',
+                            color: 'rgba(255, 255, 255, 0.8)',
                             font: { size: 10 },
                             maxTicksLimit: 6
                         },
@@ -19481,7 +19481,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 return labels.map(label => {
                                     if (label.text === 'Divergence Index') {
                                         label.pointStyle = 'line';
-                                        label.strokeStyle = '#c084fc';
+                                        label.strokeStyle = '#ffffff';
                                         label.lineDash = [8, 4];
                                         label.lineWidth = 3;
                                     } else if (label.text === 'Clicks') {
