@@ -13265,84 +13265,7 @@ function formatDuration(seconds) {
                 gap: 4px;
             }
             
-            /* Divergence Scale Mini Chart */
-            .divergence-scale {
-                margin-top: 12px;
-                position: relative;
-                height: 24px;
-            }
-            
-            .scale-bar {
-                display: flex;
-                height: 8px;
-                border-radius: 4px;
-                overflow: hidden;
-                background: rgba(255, 255, 255, 0.1);
-            }
-            
-            .scale-segment {
-                flex: 1;
-                position: relative;
-                opacity: 0.3;
-                transition: opacity 0.3s ease;
-            }
-            
-            .scale-segment.low {
-                background: linear-gradient(90deg, #10b981, #34d399);
-            }
-            
-            .scale-segment.moderate {
-                background: linear-gradient(90deg, #f59e0b, #fbbf24);
-            }
-            
-            .scale-segment.high {
-                background: linear-gradient(90deg, #ef4444, #f87171);
-            }
-            
-            .scale-segment.active {
-                opacity: 1;
-            }
-            
-            .scale-label {
-                position: absolute;
-                bottom: -16px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-size: 0.7rem;
-                color: rgba(255, 255, 255, 0.6);
-                font-weight: 500;
-            }
-            
-            .scale-segment.active .scale-label {
-                color: rgba(255, 255, 255, 0.9);
-            }
-            
-            .scale-indicator {
-                position: absolute;
-                top: -8px;
-                transform: translateX(-50%);
-                z-index: 2;
-            }
-            
-            .indicator-dot {
-                width: 8px;
-                height: 8px;
-                background: #ffffff;
-                border-radius: 50%;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                margin: 0 auto 2px;
-            }
-            
-            .indicator-value {
-                font-size: 0.65rem;
-                color: #ffffff;
-                text-align: center;
-                font-weight: 600;
-                background: rgba(0, 0, 0, 0.7);
-                padding: 1px 4px;
-                border-radius: 3px;
-                min-width: 20px;
-            }
+            /* Old mini chart styles removed - using detailed static visual in narrative */
             
             .divergence-chart-container {
                 background: rgba(255, 255, 255, 0.05);
@@ -13541,11 +13464,120 @@ function formatDuration(seconds) {
             }
             
             .divergence-explainer {
-                margin: 12px 0 0 0;
-                font-size: 0.85rem;
-                color: rgba(255, 255, 255, 0.7);
-                text-align: center;
+                margin: 8px 0;
+                font-size: 0.9rem;
+                color: rgba(255, 255, 255, 0.8);
+                line-height: 1.4;
             }
+            
+            .divergence-info-section {
+                margin: 20px 0;
+                padding: 16px;
+                background: rgba(255, 255, 255, 0.03);
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .divergence-info-section h6 {
+                margin: 0 0 12px 0;
+                font-size: 1rem;
+                color: rgba(255, 255, 255, 0.95);
+                font-weight: 600;
+            }
+            
+            .divergence-scale-graphic {
+                margin-top: 16px;
+            }
+            
+            .scale-bar-detailed {
+                display: flex;
+                gap: 2px;
+                height: 30px;
+                position: relative;
+                margin-bottom: 16px;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            
+            .scale-segment-detailed {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 4px;
+                border: 1px solid;
+                border-radius: 4px;
+                opacity: 0.4;
+                transition: all 0.3s ease;
+            }
+            
+            .scale-segment-detailed.active {
+                opacity: 1;
+                transform: scale(1.02);
+                box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+            }
+            
+            .segment-bar {
+                height: 6px;
+                border-radius: 3px;
+                margin-bottom: 2px;
+            }
+            
+            .segment-label {
+                font-size: 0.7rem;
+                font-weight: 500;
+                text-align: center;
+                line-height: 1;
+            }
+            
+            .current-indicator {
+                position: absolute;
+                top: -8px;
+                transform: translateX(-50%);
+                z-index: 10;
+            }
+            
+            .indicator-line {
+                width: 2px;
+                height: 46px;
+                background: #ffffff;
+                margin: 0 auto 4px;
+                border-radius: 1px;
+                box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+            }
+            
+            .indicator-badge {
+                background: #ffffff;
+                color: #1f2937;
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 4px;
+                text-align: center;
+                min-width: 24px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            
+            .scale-ranges {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                font-size: 0.8rem;
+                color: rgba(255, 255, 255, 0.7);
+            }
+            
+            .range-item {
+                padding: 4px 8px;
+                border-radius: 4px;
+                text-align: center;
+                font-weight: 500;
+            }
+            
+            .range-item.minimal { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+            .range-item.low { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+            .range-item.moderate { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+            .range-item.significant { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+            .range-item.high { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+            .range-item.critical { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
             
             .why-matters {
                 margin: 24px 0;
@@ -19681,8 +19713,7 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         divergenceCard.textContent = divergenceIndex;
     }
     
-    // Update divergence scale visual
-    updateDivergenceScale(dashboardContainer, divergenceIndex);
+    // Divergence scale visual removed - now shown in narrative section
     
     // Update the narrative with real data
     const narrativeContainer = dashboardContainer.querySelector('.ai-impact-narrative');
@@ -19704,30 +19735,7 @@ function updateMetricsFromChartData(chartData, dashboardId) {
     }
 }
 
-// Update the divergence scale visual indicator
-function updateDivergenceScale(container, divergenceIndex) {
-    // Update active segments
-    const segments = container.querySelectorAll('.scale-segment');
-    segments.forEach(segment => {
-        segment.classList.remove('active');
-        if (divergenceIndex < 20 && segment.classList.contains('low')) {
-            segment.classList.add('active');
-        } else if (divergenceIndex >= 20 && divergenceIndex < 40 && segment.classList.contains('moderate')) {
-            segment.classList.add('active');
-        } else if (divergenceIndex >= 40 && segment.classList.contains('high')) {
-            segment.classList.add('active');
-        }
-    });
-    
-    // Update indicator position and value
-    const indicator = container.querySelector('.scale-indicator');
-    const indicatorValue = container.querySelector('.indicator-value');
-    if (indicator && indicatorValue) {
-        const position = Math.min(95, Math.max(5, (divergenceIndex / 80) * 100));
-        indicator.style.left = position + '%';
-        indicatorValue.textContent = divergenceIndex;
-    }
-}
+// Divergence scale function removed - now using static visual in narrative
 
 // Metrics overlay function removed - data now shown in main KPI cards above chart
 
@@ -20025,28 +20033,8 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                         <div class="metric-icon">📊</div>
                         <div class="metric-content">
                             <div class="metric-value">${impactMetrics.divergenceIndex}</div>
-                            <div class="metric-label">
-                                Divergence Index
-                                <span class="info-tooltip" title="Measures AI Overview impact: (CTR decline × 1.5) + (Impression growth × 0.5). Higher values indicate greater impact. Scale: 0-20 Low, 20-40 Moderate, 40+ High">ⓘ</span>
-                            </div>
+                            <div class="metric-label">Divergence Index</div>
                             <div class="metric-period">6-month impact</div>
-                        </div>
-                        <div class="divergence-scale">
-                            <div class="scale-bar">
-                                <div class="scale-segment low ${impactMetrics.divergenceIndex < 20 ? 'active' : ''}" data-range="0-20">
-                                    <span class="scale-label">Low</span>
-                                </div>
-                                <div class="scale-segment moderate ${impactMetrics.divergenceIndex >= 20 && impactMetrics.divergenceIndex < 40 ? 'active' : ''}" data-range="20-40">
-                                    <span class="scale-label">Moderate</span>
-                                </div>
-                                <div class="scale-segment high ${impactMetrics.divergenceIndex >= 40 ? 'active' : ''}" data-range="40+">
-                                    <span class="scale-label">High</span>
-                                </div>
-                            </div>
-                            <div class="scale-indicator" style="left: ${Math.min(95, Math.max(5, (impactMetrics.divergenceIndex / 80) * 100))}%;">
-                                <div class="indicator-dot"></div>
-                                <div class="indicator-value">${impactMetrics.divergenceIndex}</div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -20794,7 +20782,26 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                     </ul>
                 </div>
                 <p class="severity-message">${severityMessage}</p>
-                <p class="divergence-explainer"><em>The Divergence Index combines CTR change and impression change to measure overall AI Overview impact on your page.</em></p>
+                
+                <!-- Divergence Index Scale -->
+                <div class="divergence-info-section">
+                    <h6>Understanding the Divergence Index</h6>
+                    <p class="divergence-explainer">The Divergence Index combines CTR change and impression change to measure overall AI Overview impact: <strong>(CTR decline × 1.5) + (Impression growth × 0.5)</strong></p>
+                    
+                    <div class="divergence-scale-graphic">
+                        <div class="scale-visual">
+                            ${generateDivergenceScaleVisual(impactMetrics.divergenceIndex)}
+                        </div>
+                        <div class="scale-ranges">
+                            <div class="range-item minimal">0-10: Minimal Impact</div>
+                            <div class="range-item low">10-20: Low Impact</div>
+                            <div class="range-item moderate">20-30: Moderate Impact</div>
+                            <div class="range-item significant">30-40: Significant Impact</div>
+                            <div class="range-item high">40-60: High Impact</div>
+                            <div class="range-item critical">60+: Critical Impact</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             
@@ -20941,6 +20948,44 @@ function getStrategicRecommendation3(url, gscData) {
     }
     
     return '<strong>Prepare Irish language version</strong> - Position for ArdIntleacht launch 2026';
+}
+
+function generateDivergenceScaleVisual(currentIndex) {
+    const ranges = [
+        { min: 0, max: 10, label: 'Minimal', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.15)' },
+        { min: 10, max: 20, label: 'Low', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.15)' },
+        { min: 20, max: 30, label: 'Moderate', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.15)' },
+        { min: 30, max: 40, label: 'Significant', color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.15)' },
+        { min: 40, max: 60, label: 'High', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
+        { min: 60, max: 100, label: 'Critical', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.15)' }
+    ];
+    
+    let visual = '<div class="scale-bar-detailed">';
+    
+    ranges.forEach((range, index) => {
+        const isActive = currentIndex >= range.min && currentIndex < range.max;
+        const width = range.max === 100 ? '20%' : '16%'; // Critical range gets extra width
+        
+        visual += `
+            <div class="scale-segment-detailed ${isActive ? 'active' : ''}" 
+                 style="width: ${width}; background: ${range.bgColor}; border-color: ${range.color};">
+                <div class="segment-bar" style="background: ${range.color};"></div>
+                <span class="segment-label" style="color: ${range.color};">${range.min}-${range.max === 100 ? '∞' : range.max}</span>
+            </div>
+        `;
+    });
+    
+    // Add current position indicator
+    const position = Math.min(95, (currentIndex / 80) * 100);
+    visual += `
+        <div class="current-indicator" style="left: ${position}%;">
+            <div class="indicator-line"></div>
+            <div class="indicator-badge">${currentIndex}</div>
+        </div>
+    `;
+    
+    visual += '</div>';
+    return visual;
 }
 
 function generateNarrativeIntro(ctrDecline, impressionChange, impressionTrend) {
