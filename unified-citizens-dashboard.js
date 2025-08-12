@@ -20192,20 +20192,6 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                 <div class="divergence-chart-container">
                     <div class="chart-header">
                         <h4 class="chart-title">Search Performance Trends - Last 12 Months</h4>
-                        <div class="chart-legend">
-                            <div class="legend-item impressions">
-                                <div class="legend-color impressions-color"></div>
-                                <span>Impressions</span>
-                            </div>
-                            <div class="legend-item clicks">
-                                <div class="legend-color clicks-color"></div>
-                                <span>Clicks</span>
-                            </div>
-                            <div class="legend-item divergence">
-                                <div class="legend-color divergence-color"></div>
-                                <span>Divergence Gap</span>
-                            </div>
-                        </div>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="ai-divergence-chart-${dashboardId.replace('unified-dashboard-', '')}" class="divergence-chart"></canvas>
