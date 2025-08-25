@@ -6792,6 +6792,10 @@ window.loadQuickSite = async function(url) {
                             xmlDoc.getElementsByTagName('loc')[0].textContent;
             const urlObj = new URL(firstUrl);
             rootDomain = urlObj.hostname;
+            
+            // Store current sitemap domain globally for GA4 auto-detection
+            window.currentSitemapDomain = rootDomain;
+            console.log(`[Sitemap] Stored domain for auto-detection: ${rootDomain}`);
         } catch (e) {
             console.warn('Could not extract domain');
         }
