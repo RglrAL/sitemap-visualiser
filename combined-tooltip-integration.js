@@ -2111,15 +2111,15 @@ function showDashboardModal(htmlContent) {
                     const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
                     
                     let color, label;
-                    if (daysSince < 30) {
+                    if (daysSince < 90) {
                         color = '#10b981'; label = 'New';
-                    } else if (daysSince < 90) {
-                        color = '#10b981'; label = 'Fresh';
                     } else if (daysSince < 180) {
-                        color = '#f59e0b'; label = 'Recent';
+                        color = '#10b981'; label = 'Fresh';
                     } else if (daysSince < 365) {
-                        color = '#f97316'; label = 'Aging';
+                        color = '#f59e0b'; label = 'Recent';
                     } else if (daysSince < 730) {
+                        color = '#f97316'; label = 'Aging';
+                    } else if (daysSince < 1095) {
                         color = '#ef4444'; label = 'Old';
                     } else {
                         color = '#dc2626'; label = 'Stale';
