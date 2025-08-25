@@ -2047,7 +2047,7 @@ function getRelativeTime(lastModified) {
                             <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
                                 <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                             </svg>
-                            <span class="card-label">Page Views</span>
+                            <span class="card-label">Page views</span>
                         </div>
                         <div class="metric-value">${ga4Data && !ga4Data.noDataFound ? formatNumber(ga4Data.pageViews || 0) : 'No Data'}</div>
                         <div class="metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.pageViews) : ''}</div>
@@ -2058,7 +2058,7 @@ function getRelativeTime(lastModified) {
                             <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
                                 <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                             </svg>
-                            <span class="card-label">Avg Session</span>
+                            <span class="card-label">Avg session duration</span>
                         </div>
                         <div class="metric-value">${ga4Data && !ga4Data.noDataFound ? formatDuration(ga4Data.avgSessionDuration || 0) : 'No Data'}</div>
                         <div class="metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.avgSessionDuration) : ''}</div>
@@ -2067,7 +2067,10 @@ function getRelativeTime(lastModified) {
                     <div class="metrics-card gsc-card">
                         <div class="card-header">
                             <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#4285f4" d="M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z"/>
+                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                             </svg>
                             <span class="card-label">Impressions</span>
                         </div>
@@ -2078,7 +2081,10 @@ function getRelativeTime(lastModified) {
                     <div class="metrics-card gsc-card">
                         <div class="card-header">
                             <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#4285f4" d="M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z"/>
+                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                             </svg>
                             <span class="card-label">Clicks</span>
                         </div>
@@ -2089,7 +2095,10 @@ function getRelativeTime(lastModified) {
                     <div class="metrics-card gsc-card">
                         <div class="card-header">
                             <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#4285f4" d="M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z"/>
+                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                             </svg>
                             <span class="card-label">CTR</span>
                         </div>
@@ -14331,6 +14340,118 @@ function formatDuration(seconds) {
                 
                 /* Chart metrics overlay mobile styles removed */
             }
+            
+            /* AI Recommendations Section */
+            .ai-recommendations-section {
+                margin-top: 24px;
+                padding: 20px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .ai-recommendations-section h5 {
+                margin: 0 0 16px 0;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .recommendations-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 12px;
+            }
+            
+            .recommendation-card {
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 8px;
+                padding: 14px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                transition: all 0.2s ease;
+            }
+            
+            .recommendation-card:hover {
+                background: rgba(255, 255, 255, 0.12);
+                transform: translateY(-1px);
+            }
+            
+            .rec-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            
+            .rec-icon {
+                font-size: 1.2rem;
+            }
+            
+            .rec-priority {
+                font-size: 0.75rem;
+                font-weight: 700;
+                padding: 2px 8px;
+                border-radius: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .rec-priority.urgent {
+                background: rgba(220, 38, 38, 0.2);
+                color: #fca5a5;
+                border: 1px solid rgba(220, 38, 38, 0.3);
+            }
+            
+            .rec-priority.high {
+                background: rgba(245, 101, 101, 0.2);
+                color: #fbb4b4;
+                border: 1px solid rgba(245, 101, 101, 0.3);
+            }
+            
+            .rec-priority.medium {
+                background: rgba(251, 191, 36, 0.2);
+                color: #fde68a;
+                border: 1px solid rgba(251, 191, 36, 0.3);
+            }
+            
+            .rec-priority.low {
+                background: rgba(34, 197, 94, 0.2);
+                color: #bbf7d0;
+                border: 1px solid rgba(34, 197, 94, 0.3);
+            }
+            
+            .rec-title {
+                font-size: 0.95rem;
+                font-weight: 600;
+                margin: 0 0 6px 0;
+                color: #fff;
+                line-height: 1.3;
+            }
+            
+            .rec-description {
+                font-size: 0.85rem;
+                margin: 0;
+                color: rgba(255, 255, 255, 0.8);
+                line-height: 1.4;
+            }
+            
+            @media (max-width: 768px) {
+                .recommendations-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .ai-recommendations-section {
+                    padding: 16px;
+                    margin-top: 20px;
+                }
+                
+                .recommendation-card {
+                    padding: 12px;
+                }
+            }
  
             
         </style>
@@ -20154,8 +20275,12 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         lostClicksCard.textContent = lostClicks.toLocaleString();
     }
     
-    // Update divergence index card
-    const divergenceIndex = Math.round(Math.max(actualCtrDecline, 0) * 1.5 + Math.max(impressionGrowth, 0) * 0.5);
+    // Update divergence index card - Fixed calculation
+    // Only count when there's actual divergence (CTR decline with impression growth)
+    const hasDivergence = actualCtrDecline > 0 && impressionGrowth > 0;
+    const divergenceIndex = hasDivergence ? 
+        Math.round(actualCtrDecline * (impressionGrowth / 100) * 10) : 
+        Math.round(Math.max(actualCtrDecline, impressionGrowth) * 0.5);
     const divergenceCard = dashboardContainer.querySelector('.impact-metric-card.divergence-index .metric-value');
     if (divergenceCard) {
         divergenceCard.textContent = divergenceIndex;
@@ -20677,7 +20802,11 @@ function calculateImpactFromAggregatedData(gscData, url) {
     const potentialClicks = currentImpressions * (estimatedPreAICTR / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - currentClicks));
     
-    const divergenceIndex = Math.round(Math.max(estimatedCTRDecline, 0) * 1.5 + estimatedImpressionGrowth * 0.5);
+    // Fixed divergence calculation for estimated data
+    const hasDivergence = estimatedCTRDecline > 0 && estimatedImpressionGrowth > 0;
+    const divergenceIndex = hasDivergence ? 
+        Math.round(estimatedCTRDecline * (estimatedImpressionGrowth / 100) * 10) : 
+        Math.round(Math.max(estimatedCTRDecline, estimatedImpressionGrowth) * 0.5);
     
     let severity = 'moderate';
     let severityIcon = '⚠️';
@@ -20788,7 +20917,11 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     const actualClicks = recentImpressions * (recentCTR / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - actualClicks));
     
-    const divergenceIndex = Math.round(Math.max(ctrDecline, 0) * 1.5 + Math.max(impressionGrowth, 0) * 0.5);
+    // Fixed divergence calculation for trend analysis
+    const hasDivergence = ctrDecline > 0 && impressionGrowth > 0;
+    const divergenceIndex = hasDivergence ? 
+        Math.round(ctrDecline * (impressionGrowth / 100) * 10) : 
+        Math.round(Math.max(ctrDecline, impressionGrowth) * 0.5);
     
     let severity = 'moderate';
     let severityIcon = '⚠️';
@@ -21036,8 +21169,11 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
     const potentialClicks = postAIAvg.impressions * (preAIAvg.ctr / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - postAIAvg.clicks));
     
-    // Calculate divergence index
-    const divergenceIndex = Math.round(Math.max(ctrDecline, 0) * 1.5 + Math.max(impressionGrowth, 0) * 0.5);
+    // Calculate divergence index - Fixed for pre/post AI comparison
+    const hasDivergence = ctrDecline > 0 && impressionGrowth > 0;
+    const divergenceIndex = hasDivergence ? 
+        Math.round(ctrDecline * (impressionGrowth / 100) * 10) : 
+        Math.round(Math.max(ctrDecline, impressionGrowth) * 0.5);
     
     // Determine severity
     let severity = 'moderate';
@@ -21170,15 +21306,32 @@ function calculateImpactFromCurrentData(sortedData, url) {
     const actualClicks = avgImpressions * (recentAvg.ctr / 100);
     const estimatedLostClicks = Math.max(0, Math.round(potentialClicks - actualClicks));
     
+    // Apply fixed divergence calculation for fallback data
+    const hasDivergence = ctrChange > 0 && impressionChange > 0;
+    const divergenceIndex = hasDivergence ? 
+        Math.round(ctrChange * (impressionChange / 100) * 10) : 
+        Math.round(Math.max(ctrChange, impressionChange) * 0.5);
+    
+    // Simplified severity assessment
+    let severity = 'minor';
+    let severityIcon = '📊';
+    let severityText = 'Minor Impact';
+    
+    if (divergenceIndex > 50) {
+        severity = 'moderate';
+        severityIcon = '⚠️';
+        severityText = 'Moderate Impact';
+    }
+    
     return {
         ctrDecline: Math.max(ctrChange, 0),
         impressionGrowth: Math.max(impressionChange, 0),
         estimatedLostClicks: estimatedLostClicks > 0 ? estimatedLostClicks.toLocaleString() : '0',
-        divergenceIndex: Math.round(Math.max(ctrChange, 0) * 1.5 + Math.max(impressionChange, 0) * 0.5),
-        severity: 'minor',
-        severityIcon: '📊',
-        severityText: 'Minor Impact',
-        keyInsight: `Based on available time-series data, this page shows some patterns that may be related to AI Overview impact.`,
+        divergenceIndex,
+        severity,
+        severityIcon,
+        severityText,
+        keyInsight: `Based on available data, this page shows ${hasDivergence ? 'divergence patterns' : 'standard performance'} in search metrics.`,
         peakDivergenceMonth: 'Recent months',
         averagePositionChange: '0.0',
         topAffectedQueries: 'General queries',
@@ -21339,6 +21492,14 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
             </div>
             
             
+            <!-- Actionable Recommendations Section -->
+            <div class="ai-recommendations-section">
+                <h5>📋 Recommended Actions</h5>
+                <div class="recommendations-grid">
+                    ${generateAIRecommendations(impactMetrics, gscData, url)}
+                </div>
+            </div>
+            
             ${publicServiceWarning ? `
             <div class="public-service-warning">
                 <span class="warning-icon">⚠️</span>
@@ -21351,6 +21512,94 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
             </div>
         </div>
     `;
+}
+
+// Generate actionable AI recommendations based on impact level
+function generateAIRecommendations(impactMetrics, gscData, url) {
+    const divergenceIndex = impactMetrics.divergenceIndex || 0;
+    const severity = impactMetrics.severity || 'minor';
+    const ctrDecline = impactMetrics.ctrDecline || 0;
+    
+    const recommendations = [];
+    
+    // High priority recommendations based on severity
+    if (severity === 'extreme' || severity === 'critical') {
+        recommendations.push({
+            priority: 'urgent',
+            icon: '🚑',
+            title: 'Emergency Content Review',
+            description: 'Immediately review and enhance content depth to become the authoritative source'
+        });
+        recommendations.push({
+            priority: 'urgent',
+            icon: '🎯',
+            title: 'Target Alternative Keywords',
+            description: 'Research and optimize for long-tail, action-oriented queries less affected by AI'
+        });
+    }
+    
+    if (severity === 'high' || severity === 'critical' || severity === 'extreme') {
+        recommendations.push({
+            priority: 'high',
+            icon: '📈',
+            title: 'Add FAQ Schema Markup',
+            description: 'Implement structured data to increase visibility in AI-powered search features'
+        });
+        recommendations.push({
+            priority: 'high',
+            icon: '🌐',
+            title: 'Diversify Traffic Sources',
+            description: 'Reduce dependence on search by improving social media and direct traffic'
+        });
+    }
+    
+    // Moderate impact recommendations
+    if (severity === 'moderate' || severity === 'high') {
+        recommendations.push({
+            priority: 'medium',
+            icon: '📝',
+            title: 'Enhance Content Uniqueness',
+            description: 'Add expert insights and unique perspectives that AI cannot easily replicate'
+        });
+        recommendations.push({
+            priority: 'medium',
+            icon: '📱',
+            title: 'Optimize for Mobile',
+            description: 'Mobile users show better click-through rates despite AI Overviews'
+        });
+    }
+    
+    // General recommendations for all impact levels
+    if (ctrDecline > 5) {
+        recommendations.push({
+            priority: 'medium',
+            icon: '🔍',
+            title: 'Monitor Performance Weekly',
+            description: 'Track changes in AI Overview impact and adjust strategy accordingly'
+        });
+    }
+    
+    // Always include a growth opportunity
+    recommendations.push({
+        priority: 'low',
+        icon: '🚀',
+        title: 'Create Supporting Content',
+        description: 'Develop related content that captures adjacent search queries'
+    });
+    
+    // Limit to 4-6 most relevant recommendations
+    const filteredRecs = recommendations.slice(0, 5);
+    
+    return filteredRecs.map(rec => `
+        <div class="recommendation-card ${rec.priority}">
+            <div class="rec-header">
+                <span class="rec-icon">${rec.icon}</span>
+                <span class="rec-priority ${rec.priority}">${rec.priority.toUpperCase()}</span>
+            </div>
+            <h6 class="rec-title">${rec.title}</h6>
+            <p class="rec-description">${rec.description}</p>
+        </div>
+    `).join('');
 }
 
 // Helper functions for dynamic narrative generation
@@ -21561,18 +21810,14 @@ function generateNarrativeIntro(ctrDecline, impressionChange, impressionTrend) {
 
 function getAISectionSubtitle(impactMetrics) {
     const ctrDecline = impactMetrics.ctrDecline || 0;
-    const impressionGrowth = impactMetrics.impressionGrowth || 0;
     
-    if (ctrDecline <= 0 && impressionGrowth >= 0) {
-        return "Monitoring performance trends in the age of AI-powered search results";
-    } else if (ctrDecline < 10) {
-        return "Tracking minor shifts in click patterns as AI search features evolve";
-    } else if (ctrDecline >= 10 && ctrDecline < 30) {
-        return "Measuring the emerging impact of Google's AI-powered search results";
-    } else if (ctrDecline >= 30 && ctrDecline < 50) {
-        return "Tracking significant divergence between impressions and clicks due to AI search";
+    // Simplified subtitle logic
+    if (ctrDecline <= 5) {
+        return "Monitoring search performance in the AI era";
+    } else if (ctrDecline <= 20) {
+        return "Tracking AI Overview impact on click-through rates";
     } else {
-        return "Monitoring severe traffic loss to Google's AI-powered search features";
+        return "Analyzing significant AI Overview traffic displacement";
     }
 }
 
