@@ -5628,76 +5628,10 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
         let allNodes = [];
         let isMobile = window.innerWidth <= 768;
         let i = 0;
-
-        // CENTRALIZED FRESHNESS THRESHOLDS
-        const FRESHNESS_THRESHOLDS = {
-            NEW: 90,        // 1-3 months
-            FRESH: 180,     // 3-6 months  
-            RECENT: 365,    // 6-12 months
-            AGING: 730,     // 1-2 years
-            OLD: 1095,      // 2-3 years
-            // STALE: > 1095 days (3+ years)
-        };
-
-        const FRESHNESS_COLORS = {
-            NEW: '#2e7d32',      // Dark green
-            FRESH: '#43a047',    // Medium green
-            RECENT: '#fdd835',   // Bright yellow
-            AGING: '#fb8c00',    // Bright orange
-            OLD: '#e53935',      // Bright red
-            STALE: '#b71c1c',    // Dark red
-            NO_DATE: '#9e9e9e'   // Gray
-        };
-
-        const FRESHNESS_LABELS = {
-            NEW: 'New',
-            FRESH: 'Fresh', 
-            RECENT: 'Recent',
-            AGING: 'Aging',
-            OLD: 'Old',
-            STALE: 'Stale'
-        };
-
-        // Centralized freshness calculation function
-        function getFreshnessInfo(lastModified) {
-            if (!lastModified) {
-                return {
-                    label: 'No Date',
-                    color: FRESHNESS_COLORS.NO_DATE,
-                    class: 'no-date'
-                };
-            }
-            
-            const now = new Date();
-            const lastMod = new Date(lastModified);
-            const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
-            
-            // Debug logging for search results
-            if (window.location.search.includes('debug')) {
-                console.log('getFreshnessInfo:', { lastModified, daysSince, thresholds: FRESHNESS_THRESHOLDS });
-            }
-            
-            if (daysSince < FRESHNESS_THRESHOLDS.NEW) {
-                return { label: FRESHNESS_LABELS.NEW, color: FRESHNESS_COLORS.NEW, class: 'freshness-new' };
-            } else if (daysSince < FRESHNESS_THRESHOLDS.FRESH) {
-                return { label: FRESHNESS_LABELS.FRESH, color: FRESHNESS_COLORS.FRESH, class: 'freshness-fresh' };
-            } else if (daysSince < FRESHNESS_THRESHOLDS.RECENT) {
-                return { label: FRESHNESS_LABELS.RECENT, color: FRESHNESS_COLORS.RECENT, class: 'freshness-recent' };
-            } else if (daysSince < FRESHNESS_THRESHOLDS.AGING) {
-                return { label: FRESHNESS_LABELS.AGING, color: FRESHNESS_COLORS.AGING, class: 'freshness-aging' };
-            } else if (daysSince < FRESHNESS_THRESHOLDS.OLD) {
-                return { label: FRESHNESS_LABELS.OLD, color: FRESHNESS_COLORS.OLD, class: 'freshness-old' };
-            } else {
-                return { label: FRESHNESS_LABELS.STALE, color: FRESHNESS_COLORS.STALE, class: 'freshness-stale' };
-            }
-        }
         let maxSiteDepth = 0;
         let currentView = 'tree';
         let isDarkTheme = false;
         let siteStats = null;
-        
-        // Store the current sitemap domain for GA4 auto-selection
-        let currentSitemapDomain = null;
         let siteAnalysis = null;
         let globalZoom = null; // Store zoom behavior globally
         let searchTimeout = null;
@@ -6420,9 +6354,23 @@ function adjustScrollAfterToggle() {
         function getNodeColour(d) {
     // If freshness view is enabled
     if (freshnessViewEnabled) {
-        // Use centralized freshness calculation
-        const freshnessInfo = getFreshnessInfo(d.data?.lastModified);
-        return freshnessInfo.color;
+        // Check if node has lastModified date
+        if (d.data && d.data.lastModified) {
+            const now = new Date();
+            const lastMod = new Date(d.data.lastModified);
+            const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+            
+            // Updated color scale with new thresholds
+            if (daysSince < 90) return '#2e7d32';        // New (1-3 months) - Dark green
+            if (daysSince < 180) return '#43a047';       // Fresh (3-6 months) - Medium green  
+            if (daysSince < 365) return '#fdd835';       // Recent (6-12 months) - Bright yellow
+            if (daysSince < 730) return '#fb8c00';       // Aging (1-2 years) - Bright orange
+            if (daysSince < 1095) return '#e53935';      // Old (2-3 years) - Bright red
+            return '#b71c1c';                            // Stale (3+ years) - Dark red
+        } else {
+            // No date information - show in gray
+            return '#9e9e9e';
+        }
     }
     
     // Default depth-based coloring
@@ -6528,7 +6476,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Dashboard is now handled through the reports dropdown
+    // Dashboard button
+    const dashboardViewBtn = document.getElementById('dashboardViewBtn');
+    if (dashboardViewBtn) {
+        // Remove any existing handlers first
+        dashboardViewBtn.replaceWith(dashboardViewBtn.cloneNode(true));
+        
+        // Get the fresh button reference
+        const freshDashboardBtn = document.getElementById('dashboardViewBtn');
+        freshDashboardBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Dashboard button clicked');
+            switchView('dashboard');
+        });
+    }
 });
     
     // 3D View button
@@ -6831,12 +6792,8 @@ window.loadQuickSite = async function(url) {
                             xmlDoc.getElementsByTagName('loc')[0].textContent;
             const urlObj = new URL(firstUrl);
             rootDomain = urlObj.hostname;
-            // Store the domain globally for GA4 auto-selection
-            currentSitemapDomain = rootDomain;
-            console.log('Sitemap domain detected:', currentSitemapDomain);
         } catch (e) {
             console.warn('Could not extract domain');
-            currentSitemapDomain = null;
         }
 
         const tree = { 
@@ -7007,7 +6964,7 @@ window.loadQuickSite = async function(url) {
             autoCollapseUploadSection();
             
             // Enable all nav buttons
-            const buttons = ['treeViewBtn', 'reportsDropdown'];
+            const buttons = ['treeViewBtn', 'dashboardViewBtn', 'reportsDropdown'];
             buttons.forEach(id => {
                 const btn = document.getElementById(id);
                 if (btn) {
@@ -8959,10 +8916,24 @@ function showEnhancedTooltip(event, d) {
         const lastMod = new Date(data.lastModified);
         const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
         
-        // Use centralized freshness calculation
-        const freshnessInfo = getFreshnessInfo(data.lastModified);
-        freshnessClass = freshnessInfo.class;
-        freshnessLabel = freshnessInfo.label;
+        if (daysSince < 30) {
+            freshnessClass = 'freshness-new';
+            freshnessLabel = 'New';
+        } else if (daysSince < 90) {
+            freshnessClass = 'freshness-fresh';
+            freshnessLabel = 'Fresh';
+        } else if (daysSince < 180) {
+            freshnessClass = 'freshness-recent';
+            freshnessLabel = 'Recent';
+        } else if (daysSince < 365) {
+            freshnessClass = 'freshness-aging';
+            freshnessLabel = 'Aging';
+        } else if (daysSince < 730) {
+            freshnessClass = 'freshness-old';
+            freshnessLabel = 'Old';
+        } else {
+            freshnessClass = 'freshness-stale';
+            freshnessLabel = 'Stale';
         }
     }
     
@@ -10000,13 +9971,13 @@ function showFreshnessLegend() {
     `;
     
     const freshnessCategories = [
-    { days: FRESHNESS_THRESHOLDS.NEW, color: FRESHNESS_COLORS.NEW, label: 'New (1-3 months)', id: 'new' },
-    { days: FRESHNESS_THRESHOLDS.FRESH, color: FRESHNESS_COLORS.FRESH, label: 'Fresh (3-6 months)', id: 'fresh' },
-    { days: FRESHNESS_THRESHOLDS.RECENT, color: FRESHNESS_COLORS.RECENT, label: 'Recent (6-12 months)', id: 'recent' },
-    { days: FRESHNESS_THRESHOLDS.AGING, color: FRESHNESS_COLORS.AGING, label: 'Aging (1-2 years)', id: 'aging' },
-    { days: FRESHNESS_THRESHOLDS.OLD, color: FRESHNESS_COLORS.OLD, label: 'Old (2-3 years)', id: 'old' },
-    { days: Infinity, color: FRESHNESS_COLORS.STALE, label: 'Stale (> 3 years)', id: 'stale' },
-    { days: -1, color: FRESHNESS_COLORS.NO_DATE, label: 'No date info', id: 'nodate' }
+    { days: 90, color: '#2e7d32', label: 'New (1-3 months)', id: 'new' },
+    { days: 180, color: '#43a047', label: 'Fresh (3-6 months)', id: 'fresh' },
+    { days: 365, color: '#fdd835', label: 'Recent (6-12 months)', id: 'recent' },
+    { days: 730, color: '#fb8c00', label: 'Aging (1-2 years)', id: 'aging' },
+    { days: 1095, color: '#e53935', label: 'Old (2-3 years)', id: 'old' },
+    { days: Infinity, color: '#b71c1c', label: 'Stale (> 3 years)', id: 'stale' },
+    { days: -1, color: '#9e9e9e', label: 'No date info', id: 'nodate' }
 ];
     
     let html = `<div style="font-weight: bold; margin-bottom: ${isMobileView ? '8px' : '10px'}; color: #333;">Content Freshness</div>`;
@@ -10075,42 +10046,42 @@ document.querySelectorAll('.freshness-legend-item').forEach(item => {
             filterFunction = (d) => {
                 if (!d.data || !d.data.lastModified) return false;
                 const daysSince = Math.floor((now - new Date(d.data.lastModified)) / (1000 * 60 * 60 * 24));
-                return daysSince < FRESHNESS_THRESHOLDS.NEW;
+                return daysSince < 30;
             };
             break;
         case 'fresh':
             filterFunction = (d) => {
                 if (!d.data || !d.data.lastModified) return false;
                 const daysSince = Math.floor((now - new Date(d.data.lastModified)) / (1000 * 60 * 60 * 24));
-                return daysSince >= FRESHNESS_THRESHOLDS.NEW && daysSince < FRESHNESS_THRESHOLDS.FRESH;
+                return daysSince >= 30 && daysSince < 90;
             };
             break;
         case 'recent':
             filterFunction = (d) => {
                 if (!d.data || !d.data.lastModified) return false;
                 const daysSince = Math.floor((now - new Date(d.data.lastModified)) / (1000 * 60 * 60 * 24));
-                return daysSince >= FRESHNESS_THRESHOLDS.FRESH && daysSince < FRESHNESS_THRESHOLDS.RECENT;
+                return daysSince >= 90 && daysSince < 180;
             };
             break;
         case 'aging':
             filterFunction = (d) => {
                 if (!d.data || !d.data.lastModified) return false;
                 const daysSince = Math.floor((now - new Date(d.data.lastModified)) / (1000 * 60 * 60 * 24));
-                return daysSince >= FRESHNESS_THRESHOLDS.RECENT && daysSince < FRESHNESS_THRESHOLDS.AGING;
+                return daysSince >= 180 && daysSince < 365;
             };
             break;
         case 'old':
             filterFunction = (d) => {
                 if (!d.data || !d.data.lastModified) return false;
                 const daysSince = Math.floor((now - new Date(d.data.lastModified)) / (1000 * 60 * 60 * 24));
-                return daysSince >= FRESHNESS_THRESHOLDS.AGING && daysSince < FRESHNESS_THRESHOLDS.OLD;
+                return daysSince >= 365 && daysSince < 730;
             };
             break;
         case 'stale':
             filterFunction = (d) => {
                 if (!d.data || !d.data.lastModified) return false;
                 const daysSince = Math.floor((now - new Date(d.data.lastModified)) / (1000 * 60 * 60 * 24));
-                return daysSince >= FRESHNESS_THRESHOLDS.OLD;
+                return daysSince >= 730;
             };
             break;
         case 'nodate':
@@ -10488,15 +10459,29 @@ results.slice(0, 10).forEach((node, index) => {
         const icon = isLeaf ? '📄' : '📁';
         
         // Calculate freshness
-        // Calculate freshness using centralized function
+        // Calculate freshness (matching the rest of the app)
 let freshnessIndicator = '';
 if (node.data.lastModified) {
-    const freshnessInfo = getFreshnessInfo(node.data.lastModified);
-    const color = freshnessInfo.color;
-    
     const lastMod = new Date(node.data.lastModified);
     const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+    
+    let color;
     let timeText = '';
+    
+    // Match the exact thresholds from getNodeColour
+    if (daysSince < 30) {
+        color = '#2e7d32'; // Dark green - New
+    } else if (daysSince < 90) {
+        color = '#43a047'; // Medium green - Fresh
+    } else if (daysSince < 180) {
+        color = '#fdd835'; // Bright yellow - Recent
+    } else if (daysSince < 365) {
+        color = '#fb8c00'; // Bright orange - Aging
+    } else if (daysSince < 730) {
+        color = '#e53935'; // Bright red - Old
+    } else {
+        color = '#b71c1c'; // Dark red - Stale
+    }
     
     // Format the time text
     if (daysSince === 0) {
@@ -10954,10 +10939,6 @@ window.switchView = function(viewType) {
     // Update navigation buttons
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     
-    // Reset dashboard nav item styling
-    const dashNavItem = document.getElementById('dashboardNavItem');
-    if (dashNavItem) dashNavItem.style.background = '';
-    
     // Get common container references
     const treeContainer = document.getElementById('treeContainer');
     const stats = document.getElementById('stats');
@@ -11019,9 +11000,9 @@ window.switchView = function(viewType) {
     } else if (viewType === 'dashboard') {
         console.log('Setting up dashboard view');
         
-        // Activate dashboard nav item in reports dropdown
-        const dashNavItem = document.getElementById('dashboardNavItem');
-        if (dashNavItem) dashNavItem.style.background = 'var(--gray-100)';
+        // Activate dashboard button
+        const dashBtn = document.getElementById('dashboardViewBtn');
+        if (dashBtn) dashBtn.classList.add('active');
         
         // Hide other elements
         if (stats) stats.style.display = 'none';
@@ -12463,12 +12444,12 @@ window.criticalCurrentPage = 1;
     `;
     
     const ageCategories = [
-    { label: 'New (1-3 months)', count: freshness.new, color: FRESHNESS_COLORS.NEW, desc: 'Recently updated' },
-    { label: 'Fresh (3-6 months)', count: freshness.fresh, color: FRESHNESS_COLORS.FRESH, desc: 'Still current' },
-    { label: 'Recent (6-12 months)', count: freshness.recent, color: FRESHNESS_COLORS.RECENT, desc: 'May need review' },
-    { label: 'Aging (1-2 years)', count: freshness.aging, color: FRESHNESS_COLORS.AGING, desc: 'Should be reviewed' },
-    { label: 'Old (2-3 years)', count: freshness.old, color: FRESHNESS_COLORS.OLD, desc: 'Needs attention' },
-    { label: 'Stale (> 3 years)', count: freshness.stale, color: FRESHNESS_COLORS.STALE, desc: 'Urgent review needed' }
+    { label: 'New (1-3 months)', count: freshness.new, color: '#2e7d32', desc: 'Recently updated' },
+    { label: 'Fresh (3-6 months)', count: freshness.fresh, color: '#43a047', desc: 'Still current' },
+    { label: 'Recent (6-12 months)', count: freshness.recent, color: '#fdd835', desc: 'May need review' },
+    { label: 'Aging (1-2 years)', count: freshness.aging, color: '#fb8c00', desc: 'Should be reviewed' },
+    { label: 'Old (2-3 years)', count: freshness.old, color: '#e53935', desc: 'Needs attention' },
+    { label: 'Stale (> 3 years)', count: freshness.stale, color: '#b71c1c', desc: 'Urgent review needed' }
 ];
         
     ageCategories.forEach((cat, index) => {
@@ -12739,15 +12720,28 @@ window.criticalCurrentPage = 1;
 
     // Store all pages data for filtering
     window.allPagesData = pagesWithUrls.map(page => {
-        // Use centralized freshness calculation
-        const freshnessInfo = getFreshnessInfo(page.date);
-        let freshnessLevel = freshnessInfo.label.toLowerCase();
-        let freshnessColor = freshnessInfo.color;
+        const daysSinceUpdate = Math.floor((now - page.date) / (1000 * 60 * 60 * 24));
+        let freshnessLevel = '';
+        let freshnessColor = '';
         
-        // Handle case where no freshness info is available  
-        if (freshnessInfo.label === 'No Date') {
+       if (page.date >= threeMonthsAgo) {
+    freshnessLevel = 'new';
+    freshnessColor = '#2e7d32';
+} else if (page.date >= sixMonthsAgo) {
+    freshnessLevel = 'fresh';
+    freshnessColor = '#43a047';
+} else if (page.date >= oneYearAgo) {
+    freshnessLevel = 'recent';
+    freshnessColor = '#fdd835';
+} else if (page.date >= twoYearsAgo) {
+    freshnessLevel = 'aging';
+    freshnessColor = '#fb8c00';
+} else if (page.date >= threeYearsAgo) {
+    freshnessLevel = 'old';
+    freshnessColor = '#e53935';
+} else {
     freshnessLevel = 'stale';
-    freshnessColor = FRESHNESS_COLORS.STALE;
+    freshnessColor = '#b71c1c';
 }
         
         return {
@@ -13151,7 +13145,7 @@ html += `
         
         // Calculate overall freshness color based on weighted score
         const freshnessScore = (cat.new * 1.0 + cat.fresh * 0.8 + cat.recent * 0.6 + cat.aging * 0.4 + cat.old * 0.2) / cat.total;
-        const overallFreshnessColor = freshnessScore >= 0.7 ? FRESHNESS_COLORS.NEW : freshnessScore >= 0.4 ? FRESHNESS_COLORS.AGING : FRESHNESS_COLORS.STALE;
+        const overallFreshnessColor = freshnessScore >= 0.7 ? '#2e7d32' : freshnessScore >= 0.4 ? '#fb8c00' : '#b71c1c';
         
         html += `
             <div style="padding: 12px 15px; background: ${bgColor}; border-bottom: 1px solid #f0f0f0;">
@@ -13164,27 +13158,27 @@ html += `
                         <span style="font-size: 0.8rem; color: #666; margin-left: 5px;">▼</span>
                     </div>
                     <div style="text-align: center; font-weight: bold; font-size: 0.9rem;">${cat.total}</div>
-                    <div style="text-align: center; color: ${FRESHNESS_COLORS.NEW}; font-size: 0.85rem;">
+                    <div style="text-align: center; color: #2e7d32; font-size: 0.85rem;">
     ${cat.new}
     <div style="font-size: 0.7rem; color: #888;">${newPercentage}%</div>
 </div>
-<div style="text-align: center; color: ${FRESHNESS_COLORS.FRESH}; font-size: 0.85rem;">
+<div style="text-align: center; color: #43a047; font-size: 0.85rem;">
     ${cat.fresh}
     <div style="font-size: 0.7rem; color: #888;">${freshPercentage}%</div>
 </div>
-<div style="text-align: center; color: ${FRESHNESS_COLORS.RECENT}; font-size: 0.85rem;">
+<div style="text-align: center; color: #fdd835; font-size: 0.85rem;">
     ${cat.recent}
     <div style="font-size: 0.7rem; color: #888;">${recentPercentage}%</div>
 </div>
-<div style="text-align: center; color: ${FRESHNESS_COLORS.AGING}; font-size: 0.85rem;">
+<div style="text-align: center; color: #fb8c00; font-size: 0.85rem;">
     ${cat.aging}
     <div style="font-size: 0.7rem; color: #888;">${agingPercentage}%</div>
 </div>
-<div style="text-align: center; color: ${FRESHNESS_COLORS.OLD}; font-size: 0.85rem;">
+<div style="text-align: center; color: #e53935; font-size: 0.85rem;">
     ${cat.old}
     <div style="font-size: 0.7rem; color: #888;">${oldPercentage}%</div>
 </div>
-<div style="text-align: center; color: ${FRESHNESS_COLORS.STALE}; font-size: 0.85rem;">
+<div style="text-align: center; color: #b71c1c; font-size: 0.85rem;">
     ${cat.stale}
     <div style="font-size: 0.7rem; color: #888;">${stalePercentage}%</div>
 </div>
@@ -13193,12 +13187,12 @@ html += `
                 
                 <!-- Freshness bar visualization -->
                 <div style="margin-top: 8px; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; display: flex;">
-                    ${cat.new > 0 ? `<div style="width: ${newPercentage}%; background: ${FRESHNESS_COLORS.NEW}; height: 100%;"></div>` : ''}
-${cat.fresh > 0 ? `<div style="width: ${freshPercentage}%; background: ${FRESHNESS_COLORS.FRESH}; height: 100%;"></div>` : ''}
-${cat.recent > 0 ? `<div style="width: ${recentPercentage}%; background: ${FRESHNESS_COLORS.RECENT}; height: 100%;"></div>` : ''}
-${cat.aging > 0 ? `<div style="width: ${agingPercentage}%; background: ${FRESHNESS_COLORS.AGING}; height: 100%;"></div>` : ''}
-${cat.old > 0 ? `<div style="width: ${oldPercentage}%; background: ${FRESHNESS_COLORS.OLD}; height: 100%;"></div>` : ''}
-${cat.stale > 0 ? `<div style="width: ${stalePercentage}%; background: ${FRESHNESS_COLORS.STALE}; height: 100%;"></div>` : ''}
+                    ${cat.new > 0 ? `<div style="width: ${newPercentage}%; background: #2e7d32; height: 100%;"></div>` : ''}
+${cat.fresh > 0 ? `<div style="width: ${freshPercentage}%; background: #43a047; height: 100%;"></div>` : ''}
+${cat.recent > 0 ? `<div style="width: ${recentPercentage}%; background: #fdd835; height: 100%;"></div>` : ''}
+${cat.aging > 0 ? `<div style="width: ${agingPercentage}%; background: #fb8c00; height: 100%;"></div>` : ''}
+${cat.old > 0 ? `<div style="width: ${oldPercentage}%; background: #e53935; height: 100%;"></div>` : ''}
+${cat.stale > 0 ? `<div style="width: ${stalePercentage}%; background: #b71c1c; height: 100%;"></div>` : ''}
                 </div>
                 
                 <!-- Expandable details section for this category -->
@@ -13561,9 +13555,12 @@ window.exportFreshnessAnalysis = function() {
         const daysSinceUpdate = Math.floor((now - page.date) / (1000 * 60 * 60 * 24));
         let freshnessStatus = '';
         
-        // Use centralized freshness calculation
-        const freshnessInfo = getFreshnessInfo(page.date);
-        freshnessStatus = freshnessInfo.label;
+        if (daysSinceUpdate < 30) freshnessStatus = 'New';
+        else if (daysSinceUpdate < 90) freshnessStatus = 'Fresh';
+        else if (daysSinceUpdate < 180) freshnessStatus = 'Recent';
+        else if (daysSinceUpdate < 365) freshnessStatus = 'Aging';
+        else if (daysSinceUpdate < 730) freshnessStatus = 'Old';
+        else freshnessStatus = 'Stale';
         
         // Escape quotes in strings for CSV
         const escapedName = `"${page.name.replace(/"/g, '""')}"`;
@@ -15439,7 +15436,7 @@ document.addEventListener('DOMContentLoaded', function() {
         navBar.style.display = 'flex';
         
         // Initially disable view/report buttons until sitemap loads
-        const buttons = ['treeViewBtn', 'reportsDropdown'];
+        const buttons = ['treeViewBtn', 'dashboardViewBtn', 'reportsDropdown'];
         buttons.forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
@@ -17746,7 +17743,18 @@ function backTo2D() {
     switchView('tree');
 }
 
-// Duplicate function removed - using centralized getFreshnessInfo instead
+function getFreshnessInfo(lastModified) {
+    const now = new Date();
+    const lastMod = new Date(lastModified);
+    const daysSince = Math.floor((now - lastMod) / (1000 * 60 * 60 * 24));
+    
+    if (daysSince < 30) return { label: 'New', color: '#2e7d32' };
+    if (daysSince < 90) return { label: 'Fresh', color: '#43a047' };
+    if (daysSince < 180) return { label: 'Recent', color: '#fdd835' };
+    if (daysSince < 365) return { label: 'Aging', color: '#fb8c00' };
+    if (daysSince < 730) return { label: 'Old', color: '#e53935' };
+    return { label: 'Stale', color: '#b71c1c' };
+}
 
 function getFreshnessColor(lastModified) {
     return getFreshnessInfo(lastModified).color;
