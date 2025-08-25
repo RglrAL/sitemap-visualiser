@@ -2041,24 +2041,60 @@ function getRelativeTime(lastModified) {
                     </div>
                 </div>
                 
-                <div class="impact-summary">
-                    <div class="impact-card">
-                        <div class="impact-number">${citizenImpact.monthlyReach}</div>
-                        <div class="impact-label">Citizens Reached (${formatPeriodLabel(window.currentDateRange?.period || '30d')})</div>
-                        <div class="impact-trend">${citizenImpact.reachTrend}</div>
-                        <div class="impact-explanation">Search clicks + unique visitors</div>
+                <div class="metrics-summary">
+                    <div class="metrics-card ga4-card">
+                        <div class="card-header">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
+                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                            <span class="card-label">Page Views</span>
+                        </div>
+                        <div class="metric-value">${ga4Data && !ga4Data.noDataFound ? formatNumber(ga4Data.pageViews || 0) : 'No Data'}</div>
+                        <div class="metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.pageViews) : ''}</div>
                     </div>
-                    <div class="impact-card">
-                        <div class="impact-number">${citizenImpact.helpfulnessScore}%</div>
-                        <div class="impact-label">Content Helpfulness</div>
-                        <div class="impact-trend">${citizenImpact.helpfulnessTrend}</div>
-                        <div class="impact-explanation">Based on engagement & time spent</div>
+                    
+                    <div class="metrics-card ga4-card">
+                        <div class="card-header">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
+                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                            <span class="card-label">Avg Session</span>
+                        </div>
+                        <div class="metric-value">${ga4Data && !ga4Data.noDataFound ? formatDuration(ga4Data.avgSessionDuration || 0) : 'No Data'}</div>
+                        <div class="metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.avgSessionDuration) : ''}</div>
                     </div>
-                    <div class="impact-card">
-                        <div class="impact-number">${citizenImpact.avgTimeToInfo}</div>
-                        <div class="impact-label">Avg. Time on Page</div>
-                        <div class="impact-trend">${citizenImpact.timeTrend}</div>
-                        <div class="impact-explanation">How long citizens spend reading</div>
+                    
+                    <div class="metrics-card gsc-card">
+                        <div class="card-header">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
+                                <path fill="#4285f4" d="M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z"/>
+                            </svg>
+                            <span class="card-label">Impressions</span>
+                        </div>
+                        <div class="metric-value">${gscData && !gscData.noDataFound ? formatNumber(gscData.impressions || 0) : 'No Data'}</div>
+                        <div class="metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.impressions) : ''}</div>
+                    </div>
+                    
+                    <div class="metrics-card gsc-card">
+                        <div class="card-header">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
+                                <path fill="#4285f4" d="M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z"/>
+                            </svg>
+                            <span class="card-label">Clicks</span>
+                        </div>
+                        <div class="metric-value">${gscData && !gscData.noDataFound ? formatNumber(gscData.clicks || 0) : 'No Data'}</div>
+                        <div class="metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.clicks) : ''}</div>
+                    </div>
+                    
+                    <div class="metrics-card gsc-card">
+                        <div class="card-header">
+                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
+                                <path fill="#4285f4" d="M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z"/>
+                            </svg>
+                            <span class="card-label">CTR</span>
+                        </div>
+                        <div class="metric-value">${gscData && !gscData.noDataFound ? ((gscData.ctr || 0) * 100).toFixed(1) + '%' : 'No Data'}</div>
+                        <div class="metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.ctr) : ''}</div>
                     </div>
                 </div>
             </div>
@@ -10187,6 +10223,69 @@ function formatDuration(seconds) {
                 }
                 
                 /* Impact Summary */
+                .metrics-summary {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 12px;
+                    min-width: 300px;
+                    max-width: 320px;
+                }
+                
+                .metrics-card {
+                    background: rgba(255,255,255,0.95);
+                    padding: 12px 16px;
+                    border-radius: 12px;
+                    backdrop-filter: blur(15px);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    transition: all 0.2s ease;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                }
+                
+                .metrics-card:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+                }
+                
+                .metrics-card .card-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 8px;
+                }
+                
+                .metrics-card .card-logo {
+                    flex-shrink: 0;
+                }
+                
+                .metrics-card .card-label {
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                
+                .metrics-card .metric-value {
+                    font-size: 1.4rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 4px;
+                }
+                
+                .metrics-card .metric-trend {
+                    font-size: 0.7rem;
+                    display: flex;
+                    justify-content: flex-end;
+                }
+                
+                .ga4-card {
+                    border-left: 3px solid #ff6b35;
+                }
+                
+                .gsc-card {
+                    border-left: 3px solid #4285f4;
+                }
+                
                 .impact-summary {
                     display: grid;
                     gap: 16px;
@@ -11890,6 +11989,32 @@ function formatDuration(seconds) {
                     .header-refresh-btn {
                         padding: 8px 14px !important;
                         font-size: 0.8rem !important;
+                    }
+                    
+                    .metrics-summary {
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        gap: 8px !important;
+                        min-width: auto !important;
+                        max-width: none !important;
+                        margin-bottom: 16px !important;
+                    }
+                    
+                    .metrics-card {
+                        padding: 8px 12px !important;
+                        border-radius: 8px !important;
+                    }
+                    
+                    .metrics-card .metric-value {
+                        font-size: 1.1rem !important;
+                        margin-bottom: 2px !important;
+                    }
+                    
+                    .metrics-card .card-label {
+                        font-size: 0.65rem !important;
+                    }
+                    
+                    .metrics-card .metric-trend {
+                        font-size: 0.6rem !important;
                     }
                     
                     .impact-summary {
