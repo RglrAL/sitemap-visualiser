@@ -1967,29 +1967,29 @@ function addMobileGSCButton() {
         
         let freshnessClass, freshnessLabel, freshnessColor;
         
-        // Match desktop thresholds exactly
-        if (daysSince < 30) {
-            freshnessClass = 'new';        // Green - New
+        // Updated freshness thresholds
+        if (daysSince < 90) {
+            freshnessClass = 'new';        // Green - New (1-3 months)
             freshnessLabel = 'New';
             freshnessColor = '#4caf50';
-        } else if (daysSince < 90) {
-            freshnessClass = 'fresh';      // Green - Fresh (1-3 months)
+        } else if (daysSince < 180) {
+            freshnessClass = 'fresh';      // Green - Fresh (3-6 months)
             freshnessLabel = 'Fresh';
             freshnessColor = '#4caf50';
-        } else if (daysSince < 180) {
-            freshnessClass = 'recent';     // Yellow - Recent (3-6 months)
+        } else if (daysSince < 365) {
+            freshnessClass = 'recent';     // Yellow - Recent (6-12 months)
             freshnessLabel = 'Recent';
             freshnessColor = '#ffc107';
-        } else if (daysSince < 365) {
-            freshnessClass = 'aging';      // Orange - Aging (6-12 months)
+        } else if (daysSince < 730) {
+            freshnessClass = 'aging';      // Orange - Aging (1-2 years)
             freshnessLabel = 'Aging';
             freshnessColor = '#ff9800';
-        } else if (daysSince < 730) {
-            freshnessClass = 'old';        // Red - Old (1-2 years)
+        } else if (daysSince < 1095) {
+            freshnessClass = 'old';        // Red - Old (2-3 years)
             freshnessLabel = 'Old';
             freshnessColor = '#f44336';
         } else {
-            freshnessClass = 'stale';     // Dark Red - Stale (2+ years)
+            freshnessClass = 'stale';     // Dark Red - Stale (3+ years)
             freshnessLabel = 'Stale';
             freshnessColor = '#d32f2f';
         }
