@@ -74,6 +74,32 @@
         }
     }
 
+    function getGA4PropertyName(propertyId) {
+        // Configuration object for GA4 properties with domain mapping
+        const GA4_PROPERTIES = [
+            {
+                name: "CIO",
+                description: "Citizens Information website",
+                propertyId: "341170035",
+                domains: ["citizensinformation.ie", "www.citizensinformation.ie"]
+            },
+            {
+                name: "CIB",
+                description: "Citizens Information Board website", 
+                propertyId: "384792858",
+                domains: ["citizensinformationboard.ie", "www.citizensinformationboard.ie"]
+            }
+        ];
+        
+        const property = GA4_PROPERTIES.find(prop => prop.propertyId === propertyId);
+        if (property) {
+            return `${property.name} - ${property.description}`;
+        }
+        
+        // If not found in predefined properties, return the ID with a generic label
+        return `Property ${propertyId}`;
+    }
+
     function handleGA4AuthResponse(response) {
         console.log('[GA4] Auth response received:', response);
         hideGA4LoadingState();
@@ -109,21 +135,24 @@
             console.log('[GA4] Setup connection called');
             console.log('[GA4] Current sitemap domain for auto-selection:', window.currentSitemapDomain);
             
-            const manualPropertyId = await showManualPropertyIdDialog();
+            const selectedPropertyId = await showManualPropertyIdDialog();
             
-            if (manualPropertyId) {
+            if (selectedPropertyId) {
                 showGA4LoadingMessage('Testing property connection...');
                 
-                const isValid = await testGA4Property(manualPropertyId);
+                const isValid = await testGA4Property(selectedPropertyId);
                 
                 hideGA4LoadingMessage();
                 
                 if (isValid) {
-                    ga4PropertyId = manualPropertyId;
+                    ga4PropertyId = selectedPropertyId;
                     ga4Connected = true;
                     updateGA4ConnectionStatus(true);
-                    showGA4SuccessMessage(`Property ${manualPropertyId}`);
-                    ga4Log('GA4 connected with manual property ID:', manualPropertyId);
+                    
+                    // Get the property name for the success message
+                    const propertyName = getGA4PropertyName(selectedPropertyId);
+                    showGA4SuccessMessage(propertyName);
+                    console.log('[GA4] Connected successfully to:', propertyName);
                 } else {
                     alert('Could not access this property. Please check:\n• Property ID is correct\n• You have access to this GA4 property');
                     updateGA4ConnectionStatus(false);
@@ -2138,7 +2167,12 @@ console.log('✅ Enhanced GA4 functions added!');
             console.log('Is known domain:', isKnown);
             
             if (isKnown) {
+                // Simulate what would happen with auto-connection
+                const mockProperty = window.currentSitemapDomain.includes('citizensinformation.ie') ? 
+                    'CIO - Citizens Information website' : 
+                    'CIB - Citizens Information Board website';
                 console.log('✅ Would auto-connect immediately (no modal shown)');
+                console.log('🎉 Success toast would show:', mockProperty);
                 return;
             }
         }
