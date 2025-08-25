@@ -152,8 +152,17 @@
         const content = document.createElement('div');
         content.style.cssText = `
             background: white; padding: 30px; border-radius: 15px;
-            max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            width: 90%; max-width: 700px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            max-height: 80vh; overflow-y: auto;
         `;
+        
+        // Mobile responsive adjustments
+        if (window.innerWidth <= 768) {
+            content.style.cssText += `
+                padding: 20px; margin: 10px; width: calc(100% - 20px);
+                max-width: none; border-radius: 12px;
+            `;
+        }
         
         // Configuration object for GA4 properties with domain mapping
         const GA4_PROPERTIES = [
@@ -209,40 +218,17 @@
         const currentDomain = window.currentSitemapDomain;
         const matchedProperty = findMatchingGA4Property(currentDomain);
         
-        // If we have a match and user preference for auto-connect, skip the modal
-        if (matchedProperty && window.localStorage.getItem('ga4AutoConnect') === 'true') {
-            ga4Log(`Auto-connecting to ${matchedProperty.name} for ${currentDomain}`);
+        // Auto-connect immediately for known domains (no user interaction needed)
+        if (matchedProperty) {
+            ga4Log(`Auto-connecting to ${matchedProperty.name} for ${currentDomain} (known domain)`);
             modal.remove();
             resolve(matchedProperty.propertyId);
             return;
         }
         
+        // For unknown domains, show helpful info
         let autoSelectMessage = '';
-        let quickConnectButton = '';
-        
-        if (matchedProperty) {
-            autoSelectMessage = `
-                <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 10px; color: #155724;">
-                            <span style="font-size: 20px;">🎯</span>
-                            <div>
-                                <div style="font-weight: 600; margin-bottom: 4px;">Smart Match Found!</div>
-                                <div style="font-size: 14px;">Based on your loaded sitemap (${currentDomain}), we've identified <strong>${matchedProperty.name}</strong>.</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button id="autoConnectBtn" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;">
-                                Auto-Connect & Remember
-                            </button>
-                            <button id="quickConnectBtn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;">
-                                Connect Once
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else if (currentDomain) {
+        if (currentDomain) {
             autoSelectMessage = `
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px; color: #856404;">
@@ -265,7 +251,7 @@
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">
                     Choose Property:
                 </label>
-                <select id="propertySelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; background: white;">
+                <select id="propertySelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: white; min-height: 48px;">
                     <option value="">-- Select a Property --</option>
                     ${GA4_PROPERTIES.map(prop => {
                         const isSelected = matchedProperty && prop.propertyId === matchedProperty.propertyId;
@@ -296,11 +282,11 @@
                 </div>
             </div>
             
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="cancelBtn" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+            <div style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+                <button id="cancelBtn" style="padding: 14px 24px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; min-width: 120px;">
                     Cancel
                 </button>
-                <button id="connectBtn" style="padding: 12px 20px; background: #ff6b35; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                <button id="connectBtn" style="padding: 14px 24px; background: #ff6b35; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; min-width: 160px;">
                     Connect Property
                 </button>
             </div>
@@ -372,27 +358,7 @@
             resolve(propertyId);
         };
         
-        // Smart match button handlers
-        if (matchedProperty) {
-            const autoConnectBtn = content.querySelector('#autoConnectBtn');
-            const quickConnectBtn = content.querySelector('#quickConnectBtn');
-            
-            if (autoConnectBtn) {
-                autoConnectBtn.onclick = () => {
-                    window.localStorage.setItem('ga4AutoConnect', 'true');
-                    ga4Log(`Auto-connect preference saved for future connections`);
-                    modal.remove();
-                    resolve(matchedProperty.propertyId);
-                };
-            }
-            
-            if (quickConnectBtn) {
-                quickConnectBtn.onclick = () => {
-                    modal.remove();
-                    resolve(matchedProperty.propertyId);
-                };
-            }
-        }
+        // No smart match buttons needed - auto-connect happens automatically for known domains
         
         modal.onclick = () => {
             modal.remove();
@@ -2161,12 +2127,26 @@ console.log('✅ Enhanced GA4 functions added!');
     window.testGA4AutoSelection = function() {
         console.log('🧪 Testing GA4 auto-selection logic...');
         console.log('Current sitemap domain:', window.currentSitemapDomain);
-        console.log('Auto-connect preference:', window.localStorage.getItem('ga4AutoConnect'));
         
-        // Simulate authenticated state
+        // Test with known domain
+        if (window.currentSitemapDomain) {
+            const domains = ['citizensinformation.ie', 'citizensinformationboard.ie'];
+            const isKnown = domains.some(domain => 
+                window.currentSitemapDomain.includes(domain) || 
+                domain.includes(window.currentSitemapDomain)
+            );
+            console.log('Is known domain:', isKnown);
+            
+            if (isKnown) {
+                console.log('✅ Would auto-connect immediately (no modal shown)');
+                return;
+            }
+        }
+        
+        // Simulate authenticated state for unknown domains
         ga4AccessToken = 'test-token';
         
-        // Call property selection dialog directly
+        // Call property selection dialog directly for unknown domains
         showManualPropertyIdDialog().then(propertyId => {
             console.log('Selected property:', propertyId);
         });
