@@ -1874,21 +1874,24 @@ function getLastModifiedInfo(data) {
     const daysSince = Math.floor((new Date() - lastMod) / (1000 * 60 * 60 * 24));
     
     let freshnessClass, freshnessLabel;
-    if (daysSince < 30) {
+    if (daysSince < 90) {
         freshnessClass = 'fresh'; 
-        freshnessLabel = 'Fresh';
-    } else if (daysSince < 90) {
-        freshnessClass = 'fresh'; 
-        freshnessLabel = 'Fresh';
+        freshnessLabel = 'New';
     } else if (daysSince < 180) {
-        freshnessClass = 'aging'; 
-        freshnessLabel = 'Recent';
+        freshnessClass = 'fresh'; 
+        freshnessLabel = 'Fresh';
     } else if (daysSince < 365) {
         freshnessClass = 'aging'; 
+        freshnessLabel = 'Recent';
+    } else if (daysSince < 730) {
+        freshnessClass = 'aging'; 
         freshnessLabel = 'Aging';
-    } else {
+    } else if (daysSince < 1095) {
         freshnessClass = 'stale'; 
         freshnessLabel = 'Old';
+    } else {
+        freshnessClass = 'stale'; 
+        freshnessLabel = 'Stale';
     }
     
     return { formatted, freshnessClass, freshnessLabel };
