@@ -65,18 +65,18 @@
                 -webkit-overflow-scrolling: touch;
             `;
         } else {
-            // Desktop styling (unchanged)
+            // Desktop styling (more compact)
             tooltip.style.cssText = `
                 position: absolute;
                 background: white;
-                border-radius: 20px;
+                border-radius: 16px;
                 padding: 0;
                 box-shadow: 
-                    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                    0 20px 40px -12px rgba(0, 0, 0, 0.25),
                     0 0 0 1px rgba(0, 0, 0, 0.05);
                 z-index: 10000;
-                max-width: 520px;
-                width: 520px;
+                max-width: 480px;
+                width: 480px;
                 opacity: 0;
                 transform: translateY(12px) scale(0.94);
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -104,7 +104,7 @@
         return `
             <!-- Enhanced Header with Gradient -->
             <div style="
-                padding: 20px 24px 20px 24px; 
+                padding: 16px 20px; 
                 background: linear-gradient(135deg, #5a8200 0%, #72A300 100%);
                 color: white;
                 position: relative;
@@ -281,7 +281,7 @@ onmouseout="
 
             <!-- Tab Navigation -->
             <div style="
-                padding: 0 24px;
+                padding: 0 20px;
                 background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
                 border-bottom: 1px solid rgba(0,0,0,0.05);
                 position: relative;
@@ -388,7 +388,7 @@ onmouseout="
 
             <!-- Time Period Info -->
             <div style="
-                padding: 12px 24px;
+                padding: 10px 20px;
                 background: #f1f5f9;
                 border-bottom: 1px solid #e2e8f0;
                 font-size: 0.8rem;
@@ -405,9 +405,9 @@ onmouseout="
 
             <!-- Tab Content -->
             <div class="tab-content" style="
-                padding: 24px;
-                min-height: 280px;
-                max-height: 320px;
+                padding: 16px;
+                min-height: 220px;
+                max-height: 280px;
                 overflow-y: auto;
             ">
                 <!-- Search Console Tab -->
@@ -466,7 +466,7 @@ onmouseout="
             
             <!-- Action Buttons -->
             <div style="
-                padding: 16px 24px;
+                padding: 12px 20px;
                 background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
                 border-top: 1px solid #e2e8f0;
                 display: flex;
@@ -878,7 +878,7 @@ onmouseout="
             const previousData = await window.GA4Integration.fetchPreviousPeriodData(nodeData.url);
             
             metricsContainer.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                     ${createTrendCard('Users', currentData.users || 0, previousData?.users || 0, '#f59e0b', '👥')}
                     ${createTrendCard('Page Views', currentData.pageViews || 0, previousData?.pageViews || 0, '#ef4444', '📄')}
                     ${createTrendCard('Sessions', currentData.sessions || 0, previousData?.sessions || 0, '#8b5cf6', '🔄')}
@@ -931,40 +931,37 @@ onmouseout="
         return `
             <div style="
                 background: linear-gradient(135deg, ${color}15 0%, ${color}08 100%); 
-                border-radius: 12px; 
-                padding: 16px; 
+                border-radius: 10px; 
+                padding: 10px; 
                 text-align: center;
                 border: 1px solid ${color}20;
                 position: relative;
                 overflow: hidden;
             ">
-                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px; font-weight: 500;">
+                <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 2px; font-weight: 500;">
                     ${icon} ${label}
                 </div>
                 
-                <div style="font-size: 1.2rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+                <div style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
                     ${formatDisplayValue(current)}
                 </div>
                 
-                <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
                     <div style="
-                        font-size: 0.7rem; 
+                        font-size: 0.65rem; 
                         color: ${changeColor}; 
-                        font-weight: 700;
-                        padding: 3px 8px;
+                        font-weight: 600;
+                        padding: 2px 6px;
                         background: ${changeBg};
-                        border-radius: 20px;
+                        border-radius: 16px;
                         display: flex;
                         align-items: center;
                         gap: 2px;
                     ">
-                        <span>${changeDirection}</span>
+                        <span style="font-size: 0.6rem;">${changeDirection}</span>
                         <span>${Math.abs(percentChange).toFixed(0)}%</span>
                     </div>
-                </div>
-                
-                <div style="font-size: 0.65rem; color: #64748b; margin-top: 4px;">
-                    was ${formatDisplayValue(previous)}
+                    <span style="font-size: 0.6rem; color: #94a3b8;">vs ${formatDisplayValue(previous)}</span>
                 </div>
             </div>
         `;
