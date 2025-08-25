@@ -75,20 +75,29 @@
     }
 
     function handleGA4AuthResponse(response) {
-        ga4Log('GA4 auth response received', response);
+        console.log('[GA4] Auth response received:', response);
         hideGA4LoadingState();
         
         if (response.error) {
             console.error('[GA4] Authentication error:', response);
+            alert(`GA4 Authentication failed: ${response.error}\nDetails: ${response.error_description || 'Check console for more details'}`);
+            updateGA4ConnectionStatus(false);
+            return;
+        }
+        
+        if (!response.access_token) {
+            console.error('[GA4] No access token received');
+            alert('GA4 Authentication failed: No access token received');
             updateGA4ConnectionStatus(false);
             return;
         }
         
         ga4AccessToken = response.access_token;
-        ga4Log('GA4 access token received');
+        console.log('[GA4] Access token received successfully');
         
         if (typeof gapi !== 'undefined' && gapi.client) {
             gapi.client.setToken({ access_token: ga4AccessToken });
+            console.log('[GA4] Token set in gapi client');
         }
         
         setupGA4Connection();
@@ -97,6 +106,8 @@
     async function setupGA4Connection() {
         try {
             hideGA4LoadingMessage();
+            console.log('[GA4] Setup connection called');
+            console.log('[GA4] Current sitemap domain for auto-selection:', window.currentSitemapDomain);
             
             const manualPropertyId = await showManualPropertyIdDialog();
             
@@ -144,34 +155,111 @@
             max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         `;
         
-        // Configuration object for GA4 properties
+        // Configuration object for GA4 properties with domain mapping
         const GA4_PROPERTIES = [
             {
                 name: "CIO",
                 description: "Citizens Information website",
-                propertyId: "341170035"
+                propertyId: "341170035",
+                domains: ["citizensinformation.ie", "www.citizensinformation.ie"]
             },
             {
                 name: "CIB",
-                description: "Citizens Information Board website",
-                propertyId: "384792858"
+                description: "Citizens Information Board website", 
+                propertyId: "384792858",
+                domains: ["citizensinformationboard.ie", "www.citizensinformationboard.ie"]
             },
             {
                 name: "MABS",
                 description: "Money Advice and Budgeting Service",
-                propertyId: "255956752"
+                propertyId: "255956752",
+                domains: ["mabs.ie", "www.mabs.ie"]
             },
             {
                 name: "RISLI",
                 description: "Register of Sign Language Interpreters",
-                propertyId: "254639858"
+                propertyId: "254639858", 
+                domains: ["risli.ie", "www.risli.ie"]
             }
         ];
+        
+        // Function to find matching GA4 property based on domain
+        function findMatchingGA4Property(domain) {
+            if (!domain) return null;
+            
+            // Normalize domain (remove www. prefix for comparison)
+            const normalizedDomain = domain.replace(/^www\./, '').toLowerCase();
+            
+            // Find property that matches this domain
+            for (const property of GA4_PROPERTIES) {
+                for (const propertyDomain of property.domains) {
+                    const normalizedPropertyDomain = propertyDomain.replace(/^www\./, '').toLowerCase();
+                    if (normalizedDomain === normalizedPropertyDomain) {
+                        console.log(`[GA4] Found matching property: ${property.name} for domain: ${domain}`);
+                        return property;
+                    }
+                }
+            }
+            
+            console.log(`[GA4] No matching property found for domain: ${domain}`);
+            return null;
+        }
+        
+        // Check for auto-selection based on loaded sitemap domain
+        const currentDomain = window.currentSitemapDomain;
+        const matchedProperty = findMatchingGA4Property(currentDomain);
+        
+        // If we have a match and user preference for auto-connect, skip the modal
+        if (matchedProperty && window.localStorage.getItem('ga4AutoConnect') === 'true') {
+            ga4Log(`Auto-connecting to ${matchedProperty.name} for ${currentDomain}`);
+            modal.remove();
+            resolve(matchedProperty.propertyId);
+            return;
+        }
+        
+        let autoSelectMessage = '';
+        let quickConnectButton = '';
+        
+        if (matchedProperty) {
+            autoSelectMessage = `
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px; color: #155724;">
+                            <span style="font-size: 20px;">🎯</span>
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Smart Match Found!</div>
+                                <div style="font-size: 14px;">Based on your loaded sitemap (${currentDomain}), we've identified <strong>${matchedProperty.name}</strong>.</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="autoConnectBtn" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;">
+                                Auto-Connect & Remember
+                            </button>
+                            <button id="quickConnectBtn" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;">
+                                Connect Once
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (currentDomain) {
+            autoSelectMessage = `
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #856404;">
+                        <span style="font-size: 20px;">ℹ️</span>
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: 4px;">Sitemap Loaded: ${currentDomain}</div>
+                            <div style="font-size: 14px;">No pre-configured property found for this domain. Please select manually or use custom property ID.</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         
         content.innerHTML = `
             <h3 style="margin-bottom: 20px; color: #ff6b35;">Select Your GA4 Property</h3>
             
-            
+            ${autoSelectMessage}
             
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">
@@ -179,9 +267,10 @@
                 </label>
                 <select id="propertySelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; background: white;">
                     <option value="">-- Select a Property --</option>
-                    ${GA4_PROPERTIES.map(prop => 
-                        `<option value="${prop.propertyId}">${prop.name} - ${prop.description}</option>`
-                    ).join('')}
+                    ${GA4_PROPERTIES.map(prop => {
+                        const isSelected = matchedProperty && prop.propertyId === matchedProperty.propertyId;
+                        return `<option value="${prop.propertyId}" ${isSelected ? 'selected' : ''}>${prop.name} - ${prop.description}</option>`;
+                    }).join('')}
                     <option value="custom">🔧 Enter Custom Property ID</option>
                 </select>
             </div>
@@ -225,6 +314,7 @@
         const customInput = content.querySelector('#propertyIdInput');
         const cancelBtn = content.querySelector('#cancelBtn');
         const connectBtn = content.querySelector('#connectBtn');
+        const quickConnectBtn = content.querySelector('#quickConnectBtn');
         
         // Show/hide custom input based on selection
         propertySelect.addEventListener('change', (e) => {
@@ -281,6 +371,28 @@
             modal.remove();
             resolve(propertyId);
         };
+        
+        // Smart match button handlers
+        if (matchedProperty) {
+            const autoConnectBtn = content.querySelector('#autoConnectBtn');
+            const quickConnectBtn = content.querySelector('#quickConnectBtn');
+            
+            if (autoConnectBtn) {
+                autoConnectBtn.onclick = () => {
+                    window.localStorage.setItem('ga4AutoConnect', 'true');
+                    ga4Log(`Auto-connect preference saved for future connections`);
+                    modal.remove();
+                    resolve(matchedProperty.propertyId);
+                };
+            }
+            
+            if (quickConnectBtn) {
+                quickConnectBtn.onclick = () => {
+                    modal.remove();
+                    resolve(matchedProperty.propertyId);
+                };
+            }
+        }
         
         modal.onclick = () => {
             modal.remove();
@@ -802,6 +914,12 @@ function addGA4Button() {
         ga4Button.id = 'ga4ConnectBtn';
         ga4Button.onclick = toggleGA4Connection;
         
+        // Add right-click context menu for settings
+        ga4Button.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showGA4Settings();
+        });
+        
         // Updated button HTML with status light
         ga4Button.innerHTML = `
             <svg id="ga4Icon" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
@@ -903,15 +1021,36 @@ function addMobileGA4Button() {
                 return;
             }
             
-            ga4Log('Requesting GA4 access token...');
+            console.log('[GA4] Requesting access token...');
+            console.log('[GA4] Current sitemap domain:', window.currentSitemapDomain);
             showGA4LoadingState();
             
             try {
-                ga4TokenClient.requestAccessToken({ prompt: '' });
+                // Try with prompt first, then fallback to consent if blocked
+                ga4TokenClient.requestAccessToken({ 
+                    prompt: '',
+                    error_callback: (error) => {
+                        console.error('[GA4] Token request error:', error);
+                        if (error.type === 'popup_blocked' || error.message?.includes('popup')) {
+                            console.log('[GA4] Popup blocked, trying with consent prompt...');
+                            try {
+                                ga4TokenClient.requestAccessToken({ prompt: 'consent' });
+                            } catch (e) {
+                                console.error('[GA4] Consent prompt also failed:', e);
+                                hideGA4LoadingState();
+                                alert('Authentication popup was blocked. Please disable popup blocker for this site and try again.');
+                            }
+                        } else {
+                            hideGA4LoadingState();
+                            alert(`GA4 Authentication failed: ${error.message || 'Unknown error'}`);
+                        }
+                    }
+                });
+                console.log('[GA4] Token request sent');
             } catch (error) {
                 console.error('[GA4] Error requesting access token:', error);
                 hideGA4LoadingState();
-                alert('Failed to open GA4 authentication window. Please check your popup blocker.');
+                alert('Failed to open GA4 authentication window. Please check your popup blocker and try again.');
             }
         }
     }
@@ -1930,6 +2069,108 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
     }
 };
 
+    function showGA4Settings() {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 10001; display: flex;
+            align-items: center; justify-content: center; padding: 20px;
+        `;
+        
+        const isAutoConnectEnabled = window.localStorage.getItem('ga4AutoConnect') === 'true';
+        const currentDomain = window.currentSitemapDomain;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: white; border-radius: 12px; padding: 20px; max-width: 400px; width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        `;
+        
+        content.innerHTML = `
+            <h3 style="margin: 0 0 20px 0; color: #ff6b35; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="#ff6b35" d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11L19.5,12L19.43,13L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z"/>
+                </svg>
+                GA4 Settings
+            </h3>
+            
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Auto-Connect</div>
+                        <div style="font-size: 14px; color: #666;">Skip property selection when match found</div>
+                        ${currentDomain ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">Current domain: ${currentDomain}</div>` : ''}
+                    </div>
+                    <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                        <input type="checkbox" id="autoConnectToggle" ${isAutoConnectEnabled ? 'checked' : ''} 
+                               style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+                                   background-color: ${isAutoConnectEnabled ? '#007bff' : '#ccc'}; 
+                                   transition: .4s; border-radius: 24px;"></span>
+                        <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isAutoConnectEnabled ? '29px' : '3px'}; 
+                                   bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="resetBtn" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Reset All Settings
+                </button>
+                <button id="closeBtn" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    Close
+                </button>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // Handle toggle
+        const toggle = content.querySelector('#autoConnectToggle');
+        const toggleSlider = toggle.nextElementSibling;
+        const toggleKnob = toggleSlider.nextElementSibling;
+        
+        toggle.onchange = () => {
+            const checked = toggle.checked;
+            toggleSlider.style.backgroundColor = checked ? '#007bff' : '#ccc';
+            toggleKnob.style.left = checked ? '29px' : '3px';
+            window.localStorage.setItem('ga4AutoConnect', checked.toString());
+            ga4Log(`Auto-connect ${checked ? 'enabled' : 'disabled'}`);
+        };
+        
+        // Handle reset
+        content.querySelector('#resetBtn').onclick = () => {
+            window.localStorage.removeItem('ga4AutoConnect');
+            ga4Log('All GA4 settings reset');
+            modal.remove();
+        };
+        
+        // Handle close
+        content.querySelector('#closeBtn').onclick = () => modal.remove();
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
+        
+        content.onclick = e => e.stopPropagation();
+    }
+
 console.log('✅ Enhanced GA4 functions added!');
 
+    // Test function for auto-selection logic (bypasses auth)
+    window.testGA4AutoSelection = function() {
+        console.log('🧪 Testing GA4 auto-selection logic...');
+        console.log('Current sitemap domain:', window.currentSitemapDomain);
+        console.log('Auto-connect preference:', window.localStorage.getItem('ga4AutoConnect'));
+        
+        // Simulate authenticated state
+        ga4AccessToken = 'test-token';
+        
+        // Call property selection dialog directly
+        showManualPropertyIdDialog().then(propertyId => {
+            console.log('Selected property:', propertyId);
+        });
+    };
+
 console.log('✅ GA4 Period Comparison Functions Fixed!');
+console.log('🧪 Test function added: window.testGA4AutoSelection()');
