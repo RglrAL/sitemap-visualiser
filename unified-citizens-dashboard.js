@@ -3586,6 +3586,19 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         .clean-card-content {
             padding: 0 32px 32px 32px;
+            color: #1f2937;
+        }
+        
+        .clean-card-content p,
+        .clean-card-content span,
+        .clean-card-content div:not(.region-fill):not(.coverage-fill) {
+            color: #374151 !important;
+        }
+        
+        .clean-card-content h4,
+        .clean-card-content h5,
+        .clean-card-content h6 {
+            color: #1f2937 !important;
         }
         
         /* Regional Stats */
@@ -3607,13 +3620,13 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             display: block;
             font-size: 1.8rem;
             font-weight: 800;
-            color: #1f2937;
+            color: #1f2937 !important;
             margin-bottom: 8px;
         }
         
         .stat-label {
             font-size: 0.8rem;
-            color: #6b7280;
+            color: #6b7280 !important;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -3647,13 +3660,13 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         .region-name {
             font-weight: 600;
-            color: #374151;
+            color: #374151 !important;
             font-size: 1rem;
         }
         
         .region-percentage {
             font-weight: 700;
-            color: #059669;
+            color: #059669 !important;
             font-size: 1.1rem;
         }
         
