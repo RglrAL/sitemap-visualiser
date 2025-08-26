@@ -4511,23 +4511,31 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                         ${ga4Data && !ga4Data.noDataFound ? `
                             <div class="metric-row">
                                 <span class="metric-label">Users:</span>
-                                <span class="metric-value">${formatNumber(ga4Data.users || 0)}</span>
-                                ${getTrendIndicator(ga4Trends?.trends?.users)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${formatNumber(ga4Data.users || 0)}</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.users)}
+                                </div>
                             </div>
                             <div class="metric-row">
                                 <span class="metric-label">Page Views:</span>
-                                <span class="metric-value">${formatNumber(ga4Data.pageViews || 0)}</span>
-                                ${getTrendIndicator(ga4Trends?.trends?.pageViews)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${formatNumber(ga4Data.pageViews || 0)}</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.pageViews)}
+                                </div>
                             </div>
                             <div class="metric-row">
                                 <span class="metric-label">Avg. Session:</span>
-                                <span class="metric-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
-                                ${getTrendIndicator(ga4Trends?.trends?.avgSessionDuration)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${formatDuration(ga4Data.avgSessionDuration || 0)}</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.avgSessionDuration)}
+                                </div>
                             </div>
                             <div class="metric-row">
                                 <span class="metric-label">Bounce Rate:</span>
-                                <span class="metric-value">${((ga4Data.bounceRate || 0) * 100).toFixed(1)}%</span>
-                                ${getTrendIndicator(ga4Trends?.trends?.bounceRate, true)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${((ga4Data.bounceRate || 0) * 100).toFixed(1)}%</span>
+                                    ${getTrendIndicator(ga4Trends?.trends?.bounceRate, true)}
+                                </div>
                             </div>
                         ` : `
                             <div class="no-data-message">
@@ -4561,23 +4569,31 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                         ${gscData && !gscData.noDataFound ? `
                             <div class="metric-row">
                                 <span class="metric-label">Clicks:</span>
-                                <span class="metric-value">${formatNumber(gscData.clicks)}</span>
-                                ${getTrendIndicator(gscTrends?.trends?.clicks)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${formatNumber(gscData.clicks)}</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.clicks)}
+                                </div>
                             </div>
                             <div class="metric-row">
                                 <span class="metric-label">Impressions:</span>
-                                <span class="metric-value">${formatNumber(gscData.impressions)}</span>
-                                ${getTrendIndicator(gscTrends?.trends?.impressions)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${formatNumber(gscData.impressions)}</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.impressions)}
+                                </div>
                             </div>
                             <div class="metric-row">
                                 <span class="metric-label">CTR:</span>
-                                <span class="metric-value">${(gscData.ctr * 100).toFixed(1)}%</span>
-                                ${getTrendIndicator(gscTrends?.trends?.ctr)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">${(gscData.ctr * 100).toFixed(1)}%</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.ctr)}
+                                </div>
                             </div>
                             <div class="metric-row">
                                 <span class="metric-label">Position:</span>
-                                <span class="metric-value">#${gscData.position.toFixed(1)}</span>
-                                ${getTrendIndicator(gscTrends?.trends?.position, true)}
+                                <div class="metric-value-container">
+                                    <span class="metric-value">#${gscData.position.toFixed(1)}</span>
+                                    ${getTrendIndicator(gscTrends?.trends?.position, true)}
+                                </div>
                             </div>
                         ` : `
                             <div class="no-data-message">
@@ -4942,7 +4958,7 @@ window.createSafeCitizenNeedSurgeDetection = createSafeCitizenNeedSurgeDetection
     // REPLACE the axis labels and benchmark sections in your enhanced matrix with this fixed version:
 
 // Performance Matrix function removed - was providing duplicate/generic information
-// function createPerformanceMatrix(gscData, ga4Data) {
+function createPerformanceMatrix(gscData, ga4Data) {
     const searchScore = calculateSearchScore(gscData);
     const engagementScore = calculateEngagementScore(ga4Data);
     
@@ -10427,6 +10443,7 @@ function formatDuration(seconds) {
                     padding: 8px 0;
                     border-bottom: 1px solid rgba(0,0,0,0.05);
                     font-size: 0.9rem;
+                    min-height: 32px;
                 }
                 
                 .metric-row:last-child {
@@ -10438,9 +10455,16 @@ function formatDuration(seconds) {
                     font-weight: 500;
                 }
                 
+                .metric-value-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
                 .metric-value {
                     font-weight: 700;
                     color: #000000;
+                    line-height: 1;
                 }
                 
                 .trend-indicator {
