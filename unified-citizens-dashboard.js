@@ -4598,11 +4598,6 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                 </div>
             </div>
             
-            <div class="section" style="margin-top: 0;">
-                <h2 class="section-title">🧭 Performance Matrix</h2>
-                ${createPerformanceMatrix(gscData, ga4Data)}
-            </div>
-            
             <!-- AI Overview Impact Analysis Section -->
             ${createAIOverviewImpactSection(gscData, url, dashboardId)}
             
@@ -4946,7 +4941,8 @@ window.createSafeCitizenNeedSurgeDetection = createSafeCitizenNeedSurgeDetection
 
     // REPLACE the axis labels and benchmark sections in your enhanced matrix with this fixed version:
 
-function createPerformanceMatrix(gscData, ga4Data) {
+// Performance Matrix function removed - was providing duplicate/generic information
+// function createPerformanceMatrix(gscData, ga4Data) {
     const searchScore = calculateSearchScore(gscData);
     const engagementScore = calculateEngagementScore(ga4Data);
     
@@ -19933,8 +19929,8 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         display: true,
                         position: 'bottom',
                         labels: {
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            font: { size: 11 },
+                            color: '#ffffff',
+                            font: { size: 11, weight: '500' },
                             usePointStyle: true,
                             pointStyle: 'circle',
                             filter: function(item, chart) {
