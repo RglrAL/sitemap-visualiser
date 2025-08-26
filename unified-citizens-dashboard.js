@@ -3363,6 +3363,359 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
     const trendAnalysis = calculateGeographicTrendsEnhanced(geoData, trafficData);
     
     return `
+        <style>
+        /* =====================================
+           MODERN GEOGRAPHIC INTELLIGENCE STYLES
+           ===================================== */
+        
+        /* Main Container */
+        .enhanced-geographic-intelligence {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 32px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .enhanced-geographic-intelligence::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        /* Header Styling */
+        .geo-header {
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .geo-header .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .geo-explanation {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 20px 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        }
+        
+        .geo-explanation p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1rem;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+        
+        /* KPI Cards Grid */
+        .geo-executive-summary {
+            margin-bottom: 48px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .geo-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        
+        .geo-kpi-card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 28px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .geo-kpi-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .geo-kpi-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .geo-kpi-card:hover::before {
+            opacity: 1;
+        }
+        
+        .kpi-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.9;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        
+        .kpi-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .kpi-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .kpi-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        
+        .kpi-detail {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 12px;
+        }
+        
+        .coverage-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+        
+        .coverage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #06d6a0);
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Regional Grid */
+        .geo-regional-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 32px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .geo-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 32px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Clean Cards */
+        .geo-clean-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .geo-clean-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+        }
+        
+        .clean-card-header {
+            padding: 32px 32px 0 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .clean-card-header h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: #e0f2fe;
+            color: #0277bd;
+        }
+        
+        .clean-card-content {
+            padding: 0 32px 32px 32px;
+        }
+        
+        /* Regional Stats */
+        .regional-stats, .international-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 20px;
+            padding: 24px;
+            background: #f8fafc;
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Regional Breakdown */
+        .regional-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .region-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .region-item:last-child {
+            border-bottom: none;
+        }
+        
+        .region-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .region-name {
+            font-weight: 600;
+            color: #374151;
+            font-size: 1rem;
+        }
+        
+        .region-percentage {
+            font-weight: 700;
+            color: #059669;
+            font-size: 1.1rem;
+        }
+        
+        .region-bar {
+            width: 100px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .region-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .geo-kpi-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .enhanced-geographic-intelligence {
+                padding: 24px;
+                border-radius: 16px;
+            }
+            
+            .geo-header .section-title {
+                font-size: 1.75rem;
+            }
+            
+            .geo-kpi-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .geo-regional-grid, .geo-analysis-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .clean-card-header {
+                padding: 24px 24px 0 24px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .clean-card-content {
+                padding: 0 24px 24px 24px;
+            }
+            
+            .regional-stats, .international-stats {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+        </style>
         <div class="section enhanced-geographic-intelligence">
             <div class="geo-header">
                 <h2 class="section-title">🌍 Geographic Service Intelligence</h2>
@@ -3409,16 +3762,6 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                             <div class="kpi-trend ${geoInsights.internationalTrend.class}">${geoInsights.internationalTrend.indicator}</div>
                         </div>
                         <div class="kpi-spark">${createSparkline(geoInsights.internationalTrendData)}</div>
-                    </div>
-                    
-                    <div class="geo-kpi-card opportunity">
-                        <div class="kpi-icon">🎯</div>
-                        <div class="kpi-content">
-                            <div class="kpi-number">${geoInsights.opportunityScore}</div>
-                            <div class="kpi-label">Optimization Score</div>
-                            <div class="kpi-detail">${geoInsights.primaryOpportunity}</div>
-                            <div class="kpi-grade grade-${getGradeClass(geoInsights.opportunityScore)}">${getGrade(geoInsights.opportunityScore)}</div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -6811,18 +7154,6 @@ function createPerformanceMatrix(gscData, ga4Data) {
         border: 1px solid #000;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* ==================================================
    CLEAN & SLEEK GEOGRAPHIC INTELLIGENCE STYLES
@@ -14602,7 +14933,9 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                     </div>
                     
                     <div class="tab-panel" data-panel="geographic">
-                        ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url)}
+                        <div class="panel-content">
+                            ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url) || '<div style="padding: 20px;"><h3>Geographic Intelligence</h3><p>Loading geographic data...</p></div>'}
+                        </div>
                     </div>
                 </div>
             </div>
