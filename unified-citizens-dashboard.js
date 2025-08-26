@@ -4656,8 +4656,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
 }
 
     // UPDATED: Content Analysis Panel with Expanded Citizens Quality Score
-// Content Analysis panel removed - was providing arbitrary scores
-// function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
+function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     const contentGaps = identifyContentGaps(gscData, ga4Data);
     
     return `
@@ -4726,8 +4725,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
         `;
     }
 
-    // Government Benchmarks panel removed - was providing arbitrary comparisons
-    // function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
     try {
         const benchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
         const priorityScore = calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends);
@@ -13509,7 +13507,7 @@ function formatDuration(seconds) {
             
             .chart-canvas-wrapper {
                 position: relative;
-                height: 450px;
+                height: 350px;
                 background: rgba(255, 255, 255, 0.02);
                 border-radius: 12px;
                 padding: 16px;
@@ -14147,7 +14145,7 @@ function formatDuration(seconds) {
                 }
                 
                 .chart-canvas-wrapper {
-                    height: 320px;
+                    height: 280px;
                     margin-bottom: 16px;
                 }
                 
@@ -14604,9 +14602,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                     </div>
                     
                     <div class="tab-panel" data-panel="geographic">
-                        <div class="panel-content">
-                            ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url)}
-                        </div>
+                        ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url)}
                     </div>
                 </div>
             </div>
@@ -19948,9 +19944,6 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 
                                 // Customize labels
                                 return labels.map(label => {
-                                    // Ensure all labels have white text
-                                    label.fontColor = '#ffffff';
-                                    
                                     if (label.text === 'Divergence Index') {
                                         label.pointStyle = 'line';
                                         label.strokeStyle = '#ffffff';
