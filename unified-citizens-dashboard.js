@@ -4656,7 +4656,8 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
 }
 
     // UPDATED: Content Analysis Panel with Expanded Citizens Quality Score
-function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
+// Content Analysis panel removed - was providing arbitrary scores
+// function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     const contentGaps = identifyContentGaps(gscData, ga4Data);
     
     return `
@@ -4725,7 +4726,8 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
         `;
     }
 
-    function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
+    // Government Benchmarks panel removed - was providing arbitrary comparisons
+    // function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
     try {
         const benchmarks = calculateGovernmentBenchmarks(gscData, ga4Data, gscTrends, ga4Trends);
         const priorityScore = calculatePriorityScore(gscData, ga4Data, gscTrends, ga4Trends);
@@ -10465,6 +10467,7 @@ function formatDuration(seconds) {
                     font-weight: 700;
                     color: #000000;
                     line-height: 1;
+                    font-size: 0.85rem;
                 }
                 
                 .trend-indicator {
@@ -13506,7 +13509,7 @@ function formatDuration(seconds) {
             
             .chart-canvas-wrapper {
                 position: relative;
-                height: 350px;
+                height: 450px;
                 background: rgba(255, 255, 255, 0.02);
                 border-radius: 12px;
                 padding: 16px;
@@ -14144,7 +14147,7 @@ function formatDuration(seconds) {
                 }
                 
                 .chart-canvas-wrapper {
-                    height: 280px;
+                    height: 320px;
                     margin-bottom: 16px;
                 }
                 
@@ -14574,20 +14577,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         </div>
                         <div class="tab-description">GSC clicks, impressions, and rankings</div>
                     </button>
-                    <button class="tab-btn" data-tab="content">
-                        <div class="tab-header">
-                            <span class="tab-icon">📝</span>
-                            <span class="tab-label">Content Analysis</span>
-                        </div>
-                        <div class="tab-description">Content quality and user engagement</div>
-                    </button>
-                    <button class="tab-btn" data-tab="government">
-                        <div class="tab-header">
-                            <span class="tab-icon">🏛️</span>
-                            <span class="tab-label">Government Benchmarks</span>
-                        </div>
-                        <div class="tab-description">Compare against public sector standards</div>
-                    </button>
                     <button class="tab-btn" data-tab="geographic">
                         <div class="tab-header">
                             <span class="tab-icon">🌍</span>
@@ -14606,20 +14595,12 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         ${createSearchPerformancePanel(gscData, gscTrends, url)}
                     </div>
                     
-                    <div class="tab-panel" data-panel="content">
-                        ${createContentAnalysisPanel(gscData, ga4Data, url)}
-                    </div>
-                    
                     <div class="tab-panel" data-panel="users">
                         ${createUserBehaviorPanel(ga4Data, ga4Trends, gscData)}
                     </div>
                     
                     <div class="tab-panel" data-panel="trends">
                         ${createTrendAnalysisPanel(gscTrends, ga4Trends)}
-                    </div>
-                    
-                    <div class="tab-panel" data-panel="government">
-                        ${createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends)}
                     </div>
                     
                     <div class="tab-panel" data-panel="geographic">
@@ -19967,6 +19948,9 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 
                                 // Customize labels
                                 return labels.map(label => {
+                                    // Ensure all labels have white text
+                                    label.fontColor = '#ffffff';
+                                    
                                     if (label.text === 'Divergence Index') {
                                         label.pointStyle = 'line';
                                         label.strokeStyle = '#ffffff';
