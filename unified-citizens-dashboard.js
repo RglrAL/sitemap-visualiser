@@ -14353,8 +14353,9 @@ function formatDuration(seconds) {
             .ai-recommendations-section h5 {
                 margin: 0 0 16px 0;
                 font-size: 1.2rem;
-                font-weight: 600;
-                color: #fff;
+                font-weight: 700;
+                color: #ffffff;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
                 display: flex;
                 align-items: center;
                 gap: 8px;
