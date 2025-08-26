@@ -13425,9 +13425,9 @@ function formatDuration(seconds) {
             /* Old mini chart styles removed - using detailed static visual in narrative */
             
             .divergence-chart-container {
-                background: rgba(255, 255, 255, 0.05);
+                background: rgba(255, 255, 255, 0.12);
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
                 border-radius: 20px;
                 padding: 24px;
                 margin-bottom: 24px;
@@ -13499,6 +13499,7 @@ function formatDuration(seconds) {
                 width: 100% !important;
                 height: 100% !important;
                 border-radius: 8px;
+                background: rgba(255, 255, 255, 0.08);
             }
             
             .chart-loading, .chart-no-data {
@@ -19768,10 +19769,10 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Clicks',
                         data: chartData.clicks,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#3b82f6',
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563eb',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
@@ -19783,10 +19784,10 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Impressions',
                         data: chartData.impressions,
-                        borderColor: '#10b981',
+                        borderColor: '#059669',
                         backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#10b981',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#059669',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
@@ -19855,13 +19856,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            font: { size: 11 },
+                            color: 'rgba(255, 255, 255, 0.95)',
+                            font: { size: 12, weight: '500' },
                             maxRotation: 0
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.1)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'rgba(255, 255, 255, 0.2)',
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                             lineWidth: 1
                         }
                     },
@@ -19873,8 +19874,8 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            font: { size: 11 },
+                            color: 'rgba(255, 255, 255, 0.95)',
+                            font: { size: 12, weight: '500' },
                             callback: function(value, index, values) {
                                 return formatLogValue(value);
                             },
@@ -19887,15 +19888,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 const value = context.tick.value;
                                 // Major grid lines at powers of 10
                                 if (isPowerOf10(value)) {
-                                    return 'rgba(255, 255, 255, 0.3)';
+                                    return 'rgba(255, 255, 255, 0.4)';
                                 }
                                 // Minor grid lines at 2x and 5x
                                 if (is2xOr5x(value)) {
-                                    return 'rgba(255, 255, 255, 0.1)';
+                                    return 'rgba(255, 255, 255, 0.2)';
                                 }
                                 return 'transparent';
                             },
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                             lineWidth: function(context) {
                                 const value = context.tick.value;
                                 return isPowerOf10(value) ? 1.5 : 1;
@@ -20070,6 +20071,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 }
                             }
                         }
+                    }
+                },
+                plugins: {
+                    beforeDraw: function(chart) {
+                        const ctx = chart.canvas.getContext('2d');
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                        ctx.fillRect(0, 0, chart.canvas.width, chart.canvas.height);
+                        ctx.restore();
                     }
                 },
                 animation: {
@@ -21492,14 +21502,6 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                 </div>
             </div>
             
-            
-            <!-- Actionable Recommendations Section -->
-            <div class="ai-recommendations-section">
-                <h5>📋 Recommended Actions</h5>
-                <div class="recommendations-grid">
-                    ${generateAIRecommendations(impactMetrics, gscData, url)}
-                </div>
-            </div>
             
             ${publicServiceWarning ? `
             <div class="public-service-warning">
