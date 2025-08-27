@@ -1,6 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
-// LAST UPDATED: 2025-08-27 15:48 - Fixed legend text color to white
+// LAST UPDATED: 2025-08-27 15:55 - Enhanced geographic intelligence section styling
 
 (function() {
     'use strict';
@@ -3540,77 +3540,141 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             z-index: 1;
         }
         
-        /* Clean Cards */
+        /* Clean Cards - Enhanced to match dashboard theme */
         .geo-clean-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.95) 0%, 
+                rgba(248, 250, 252, 0.95) 100%
+            );
+            backdrop-filter: blur(20px);
             border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.08),
+                0 4px 16px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
             overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .geo-clean-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(114, 163, 0, 0.02) 0%, 
+                rgba(7, 124, 182, 0.02) 100%
+            );
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
         
         .geo-clean-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+            transform: translateY(-6px);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.12),
+                0 8px 32px rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        
+        .geo-clean-card:hover::before {
+            opacity: 1;
         }
         
         .clean-card-header {
             padding: 32px 32px 0 32px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
         }
         
         .clean-card-header h3 {
             margin: 0;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: #1f2937;
             display: flex;
             align-items: center;
             gap: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
         
         .status-badge {
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 10px 18px;
+            border-radius: 25px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            background: #e0f2fe;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
             color: #0277bd;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .status-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
         .clean-card-content {
             padding: 0 32px 32px 32px;
             color: #1f2937;
+            position: relative;
+            z-index: 1;
+            line-height: 1.6;
         }
         
         .clean-card-content p,
         .clean-card-content span,
         .clean-card-content div:not(.region-fill):not(.coverage-fill) {
-            color: #374151 !important;
+            color: #4b5563 !important;
+            font-weight: 400;
         }
         
         .clean-card-content h4,
         .clean-card-content h5,
         .clean-card-content h6 {
             color: #1f2937 !important;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
         
-        /* Regional Stats */
+        .clean-card-content .metric-value {
+            font-weight: 700;
+            color: var(--primary) !important;
+            font-size: 1.1em;
+        }
+        
+        .clean-card-content .percentage {
+            font-weight: 600;
+            color: var(--secondary) !important;
+        }
+        
+        /* Regional Stats - Enhanced styling */
         .regional-stats, .international-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 20px;
-            padding: 24px;
-            background: #f8fafc;
+            padding: 28px;
+            background: linear-gradient(135deg, 
+                rgba(248, 250, 252, 0.8) 0%, 
+                rgba(241, 245, 249, 0.8) 100%
+            );
             border-radius: 16px;
             margin-bottom: 24px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            backdrop-filter: blur(10px);
         }
         
         .stat-item {
@@ -3720,6 +3784,10 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 gap: 12px;
             }
             
+            .clean-card-header h3 {
+                font-size: 1.3rem;
+            }
+            
             .clean-card-content {
                 padding: 0 24px 24px 24px;
             }
@@ -3727,6 +3795,15 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             .regional-stats, .international-stats {
                 grid-template-columns: 1fr;
                 gap: 16px;
+                padding: 20px;
+            }
+            
+            .geo-clean-card {
+                border-radius: 16px;
+            }
+            
+            .geo-clean-card:hover {
+                transform: translateY(-3px);
             }
         }
         </style>
@@ -7794,6 +7871,24 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .opportunities-card,
 .search-patterns-card {
     grid-column: 1 / -1; /* Full width for opportunities and search patterns */
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.98) 0%, 
+        rgba(248, 250, 252, 0.98) 100%
+    );
+    border: 1px solid rgba(114, 163, 0, 0.1);
+}
+
+.opportunities-card::before,
+.search-patterns-card::before {
+    background: linear-gradient(135deg, 
+        rgba(114, 163, 0, 0.03) 0%, 
+        rgba(7, 124, 182, 0.03) 100%
+    );
+}
+
+.opportunities-card:hover,
+.search-patterns-card:hover {
+    border-color: rgba(114, 163, 0, 0.2);
 }
 
 /* Clean card headers */
@@ -13912,7 +14007,7 @@ function formatDuration(seconds) {
             
             .chart-canvas-wrapper {
                 position: relative;
-                height: 350px;
+                height: 450px;
                 background: rgba(255, 255, 255, 0.02);
                 border-radius: 12px;
                 padding: 16px;
@@ -14550,7 +14645,7 @@ function formatDuration(seconds) {
                 }
                 
                 .chart-canvas-wrapper {
-                    height: 280px;
+                    height: 350px;
                     margin-bottom: 16px;
                 }
                 
@@ -14705,7 +14800,7 @@ function formatDuration(seconds) {
                 }
                 
                 .chart-canvas-wrapper {
-                    height: 240px;
+                    height: 300px;
                 }
                 
                 .scale-ranges {
@@ -14719,7 +14814,7 @@ function formatDuration(seconds) {
                 }
                 
                 .chart-canvas-wrapper {
-                    height: 250px;
+                    height: 320px;
                 }
                 
                 .annotation-line {
