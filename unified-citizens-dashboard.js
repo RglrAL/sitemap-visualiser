@@ -1,6 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
-// LAST UPDATED: 2025-08-27 15:44 - Added chart enhancements and visible title change
+// LAST UPDATED: 2025-08-27 15:48 - Fixed legend text color to white
 
 (function() {
     'use strict';
@@ -20098,7 +20098,7 @@ function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, c
 // AI Overview Impact Chart Creation with Chart.js - Search Console Style
 function createAIDivergenceChart(timelineData, dashboardId) {
     console.log('📊 Creating interactive AI Overview divergence chart with logarithmic scale...');
-    console.log('🆕 VERSION: 2025-08-27 15:44 - Chart has been enhanced with clickable legends!');
+    console.log('🆕 VERSION: 2025-08-27 15:48 - Legend text color fixed to white!');
     
     const canvasId = `ai-divergence-chart-${dashboardId || 'default'}`;
     const canvas = document.getElementById(canvasId);
@@ -20376,7 +20376,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                         label.text = 'Impressions (click to toggle)';
                                     }
                                     // Add hover effect indication
-                                    label.fontColor = '#ffffff';
+                                    label.color = '#ffffff';
                                     label.hidden = chart.getDatasetMeta(label.datasetIndex).hidden;
                                     return label;
                                 });
@@ -20394,10 +20394,35 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             
                             meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
                             
-                            // Update legend item appearance
-                            chart.options.plugins.legend.labels.color = function(context) {
-                                const meta = chart.getDatasetMeta(context.datasetIndex);
-                                return meta.hidden ? 'rgba(255, 255, 255, 0.3)' : '#ffffff';
+                            // Force legend to update colors
+                            chart.options.plugins.legend.labels.generateLabels = function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                
+                                return labels.map(label => {
+                                    const meta = chart.getDatasetMeta(label.datasetIndex);
+                                    
+                                    // Apply proper styling based on visibility
+                                    label.color = meta.hidden ? 'rgba(255, 255, 255, 0.3)' : '#ffffff';
+                                    label.textDecoration = meta.hidden ? 'line-through' : '';
+                                    
+                                    // Keep the custom text
+                                    if (label.text === 'Divergence Index') {
+                                        label.text = 'Divergence Index (click to toggle)';
+                                        label.pointStyle = 'line';
+                                        label.strokeStyle = meta.hidden ? 'rgba(255, 255, 255, 0.3)' : '#ffffff';
+                                        label.lineDash = [8, 4];
+                                        label.lineWidth = 3;
+                                    } else if (label.text === 'Clicks') {
+                                        label.text = 'Clicks (click to toggle)';
+                                        label.fillStyle = meta.hidden ? 'rgba(59, 130, 246, 0.3)' : '#3b82f6';
+                                    } else if (label.text === 'Impressions') {
+                                        label.text = 'Impressions (click to toggle)';
+                                        label.fillStyle = meta.hidden ? 'rgba(16, 185, 129, 0.3)' : '#10b981';
+                                    }
+                                    
+                                    return label;
+                                });
                             };
                             
                             chart.update();
