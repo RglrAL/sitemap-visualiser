@@ -13790,14 +13790,27 @@ function formatDuration(seconds) {
             /* Old mini chart styles removed - using detailed static visual in narrative */
             
             .divergence-chart-container {
-                background: rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.15);
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.25);
                 border-radius: 20px;
                 padding: 24px;
                 margin-bottom: 24px;
                 position: relative;
                 z-index: 1;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            
+            .divergence-chart-container::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -50%;
+                width: 100%;
+                height: 100%;
+                background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+                pointer-events: none;
             }
             
             .chart-header {
@@ -13811,15 +13824,62 @@ function formatDuration(seconds) {
             
             .chart-title {
                 font-size: 1.2rem;
-                font-weight: 600;
+                font-weight: 700;
                 margin: 0;
-                color: rgba(255, 255, 255, 0.95);
+                color: #ffffff;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             
             .chart-legend {
                 display: flex;
                 gap: 20px;
                 align-items: center;
+            }
+            
+            /* Chart canvas styling */
+            .divergence-chart {
+                position: relative;
+                z-index: 2;
+            }
+            
+            /* Interactive legend hint */
+            .divergence-chart-container .chartjs-legend {
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+            }
+            
+            .divergence-chart-container .chartjs-legend ul {
+                display: flex;
+                gap: 24px;
+                justify-content: center;
+                flex-wrap: wrap;
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .divergence-chart-container .chartjs-legend li {
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px;
+                border-radius: 20px;
+                background: rgba(255,255,255,0.1);
+                transition: all 0.3s ease;
+                border: 1px solid transparent;
+            }
+            
+            .divergence-chart-container .chartjs-legend li:hover {
+                background: rgba(255,255,255,0.2);
+                border-color: rgba(255,255,255,0.3);
+                transform: translateY(-2px);
+            }
+            
+            .divergence-chart-container .chartjs-legend li.hidden {
+                opacity: 0.4;
+                text-decoration: line-through;
             }
             
             .legend-item {
@@ -20119,10 +20179,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
-                        pointHoverRadius: 8,
+                        pointHoverRadius: 10,
+                        pointHoverBackgroundColor: '#3b82f6',
+                        pointHoverBorderWidth: 4,
                         tension: 0.1,
                         fill: false,
-                        order: 2
+                        order: 2,
+                        hoverBorderWidth: 4
                     },
                     {
                         label: 'Impressions',
@@ -20134,10 +20197,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
-                        pointHoverRadius: 8,
+                        pointHoverRadius: 10,
+                        pointHoverBackgroundColor: '#10b981',
+                        pointHoverBorderWidth: 4,
                         tension: 0.1,
                         fill: false,
-                        order: 1
+                        order: 1,
+                        hoverBorderWidth: 4
                     },
                     {
                         label: 'CTR Anomalies',
@@ -20277,9 +20343,10 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         position: 'bottom',
                         labels: {
                             color: '#ffffff',
-                            font: { size: 11, weight: '500' },
+                            font: { size: 12, weight: '600' },
                             usePointStyle: true,
                             pointStyle: 'circle',
+                            padding: 20,
                             filter: function(item, chart) {
                                 // Hide CTR Anomalies from legend as they're contextual
                                 return item.text !== 'CTR Anomalies';
@@ -20288,23 +20355,34 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 const original = Chart.defaults.plugins.legend.labels.generateLabels;
                                 const labels = original.call(this, chart);
                                 
-                                // Customize labels
+                                // Customize labels with better visibility
                                 return labels.map(label => {
                                     if (label.text === 'Divergence Index') {
                                         label.pointStyle = 'line';
                                         label.strokeStyle = '#ffffff';
                                         label.lineDash = [8, 4];
                                         label.lineWidth = 3;
+                                        // Add toggle hint
+                                        label.text = 'Divergence Index (click to toggle)';
                                     } else if (label.text === 'Clicks') {
                                         label.pointStyle = 'circle';
                                         label.fillStyle = '#3b82f6';
+                                        label.text = 'Clicks (click to toggle)';
                                     } else if (label.text === 'Impressions') {
                                         label.pointStyle = 'circle'; 
                                         label.fillStyle = '#10b981';
+                                        label.text = 'Impressions (click to toggle)';
                                     }
+                                    // Add hover effect indication
+                                    label.fontColor = '#ffffff';
+                                    label.hidden = chart.getDatasetMeta(label.datasetIndex).hidden;
                                     return label;
                                 });
                             }
+                        },
+                        onHover: function(event, legendItem, legend) {
+                            // Change cursor on hover
+                            event.native.target.style.cursor = legendItem ? 'pointer' : 'default';
                         },
                         onClick: function(e, legendItem, legend) {
                             // Allow toggling datasets on/off
@@ -20313,6 +20391,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             const meta = chart.getDatasetMeta(index);
                             
                             meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                            
+                            // Update legend item appearance
+                            chart.options.plugins.legend.labels.color = function(context) {
+                                const meta = chart.getDatasetMeta(context.datasetIndex);
+                                return meta.hidden ? 'rgba(255, 255, 255, 0.3)' : '#ffffff';
+                            };
+                            
                             chart.update();
                         }
                     },
