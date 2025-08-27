@@ -1,5 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
+// LAST UPDATED: 2025-08-27 15:44 - Added chart enhancements and visible title change
 
 (function() {
     'use strict';
@@ -20097,6 +20098,7 @@ function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, c
 // AI Overview Impact Chart Creation with Chart.js - Search Console Style
 function createAIDivergenceChart(timelineData, dashboardId) {
     console.log('📊 Creating interactive AI Overview divergence chart with logarithmic scale...');
+    console.log('🆕 VERSION: 2025-08-27 15:44 - Chart has been enhanced with clickable legends!');
     
     const canvasId = `ai-divergence-chart-${dashboardId || 'default'}`;
     const canvas = document.getElementById(canvasId);
@@ -21100,7 +21102,8 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                 <!-- Divergence Chart -->
                 <div class="divergence-chart-container">
                     <div class="chart-header">
-                        <h4 class="chart-title">Search Performance Trends - Last 12 Months</h4>
+                        <h4 class="chart-title">📊 Search Performance Trends - Last 12 Months (Updated)</h4>
+                        <div style="color: #FFD700; font-size: 0.8rem; margin-top: 4px;">✨ Chart Enhanced - Click legend items to toggle data</div>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="ai-divergence-chart-${dashboardId.replace('unified-dashboard-', '')}" class="divergence-chart"></canvas>
