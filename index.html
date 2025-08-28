@@ -5374,7 +5374,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             </button>
             <div class="nav-dropdown-menu">
                 <div class="nav-dropdown-item" id="dashboardNavItem" onclick="showDashboardView(); closeReportsDropdown();">
-                    Site Analytics Dashboard
+                    Site Structure
                 </div>
                 <div class="nav-dropdown-item" onclick="showContentFreshnessAnalysis(); closeReportsDropdown();">
                     Content Freshness
@@ -5434,7 +5434,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
         <div class="mobile-nav-section">
             <h3>Reports</h3>
             <button class="mobile-nav-item" id="mobileDashboardBtn" onclick="showDashboardView(); closeMobileMenu();">
-                Site Analytics Dashboard
+                Site Structure
             </button>
             <button class="mobile-nav-item" onclick="showContentFreshnessAnalysis(); closeMobileMenu();">
                 Content Freshness
@@ -11357,7 +11357,7 @@ window.switchView = function(viewType) {
         .attr("class", "dashboard-header");
     
     header.append("h2")
-        .text("📊 Site Analytics Dashboard");
+        .text("📊 Site Structure");
     
     header.append("div")
         .attr("class", "dashboard-subtitle")
@@ -11387,10 +11387,6 @@ window.switchView = function(viewType) {
     performanceSection.append("h3")
         .style("font-size", "1.4rem")
         .style("font-weight", "700")
-        .style("color", isDark ? "var(--gray-100)" : "#1f2937")
-        .style("margin", "0 0 24px 0")
-        .style("text-align", "center")
-        .text("📊 Site Performance Overview");
     
     // Metrics grid
     const metricsGrid = performanceSection.append("div")
