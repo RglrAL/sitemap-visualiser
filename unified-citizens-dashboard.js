@@ -1,6 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
-// LAST UPDATED: 2025-08-27 16:05 - Beautiful content styling for County, Demographic & Search Pattern sections
+// LAST UPDATED: 2025-08-27 16:20 - Fixed Geographic Search Analysis placeholder showing when GSC data is available
 
 (function() {
     'use strict';
@@ -3538,6 +3538,13 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             margin-bottom: 40px;
             position: relative;
             z-index: 1;
+            justify-content: center;
+        }
+        
+        /* Single card in analysis grid should be centered and max-width */
+        .geo-analysis-grid .geo-clean-card:only-child {
+            max-width: 600px;
+            justify-self: center;
         }
         
         /* Clean Cards - Enhanced to match dashboard theme */
@@ -4267,26 +4274,6 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 </div>
             </div>
             
-            <!-- Clean Analysis Sections -->
-            <div class="geo-analysis-grid">
-                <div class="geo-clean-card">
-                    <div class="clean-card-header">
-                        <h3>📍 County-by-County Service Analysis</h3>
-                    </div>
-                    <div class="clean-card-content">
-                        ${createCleanCountyAnalysis(geoData.regions, geoInsights)}
-                    </div>
-                </div>
-                
-                <div class="geo-clean-card">
-                    <div class="clean-card-header">
-                        <h3>👥 Demographic Service Patterns</h3>
-                    </div>
-                    <div class="clean-card-content">
-                        ${createCleanDemographicAnalysis(geoData, geoInsights)}
-                    </div>
-                </div>
-            </div>
             
             <!-- Geographic Search Patterns Section -->
             <div class="geo-clean-card search-patterns-card">
@@ -4295,16 +4282,6 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 </div>
                 <div class="clean-card-content">
                     ${createCleanSearchPatterns(gscData)}
-                </div>
-            </div>
-            
-            <!-- Clean Opportunities Section -->
-            <div class="geo-clean-card opportunities-card">
-                <div class="clean-card-header">
-                    <h3>🚀 Geographic Optimization Opportunities</h3>
-                </div>
-                <div class="clean-card-content">
-                    ${createCleanOpportunities(servicePatterns, accessibilityInsights, pageContext)}
                 </div>
             </div>
         </div>
@@ -4324,10 +4301,12 @@ function createCleanIrelandView(regions, geoInsights) {
         `;
     }
     
-    const topRegions = regions.slice(0, 6);
-    
     return `
         <div class="clean-regional-overview">
+            <div class="analysis-summary">
+                <p><strong>Coverage:</strong> Serving citizens across ${regions.length} regions with ${geoInsights.dublinPercentage}% concentration in Dublin.</p>
+            </div>
+            
             <div class="regional-stats">
                 <div class="stat-item">
                     <span class="stat-number">${geoInsights.dublinPercentage}%</span>
@@ -4338,21 +4317,24 @@ function createCleanIrelandView(regions, geoInsights) {
                     <span class="stat-label">Regions</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number">${calculateRegionalBalance(regions)}</span>
-                    <span class="stat-label">Balance</span>
+                    <span class="stat-number">${calculateOtherUrban({ regions })}%</span>
+                    <span class="stat-label">Other Urban</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">${calculateRural({ regions })}%</span>
+                    <span class="stat-label">Rural</span>
                 </div>
             </div>
             
-            <div class="regional-breakdown">
-                ${topRegions.map((region, index) => `
-                    <div class="region-item">
-                        <div class="region-info">
-                            <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
-                            <span class="region-percentage">${region.percentage.toFixed(1)}%</span>
+            <div class="county-performance-grid">
+                ${regions.slice(0, 12).map(region => `
+                    <div class="county-performance-item">
+                        <div class="county-name">${formatRegionNameEnhanced(region.region)}</div>
+                        <div class="county-metrics">
+                            <span class="metric-value">${formatNumber(region.users)}</span>
+                            <span class="metric-label">users</span>
                         </div>
-                        <div class="region-bar">
-                            <div class="region-fill" style="width: ${(region.percentage / topRegions[0].percentage) * 100}%"></div>
-                        </div>
+                        <div class="county-share">${region.percentage.toFixed(1)}%</div>
                     </div>
                 `).join('')}
             </div>
@@ -4384,8 +4366,12 @@ function createCleanInternationalView(countries, geoInsights) {
                     <span class="stat-label">Countries</span>
                 </div>
                 <div class="stat-item">
+                    <span class="stat-number">${calculateEUCitizens({ countries })}%</span>
+                    <span class="stat-label">EU Citizens</span>
+                </div>
+                <div class="stat-item">
                     <span class="stat-number">${geoInsights.internationalPercentage}%</span>
-                    <span class="stat-label">Share</span>
+                    <span class="stat-label">Total Share</span>
                 </div>
             </div>
             
@@ -4538,13 +4524,30 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
 function generateSearchPatternInsights(gscGeoData) {
     const insights = [];
     
+    console.log('🔍 Generating search pattern insights with data:', {
+        hasTopCountries: !!gscGeoData.topCountries,
+        countriesCount: gscGeoData.topCountries?.length || 0,
+        countries: gscGeoData.topCountries?.map(c => c.country) || []
+    });
+    
     // Analyze patterns across countries
-    if (gscGeoData.topCountries && gscGeoData.topCountries.length > 1) {
+    if (gscGeoData.topCountries && gscGeoData.topCountries.length > 0) {
         const totalCountries = gscGeoData.topCountries.length;
         const irishQueries = gscGeoData.topCountries.find(c => c.country === 'Ireland');
         const internationalQueries = gscGeoData.topCountries.filter(c => c.country !== 'Ireland');
         
-        if (irishQueries && internationalQueries.length > 0) {
+        // Handle single country scenario
+        if (totalCountries === 1) {
+            const country = gscGeoData.topCountries[0];
+            const queryCount = country.queries?.length || 0;
+            const totalClicks = country.clicks || 0;
+            
+            insights.push({
+                icon: country.country === 'Ireland' ? '🇮🇪' : '🌍',
+                title: `${country.country} Search Activity`,
+                description: `Citizens are using ${queryCount} different search terms with ${totalClicks.toLocaleString()} total searches for your services.`
+            });
+        } else if (irishQueries && internationalQueries.length > 0) {
             insights.push({
                 icon: '🇮🇪',
                 title: 'Irish vs International Queries',
@@ -4580,13 +4583,23 @@ function generateSearchPatternInsights(gscGeoData) {
         }
     }
     
-    // Default insight if no specific patterns found
+    // Default insight if no specific patterns found or no data
     if (insights.length === 0) {
-        insights.push({
-            icon: '📊',
-            title: 'Geographic Search Analysis',
-            description: 'Enable enhanced Search Console reporting to get detailed insights into how citizens from different countries search for your services.'
-        });
+        // Only show the "enable" message if there's truly no GSC data
+        if (!gscGeoData.topCountries || gscGeoData.topCountries.length === 0) {
+            insights.push({
+                icon: '📊',
+                title: 'Geographic Search Analysis',
+                description: 'Enable enhanced Search Console reporting to get detailed insights into how citizens from different countries search for your services.'
+            });
+        } else {
+            // Show a general insight when data is available but no specific patterns detected
+            insights.push({
+                icon: '🌍',
+                title: 'Geographic Search Activity',
+                description: `Search data available from ${gscGeoData.topCountries.length} countries. Citizens are finding your services through various search terms.`
+            });
+        }
     }
     
     return insights.map(insight => `
