@@ -1,6 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
-// LAST UPDATED: 2025-08-27 16:25 - Removed coverage summary, matched international layout to Irish counties
+// LAST UPDATED: 2025-08-27 16:30 - Moved percentage to top-right of cards to save vertical space
 
 (function() {
     'use strict';
@@ -445,7 +445,7 @@
                     position: query.position,
                     ctr: query.ctr,
                     impressions: query.impressions,
-                    issue: 'High impressions, low CTR - title/meta optimization needed',
+                    issue: 'High impressions, low CTR - title/meta optimisation needed',
                     severity: 'medium'
                 });
             }
@@ -502,7 +502,7 @@
         const avgGrowth = (clickGrowth + viewGrowth) / 2;
         const growthScore = Math.min(100, Math.max(0, 50 + avgGrowth));
         
-        // Search behavior component (20%)
+        // Search behaviour component (20%)
         const avgPosition = gscData?.position || 50;
         const searchScore = Math.max(0, 100 - (avgPosition * 2));
         
@@ -522,10 +522,10 @@
         
         if (totalScore >= 80) {
             level = 'critical';
-            recommendation = 'High-priority optimization opportunity - immediate action recommended';
+            recommendation = 'High-priority optimisation opportunity - immediate action recommended';
         } else if (totalScore >= 60) {
             level = 'high';
-            recommendation = 'Strong optimization candidate - schedule for next sprint';
+            recommendation = 'Strong optimisation candidate - schedule for next sprint';
         } else if (totalScore >= 40) {
             level = 'medium';
             recommendation = `Moderate opportunity - include in ${getPeriodUnit()} review`;
@@ -758,7 +758,7 @@ function detectCitizenNeedSurgesEnhanced(gscData, gscTrends, currentDate = new D
     analysis.trendingTopics = identifyTrendingTopics(analysis);
     
     // SEASONAL PATTERN ANALYSIS
-    analysis.seasonalPatterns = analyzeSeasonalPatterns(analysis, currentDate);
+    analysis.seasonalPatterns = analyseSeasonalPatterns(analysis, currentDate);
 
     return analysis;
 }
@@ -767,7 +767,7 @@ function detectCitizenNeedSurgesEnhanced(gscData, gscTrends, currentDate = new D
 function createEnhancedSurgeObject(query, currentImpressions, previousImpressions, percentIncrease, currentDate) {
     const category = categorizeSurgeQuery(query.query);
     const urgencyLevel = determineUrgencyLevel(percentIncrease, currentImpressions, category);
-    const contextualFactors = analyzeContextualFactors(query.query, currentDate);
+    const contextualFactors = analyseContextualFactors(query.query, currentDate);
     
     return {
         query: query.query,
@@ -845,7 +845,7 @@ function determineUrgencyLevel(percentIncrease, currentImpressions, category) {
 }
 
 // ANALYZE CONTEXTUAL FACTORS
-function analyzeContextualFactors(queryText, currentDate) {
+function analyseContextualFactors(queryText, currentDate) {
     const factors = [];
     const month = currentDate.getMonth();
     const dayOfWeek = currentDate.getDay();
@@ -924,7 +924,7 @@ function generateContextualInsights(analysis, currentDate) {
             icon: '❌',
             title: `${analysis.unmetNeeds.length} High-Demand, Low-Performance Queries`,
             description: `${formatNumber(totalUnmetVolume)} ${getPeriodMetricLabel('monthly searches')} not being served effectively`,
-            action: 'Priority content creation and SEO optimization needed'
+            action: 'Priority content creation and SEO optimisation needed'
         });
     }
     
@@ -1258,7 +1258,7 @@ function createUnmetNeedsPanel(unmetNeeds) {
                         </div>
                     </div>
                     <div class="need-gap">
-                        🎯 High search demand but poor performance - optimization opportunity
+                        🎯 High search demand but poor performance - optimisation opportunity
                     </div>
                 </div>
             `).join('')}
@@ -1288,7 +1288,7 @@ function createUnmetNeedAlert(unmetNeed) {
         details: `${formatNumber(unmetNeed.impressions)} ${getPeriodMetricLabel('monthly searches')} with poor performance`,
         urgency: 'high',
         responseTime: '48_hours',
-        escalationPath: 'content_optimization_team'
+        escalationPath: 'content_optimisation_team'
     };
 }
 
@@ -1376,7 +1376,7 @@ function generateQuerySpecificActions(query, category, urgencyLevel) {
     const baseActions = categoryActions[category] || [
         'Review and update content',
         'Add relevant contact information',
-        'Improve search optimization'
+        'Improve search optimisation'
     ];
     
     // Add urgency-specific actions
@@ -1499,7 +1499,7 @@ function identifyTrendingTopics(analysis) {
 }
 
 // ANALYZE SEASONAL PATTERNS
-function analyzeSeasonalPatterns(analysis, currentDate) {
+function analyseSeasonalPatterns(analysis, currentDate) {
     const month = currentDate.getMonth();
     const patterns = [];
     
@@ -1696,7 +1696,7 @@ window.getHistoricalContext = getHistoricalContext;
 window.findRelatedQueries = findRelatedQueries;
 window.assessBusinessImpact = assessBusinessImpact;
 window.identifyTrendingTopics = identifyTrendingTopics;
-window.analyzeSeasonalPatterns = analyzeSeasonalPatterns;
+window.analyseSeasonalPatterns = analyseSeasonalPatterns;
 window.safeExecuteSurgeDetection = safeExecuteSurgeDetection;
 window.safeGetQuery = safeGetQuery;
 window.safeGetMetric = safeGetMetric;
@@ -2814,7 +2814,7 @@ function generateCitizensInfoInsights(scores, gscData, ga4Data) {
                 type: 'warning',
                 category: 'Findability',
                 message: `Average search position is #${position.toFixed(0)}. Focus on improving ranking for your most important target keywords.`,
-                impact: 'Medium - Good foundation but needs optimization'
+                impact: 'Medium - Good foundation but needs optimisation'
             });
         }
         
@@ -3357,10 +3357,10 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
     
     // Enhanced data processing with page context
     const geoInsights = processGeographicDataEnhanced(geoData, gscData);
-    const servicePatterns = analyzeServicePatternsEnhanced(geoData, gscData);
+    const servicePatterns = analyseServicePatternsEnhanced(geoData, gscData);
     const accessibilityInsights = calculateAccessibilityMetricsEnhanced(geoData);
-    const pageContext = analyzePageContextEnhanced(pageUrl);
-    const searchPatterns = analyzeGeographicSearchPatternsEnhanced(gscData, geoData, pageContext);
+    const pageContext = analysePageContextEnhanced(pageUrl);
+    const searchPatterns = analyseGeographicSearchPatternsEnhanced(gscData, geoData, pageContext);
     const trendAnalysis = calculateGeographicTrendsEnhanced(geoData, trafficData);
     
     return `
@@ -3856,7 +3856,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             position: relative;
             overflow: hidden;
         }
@@ -3917,14 +3917,17 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .county-share {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
             color: var(--secondary) !important;
-            padding: 8px 16px;
+            padding: 4px 12px;
             background: rgba(114, 163, 0, 0.1);
-            border-radius: 20px;
+            border-radius: 16px;
             text-align: center;
             width: fit-content;
+            position: absolute;
+            top: 16px;
+            right: 16px;
         }
         
         /* Demographic Service Patterns Styling */
@@ -4196,15 +4199,21 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             }
             
             .county-performance-item {
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
+                padding: 16px;
+                padding-top: 24px; /* Extra space for absolute positioned percentage */
             }
             
             .county-metrics {
                 flex-direction: row;
                 align-items: baseline;
                 gap: 8px;
+            }
+            
+            .county-share {
+                font-size: 0.9rem;
+                padding: 3px 10px;
+                top: 12px;
+                right: 12px;
             }
         }
         
@@ -4213,7 +4222,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             <div class="geo-header">
                 <h2 class="section-title">🌍 Geographic Intelligence</h2>
                 <div class="geo-explanation">
-                    <p><strong>Geographic Analysis:</strong> Understanding where citizens access <em>${pageContext.serviceType}</em> and optimizing for better regional service delivery.</p>
+                    <p><strong>Geographic Analysis:</strong> Understanding where citizens access <em>${pageContext.serviceType}</em> and optimising for better regional service delivery.</p>
                 </div>
             </div>
             
@@ -4263,7 +4272,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             <div class="geo-regional-grid">
                 <div class="geo-clean-card">
                     <div class="clean-card-header">
-                        <h3>🇮🇪 Irish Regional Distribution</h3>
+                        <h3>🇮🇪 Irish Distribution</h3>
                         <span class="status-badge ${geoInsights.demandLevel.class}">${geoInsights.demandLevel.label}</span>
                     </div>
                     <div class="clean-card-content">
@@ -4518,109 +4527,10 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
                     </div>
                 `).join('')}
             </div>
-            
-            <div class="search-insights">
-                <h4>🧠 Key Geographic Insights</h4>
-                <div class="insights-grid">
-                    ${generateSearchPatternInsights(gscGeoData)}
-                </div>
-            </div>
         </div>
     `;
 }
 
-function generateSearchPatternInsights(gscGeoData) {
-    const insights = [];
-    
-    console.log('🔍 Generating search pattern insights with data:', {
-        hasTopCountries: !!gscGeoData.topCountries,
-        countriesCount: gscGeoData.topCountries?.length || 0,
-        countries: gscGeoData.topCountries?.map(c => c.country) || []
-    });
-    
-    // Analyze patterns across countries
-    if (gscGeoData.topCountries && gscGeoData.topCountries.length > 0) {
-        const totalCountries = gscGeoData.topCountries.length;
-        const irishQueries = gscGeoData.topCountries.find(c => c.country === 'Ireland');
-        const internationalQueries = gscGeoData.topCountries.filter(c => c.country !== 'Ireland');
-        
-        // Handle single country scenario
-        if (totalCountries === 1) {
-            const country = gscGeoData.topCountries[0];
-            const queryCount = country.queries?.length || 0;
-            const totalClicks = country.clicks || 0;
-            
-            insights.push({
-                icon: country.country === 'Ireland' ? '🇮🇪' : '🌍',
-                title: `${country.country} Search Activity`,
-                description: `Citizens are using ${queryCount} different search terms with ${totalClicks.toLocaleString()} total searches for your services.`
-            });
-        } else if (irishQueries && internationalQueries.length > 0) {
-            insights.push({
-                icon: '🇮🇪',
-                title: 'Irish vs International Queries',
-                description: `Irish citizens use ${irishQueries.queries?.length || 0} different search terms, while international users show ${internationalQueries.reduce((sum, c) => sum + (c.queries?.length || 0), 0)} variations across ${internationalQueries.length} countries.`
-            });
-        }
-        
-        // Find common themes
-        const allQueries = gscGeoData.topCountries.flatMap(c => c.queries || []);
-        const uniqueTerms = new Set(allQueries.map(q => q.query.toLowerCase()));
-        
-        if (uniqueTerms.size < allQueries.length * 0.7) {
-            insights.push({
-                icon: '🔄',
-                title: 'Similar Search Intent',
-                description: `Citizens across different countries use similar search terms, indicating consistent service needs globally.`
-            });
-        }
-        
-        // Check for urgency patterns
-        const urgentQueries = allQueries.filter(q => 
-            q.query.toLowerCase().includes('urgent') || 
-            q.query.toLowerCase().includes('emergency') ||
-            q.query.toLowerCase().includes('today')
-        );
-        
-        if (urgentQueries.length > 0) {
-            insights.push({
-                icon: '🚨',
-                title: 'Urgent Service Needs',
-                description: `${urgentQueries.length} search queries indicate urgent service needs across multiple countries.`
-            });
-        }
-    }
-    
-    // Default insight if no specific patterns found or no data
-    if (insights.length === 0) {
-        // Only show the "enable" message if there's truly no GSC data
-        if (!gscGeoData.topCountries || gscGeoData.topCountries.length === 0) {
-            insights.push({
-                icon: '📊',
-                title: 'Geographic Search Analysis',
-                description: 'Enable enhanced Search Console reporting to get detailed insights into how citizens from different countries search for your services.'
-            });
-        } else {
-            // Show a general insight when data is available but no specific patterns detected
-            insights.push({
-                icon: '🌍',
-                title: 'Geographic Search Activity',
-                description: `Search data available from ${gscGeoData.topCountries.length} countries. Citizens are finding your services through various search terms.`
-            });
-        }
-    }
-    
-    return insights.map(insight => `
-        <div class="insight-item">
-            <div class="insight-icon">${insight.icon}</div>
-            <div class="insight-content">
-                <div class="insight-title">${insight.title}</div>
-                <div class="insight-description">${insight.description}</div>
-            </div>
-        </div>
-    `).join('');
-}
-    
 
 function createCleanOpportunities(servicePatterns, accessibilityInsights, pageContext) {
     return `
@@ -4764,7 +4674,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
     };
 }
 
-function analyzePageContextEnhanced(pageUrl) {
+function analysePageContextEnhanced(pageUrl) {
     if (!pageUrl) return { 
         serviceType: 'government information', 
         category: 'general', 
@@ -4786,7 +4696,7 @@ function analyzePageContextEnhanced(pageUrl) {
             seasonality: ['summer', 'holiday_periods']
         },
         'driving': { 
-            serviceType: 'driving licenses', 
+            serviceType: 'driving licences', 
             category: 'transport', 
             keywords: ['driving', 'license', 'test', 'theory'],
             urgency: 'medium',
@@ -4835,7 +4745,7 @@ function analyzePageContextEnhanced(pageUrl) {
     };
 }
 
-function analyzeGeographicSearchPatternsEnhanced(gscData, geoData, pageContext) {
+function analyseGeographicSearchPatternsEnhanced(gscData, geoData, pageContext) {
     if (!gscData?.topQueries) {
         return {
             locationQueries: [],
@@ -4916,7 +4826,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                 <!-- Interactive Ireland Map -->
                 <div class="geo-card ireland-focus">
                     <div class="card-header">
-                        <h3>🇮🇪 Irish Regional Distribution</h3>
+                        <h3>🇮🇪 Irish Distribution</h3>
                         <div class="concentration-alert ${geoInsights.demandLevel.class}">
                             ${geoInsights.demandLevel.label}
                         </div>
@@ -5518,7 +5428,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
 
     function createUserBehaviorPanel(ga4Data, ga4Trends, gscData) {
         if (!ga4Data || ga4Data.noDataFound) {
-            return createConnectionMessage('Google Analytics', 'Connect Google Analytics to see detailed user behavior data');
+            return createConnectionMessage('Google Analytics', 'Connect Google Analytics to see detailed user behaviour data');
         }
         
         return `
@@ -10164,7 +10074,7 @@ function generateMatrixRecommendations(quadrant, searchScore, engagementScore) {
         recommendations.push('⚡ Optimise page loading speed');
         recommendations.push('🎨 Enhance user experience design');
     } else {
-        recommendations.push('🎯 Start with basic SEO optimization');
+        recommendations.push('🎯 Start with basic SEO optimisation');
         recommendations.push('📝 Rewrite content for better user value');
         recommendations.push('📱 Ensure mobile-friendly design');
     }
@@ -10265,7 +10175,7 @@ function formatDuration(seconds) {
                     </svg></div>
                     <div class="metric-label">Google Analytics</div>
                     <div class="metric-value">Not Connected</div>
-                    <div class="metric-description">Connect GA4 for user behavior insights</div>
+                    <div class="metric-description">Connect GA4 for user behaviour insights</div>
                 </div>
             `;
         }
@@ -10500,7 +10410,7 @@ function formatDuration(seconds) {
         return `
             <div class="evidence-actions">
                 <div class="action-item">
-                    <div class="action-title">Content optimization based on search data</div>
+                    <div class="action-title">Content optimisation based on search data</div>
                     <div class="action-description">Evidence-based recommendations coming soon</div>
                 </div>
             </div>
@@ -10510,7 +10420,7 @@ function formatDuration(seconds) {
     function createRegionalUserBehaviorPatterns(ga4Data) {
         return `
             <div class="regional-patterns">
-                <div class="pattern-insight">Regional user behavior analysis coming soon</div>
+                <div class="pattern-insight">Regional user behaviour analysis coming soon</div>
             </div>
         `;
     }
@@ -10670,7 +10580,7 @@ function formatDuration(seconds) {
             } else if (gscData.ctr < 0.03) {
                 insights.push({
                     icon: '🔍',
-                    text: 'Low CTR suggests title/description optimization needed',
+                    text: 'Low CTR suggests title/description optimisation needed',
                     type: 'warning'
                 });
             }
@@ -10712,7 +10622,7 @@ function formatDuration(seconds) {
         if (insights.length === 0) {
             insights.push({
                 icon: '📊',
-                text: 'Page performance is stable - continue monitoring for optimization opportunities',
+                text: 'Page performance is stable - continue monitoring for optimisation opportunities',
                 type: 'neutral'
             });
         }
@@ -11883,7 +11793,7 @@ function formatDuration(seconds) {
                         font-size: 14px;
                     }
                     
-                    /* Mobile-optimized grid layouts */
+                    /* Mobile-optimised grid layouts */
                     .grid {
                         display: grid;
                         gap: 16px;
@@ -13110,11 +13020,11 @@ function formatDuration(seconds) {
                     }
                     
                     /* User Behavior Panel Mobile */
-                    .user-behavior-metrics {
+                    .user-behaviour-metrics {
                         grid-template-columns: 1fr;
                     }
                     
-                    .behavior-chart {
+                    .behaviour-chart {
                         height: 200px;
                     }
                 }
@@ -15665,7 +15575,7 @@ function initializeUnifiedDashboard(dashboardId) {
         }, 100);
     }
     
-    // Handle window resize for responsive behavior
+    // Handle window resize for responsive behaviour
     window.addEventListener('resize', function() {
         const tabNav = document.querySelector('.tab-nav');
         const toggleBtn = document.querySelector('.mobile-tab-toggle');
@@ -15794,7 +15704,7 @@ function copyUnifiedSummary(url) {
 
 🎯 KEY METRICS:
 - Search performance tracked
-- User behavior analyzed  
+- User behaviour analysed  
 - Government benchmarks assessed
 - Geographic intelligence provided
 - Content gaps identified
@@ -15806,7 +15716,7 @@ function copyUnifiedSummary(url) {
 - Regional service demand mapped
 
 📋 NEXT STEPS:
-- Review optimization recommendations
+- Review optimisation recommendations
 - Implement priority actions
 - Monitor performance improvements
 - Schedule regular reviews
@@ -16293,7 +16203,7 @@ function classifyCitizenIntent(query) {
 }
 
 // ADD NEW FUNCTION: Irish Service Analysis
-function analyzeIrishServiceUsage(intentAnalysis) {
+function analyseIrishServiceUsage(intentAnalysis) {
     const serviceBreakdown = {
         socialWelfare: 0,
         health: 0,
@@ -16399,13 +16309,13 @@ function calculateCitizenOpportunities(topQueries) {
         // Ranking improvement potential
         if (query.position <= 20 && query.position > 3 && query.impressions >= 75) {
             opportunityScore += 3;
-            factors.push('Page ranking well enough to improve with optimization');
+            factors.push('Page ranking well enough to improve with optimisation');
         }
         
         // Long-tail citizen questions
         if (queryWords.length >= 4 && query.impressions >= 30) {
             opportunityScore += 2;
-            factors.push('Specific citizen question with targeted optimization potential');
+            factors.push('Specific citizen question with targeted optimisation potential');
         }
         
         // Irish service-specific boost
@@ -16579,7 +16489,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     
     // NEW: Analyze Irish service usage
     console.log('🇮🇪 Analyzing Irish service usage...');
-    const irishServiceAnalysis = analyzeIrishServiceUsage(intentAnalysis);
+    const irishServiceAnalysis = analyseIrishServiceUsage(intentAnalysis);
     console.log('✅ Irish service analysis completed:', irishServiceAnalysis);
     const topIrishServices = Object.entries(irishServiceAnalysis.serviceBreakdown)
         .sort(([,a], [,b]) => b - a)
@@ -19290,28 +19200,28 @@ function getIntensityLevel(percentage) {
 // ADDITIONAL HELPER FUNCTIONS FOR ENHANCED FEATURES
 // ==================================================
 
-function analyzeServicePatternsEnhanced(geoData, gscData) {
+function analyseServicePatternsEnhanced(geoData, gscData) {
     const regions = geoData.regions || [];
     const countries = geoData.countries || [];
     
-    // Calculate optimization opportunities based on data patterns
-    let optimizationScore = 60; // Base score
+    // Calculate optimisation opportunities based on data patterns
+    let optimisationScore = 60; // Base score
     
     // Bonus for good regional coverage
-    if (regions.length > 15) optimizationScore += 10;
+    if (regions.length > 15) optimisationScore += 10;
     
     // Bonus for international reach
-    if (countries.length > 8) optimizationScore += 10;
+    if (countries.length > 8) optimisationScore += 10;
     
     // Bonus for search performance
-    if (gscData && gscData.ctr > 0.05) optimizationScore += 10;
+    if (gscData && gscData.ctr > 0.05) optimisationScore += 10;
     
     // Penalty for over-concentration
     const dublin = regions.find(r => r.region.toLowerCase().includes('dublin'));
-    if (dublin && dublin.percentage > 50) optimizationScore -= 10;
+    if (dublin && dublin.percentage > 50) optimisationScore -= 10;
     
     return {
-        optimizationScore: Math.min(100, Math.max(0, optimizationScore)),
+        optimisationScore: Math.min(100, Math.max(0, optimisationScore)),
         patterns: [],
         regionalBalance: calculateRegionalBalance(regions),
         topRegions: regions.slice(0, 5),
@@ -19335,7 +19245,7 @@ function calculateAccessibilityMetricsEnhanced(geoData) {
         internationalLevel,
         accessibilityScore: calculateAccessibilityScore(geoData),
         languageOpportunities: identifyLanguageOpportunities(countries),
-        mobilityFactors: analyzeMobilityFactors(geoData)
+        mobilityFactors: analyseMobilityFactors(geoData)
     };
 }
 
@@ -19347,7 +19257,7 @@ function calculateGeographicTrendsEnhanced(geoData, trafficData) {
         growthRegions: identifyGrowthRegions(geoData.regions),
         decliningRegions: identifyDecliningRegions(geoData.regions),
         emergingMarkets: identifyEmergingMarkets(geoData.countries),
-        seasonalPatterns: analyzeSeasonalPatterns(trafficData)
+        seasonalPatterns: analyseSeasonalPatterns(trafficData)
     };
 }
 
@@ -19749,7 +19659,7 @@ function identifyEmergingMarkets(countries) {
     return emerging.map(c => c.country);
 }
 
-function analyzeSeasonalPatterns(trafficData) {
+function analyseSeasonalPatterns(trafficData) {
     // Mock implementation
     return {
         peak: 'Summer months',
@@ -19766,7 +19676,7 @@ function identifyLanguageOpportunities(countries) {
     return nonEnglish.length > 3 ? 'High' : nonEnglish.length > 1 ? 'Medium' : 'Low';
 }
 
-function analyzeMobilityFactors(geoData) {
+function analyseMobilityFactors(geoData) {
     // Analyze factors affecting geographic mobility and service access
     return {
         ruralAccess: 'Limited',
@@ -19955,7 +19865,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                 <!-- Interactive Ireland Map -->
                 <div class="geo-card ireland-focus">
                     <div class="card-header">
-                        <h3>🇮🇪 Irish Regional Distribution</h3>
+                        <h3>🇮🇪 Irish Distribution</h3>
                         <div class="concentration-alert ${geoInsights.demandLevel.class}">
                             ${geoInsights.demandLevel.label}
                         </div>
@@ -20514,7 +20424,7 @@ function getImpactSummary(impact, gscData, ga4Data) {
     if (impact.successRate >= 80) {
         return `Excellent citizen service! ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens successfully found what they needed. The page serves ${impact.queryTypes} different types of information needs.`;
     } else if (impact.successRate >= 60) {
-        return `Good citizen service. ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens found what they needed, though there's room for improvement. Consider optimizing for the ${impact.queryTypes} different information needs.`;
+        return `Good citizen service. ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens found what they needed, though there's room for improvement. Consider optimising for the ${impact.queryTypes} different information needs.`;
     } else {
         return `Citizens are struggling to find what they need. Only ${successfulSeekers} of ${formatNumber(totalSeekers)} citizens successfully engaged with the content. Focus on improving content clarity and relevance for the ${impact.queryTypes} different query types.`;
     }
@@ -20653,7 +20563,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
         }
         
         // Calculate trend lines and anomalies
-        const analysisData = analyzeTimelineData(chartData);
+        const analysisData = analyseTimelineData(chartData);
         
         // Update the metrics display with real chart data
         updateMetricsFromChartData(chartData, dashboardId);
@@ -21081,7 +20991,7 @@ function is2xOr5x(value) {
 }
 
 // Analyze timeline data for anomalies and trends
-function analyzeTimelineData(chartData) {
+function analyseTimelineData(chartData) {
     const impressions = chartData.impressions;
     const clicks = chartData.clicks;
     const anomalyPoints = new Array(impressions.length).fill(null);
@@ -21928,7 +21838,7 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     const peakDivergenceMonth = findPeakDivergenceMonth(processedData);
     const avgPositionChange = afterAvg.position && beforeAvg.position ? 
         (afterAvg.position - beforeAvg.position).toFixed(1) : '+0.8';
-    const topAffectedQueries = analyzeAffectedQueries(gscData);
+    const topAffectedQueries = analyseAffectedQueries(gscData);
     
     return {
         ctrDecline: Math.max(ctrDecline, 0),
@@ -22083,7 +21993,7 @@ function findPeakDivergenceMonth(processedData) {
     return peakMonth;
 }
 
-function analyzeAffectedQueries(gscData) {
+function analyseAffectedQueries(gscData) {
     // This would analyze query patterns if query dimension is available
     // For now, return common patterns
     if (!gscData?.rows) return 'Informational queries';
@@ -22392,10 +22302,10 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
     const positionRange = getPositionRange(avgPosition);
     
     // Get device insights
-    const deviceInsight = analyzeDeviceImpact(gscData);
+    const deviceInsight = analyseDeviceImpact(gscData);
     
     // Get query analysis
-    const queryAnalysis = analyzeTopQueries(gscData, url);
+    const queryAnalysis = analyseTopQueries(gscData, url);
     
     // Get technical and content actions
     const technicalAction = getTechnicalAction(url, gscData);
@@ -22496,7 +22406,7 @@ function generateAIRecommendations(impactMetrics, gscData, url) {
             priority: 'urgent',
             icon: '🎯',
             title: 'Target Alternative Keywords',
-            description: 'Research and optimize for long-tail, action-oriented queries less affected by AI'
+            description: 'Research and optimise for long-tail, action-oriented queries less affected by AI'
         });
     }
     
@@ -22572,7 +22482,7 @@ function getPositionRange(avgPosition) {
     return '16+';
 }
 
-function analyzeDeviceImpact(gscData) {
+function analyseDeviceImpact(gscData) {
     // In real implementation, analyze device-specific CTR differences
     // For now, provide general guidance
     const desktopCTR = gscData?.desktopCTR || 0;
@@ -22585,7 +22495,7 @@ function analyzeDeviceImpact(gscData) {
     return '<p class="device-insight"><strong>💻 Device Analysis:</strong> Desktop searches show the highest AI impact, with mobile users still more likely to click through to your page.</p>';
 }
 
-function analyzeTopQueries(gscData, url) {
+function analyseTopQueries(gscData, url) {
     // Analyze query patterns - would need real query data in production
     const queries = gscData?.topQueries || [];
     
@@ -22669,14 +22579,14 @@ function getStrategicRecommendation2(impactMetrics) {
     const ctrDecline = impactMetrics.ctrDecline || 0;
     
     if (ctrDecline > 5 && trend === 'accelerating') {
-        return '<strong>Emergency optimization needed</strong> - Implement all technical fixes within 2 weeks';
+        return '<strong>Emergency optimisation needed</strong> - Implement all technical fixes within 2 weeks';
     } else if (ctrDecline > 5 && trend === 'stable') {
-        return '<strong>Systematic improvement plan</strong> - Focus on one optimization per week';
+        return '<strong>Systematic improvement plan</strong> - Focus on one optimisation per week';
     } else if (trend === 'improving') {
         return '<strong>Document success factors</strong> - Share what\'s working with other content teams';
     }
     
-    return '<strong>Monitor and optimize</strong> - Track changes weekly and adjust strategy';
+    return '<strong>Monitor and optimise</strong> - Track changes weekly and adjust strategy';
 }
 
 function getStrategicRecommendation3(url, gscData) {
@@ -22810,17 +22720,17 @@ function getOutlookMessage(impactMetrics, ctrDecline, impressionGrowth) {
         const monthsToCritical = calculateMonthsToCritical(ctrDecline);
         return `<strong>Urgent action required:</strong> Project 75% traffic loss within ${monthsToCritical} months without intervention. The combination of ${ctrDecline}% CTR decline and ${impressionGrowth}% impression growth shows classic AI Overview displacement.`;
     } else if (severity === 'high' && trend === 'stable') {
-        return `<strong>Immediate optimization window:</strong> Traffic has plateaued but remains severely impacted. Strategic improvements now can prevent further losses.`;
+        return `<strong>Immediate optimisation window:</strong> Traffic has plateaued but remains severely impacted. Strategic improvements now can prevent further losses.`;
     } else if (severity === 'moderate' && trend === 'accelerating') {
         const criticalDate = calculateCriticalDate(ctrDecline);
-        return `<strong>Preventive action recommended:</strong> Current trajectory leads to critical impact by ${criticalDate}. Implement optimizations now to change course.`;
+        return `<strong>Preventive action recommended:</strong> Current trajectory leads to critical impact by ${criticalDate}. Implement optimisations now to change course.`;
     } else if (severity === 'moderate' && trend === 'stable') {
         return `<strong>Optimization opportunity:</strong> Strategic improvements can restore significant traffic. Focus on unique value that AI cannot replicate.`;
     } else if (severity === 'low') {
         return `<strong>Defensive positioning:</strong> This page shows AI resistance - protect and replicate these qualities across other content.`;
     }
     
-    return `<strong>Success model:</strong> Recent optimizations show ${Math.abs(ctrDecline)}% recovery - continue and document approach for other pages.`;
+    return `<strong>Success model:</strong> Recent optimisations show ${Math.abs(ctrDecline)}% recovery - continue and document approach for other pages.`;
 }
 
 function getPublicServiceWarning(url) {
