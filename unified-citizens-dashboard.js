@@ -16871,50 +16871,55 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
     
     return `
         <div class="section citizen-query-intelligence">
-            <h2 class="section-title">🧠 Citizen Query Intelligence</h2>
-            <div class="citizen-analysis-explanation">
-                <p><strong>Understanding What Citizens Really Want:</strong> This analysis examines real citizen searches to identify their needs, problems, and opportunities to serve them better through your content.</p>
+            <div class="section-header">
+                <h2 class="section-title">🧠 Citizen Query Intelligence</h2>
+                <div class="section-subtitle">Understanding what citizens really need through their search behaviour</div>
             </div>
             
-            <!-- Executive Summary for Management -->
-            <div class="executive-summary">
-                <h3>📊 Executive Summary</h3>
-                <div class="summary-grid">
-                    <div class="summary-card citizens-reached">
-                        <div class="summary-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
-                        <div class="summary-label">Analysed Search Volume</div>
-                        <div class="summary-subtitle">Trackable searches reported by Google Search Console</div>
+            <!-- Key Metrics Overview -->
+            <div class="intelligence-overview">
+                <div class="overview-metrics">
+                    <div class="metric-card primary">
+                        <div class="metric-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
+                        <div class="metric-label">Search Volume Analysed</div>
                     </div>
-                    <div class="summary-card urgent-needs">
-                        <div class="summary-number">${analysis.summary.urgentQueries}</div>
-                        <div class="summary-label">Urgent Citizen Needs</div>
-                        <div class="summary-subtitle">Queries requiring immediate attention</div>
+                    <div class="metric-card ${analysis.summary.urgentQueries > 0 ? 'urgent' : 'neutral'}">
+                        <div class="metric-number">${analysis.summary.urgentQueries}</div>
+                        <div class="metric-label">Urgent Needs Detected</div>
                     </div>
-                    <div class="summary-card improvement-opportunities">
-                        <div class="summary-number">${analysis.summary.opportunities}</div>
-                        <div class="summary-label">Improvement Opportunities</div>
-                        <div class="summary-subtitle">Ways to better serve citizens</div>
-                    </div>
-                    <div class="summary-card journey-stages">
-                        <div class="summary-number">${Object.keys(analysis.summary.byIntent).filter(intent => analysis.summary.byIntent[intent] > 0).length}</div>
-                        <div class="summary-label">Active Journey Stages</div>
-                        <div class="summary-subtitle">Different citizen needs identified</div>
+                    <div class="metric-card opportunity">
+                        <div class="metric-number">${analysis.summary.opportunities}</div>
+                        <div class="metric-label">Improvement Opportunities</div>
                     </div>
                 </div>
+                ${analysis.summary.urgentQueries > 0 ? 
+                    '<div class="urgent-alert">⚠️ <strong>Action Required:</strong> ' + analysis.summary.urgentQueries + ' urgent citizen needs identified</div>' : 
+                    '<div class="status-good">✅ No urgent citizen needs requiring immediate attention</div>'
+                }
             </div>
             
-            <!-- Citizen Analysis Tabs -->
+            <!-- Detailed Analysis -->
             <div class="citizen-analysis-tabs">
                 <div class="citizen-tab-nav">
                     <button class="citizen-tab-btn active" data-citizen-tab="journey">
-                        <span class="tab-icon">🗺️</span>
-                        <span class="tab-label">Journey Analysis</span>
-                        ${analysis.summary.urgentQueries > 0 ? `<span class="tab-badge">${analysis.summary.urgentQueries}</span>` : ''}
+                        <div class="tab-content">
+                            <span class="tab-icon">🗺️</span>
+                            <div class="tab-text">
+                                <span class="tab-label">Citizen Journey</span>
+                                <span class="tab-desc">How citizens search for services</span>
+                            </div>
+                        </div>
+                        ${analysis.summary.urgentQueries > 0 ? `<span class="tab-badge urgent">${analysis.summary.urgentQueries}</span>` : ''}
                     </button>
                     <button class="citizen-tab-btn" data-citizen-tab="opportunities">
-                        <span class="tab-icon">🎯</span>
-                        <span class="tab-label">Opportunities</span>
-                        ${analysis.summary.opportunities > 0 ? `<span class="tab-badge">${analysis.summary.opportunities}</span>` : ''}
+                        <div class="tab-content">
+                            <span class="tab-icon">🎯</span>
+                            <div class="tab-text">
+                                <span class="tab-label">Opportunities</span>
+                                <span class="tab-desc">Ways to improve content</span>
+                            </div>
+                        </div>
+                        ${analysis.summary.opportunities > 0 ? `<span class="tab-badge opportunity">${analysis.summary.opportunities}</span>` : ''}
                     </button>
                 </div>
                 
@@ -17064,141 +17069,210 @@ function createCitizenQueryIntelligenceStyles() {
             .citizen-query-intelligence {
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
                 border-left: 4px solid #3b82f6;
-                border-radius: 12px;
-                padding: 24px;
-                margin-bottom: 24px;
+                border-radius: 16px;
+                padding: 32px;
+                margin-bottom: 32px;
             }
             
-            .citizen-analysis-explanation {
-                background: rgba(59, 130, 246, 0.1);
-                padding: 16px;
-                border-radius: 8px;
-                margin-bottom: 24px;
-                border-left: 3px solid #3b82f6;
-            }
-            
-            /* Executive Summary */
-            .executive-summary {
-                background: white;
-                border-radius: 12px;
-                padding: 20px;
-                margin-bottom: 24px;
-                border: 1px solid #e2e8f0;
-            }
-            
-            .summary-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 16px;
-                margin-top: 16px;
-            }
-            
-            .summary-card {
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                padding: 20px;
-                border-radius: 10px;
+            .citizen-query-intelligence .section-header {
                 text-align: center;
-                border: 1px solid #e2e8f0;
+                margin-bottom: 32px;
             }
             
-            .summary-card.citizens-reached {
+            .citizen-query-intelligence .section-title {
+                font-size: 1.75rem;
+                margin-bottom: 8px;
+                color: #1f2937;
+            }
+            
+            .citizen-query-intelligence .section-subtitle {
+                font-size: 1rem;
+                color: #6b7280;
+                font-weight: 400;
+            }
+            
+            /* Intelligence Overview */
+            .intelligence-overview {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 32px;
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            
+            .overview-metrics {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin-bottom: 24px;
+            }
+            
+            .overview-metrics .metric-card {
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                padding: 24px;
+                border-radius: 12px;
+                text-align: center;
+                border: 2px solid #e2e8f0;
+                transition: all 0.3s ease;
+            }
+            
+            .overview-metrics .metric-card.primary {
                 background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
                 border-color: #10b981;
             }
             
-            .summary-card.urgent-needs {
+            .overview-metrics .metric-card.urgent {
                 background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
                 border-color: #ef4444;
             }
             
-            .summary-card.improvement-opportunities {
+            .overview-metrics .metric-card.neutral {
+                background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                border-color: #94a3b8;
+            }
+            
+            .overview-metrics .metric-card.opportunity {
                 background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
                 border-color: #f59e0b;
             }
             
-            .summary-card.journey-stages {
-                background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
-                border-color: #8b5cf6;
-            }
-            
-            .summary-number {
-                font-size: 2.2rem;
+            .overview-metrics .metric-number {
+                font-size: 2.5rem;
                 font-weight: 800;
                 color: #1f2937;
-                margin-bottom: 4px;
+                margin-bottom: 8px;
+                line-height: 1;
             }
             
-            .summary-label {
-                font-size: 0.9rem;
+            .overview-metrics .metric-label {
+                font-size: 1rem;
                 color: #374151;
                 font-weight: 600;
-                margin-bottom: 4px;
             }
             
-            .summary-subtitle {
-                font-size: 0.75rem;
-                color: #6b7280;
-                font-style: italic;
+            .urgent-alert {
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                color: #dc2626;
+                padding: 16px 20px;
+                border-radius: 12px;
+                border: 1px solid #fecaca;
+                text-align: center;
+                font-weight: 600;
             }
             
-            /* Tabs */
+            .status-good {
+                background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                color: #059669;
+                padding: 16px 20px;
+                border-radius: 12px;
+                border: 1px solid #a7f3d0;
+                text-align: center;
+                font-weight: 600;
+            }
+            
+            /* Improved Tabs */
             .citizen-analysis-tabs {
                 background: white;
-                border-radius: 12px;
+                border-radius: 16px;
                 overflow: hidden;
                 border: 1px solid #e2e8f0;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             }
             
             .citizen-tab-nav {
                 display: flex;
                 background: #f8fafc;
                 border-bottom: 1px solid #e2e8f0;
+                padding: 8px;
+                gap: 8px;
             }
             
             .citizen-tab-btn {
                 flex: 1;
-                padding: 16px 20px;
+                padding: 20px 16px;
                 border: none;
-                background: none;
+                background: transparent;
                 cursor: pointer;
                 color: #64748b;
-                border-bottom: 3px solid transparent;
-                transition: all 0.2s ease;
+                border-radius: 12px;
+                transition: all 0.3s ease;
+                position: relative;
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                gap: 8px;
-                font-family: inherit;
-                font-weight: 600;
-                position: relative;
+                justify-content: space-between;
+                min-height: 80px;
             }
             
-            .citizen-tab-btn:hover:not(.active) {
-                color: #475569;
-                background: rgba(0,0,0,0.02);
+            .citizen-tab-btn:hover {
+                background: rgba(59, 130, 246, 0.1);
+                color: #3b82f6;
+                transform: translateY(-2px);
             }
             
             .citizen-tab-btn.active {
-                color: #1e293b;
-                border-bottom-color: #3b82f6;
                 background: white;
+                color: #1f2937;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+                border: 1px solid #3b82f6;
+            }
+            
+            .citizen-tab-btn .tab-content {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                flex: 1;
+            }
+            
+            .citizen-tab-btn .tab-icon {
+                font-size: 1.5rem;
+                flex-shrink: 0;
+            }
+            
+            .citizen-tab-btn .tab-text {
+                text-align: left;
+            }
+            
+            .citizen-tab-btn .tab-label {
+                display: block;
+                font-size: 1rem;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            
+            .citizen-tab-btn .tab-desc {
+                display: block;
+                font-size: 0.875rem;
+                opacity: 0.7;
+                font-weight: 400;
             }
             
             .tab-badge {
+                background: #ef4444;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
                 position: absolute;
                 top: 8px;
                 right: 8px;
+                min-width: 20px;
+                text-align: center;
+            }
+            
+            .tab-badge.opportunity {
+                background: #f59e0b;
+            }
+            
+            .tab-badge.urgent {
                 background: #ef4444;
-                color: white;
-                border-radius: 10px;
-                padding: 2px 6px;
-                font-size: 0.7rem;
-                font-weight: 700;
-                min-width: 18px;
-                height: 18px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.7; }
             }
             
             .citizen-tab-content {
@@ -17207,7 +17281,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .citizen-tab-panel {
                 display: none;
-                padding: 24px;
+                padding: 32px;
             }
             
             .citizen-tab-panel.active {
