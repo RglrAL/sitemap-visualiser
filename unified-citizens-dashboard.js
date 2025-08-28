@@ -1,6 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
-// LAST UPDATED: 2025-08-27 16:20 - Fixed Geographic Search Analysis placeholder showing when GSC data is available
+// LAST UPDATED: 2025-08-27 16:25 - Removed coverage summary, matched international layout to Irish counties
 
 (function() {
     'use strict';
@@ -3887,6 +3887,14 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             font-weight: 600;
             font-size: 1.05rem;
             color: #1f2937 !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .country-flag-large {
+            font-size: 1.5rem;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
         }
         
         .county-metrics {
@@ -4303,10 +4311,6 @@ function createCleanIrelandView(regions, geoInsights) {
     
     return `
         <div class="clean-regional-overview">
-            <div class="analysis-summary">
-                <p><strong>Coverage:</strong> Serving citizens across ${regions.length} regions with ${geoInsights.dublinPercentage}% concentration in Dublin.</p>
-            </div>
-            
             <div class="regional-stats">
                 <div class="stat-item">
                     <span class="stat-number">${geoInsights.dublinPercentage}%</span>
@@ -4375,14 +4379,18 @@ function createCleanInternationalView(countries, geoInsights) {
                 </div>
             </div>
             
-            <div class="international-breakdown">
-                ${international.map(country => `
-                    <div class="country-item">
-                        <div class="country-info">
-                            <span class="country-flag">${getCountryFlagEnhanced(country.country)}</span>
-                            <span class="country-name">${country.country}</span>
-                            <span class="country-percentage">${country.percentage.toFixed(1)}%</span>
+            <div class="county-performance-grid">
+                ${international.slice(0, 12).map(country => `
+                    <div class="county-performance-item">
+                        <div class="county-name">
+                            <span class="country-flag-large">${getCountryFlagEnhanced(country.country)}</span>
+                            ${country.country}
                         </div>
+                        <div class="county-metrics">
+                            <span class="metric-value">${formatNumber(country.users)}</span>
+                            <span class="metric-label">users</span>
+                        </div>
+                        <div class="county-share">${country.percentage.toFixed(1)}%</div>
                     </div>
                 `).join('')}
             </div>
@@ -4742,7 +4750,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
         opportunityScore: Math.round(opportunityScore),
         primaryOpportunity,
         totalCountries: countries.length,
-        internationalPercentage: ireland ? ((internationalUsers / ireland.users) * 100).toFixed(1) : '0',
+        internationalPercentage: ireland ? ((internationalUsers / (internationalUsers + ireland.users)) * 100).toFixed(1) : '0',
         diasporaIndicator: internationalCountries.length > 5 ? 'High' : internationalCountries.length > 2 ? 'Medium' : 'Low',
         
         // Enhanced trend indicators
@@ -19925,7 +19933,7 @@ function processGeographicDataEnhanced(geoData, gscData) {
         opportunityScore: Math.round(opportunityScore),
         primaryOpportunity,
         totalCountries: countries.length,
-        internationalPercentage: ireland ? ((internationalUsers / ireland.users) * 100).toFixed(1) : '0',
+        internationalPercentage: ireland ? ((internationalUsers / (internationalUsers + ireland.users)) * 100).toFixed(1) : '0',
         diasporaIndicator: internationalCountries.length > 5 ? 'High' : internationalCountries.length > 2 ? 'Medium' : 'Low',
         
         // Enhanced trend indicators
