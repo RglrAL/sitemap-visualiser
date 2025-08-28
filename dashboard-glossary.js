@@ -257,7 +257,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: '(Clicks ÷ Impressions) × 100',
             benchmark: 'Position 1: ~28%, Position 2: ~15%, Position 3: ~11%, Position 4-5: ~6%',
             example: '5.2% CTR means 52 people clicked for every 1,000 who saw your page in search',
-            relatedTerms: ['Click Rate', 'Search CTR', 'Organic CTR']
+            relatedTerms: ['Click Rate', 'Search CTR', 'Clicks', 'Impressions']
         },
         
         'Clicks': {
@@ -267,7 +267,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Direct count from Search Console',
             benchmark: 'Varies by content type - government pages typically 100-1,000+ monthly',
             example: '245 clicks means 245 people visited your page from Google search this month',
-            relatedTerms: ['Search Clicks', 'Organic Clicks', 'GSC Clicks']
+            relatedTerms: ['Search Clicks', 'Organic Clicks', 'CTR']
         },
         
         'Impressions': {
@@ -277,7 +277,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Direct count from Search Console',
             benchmark: 'Good: 10x more than clicks, Excellent: 20x+ more than clicks',
             example: '5,000 impressions means your page appeared in search results 5,000 times',
-            relatedTerms: ['Search Impressions', 'SERP Appearances', 'Visibility']
+            relatedTerms: ['Search Impressions', 'SERP Appearances', 'CTR']
         },
         
         'Average Position': {
@@ -287,17 +287,27 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Weighted average of all query positions',
             benchmark: 'Excellent: 1-3, Good: 4-10, Fair: 11-20, Poor: 20+',
             example: 'Position 5.2 means your page typically appears 5th-6th in search results',
-            relatedTerms: ['Ranking', 'SERP Position', 'Search Ranking']
+            relatedTerms: ['Ranking', 'SERP Position', 'Search Score']
         },
         
         'Top Queries': {
             category: 'Search Console',
             source: 'search_console',
             definition: 'Most common search terms that lead people to your page.',
-            calculation: 'Ranked by clicks or impressions',
+            calculation: 'Ranked by clicks or impressions from Search Console',
             benchmark: 'Top query should represent 10-30% of total traffic',
             example: '"passport application" bringing 45 clicks shows citizens need passport info',
-            relatedTerms: ['Search Queries', 'Keywords', 'Search Terms']
+            relatedTerms: ['Search Queries', 'Keywords', 'Opportunity Queries']
+        },
+
+        'Opportunity Queries': {
+            category: 'Search Console',
+            source: 'calculated',
+            definition: 'High impressions queries with low CTR that represent optimization opportunities.',
+            calculation: 'Queries with high impressions but below-average CTR for their position',
+            benchmark: 'CTR improvement potential >50% indicates high-value opportunity',
+            example: 'Query with 1,000 impressions but 1% CTR when benchmark is 3% CTR',
+            relatedTerms: ['Top Queries', 'CTR Gap Analysis', 'Quick Wins']
         },
         
         // Google Analytics Metrics
@@ -308,27 +318,47 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Distinct count based on Google Analytics user identification',
             benchmark: 'Government pages: 500-5,000+ monthly users typical',
             example: '1,250 users means 1,250 different people visited your page',
-            relatedTerms: ['Unique Visitors', 'Distinct Users', 'People']
+            relatedTerms: ['New Users', 'Active Users', 'Citizens Reached']
+        },
+
+        'New Users': {
+            category: 'Google Analytics',
+            source: 'ga4',
+            definition: 'Number of users visiting your page for the first time in the selected period.',
+            calculation: 'GA4 count of users with no previous sessions',
+            benchmark: '60-80% new users indicates strong discovery performance',
+            example: '800 new users out of 1,250 total means good content discoverability',
+            relatedTerms: ['Users', 'Active Users', 'Discovery']
+        },
+
+        'Active Users': {
+            category: 'Google Analytics',
+            source: 'ga4',
+            definition: 'Users who had at least one engaged session during the selected period.',
+            calculation: 'GA4 count of users with engaged sessions (10+ seconds, conversion, or 2+ page views)',
+            benchmark: 'Should be 70-90% of total users for quality content',
+            example: '1,100 active users from 1,250 total shows engaging content',
+            relatedTerms: ['Users', 'Engaged Sessions', 'Engagement Rate']
         },
         
         'Page Views': {
             category: 'Google Analytics',
             source: 'ga4',
             definition: 'Total number of times your page was viewed (includes repeat visits).',
-            calculation: 'Count of all page view events',
+            calculation: 'Count of all page view events from GA4',
             benchmark: 'Typically 1.2-2.5x higher than users (people viewing multiple times)',
             example: '1,800 page views from 1,250 users means some people returned',
-            relatedTerms: ['Views', 'Page Hits', 'Total Views']
+            relatedTerms: ['Screen Page Views', 'Sessions', 'Users']
         },
         
         'Sessions': {
             category: 'Google Analytics',
             source: 'ga4',
             definition: 'Number of visits to your website (a session can include multiple pages).',
-            calculation: 'Count of distinct user sessions',
+            calculation: 'Count of distinct user sessions from GA4',
             benchmark: 'Usually similar to Users for single-page analysis',
             example: '1,300 sessions means people made 1,300 separate visits',
-            relatedTerms: ['Visits', 'Site Sessions', 'User Sessions']
+            relatedTerms: ['Users', 'Page Views', 'Engaged Sessions']
         },
         
         'Average Session Duration': {
@@ -338,7 +368,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Total session duration ÷ Number of sessions',
             benchmark: 'Government: 52+ seconds excellent, 35+ good, 20+ fair',
             example: '2:15 duration means people typically spend 2 minutes 15 seconds reading',
-            relatedTerms: ['Time on Page', 'Session Length', 'Engagement Time']
+            relatedTerms: ['Engagement Score', 'Bounce Rate', 'Content Helpfulness']
         },
         
         'Bounce Rate': {
@@ -348,7 +378,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: '(Single-page sessions ÷ Total sessions) × 100',
             benchmark: 'Government: <40% excellent, 40-60% good, 60-80% fair, >80% poor',
             example: '35% bounce rate means 35 out of 100 visitors left immediately',
-            relatedTerms: ['Exit Rate', 'Single Page Sessions', 'Immediate Exits']
+            relatedTerms: ['Engagement Rate', 'Content Helpfulness', 'Engagement Score']
         },
         
         'Engagement Rate': {
@@ -358,10 +388,10 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: '(Engaged sessions ÷ Total sessions) × 100',
             benchmark: 'Government benchmark: 50%+ excellent, 35%+ good, 20%+ fair',
             example: '65% engagement rate means 65 out of 100 visitors actively engaged',
-            relatedTerms: ['User Engagement', 'Active Sessions', 'Content Engagement']
+            relatedTerms: ['Active Users', 'Bounce Rate', 'Engagement Score']
         },
         
-        // Dashboard Calculations
+        // Dashboard Calculated Scores
         'Quality Score': {
             category: 'Dashboard Calculations',
             source: 'calculated',
@@ -369,100 +399,109 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: '(Search Score + Engagement Score + Relevance Score + UX Score) ÷ 4',
             benchmark: 'A: 85+, B: 75+, C: 65+, D: 55+, F: <55',
             example: 'Quality Score 78 (B grade) indicates good overall performance',
-            relatedTerms: ['Performance Score', 'Content Rating', 'Overall Score']
+            relatedTerms: ['Search Score', 'Engagement Score', 'Priority Score']
         },
         
         'Search Score': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'How well your page performs in search results.',
-            calculation: '(Position Score + CTR Score) ÷ 2, where Position Score = max(0, 100 - position × 5) and CTR Score = min(100, CTR × 1000)',
+            definition: 'How well your page performs in search results based on position and CTR.',
+            calculation: '(Position Score + CTR Score) ÷ 2, considering benchmarks for ranking position',
             benchmark: '80+: Excellent, 60+: Good, 40+: Fair, <40: Poor',
             example: 'Search Score 72 indicates good search performance',
-            relatedTerms: ['SEO Score', 'Search Performance', 'Visibility Score']
+            relatedTerms: ['Average Position', 'CTR', 'Quality Score']
         },
         
         'Engagement Score': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'How well your page engages visitors.',
-            calculation: '(Duration Score + Bounce Score) ÷ 2, where Duration Score = min(100, session duration ÷ 300 × 100) and Bounce Score = max(0, (1 - bounce rate) × 100)',
+            definition: 'How well your page engages visitors based on time and bounce rate.',
+            calculation: 'Combines session duration performance and bounce rate inverse',
             benchmark: '80+: Highly engaging, 60+: Good, 40+: Fair, <40: Poor',
             example: 'Engagement Score 68 shows good user engagement',
-            relatedTerms: ['User Engagement', 'Content Engagement', 'Interaction Score']
+            relatedTerms: ['Average Session Duration', 'Bounce Rate', 'Quality Score']
+        },
+
+        'Priority Score': {
+            category: 'Dashboard Calculations',
+            source: 'calculated',
+            definition: 'Government framework weighted score combining traffic, growth, search, and discovery.',
+            calculation: 'Traffic 40% + Growth 25% + Search 20% + Discovery 15%',
+            benchmark: '80+: Critical priority, 60+: High, 40+: Medium, <40: Low',
+            example: 'Priority Score 75 indicates high-priority content for improvement',
+            relatedTerms: ['Quality Score', 'Traffic Grade', 'Growth Component']
+        },
+
+        'Traffic Grade': {
+            category: 'Dashboard Calculations',
+            source: 'calculated',
+            definition: 'Letter grade assessment of traffic volume based on click thresholds.',
+            calculation: 'A+: 1000+ clicks, A: 500+, B: 100+, C: 50+, D: 10+, F: <10',
+            benchmark: 'B grade or higher indicates strong traffic performance',
+            example: 'Traffic Grade B means 100-499 monthly clicks from search',
+            relatedTerms: ['Clicks', 'CTR Grade', 'Priority Score']
+        },
+
+        'CTR Grade': {
+            category: 'Dashboard Calculations',
+            source: 'calculated',
+            definition: 'Letter grade comparing actual CTR to position-based benchmarks.',
+            calculation: 'Ratio of actual CTR vs expected CTR for ranking position',
+            benchmark: 'A+: 150%+ of benchmark, A: 120%+, B: 100%+, C: 80%+',
+            example: 'CTR Grade A means you exceed expected click rate for your position',
+            relatedTerms: ['CTR', 'Average Position', 'Traffic Grade']
         },
         
         // Impact Metrics
         'Citizens Reached': {
             category: 'Impact Metrics',
             source: 'calculated',
-            definition: 'Total number of citizens who accessed your content monthly.',
-            calculation: 'Search Clicks + Unique Users (with overlap consideration)',
+            definition: 'Total number of citizens who accessed your content, combining search clicks and direct users.',
+            calculation: 'Search Console clicks + GA4 users (with overlap consideration)',
             benchmark: 'Varies by service type - aim for consistent monthly growth',
             example: '2,850 citizens reached means your content helped 2,850 people find information',
-            relatedTerms: ['Monthly Reach', 'Citizen Engagement', 'Public Impact']
+            relatedTerms: ['Users', 'Clicks', 'Monthly Reach']
         },
         
         'Content Helpfulness': {
             category: 'Impact Metrics',
             source: 'calculated',
-            definition: 'Percentage indicating how helpful your content is to citizens.',
+            definition: 'Percentage indicating how helpful your content is to citizens based on engagement.',
             calculation: '((1 - Bounce Rate) × 50) + (min(100, Session Duration ÷ 180) × 50)',
             benchmark: '80+%: Very helpful, 65+%: Helpful, 50+%: Somewhat helpful, <50%: Needs improvement',
             example: '72% helpfulness means most citizens find your content useful',
-            relatedTerms: ['Content Effectiveness', 'User Satisfaction', 'Service Quality']
-        },
-        
-        // Technical Performance
-        'Core Web Vitals': {
-            category: 'Technical Performance',
-            source: 'ga4',
-            definition: 'Google\'s user experience metrics measuring loading, interactivity, and visual stability.',
-            calculation: 'LCP (Largest Contentful Paint) + FID (First Input Delay) + CLS (Cumulative Layout Shift)',
-            benchmark: 'Good: LCP <2.5s, FID <100ms, CLS <0.1',
-            example: 'LCP 1.8s, FID 45ms, CLS 0.05 = Excellent Core Web Vitals score',
-            relatedTerms: ['Page Speed', 'User Experience', 'SEO Performance']
-        },
-        
-        'Page Load Speed': {
-            category: 'Technical Performance',
-            source: 'ga4',
-            definition: 'Time taken for a web page to completely load and display all content.',
-            calculation: 'Time from navigation start to load event completion',
-            benchmark: 'Excellent: <1s, Good: 1-3s, Fair: 3-5s, Poor: >5s',
-            example: '2.3 second load time provides good user experience',
-            relatedTerms: ['Core Web Vitals', 'User Experience', 'Bounce Rate']
-        },
-        
-        'Accessibility Score': {
-            category: 'Technical Performance',
-            source: 'calculated',
-            definition: 'Website compliance with accessibility standards for users with disabilities.',
-            calculation: 'WCAG 2.1 compliance + screen reader compatibility + keyboard navigation',
-            benchmark: 'AA compliance required, AAA preferred for government sites',
-            example: 'WCAG AA compliance ensures 95% of users can access content',
-            relatedTerms: ['User Experience', 'Government Standards', 'Inclusion']
+            relatedTerms: ['Bounce Rate', 'Average Session Duration', 'Engagement Score']
         },
         
         // Geographic Intelligence
+        'Dublin Concentration': {
+            category: 'Geographic Intelligence',
+            source: 'calculated',
+            definition: 'Percentage of your Irish users located in Dublin metropolitan area.',
+            calculation: '(Dublin Users ÷ Total Irish Users) × 100',
+            benchmark: '<30%: Well distributed, 30-50%: Moderate concentration, >50%: High concentration',
+            example: '42% Dublin concentration suggests service accessibility focus may be needed',
+            relatedTerms: ['Regional Distribution', 'International Traffic', 'Geographic Spread']
+        },
+
+        'International Traffic': {
+            category: 'Geographic Intelligence',
+            source: 'calculated',
+            definition: 'Percentage of users accessing your content from outside Ireland.',
+            calculation: '(Non-Irish Users ÷ Total Users) × 100',
+            benchmark: 'Varies by service type - immigration services typically 40%+',
+            example: '23% international traffic shows global interest in Irish services',
+            relatedTerms: ['Dublin Concentration', 'Regional Distribution', 'Countries']
+        },
+
         'Regional Distribution': {
             category: 'Geographic Intelligence',
             source: 'ga4',
             definition: 'How your users are spread across Irish counties and regions.',
-            calculation: 'Percentage breakdown from GA4 geographic data',
-            benchmark: 'Balanced: <40% Dublin, Concentrated: >50% Dublin',
-            example: '38% Dublin distribution shows good regional balance',
-            relatedTerms: ['Geographic Spread', 'Regional Access', 'County Coverage']
-        },
-        
-        'Dublin Concentration': {
-            category: 'Geographic Intelligence',
-            source: 'calculated',
-            definition: 'Percentage of your users located in Dublin metropolitan area.',
-            calculation: '(Dublin Users ÷ Total Irish Users) × 100',
-            benchmark: '<30%: Distributed, 30-50%: Moderate, >50%: High concentration',
-            example: '42% Dublin concentration suggests service accessibility focus needed',
-            relatedTerms: ['Capital Concentration', 'Urban Focus', 'Metropolitan Bias']
+            calculation: 'Percentage breakdown from GA4 geographic data by region',
+            benchmark: 'Balanced distribution reflects equitable service access',
+            example: 'Even spread across regions indicates good nationwide service accessibility',
+            relatedTerms: ['Dublin Concentration', 'International Traffic', 'Cities']
         },
         
         // Traffic Sources
@@ -473,7 +512,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Users from Google, Bing, other search engines (excluding ads)',
             benchmark: '60-80% organic traffic indicates strong SEO performance',
             example: '1,200 organic visitors means people found you through search',
-            relatedTerms: ['Search Console', 'SEO Performance', 'Clicks']
+            relatedTerms: ['Direct Traffic', 'Search Console', 'Clicks']
         },
         
         'Direct Traffic': {
@@ -483,28 +522,28 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: 'Sessions with no identifiable referral source',
             benchmark: '20-40% direct traffic shows good brand recognition',
             example: '340 direct visits indicate citizens know your URL',
-            relatedTerms: ['Brand Awareness', 'Return Visitors', 'Bookmarks']
+            relatedTerms: ['Organic Traffic', 'Session Sources', 'Return Visitors']
         },
-        
-        // Citizen Experience
-        'User Satisfaction Score': {
-            category: 'Citizen Experience',
-            source: 'calculated',
-            definition: 'Survey-based measurement of citizen happiness with digital services.',
-            calculation: 'Average rating from user feedback surveys (1-10 scale)',
-            benchmark: '8.0+ excellent, 7.0+ good, 6.0+ acceptable citizen satisfaction',
-            example: '8.2 satisfaction score indicates citizens are very happy',
-            relatedTerms: ['Service Quality', 'User Experience', 'Citizen Feedback']
-        },
-        
-        'Task Completion Rate': {
-            category: 'Digital Service Delivery',
+
+        // Device Performance
+        'Mobile Users': {
+            category: 'Device Performance',
             source: 'ga4',
-            definition: 'Percentage of users who successfully complete their intended actions.',
-            calculation: '(Completed tasks ÷ Attempted tasks) × 100',
-            benchmark: '80%+ excellent, 60%+ good for complex government processes',
-            example: '78% completion rate means most citizens finish applications',
-            relatedTerms: ['User Success', 'Process Efficiency', 'Service Quality']
+            definition: 'Percentage of users accessing your content via mobile devices.',
+            calculation: '(Mobile Sessions ÷ Total Sessions) × 100',
+            benchmark: '50%+ mobile usage is typical for government services',
+            example: '67% mobile users indicates need for mobile-optimized content',
+            relatedTerms: ['Desktop Users', 'Tablet Users', 'Device Categories']
+        },
+
+        'Desktop Users': {
+            category: 'Device Performance',
+            source: 'ga4',
+            definition: 'Percentage of users accessing your content via desktop computers.',
+            calculation: '(Desktop Sessions ÷ Total Sessions) × 100',
+            benchmark: 'Varies by service complexity - forms typically higher desktop usage',
+            example: '45% desktop users may indicate complex content requiring larger screens',
+            relatedTerms: ['Mobile Users', 'Tablet Users', 'Device Categories']
         }
     };
     
@@ -525,10 +564,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             icon: '🎯',
             description: 'Measurements of real-world citizen service impact and effectiveness'
         },
-        'Technical Performance': {
-            icon: '⚡',
-            description: 'Website speed, accessibility, and technical user experience metrics'
-        },
         'Geographic Intelligence': {
             icon: '🌍',
             description: 'Location-based analysis of service usage across Ireland and internationally'
@@ -537,13 +572,9 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             icon: '🚪',
             description: 'How citizens discover and arrive at your digital services'
         },
-        'Citizen Experience': {
-            icon: '😊',
-            description: 'Overall satisfaction and experience quality metrics for citizens'
-        },
-        'Digital Service Delivery': {
-            icon: '💻',
-            description: 'Effectiveness of online government services and processes'
+        'Device Performance': {
+            icon: '📱',
+            description: 'Usage patterns and performance across mobile, desktop, and tablet devices'
         }
     };
     
