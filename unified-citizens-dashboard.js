@@ -10659,20 +10659,15 @@ function formatDuration(seconds) {
         return `
             <div class="action-center">
                 <div class="action-header">
-                    <h3>🚀 Take Action</h3>
-                    <p>Export your data or take immediate action on this page</p>
+                    <h3>📊 Page Analysis Report</h3>
+                    <p>Complete data insights and recommendations for this page</p>
                 </div>
                 <div class="action-buttons">
-                    <button class="action-btn primary" onclick="window.open('${escapeHtml(url)}', '_blank')">
-                        <span class="btn-icon">🔗</span>
-                        <span class="btn-text">Visit Page</span>
-                    </button>
-                   
-                    <button class="action-btn secondary" onclick="copyUnifiedSummary('${escapeHtml(url)}')">
+                    <button class="action-btn primary full-width" onclick="copyUnifiedSummary('${escapeHtml(url)}')">
                         <span class="btn-icon">📋</span>
-                        <span class="btn-text">Copy Summary</span>
+                        <span class="btn-text">Copy Full Report</span>
+                        <span class="btn-subtitle">Complete analysis with recommendations</span>
                     </button>
-                    
                 </div>
             </div>
         `;
@@ -12640,6 +12635,21 @@ function formatDuration(seconds) {
                 .action-btn.primary:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+                }
+                
+                .action-btn.full-width {
+                    flex: 1;
+                    max-width: none;
+                    padding: 20px 24px;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                
+                .action-btn .btn-subtitle {
+                    font-size: 0.8rem;
+                    opacity: 0.9;
+                    font-weight: 400;
+                    line-height: 1.2;
                 }
                 
                 .action-btn.secondary {
