@@ -16902,23 +16902,13 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
             <div class="citizen-analysis-tabs">
                 <div class="citizen-tab-nav">
                     <button class="citizen-tab-btn active" data-citizen-tab="journey">
-                        <div class="tab-content">
-                            <span class="tab-icon">🗺️</span>
-                            <div class="tab-text">
-                                <span class="tab-label">Citizen Journey</span>
-                                <span class="tab-desc">How citizens search for services</span>
-                            </div>
-                        </div>
+                        <span class="tab-icon">🗺️</span>
+                        <span class="tab-label">Citizen Journey</span>
                         ${analysis.summary.urgentQueries > 0 ? `<span class="tab-badge urgent">${analysis.summary.urgentQueries}</span>` : ''}
                     </button>
                     <button class="citizen-tab-btn" data-citizen-tab="opportunities">
-                        <div class="tab-content">
-                            <span class="tab-icon">🎯</span>
-                            <div class="tab-text">
-                                <span class="tab-label">Opportunities</span>
-                                <span class="tab-desc">Ways to improve content</span>
-                            </div>
-                        </div>
+                        <span class="tab-icon">🎯</span>
+                        <span class="tab-label">Opportunities</span>
                         ${analysis.summary.opportunities > 0 ? `<span class="tab-badge opportunity">${analysis.summary.opportunities}</span>` : ''}
                     </button>
                 </div>
@@ -17195,58 +17185,36 @@ function createCitizenQueryIntelligenceStyles() {
                 background: transparent;
                 cursor: pointer;
                 color: #64748b;
-                border-radius: 12px;
-                transition: all 0.3s ease;
+                border-radius: 8px;
+                transition: all 0.2s ease;
                 position: relative;
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                min-height: 60px;
+                justify-content: center;
+                gap: 8px;
+                font-size: 0.9rem;
+                font-weight: 600;
             }
             
             .citizen-tab-btn:hover {
                 background: rgba(59, 130, 246, 0.1);
                 color: #3b82f6;
-                transform: translateY(-2px);
             }
             
             .citizen-tab-btn.active {
                 background: white;
                 color: #1f2937;
-                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+                box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
                 border: 1px solid #3b82f6;
             }
             
-            .citizen-tab-btn .tab-content {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                flex: 1;
-            }
-            
             .citizen-tab-btn .tab-icon {
-                font-size: 1.25rem;
-                flex-shrink: 0;
-            }
-            
-            .citizen-tab-btn .tab-text {
-                text-align: left;
+                font-size: 1.1rem;
             }
             
             .citizen-tab-btn .tab-label {
-                display: block;
-                font-size: 0.95rem;
+                font-size: 0.9rem;
                 font-weight: 600;
-                margin-bottom: 2px;
-                line-height: 1.2;
-            }
-            
-            .citizen-tab-btn .tab-desc {
-                display: block;
-                font-size: 0.8rem;
-                opacity: 0.7;
-                font-weight: 400;
-                line-height: 1.2;
             }
             
             .tab-badge {
