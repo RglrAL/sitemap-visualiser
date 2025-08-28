@@ -17190,7 +17190,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .citizen-tab-btn {
                 flex: 1;
-                padding: 20px 16px;
+                padding: 12px 16px;
                 border: none;
                 background: transparent;
                 cursor: pointer;
@@ -17201,7 +17201,7 @@ function createCitizenQueryIntelligenceStyles() {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                min-height: 80px;
+                min-height: 60px;
             }
             
             .citizen-tab-btn:hover {
@@ -17220,12 +17220,12 @@ function createCitizenQueryIntelligenceStyles() {
             .citizen-tab-btn .tab-content {
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: 12px;
                 flex: 1;
             }
             
             .citizen-tab-btn .tab-icon {
-                font-size: 1.5rem;
+                font-size: 1.25rem;
                 flex-shrink: 0;
             }
             
@@ -17235,16 +17235,18 @@ function createCitizenQueryIntelligenceStyles() {
             
             .citizen-tab-btn .tab-label {
                 display: block;
-                font-size: 1rem;
+                font-size: 0.95rem;
                 font-weight: 600;
-                margin-bottom: 4px;
+                margin-bottom: 2px;
+                line-height: 1.2;
             }
             
             .citizen-tab-btn .tab-desc {
                 display: block;
-                font-size: 0.875rem;
+                font-size: 0.8rem;
                 opacity: 0.7;
                 font-weight: 400;
+                line-height: 1.2;
             }
             
             .tab-badge {
