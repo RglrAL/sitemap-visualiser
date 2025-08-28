@@ -1,6 +1,6 @@
 // unified-citizens-dashboard.js - Complete Plug-and-Play Dashboard
 // Combines the best of both dashboard systems into one unified interface
-// LAST UPDATED: 2025-08-27 15:55 - Enhanced geographic intelligence section styling
+// LAST UPDATED: 2025-08-27 16:05 - Beautiful content styling for County, Demographic & Search Pattern sections
 
 (function() {
     'use strict';
@@ -3806,10 +3806,397 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 transform: translateY(-3px);
             }
         }
+        /* ==================================================
+           ENHANCED CONTENT STYLING FOR GEO SECTIONS
+           ================================================== */
+        
+        /* County-by-County Analysis Styling */
+        .clean-county-analysis {
+            padding: 8px 0;
+        }
+        
+        .analysis-summary {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            padding: 20px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+        
+        .analysis-summary p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #166534 !important;
+        }
+        
+        .analysis-summary strong {
+            color: #14532d !important;
+        }
+        
+        .county-performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .county-performance-item {
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .county-performance-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .county-performance-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            border-color: var(--primary-light);
+        }
+        
+        .county-performance-item:hover::before {
+            opacity: 1;
+        }
+        
+        .county-name {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: #1f2937 !important;
+        }
+        
+        .county-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .county-metrics .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary) !important;
+        }
+        
+        .county-metrics .metric-label {
+            font-size: 0.85rem;
+            color: #6b7280 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .county-share {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--secondary) !important;
+            padding: 8px 16px;
+            background: rgba(114, 163, 0, 0.1);
+            border-radius: 20px;
+            text-align: center;
+            width: fit-content;
+        }
+        
+        /* Demographic Service Patterns Styling */
+        .clean-demographic-analysis {
+            padding: 8px 0;
+        }
+        
+        .demographic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .demographic-item {
+            background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            transition: all 0.3s ease;
+        }
+        
+        .demographic-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+        }
+        
+        .demo-icon {
+            font-size: 2.5rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+        }
+        
+        .demo-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .demo-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .demo-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary) !important;
+        }
+        
+        .demo-detail {
+            font-size: 0.9rem;
+            color: #6b7280 !important;
+            font-weight: 500;
+        }
+        
+        /* Geographic Search Patterns Styling */
+        .clean-search-patterns {
+            padding: 8px 0;
+        }
+        
+        .patterns-summary {
+            background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%);
+            padding: 20px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .patterns-summary p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #1e3a8a !important;
+        }
+        
+        .patterns-summary strong {
+            color: #1e3a8a !important;
+        }
+        
+        .search-patterns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .search-pattern-country {
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .search-pattern-country:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+            border-color: var(--primary-light);
+        }
+        
+        .country-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .country-flag-container {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .country-flag-large {
+            font-size: 2rem;
+        }
+        
+        .country-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .country-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1f2937 !important;
+        }
+        
+        .country-total {
+            font-size: 0.9rem;
+            color: #6b7280 !important;
+        }
+        
+        .country-queries {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .query-pattern-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 8px;
+            border: 1px solid rgba(229, 231, 235, 0.5);
+            transition: all 0.2s ease;
+        }
+        
+        .query-pattern-item:hover {
+            background: rgba(239, 246, 255, 0.8);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        
+        .query-rank {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .query-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .query-text {
+            font-weight: 600;
+            color: #1f2937 !important;
+            font-size: 0.95rem;
+            font-style: italic;
+        }
+        
+        .query-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8rem;
+        }
+        
+        .clicks-stat {
+            color: var(--primary) !important;
+            font-weight: 600;
+        }
+        
+        /* Empty States - Enhanced */
+        .clean-empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-radius: 16px;
+            border: 1px dashed #d1d5db;
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+            filter: grayscale(50%);
+        }
+        
+        .empty-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4b5563 !important;
+            margin-bottom: 8px;
+        }
+        
+        .empty-detail {
+            font-size: 0.9rem;
+            color: #9ca3af !important;
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        /* Responsive Adjustments for Content */
+        @media (max-width: 768px) {
+            .county-performance-grid,
+            .demographic-grid,
+            .search-patterns-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .demographic-item {
+                gap: 16px;
+            }
+            
+            .demo-icon {
+                font-size: 2rem;
+                width: 50px;
+                height: 50px;
+            }
+            
+            .country-header {
+                padding: 16px;
+            }
+            
+            .county-performance-item {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+            
+            .county-metrics {
+                flex-direction: row;
+                align-items: baseline;
+                gap: 8px;
+            }
+        }
+        
         </style>
         <div class="section enhanced-geographic-intelligence">
             <div class="geo-header">
-                <h2 class="section-title">🌍 Geographic Service Intelligence</h2>
+                <h2 class="section-title">🌍 Geographic Intelligence</h2>
                 <div class="geo-explanation">
                     <p><strong>Geographic Analysis:</strong> Understanding where citizens access <em>${pageContext.serviceType}</em> and optimizing for better regional service delivery.</p>
                 </div>
