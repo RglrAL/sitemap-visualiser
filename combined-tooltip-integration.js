@@ -44,10 +44,10 @@
                 left: 10px;
                 right: 10px;
                 bottom: auto;
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 0;
-                box-shadow: 
+                box-shadow:
                     0 25px 50px -12px rgba(0, 0, 0, 0.4),
                     0 0 0 1px rgba(0, 0, 0, 0.1);
                 z-index: 15000;
@@ -68,10 +68,10 @@
             // Desktop styling (more compact)
             tooltip.style.cssText = `
                 position: absolute;
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 0;
-                box-shadow: 
+                box-shadow:
                     0 20px 40px -12px rgba(0, 0, 0, 0.25),
                     0 0 0 1px rgba(0, 0, 0, 0.05);
                 z-index: 10000;
@@ -282,8 +282,8 @@ onmouseout="
             <!-- Tab Navigation -->
             <div style="
                 padding: 0 20px;
-                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-                border-bottom: 1px solid rgba(0,0,0,0.05);
+                background: var(--color-bg-secondary);
+                border-bottom: 1px solid var(--color-border-primary);
                 position: relative;
             ">
                 <!-- Loading Progress Bar -->
@@ -332,7 +332,7 @@ onmouseout="
                         font-size: 0.85rem;
                         font-weight: 600;
                         cursor: pointer;
-                        color: #64748b;
+                        color: var(--color-text-secondary);
                         border-bottom: 3px solid transparent;
                         transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
                         position: relative;
@@ -360,7 +360,7 @@ onmouseout="
                         font-size: 0.85rem;
                         font-weight: 600;
                         cursor: pointer;
-                        color: #64748b;
+                        color: var(--color-text-secondary);
                         border-bottom: 3px solid transparent;
                         transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
                         position: relative;
@@ -375,12 +375,37 @@ onmouseout="
                             </svg>
                             <span>Search Console</span>
                             <div class="connection-dot" id="gsc-dot" style="
-                                width: 6px; 
-                                height: 6px; 
-                                border-radius: 50%; 
+                                width: 6px;
+                                height: 6px;
+                                border-radius: 50%;
                                 background: #94a3b8;
                                 transition: background 0.2s ease;
                             "></div>
+                        </div>
+                    </button>
+                    <button class="tab-btn" data-tab="content" style="
+                        flex: 1;
+                        padding: 12px 16px;
+                        border: none;
+                        background: none;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        color: var(--color-text-secondary);
+                        border-bottom: 3px solid transparent;
+                        transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+                        position: relative;
+                        font-family: inherit;
+                    ">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            <span>Content</span>
                         </div>
                     </button>
                 </div>
@@ -389,10 +414,10 @@ onmouseout="
             <!-- Time Period Info -->
             <div style="
                 padding: 10px 20px;
-                background: #f1f5f9;
-                border-bottom: 1px solid #e2e8f0;
+                background: var(--color-bg-tertiary);
+                border-bottom: 1px solid var(--color-border-primary);
                 font-size: 0.8rem;
-                color: #64748b;
+                color: var(--color-text-secondary);
                 text-align: center;
                 display: flex;
                 align-items: center;
@@ -418,10 +443,10 @@ onmouseout="
                     
                     <!-- Top Queries Section -->
                     <div style="
-                        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                        background: var(--color-bg-tertiary);
                         border-radius: 12px;
                         padding: 16px;
-                        border: 1px solid #e2e8f0;
+                        border: 1px solid var(--color-border-primary);
                     ">
                         <div style="font-size: 0.9rem; font-weight: 600; color: #334155; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
@@ -438,12 +463,23 @@ onmouseout="
                     </div>
                 </div>
                 
+                <!-- Content Analysis Tab -->
+                <div class="tab-panel" data-panel="content" style="display: none;">
+                    <div id="content-analysis-container">
+                        <div style="text-align: center; padding: 32px 16px; color: var(--color-text-secondary);">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">📄</div>
+                            <div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; font-size: 0.9rem;">Content Analysis</div>
+                            <div style="font-size: 0.78rem; line-height: 1.5;">Readability, word count, heading<br>structure, SEO &amp; accessibility checks.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Analytics Tab -->
                 <div class="tab-panel active" data-panel="analytics">
                     <div id="ga4-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
                     </div>
-                    
+
                     <!-- Additional Analytics Insights -->
                     <div style="
                         background: linear-gradient(135deg, #fef7f0 0%, #fed7aa 100%);
@@ -467,8 +503,8 @@ onmouseout="
             <!-- Action Buttons -->
             <div style="
                 padding: 16px 20px;
-                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-                border-top: 1px solid #e2e8f0;
+                background: var(--color-bg-secondary);
+                border-top: 1px solid var(--color-border-primary);
                 display: flex;
                 width: 100%;
             ">
@@ -510,7 +546,7 @@ onmouseout="
                 }
                 
                 .tab-btn.active {
-                    color: #1e293b !important;
+                    color: var(--color-text-primary) !important;
                     border-bottom-color: #3b82f6 !important;
                     background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.05)) !important;
                 }
@@ -565,21 +601,21 @@ onmouseout="
                 }
                 
                 .action-btn.secondary {
-                    background: white;
-                    color: #64748b;
-                    border: 1px solid #e2e8f0;
+                    background: var(--color-bg-primary);
+                    color: var(--color-text-secondary);
+                    border: 1px solid var(--color-border-primary);
                     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                 }
                 
                 .action-btn.secondary:hover {
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                     color: #334155;
                     transform: translateY(-1px);
                     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 }
                 
                 .loading-skeleton {
-                    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+                    background: linear-gradient(90deg, var(--color-bg-tertiary) 0%, var(--color-border-primary) 50%, var(--color-bg-tertiary) 100%);
                     background-size: 200% 100%;
                     animation: shimmer 1.5s ease-in-out infinite;
                     border-radius: 6px;
@@ -596,7 +632,7 @@ onmouseout="
                 }
                 
                 .tab-content::-webkit-scrollbar-track {
-                    background: #f1f5f9;
+                    background: var(--color-bg-tertiary);
                     border-radius: 2px;
                 }
                 
@@ -652,20 +688,20 @@ onmouseout="
             const handleTabSwitch = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const targetTab = btn.dataset.tab;
-                
+
                 // Update buttons
                 tabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
+
                 // Update panels with smooth transition
                 tabPanels.forEach(panel => {
                     if (panel.dataset.panel === targetTab) {
                         panel.style.display = 'block';
                         panel.style.opacity = '0';
                         panel.style.transform = isMobileDevice ? 'translateY(10px)' : 'translateX(20px)';
-                        
+
                         requestAnimationFrame(() => {
                             panel.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
                             panel.style.opacity = '1';
@@ -679,6 +715,19 @@ onmouseout="
                         }, 300);
                     }
                 });
+
+                // Lazy-load Content Analysis on first click
+                if (targetTab === 'content' && !tooltip._contentLoaded) {
+                    tooltip._contentLoaded = true;
+                    const contentPanel = tooltip.querySelector('[data-panel="content"] #content-analysis-container');
+                    const url = tooltip._nodeData?.url;
+                    if (url && window.PageIntelligence) {
+                        window.PageIntelligence.renderContentTab(contentPanel, url);
+                    } else if (!url) {
+                        const panel = tooltip.querySelector('[data-panel="content"] #content-analysis-container');
+                        if (panel) panel.innerHTML = '<div style="text-align:center;padding:28px;color:var(--color-text-muted);font-size:0.85rem;">No URL available for this node.</div>';
+                    }
+                }
             };
             
             // Add both click and touch handlers for mobile compatibility
@@ -819,7 +868,7 @@ onmouseout="
             
             if (!currentData || currentData.noDataFound) {
                 metricsContainer.innerHTML = createNoDataMessage('No search data available');
-                queriesContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">📭 No query data available</div>';
+                queriesContainer.innerHTML = '<div style="text-align: center; color: var(--color-text-secondary); padding: 20px;">📭 No query data available</div>';
                 return;
             }
             
@@ -842,7 +891,7 @@ onmouseout="
                     .map((query, index) => createTopQueryCard(query, index))
                     .join('');
             } else {
-                queriesContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">📭 No top queries data available</div>';
+                queriesContainer.innerHTML = '<div style="text-align: center; color: var(--color-text-secondary); padding: 20px; font-size: 0.85rem;">📭 No top queries data available</div>';
             }
             
         } catch (error) {
@@ -893,22 +942,22 @@ onmouseout="
         }
     }
 
-    function createTrendCard(label, currentValue, previousValue, color = '#64748b', icon = '') {
+    function createTrendCard(label, currentValue, previousValue, color = 'var(--color-text-secondary)', icon = '') {
         const current = parseFloat(currentValue) || 0;
         const previous = parseFloat(previousValue) || 0;
         
         let percentChange = 0;
         let changeDirection = '→';
-        let changeColor = '#64748b';
-        let changeBg = '#f1f5f9';
+        let changeColor = 'var(--color-text-secondary)';
+        let changeBg = 'var(--color-bg-tertiary)';
         
         if (previous > 0) {
             percentChange = ((current - previous) / previous) * 100;
             
             if (Math.abs(percentChange) < 2) {
                 changeDirection = '→';
-                changeColor = '#64748b';
-                changeBg = '#f1f5f9';
+                changeColor = 'var(--color-text-secondary)';
+                changeBg = 'var(--color-bg-tertiary)';
             } else if (percentChange > 0) {
                 changeDirection = '↗';
                 changeColor = '#ffffff';
@@ -930,11 +979,11 @@ onmouseout="
                 position: relative;
                 overflow: hidden;
             ">
-                <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 2px; font-weight: 500;">
+                <div style="font-size: 0.7rem; color: var(--color-text-secondary); margin-bottom: 2px; font-weight: 500;">
                     ${icon} ${label}
                 </div>
                 
-                <div style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
+                <div style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">
                     ${formatDisplayValue(current)}
                 </div>
                 
@@ -976,12 +1025,12 @@ onmouseout="
                 align-items: center; 
                 gap: 12px; 
                 padding: 12px 0; 
-                ${index < 2 ? 'border-bottom: 1px solid #e2e8f0;' : ''}
+                ${index < 2 ? 'border-bottom: 1px solid var(--color-border-primary);' : ''}
             ">
                 <div style="
                     width: 24px; 
                     height: 24px; 
-                    background: #f1f5f9; 
+                    background: var(--color-bg-tertiary); 
                     border-radius: 50%; 
                     display: flex; 
                     align-items: center; 
@@ -996,14 +1045,14 @@ onmouseout="
                     <div style="
                         font-size: 0.85rem; 
                         font-weight: 600; 
-                        color: #1e293b; 
+                        color: var(--color-text-primary); 
                         margin-bottom: 4px;
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
                     ">"${query.query}"</div>
                     
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: #64748b;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--color-text-secondary);">
                         <span>${query.clicks} clicks</span>
                         <span>•</span>
                         <span>#${query.position.toFixed(0)} avg</span>
@@ -1068,17 +1117,17 @@ onmouseout="
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                 ${Array.from({length: 4}, () => `
                     <div style="
-                        background: #f8fafc; 
+                        background: var(--color-bg-secondary); 
                         border-radius: 12px; 
                         padding: 16px; 
                         text-align: center;
-                        border: 1px solid #e2e8f0;
+                        border: 1px solid var(--color-border-primary);
                         position: relative;
                         overflow: hidden;
                     ">
-                        <div style="height: 16px; width: 60%; margin: 0 auto 8px; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
-                        <div style="height: 20px; width: 80%; margin: 0 auto 6px; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
-                        <div style="height: 12px; width: 40%; margin: 0 auto; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
+                        <div style="height: 16px; width: 60%; margin: 0 auto 8px; background: var(--color-border-primary); border-radius: 4px;" class="loading-skeleton"></div>
+                        <div style="height: 20px; width: 80%; margin: 0 auto 6px; background: var(--color-border-primary); border-radius: 4px;" class="loading-skeleton"></div>
+                        <div style="height: 12px; width: 40%; margin: 0 auto; background: var(--color-border-primary); border-radius: 4px;" class="loading-skeleton"></div>
                     </div>
                 `).join('')}
             </div>
@@ -1092,18 +1141,18 @@ onmouseout="
                 align-items: center; 
                 gap: 12px; 
                 padding: 12px 0; 
-                ${i < 2 ? 'border-bottom: 1px solid #e2e8f0;' : ''}
+                ${i < 2 ? 'border-bottom: 1px solid var(--color-border-primary);' : ''}
             ">
                 <div style="
                     width: 24px; 
                     height: 24px; 
-                    background: #e2e8f0; 
+                    background: var(--color-border-primary); 
                     border-radius: 50%; 
                     flex-shrink: 0;
                 " class="loading-skeleton"></div>
                 <div style="flex: 1;">
-                    <div style="height: 14px; width: 70%; margin-bottom: 6px; background: #e2e8f0; border-radius: 4px;" class="loading-skeleton"></div>
-                    <div style="height: 10px; width: 40%; background: #f1f5f9; border-radius: 4px;" class="loading-skeleton"></div>
+                    <div style="height: 14px; width: 70%; margin-bottom: 6px; background: var(--color-border-primary); border-radius: 4px;" class="loading-skeleton"></div>
+                    <div style="height: 10px; width: 40%; background: var(--color-bg-tertiary); border-radius: 4px;" class="loading-skeleton"></div>
                 </div>
             </div>
         `).join('');
@@ -1113,12 +1162,12 @@ onmouseout="
         return `
             <div style="
                 text-align: center; 
-                color: #64748b; 
+                color: var(--color-text-secondary); 
                 padding: 32px 20px;
                 font-size: 0.9rem;
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 border-radius: 12px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             ">
                 <div style="font-size: 2rem; margin-bottom: 12px; opacity: 0.6;">📭</div>
                 <div style="font-weight: 500; margin-bottom: 6px;">${message}</div>
@@ -1136,12 +1185,12 @@ onmouseout="
         const disconnectedMessage = `
             <div style="
                 text-align: center; 
-                color: #64748b; 
+                color: var(--color-text-secondary); 
                 padding: 32px 20px;
                 font-size: 0.9rem;
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 border-radius: 12px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             ">
                 <div style="margin-bottom: 16px; display: flex; justify-content: center;">
                     <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
@@ -1160,7 +1209,7 @@ onmouseout="
         
         metricsContainer.innerHTML = disconnectedMessage;
         queriesContainer.innerHTML = `
-            <div style="text-align: center; color: #64748b; padding: 16px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <div style="text-align: center; color: var(--color-text-secondary); padding: 16px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" style="opacity: 0.7;">
                     <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1178,12 +1227,12 @@ onmouseout="
         metricsContainer.innerHTML = `
             <div style="
                 text-align: center; 
-                color: #64748b; 
+                color: var(--color-text-secondary); 
                 padding: 32px 20px;
                 font-size: 0.9rem;
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 border-radius: 12px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             ">
                 <div style="margin-bottom: 16px; display: flex; justify-content: center;">
                     <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.7;">
@@ -1586,7 +1635,7 @@ function showDashboardLoading() {
     
     loadingOverlay.innerHTML = `
         <div style="
-            background: white;
+            background: var(--color-bg-primary);
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -1613,7 +1662,7 @@ function showDashboardLoading() {
             <div style="
                 width: 60px;
                 height: 60px;
-                border: 4px solid #f1f5f9;
+                border: 4px solid var(--color-bg-tertiary);
                 border-top: 4px solid #72A300;
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
@@ -1625,12 +1674,12 @@ function showDashboardLoading() {
                 margin: 0 0 12px 0;
                 font-size: 1.2rem;
                 font-weight: 600;
-                color: #1e293b;
+                color: var(--color-text-primary);
             ">Loading Dashboard</h3>
             
             <p style="
                 margin: 0 0 20px 0;
-                color: #64748b;
+                color: var(--color-text-secondary);
                 font-size: 0.95rem;
                 line-height: 1.5;
             ">Fetching analytics data and performance metrics...</p>
@@ -2121,13 +2170,13 @@ function showDashboardModal(htmlContent) {
             }
             
             return {
-                badge: '<span style="background: #64748b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">No Date</span>'
+                badge: '<span style="background: var(--color-text-muted); color: var(--color-bg-primary); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">No Date</span>'
             };
             
         } catch (error) {
             console.warn('Error getting freshness info:', error);
             return {
-                badge: '<span style="background: #64748b; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">No Date</span>'
+                badge: '<span style="background: var(--color-text-muted); color: var(--color-bg-primary); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">No Date</span>'
             };
         }
     }
