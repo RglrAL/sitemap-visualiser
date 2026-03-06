@@ -1515,9 +1515,9 @@ return gscData;
             
             setTimeout(() => {
                 gscBtn.classList.add('connected');
-                gscBtn.style.background = '#ffffff !important';
-                gscBtn.style.color = '#3c4043 !important';
-                gscBtn.style.borderColor = '#4caf50 !important';
+                gscBtn.style.setProperty('background', 'var(--color-bg-primary)', 'important');
+                gscBtn.style.setProperty('color', 'var(--color-text-primary)', 'important');
+                gscBtn.style.setProperty('border-color', '#4caf50', 'important');
                 gscText.textContent = 'SC';
                 
                 // Set green status light
@@ -1529,9 +1529,9 @@ return gscData;
         } else {
             // Not connected state: Red light
             gscBtn.classList.remove('connected', 'connecting');
-            gscBtn.style.background = '#ffffff !important';
-            gscBtn.style.color = '#3c4043 !important';
-            gscBtn.style.borderColor = '#dadce0 !important';
+            gscBtn.style.setProperty('background', 'var(--color-bg-primary)', 'important');
+            gscBtn.style.setProperty('color', 'var(--color-text-primary)', 'important');
+            gscBtn.style.setProperty('border-color', '#dadce0', 'important');
             gscBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             gscText.textContent = 'SC';
             
@@ -1618,12 +1618,12 @@ return gscData;
             gap: 8px;
             padding: 8px 16px !important;
             margin: 0 8px !important;
-            background: #ffffff !important;
+            background: var(--color-bg-primary) !important;
             border: 1px solid #dadce0 !important;
             border-radius: 8px !important;
             cursor: pointer;
             font-size: 14px !important;
-            color: #3c4043 !important;
+            color: var(--color-text-primary) !important;
             transition: all 0.2s ease;
             visibility: visible !important;
             opacity: 1 !important;
@@ -1858,8 +1858,8 @@ function addMobileGSCButton() {
         tooltip.className = 'enhanced-tooltip simplified-tooltip';
         tooltip.style.cssText = `
             position: absolute;
-            background: white;
-            border: 1px solid #ddd;
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border-primary);
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -1907,9 +1907,9 @@ function addMobileGSCButton() {
                                 border-radius: 50%; 
                                 animation: gsc-spin 1s linear infinite;
                             "></div>
-                            <span style="font-weight: 600; color: #1f4788; font-size: 0.9rem;">Loading Performance Data</span>
+                            <span style="font-weight: 600; color: var(--color-text-heading); font-size: 0.9rem;">Loading Performance Data</span>
                         </div>
-                        <span id="gsc-progress-percentage" style="font-size: 0.8rem; color: #666; font-weight: 500;">0%</span>
+                        <span id="gsc-progress-percentage" style="font-size: 0.8rem; color: var(--color-text-secondary); font-weight: 500;">0%</span>
                     </div>
                     
                     <!-- Progress bar container -->
@@ -1917,7 +1917,7 @@ function addMobileGSCButton() {
                         <div id="gsc-progress-bar" style="
                             height: 100%;
                             width: 0%;
-                            background: linear-gradient(90deg, #4a90e2 0%, #1f4788 50%, #4a90e2 100%);
+                            background: linear-gradient(90deg, #4a90e2 0%, var(--color-text-heading) 50%, #4a90e2 100%);
                             background-size: 200% 100%;
                             border-radius: 10px;
                             transition: width 0.3s ease;
@@ -1938,7 +1938,7 @@ function addMobileGSCButton() {
                     </div>
                     
                     <!-- Loading steps -->
-                    <div id="gsc-loading-steps" style="font-size: 0.75rem; color: #666;">
+                    <div id="gsc-loading-steps" style="font-size: 0.75rem; color: var(--color-text-secondary);">
                         <div id="gsc-step-1" class="gsc-step active" style="margin-bottom: 4px; opacity: 0.7;">
                             🔍 Connecting to Search Console...
                         </div>
@@ -2032,7 +2032,7 @@ function addMobileGSCButton() {
             // Last modified display
             lastModifiedDisplay = `
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 0; border-top: 1px solid #f0f0f0;">
-                    <span style="font-size: 0.7rem; color: #666;">📅 Updated:</span>
+                    <span style="font-size: 0.7rem; color: var(--color-text-secondary);">📅 Updated:</span>
                     <span style="font-size: 0.75rem; color: #333; font-weight: 500;">${freshnessData.formattedDate}</span>
                     <span style="font-size: 0.7rem; color: #999;">(${freshnessData.relativeTime})</span>
                 </div>
@@ -2045,22 +2045,22 @@ function addMobileGSCButton() {
         
         // Create page info display
         const pageInfoDisplay = `
-            <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
+            <div style="background: var(--color-bg-secondary); padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #6c757d;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.7rem;">
                     <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">🏷️ Type:</span>
+                        <span style="color: var(--color-text-secondary);">🏷️ Type:</span>
                         <span style="font-weight: 500; color: #333;">${pageInfo.type}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">📏 Depth:</span>
+                        <span style="color: var(--color-text-secondary);">📏 Depth:</span>
                         <span style="font-weight: 500; color: #333;">Level ${pageInfo.depth}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">👶 Children:</span>
+                        <span style="color: var(--color-text-secondary);">👶 Children:</span>
                         <span style="font-weight: 500; color: ${pageInfo.children > 0 ? '#28a745' : '#6c757d'};">${pageInfo.children}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 4px;">
-                        <span style="color: #666;">👫 Siblings:</span>
+                        <span style="color: var(--color-text-secondary);">👫 Siblings:</span>
                         <span style="font-weight: 500; color: ${pageInfo.siblings > 0 ? '#007bff' : '#6c757d'};">${pageInfo.siblings}</span>
                     </div>
                 </div>
@@ -2070,7 +2070,7 @@ function addMobileGSCButton() {
         return `
             <div style="margin-bottom: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 10px;">
-                    <h4 style="margin: 0; color: #1f4788; font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
+                    <h4 style="margin: 0; color: var(--color-text-heading); font-size: 1rem; font-weight: 600; flex: 1;">${data.name}</h4>
                     ${freshnessInfo}
                 </div>
                 ${data.url ? `<a href="${data.url}" target="_blank" style="font-size: 0.75rem; color: #4a90e2; text-decoration: none; word-break: break-all; margin-bottom: 8px; display: block; border-bottom: 1px dotted #4a90e2;" 
@@ -2148,7 +2148,7 @@ function addMobileGSCButton() {
                     if (index === stage.step) {
                         step.style.opacity = '1';
                         step.style.fontWeight = '600';
-                        step.style.color = '#1f4788';
+                        step.style.color = 'var(--color-text-heading)';
                     } else if (index < stage.step) {
                         step.style.opacity = '0.8';
                         step.style.color = '#28a745';
@@ -2226,7 +2226,7 @@ function addMobileGSCButton() {
             <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 16px; border-radius: 8px; border: 1px solid #e3f2fd;">
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-weight: 600; color: #1f4788; font-size: 0.95rem;">📊 Search Performance (30d)</div>
+                    <div style="font-weight: 600; color: var(--color-text-heading); font-size: 0.95rem;">📊 Search Performance (30d)</div>
                     <div style="background: ${getScoreColor(performanceScore)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
                         ${performanceScore}/100
                     </div>
@@ -2234,9 +2234,9 @@ function addMobileGSCButton() {
                 
                 <!-- Enhanced metrics grid with trends -->
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="text-align: center; background: var(--color-bg-primary); padding: 8px; border-radius: 6px; position: relative;">
                         <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.clicks)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Clicks</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Clicks</div>
                         ${gscData.trend && gscData.trend.clicksChange ? `
                             <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px; 
                                         background: ${parseFloat(gscData.trend.clicksChange) >= 0 ? '#4caf5020' : '#f4433620'}; 
@@ -2245,9 +2245,9 @@ function addMobileGSCButton() {
                             </div>
                         ` : ''}
                     </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="text-align: center; background: var(--color-bg-primary); padding: 8px; border-radius: 6px; position: relative;">
                         <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${formatNumber(gscData.impressions)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Impressions</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Impressions</div>
                         ${gscData.trend && gscData.trend.impressionsChange ? `
                             <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
                                         background: ${parseFloat(gscData.trend.impressionsChange) >= 0 ? '#4caf5020' : '#f4433620'};
@@ -2256,13 +2256,13 @@ function addMobileGSCButton() {
                             </div>
                         ` : ''}
                     </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px;">
+                    <div style="text-align: center; background: var(--color-bg-primary); padding: 8px; border-radius: 6px;">
                         <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                        <div style="font-size: 0.75rem; color: #666;">CTR</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-secondary);">CTR</div>
                     </div>
-                    <div style="text-align: center; background: white; padding: 8px; border-radius: 6px; position: relative;">
+                    <div style="text-align: center; background: var(--color-bg-primary); padding: 8px; border-radius: 6px; position: relative;">
                         <div style="font-size: 1.3rem; font-weight: bold; color: #4a90e2; margin-bottom: 2px;">#${gscData.position.toFixed(0)}</div>
-                        <div style="font-size: 0.75rem; color: #666;">Position</div>
+                        <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Position</div>
                         ${gscData.trend && gscData.trend.positionChange ? `
                             <div style="position: absolute; top: 4px; right: 4px; font-size: 0.6rem; padding: 1px 4px; border-radius: 8px;
                                         background: ${parseFloat(gscData.trend.positionChange) >= 0 ? '#4caf5020' : '#f4433620'};
@@ -2275,19 +2275,19 @@ function addMobileGSCButton() {
                 
                 <!-- Top 3 Search Queries Section -->
                 ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                    <div style="background: white; padding: 12px; border-radius: 6px; border-top: 2px solid #1f4788; margin-bottom: 8px;">
-                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
+                    <div style="background: var(--color-bg-primary); padding: 12px; border-radius: 6px; border-top: 2px solid var(--color-text-heading); margin-bottom: 8px;">
+                        <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 8px; font-weight: 500;">🎯 Top Search Queries:</div>
                         ${gscData.topQueries.slice(0, 3).map((query, index) => `
                             <div style="margin-bottom: ${index < 2 ? '8px' : '0'}; padding: ${index < 2 ? '0 0 8px 0' : '0'}; 
                                         border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
-                                    <span style="background: #1f4788; color: white; width: 16px; height: 16px; border-radius: 50%; 
+                                    <span style="background: var(--color-text-heading); color: white; width: 16px; height: 16px; border-radius: 50%;
                                                 display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
                                         ${index + 1}
                                     </span>
                                     <div style="font-size: 0.85rem; font-weight: 600; color: #333; flex: 1;">"${escapeHtml(query.query)}"</div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: #666; margin-left: 24px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.7rem; color: var(--color-text-secondary); margin-left: 24px;">
                                     <span>${query.clicks} clicks</span>
                                     <span>#${query.position.toFixed(0)} avg</span>
                                     <span>${(query.ctr * 100).toFixed(1)}% CTR</span>
@@ -2314,10 +2314,10 @@ function addMobileGSCButton() {
                         🔗 Visit Page
                     </button>
                     <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
-                            style="background: #1f4788; color: white; border: none; padding: 6px 12px; border-radius: 4px; 
+                            style="background: var(--color-text-heading); color: white; border: none; padding: 6px 12px; border-radius: 4px;
                                    font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
-                            onmouseover="this.style.background='#1557b0'" 
-                            onmouseout="this.style.background='#1f4788'">
+                            onmouseover="this.style.background='#1557b0'"
+                            onmouseout="this.style.cssText='background: var(--color-text-heading); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;'">
                         📈 Full Analysis
                     </button>
                 </div>
@@ -2341,7 +2341,7 @@ function addMobileGSCButton() {
         progressContainer.innerHTML = `
             <div style="background: #fff5f5; padding: 12px; border-radius: 6px; border-left: 3px solid #f56565; text-align: center;">
                 <div style="color: #e53e3e; font-size: 0.85rem; margin-bottom: 4px;">❌ Loading Failed</div>
-                <div style="color: #666; font-size: 0.75rem;">${message}</div>
+                <div style="color: var(--color-text-secondary); font-size: 0.75rem;">${message}</div>
             </div>
         `;
     }
@@ -2512,12 +2512,12 @@ function addMobileGSCButton() {
             gap: 8px;
             padding: 8px 16px !important;
             margin: 0 8px !important;
-            background: #ffffff !important;
+            background: var(--color-bg-primary) !important;
             border: 1px solid #dadce0 !important;
             border-radius: 8px !important;
             cursor: pointer;
             font-size: 14px !important;
-            color: #3c4043 !important;
+            color: var(--color-text-primary) !important;
             transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
             visibility: visible !important;
             opacity: 1 !important;
@@ -2531,7 +2531,7 @@ function addMobileGSCButton() {
         }
         
         .nav-gsc-btn:hover {
-            background: #f8f9fa !important;
+            background: var(--color-bg-secondary) !important;
             border-color: #4285f4 !important;
             box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15) !important;
             transform: translateY(-1px);
@@ -2539,15 +2539,15 @@ function addMobileGSCButton() {
         
         /* CONNECTED STATE WITH ANIMATIONS */
         .nav-gsc-btn.connected {
-            background: #ffffff !important;
-            color: #3c4043 !important;
+            background: var(--color-bg-primary) !important;
+            color: var(--color-text-primary) !important;
             border-color: #4caf50 !important;
             box-shadow: 0 2px 8px rgba(76,175,80,0.3);
             animation: gsc-connected-pulse 3s ease-in-out infinite;
         }
         
         .nav-gsc-btn.connected:hover {
-            background: #f8f9fa !important;
+            background: var(--color-bg-secondary) !important;
             border-color: #4caf50 !important;
             box-shadow: 0 3px 12px rgba(76,175,80,0.4) !important;
             transform: translateY(-2px);
@@ -2823,7 +2823,7 @@ function addMobileGSCButton() {
             .simplified-tooltip h4 {
                 margin: 0 0 4px 0;
                 font-size: 1rem;
-                color: #1f4788;
+                color: var(--color-text-heading);
             }
             
             .simplified-tooltip button:hover {
@@ -2913,7 +2913,7 @@ function addMobileGSCButton() {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--color-bg-primary);
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
@@ -2923,7 +2923,7 @@ function addMobileGSCButton() {
         indicator.innerHTML = `
             <div style="font-size: 24px; margin-bottom: 15px;">🔍</div>
             <div style="font-weight: bold; margin-bottom: 10px;">Connecting to Search Console...</div>
-            <div style="color: #666; margin-bottom: 15px;">Setting up enhanced content analysis</div>
+            <div style="color: var(--color-text-secondary); margin-bottom: 15px;">Setting up enhanced content analysis</div>
             <div style="background: #f0f0f0; height: 20px; border-radius: 10px; overflow: hidden;">
                 <div id="gscLoadingProgress" style="background: #4caf50; height: 100%; width: 0%; transition: width 0.3s;"></div>
             </div>
@@ -3001,7 +3001,7 @@ function addMobileGSCButton() {
             
             const content = document.createElement('div');
             content.style.cssText = `
-                background: white;
+                background: var(--color-bg-primary);
                 padding: 30px;
                 border-radius: 10px;
                 max-width: 500px;
@@ -3011,7 +3011,7 @@ function addMobileGSCButton() {
             
             content.innerHTML = `
                 <h3 style="margin-bottom: 20px;">Select Search Console Property</h3>
-                <div style="color: #666; margin-bottom: 20px;">
+                <div style="color: var(--color-text-secondary); margin-bottom: 20px;">
                     Choose which Search Console property matches your sitemap:
                 </div>
             `;
@@ -3025,14 +3025,14 @@ function addMobileGSCButton() {
                     margin-bottom: 10px;
                     border: 1px solid #ddd;
                     border-radius: 6px;
-                    background: white;
+                    background: var(--color-bg-primary);
                     cursor: pointer;
                     text-align: left;
                     transition: all 0.2s;
                 `;
                 btn.innerHTML = `
                     <div style="font-weight: bold;">${site.siteUrl}</div>
-                    <div style="font-size: 0.9rem; color: #666;">Permission: ${site.permissionLevel}</div>
+                    <div style="font-size: 0.9rem; color: var(--color-text-secondary);">Permission: ${site.permissionLevel}</div>
                 `;
                 btn.onmouseover = () => btn.style.background = '#f0f0f0';
                 btn.onmouseout = () => btn.style.background = 'white';
@@ -3468,7 +3468,7 @@ window.showDetailedGSCAnalysis = async function(url) {
     };
 
     const dashboard = document.createElement('div');
-    dashboard.style.cssText = `background: white; border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
+    dashboard.style.cssText = `background: var(--color-bg-primary); border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
     dashboard.onclick = (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -3510,13 +3510,13 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                             <h1 style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
                                 📊 Performance Deep Dive
                             </h1>
-                            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">Advanced SEO & Content Analysis</p>
+                            <p style="margin: 5px 0 0 0; color: var(--color-text-secondary); font-size: 0.9rem;">Advanced SEO & Content Analysis</p>
                         </div>
                         <div style="text-align: right;">
                             <div style="background: ${scoreColor}; color: white; padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 1.1rem; margin-bottom: 5px;">
                                 ${performanceScore}/100
                             </div>
-                            <div style="font-size: 0.8rem; color: #666;">Performance Score</div>
+                            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">Performance Score</div>
                         </div>
                     </div>
                     
@@ -3527,7 +3527,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                 </div>
 
                 <!-- Main Content -->
-                <div style="background: white; padding: 30px;">
+                <div style="background: var(--color-bg-primary); padding: 30px;">
                     
                     <!-- Key Metrics Dashboard -->
                     <div style="margin-bottom: 40px;">
@@ -3662,7 +3662,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                         <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">🔍 Keyword Performance Analysis</h2>
                         
                         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2px; border-radius: 16px;">
-                            <div style="background: white; border-radius: 14px; overflow: hidden;">
+                            <div style="background: var(--color-bg-primary); border-radius: 14px; overflow: hidden;">
                                 
                                 <!-- Table Header -->
                                 <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 20px; border-bottom: 1px solid #e0e0e0;">
@@ -3688,7 +3688,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                                                     <div style="font-weight: 600; color: #333; margin-bottom: 3px; word-break: break-word;">
                                                         "${escapeHtml(query.query)}"
                                                     </div>
-                                                    <div style="font-size: 0.75rem; color: #666;">
+                                                    <div style="font-size: 0.75rem; color: var(--color-text-secondary);">
                                                         ${query.query.length} characters • ${query.query.split(' ').length} words
                                                     </div>
                                                 </div>
@@ -3754,7 +3754,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
 
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
                             ${gscData.opportunities.map((opp, index) => `
-                                <div style="background: white; border: 2px solid #ff9800; border-radius: 16px; padding: 20px; position: relative; overflow: hidden;">
+                                <div style="background: var(--color-bg-primary); border: 2px solid #ff9800; border-radius: 16px; padding: 20px; position: relative; overflow: hidden;">
                                     
                                     <!-- Priority Badge -->
                                     <div style="position: absolute; top: 15px; right: 15px;">
@@ -3768,7 +3768,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                                         <h4 style="margin: 0 0 5px 0; color: #e65100; font-size: 1.1rem; font-weight: 600;">
                                             "${escapeHtml(opp.query)}"
                                         </h4>
-                                        <div style="font-size: 0.8rem; color: #666;">
+                                        <div style="font-size: 0.8rem; color: var(--color-text-secondary);">
                                             ${opp.query.length} chars • ${opp.query.split(' ').length} words
                                         </div>
                                     </div>
@@ -3777,11 +3777,11 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                                         <div style="text-align: center; background: #fff3e0; padding: 12px; border-radius: 8px;">
                                             <div style="font-size: 1.5rem; font-weight: 700; color: #e65100;">${formatNumber(opp.impressions)}</div>
-                                            <div style="font-size: 0.8rem; color: #666;">Impressions</div>
+                                            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">Impressions</div>
                                         </div>
                                         <div style="text-align: center; background: #fff3e0; padding: 12px; border-radius: 8px;">
                                             <div style="font-size: 1.5rem; font-weight: 700; color: #e65100;">#${opp.position.toFixed(0)}</div>
-                                            <div style="font-size: 0.8rem; color: #666;">Position</div>
+                                            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">Position</div>
                                         </div>
                                     </div>
                                     
@@ -3789,7 +3789,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                                     <div style="background: #e8f5e8; padding: 15px; border-radius: 12px; border-left: 4px solid #4caf50;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                             <span style="font-size: 0.9rem; color: #2e7d32; font-weight: 600;">Current Performance:</span>
-                                            <span style="font-size: 0.9rem; color: #666;">${opp.clicks} clicks (${(opp.ctr * 100).toFixed(1)}% CTR)</span>
+                                            <span style="font-size: 0.9rem; color: var(--color-text-secondary);">${opp.clicks} clicks (${(opp.ctr * 100).toFixed(1)}% CTR)</span>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center;">
                                             <span style="font-size: 0.9rem; color: #2e7d32; font-weight: 600;">Potential Gain:</span>
@@ -3807,7 +3807,7 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                         <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">📋 Recommended Action Plan</h2>
                         
                         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2px; border-radius: 16px;">
-                            <div style="background: white; border-radius: 14px; padding: 25px;">
+                            <div style="background: var(--color-bg-primary); border-radius: 14px; padding: 25px;">
                                 ${generateActionPlan(gscData, avgPosition, ctrPerformance).map((action, index) => `
                                     <div style="display: flex; align-items: flex-start; gap: 20px; padding: 20px 0; border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
                                         
@@ -3831,11 +3831,11 @@ window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
                                                 </span>
                                             </div>
                                             
-                                            <p style="margin: 0 0 10px 0; color: #666; line-height: 1.5;">
+                                            <p style="margin: 0 0 10px 0; color: var(--color-text-secondary); line-height: 1.5;">
                                                 ${action.description}
                                             </p>
                                             
-                                            <div style="display: flex; align-items: center; gap: 15px; font-size: 0.85rem; color: #666;">
+                                            <div style="display: flex; align-items: center; gap: 15px; font-size: 0.85rem; color: var(--color-text-secondary);">
                                                 <span>⏱️ ${action.timeframe}</span>
                                                 <span>📈 ${action.impact}</span>
                                                 <span>🔧 ${action.difficulty}</span>
@@ -5019,7 +5019,7 @@ function createEnhancedDashboardStyles() {
             .trend-neutral { color: #64748b; }
 
             .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
-            .insight-card { background: white; border: 2px solid #e2e8f0; border-radius: 16px; padding: 24px; position: relative; transition: all 0.3s ease; }
+            .insight-card { background: var(--color-bg-primary); border: 2px solid #e2e8f0; border-radius: 16px; padding: 24px; position: relative; transition: all 0.3s ease; }
             .insight-card.priority-high { border-color: #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); }
             .insight-card.priority-medium { border-color: #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%); }
             .insight-card.priority-low { border-color: #10b981; background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); }
@@ -5028,7 +5028,7 @@ function createEnhancedDashboardStyles() {
             .insight-action { font-size: 0.85rem; font-weight: 600; color: var(--priority-color); background: rgba(var(--priority-rgb), 0.1); padding: 6px 12px; border-radius: 20px; display: inline-block; }
 
             .visibility-content, .recommendations-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; }
-            .content-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .content-card { background: var(--color-bg-primary); border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
             .card-title { font-size: 1.1rem; font-weight: 700; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; }
 
             .action-center { padding: 30px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); text-align: center; border-radius: 0 0 20px 20px; }
@@ -5036,7 +5036,7 @@ function createEnhancedDashboardStyles() {
             .action-btn { padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
             .action-btn.primary { background: linear-gradient(135deg, #5a8200 0%, #72A300 100%); color: white; box-shadow: 0 4px 14px rgba(114, 163, 0, 0.3); }
             .action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(114, 163, 0, 0.4); }
-            .action-btn.secondary { background: white; color: #64748b; border: 2px solid #e2e8f0; }
+            .action-btn.secondary { background: var(--color-bg-primary); color: #64748b; border: 2px solid #e2e8f0; }
             .action-btn.secondary:hover { background: #f8fafc; border-color: #72A300; color: #72A300; transform: translateY(-1px); }
 
             @media (max-width: 768px) {
@@ -6510,7 +6510,7 @@ function createEnhancedDashboardStyles() {
             }
             
             .benchmark-card {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 24px;
                 border-left: 4px solid #e5e7eb;
@@ -6594,7 +6594,7 @@ function createEnhancedDashboardStyles() {
             }
 
             .surge-card {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 24px;
                 border: 2px solid #f1f5f9;
@@ -6675,7 +6675,7 @@ function createEnhancedDashboardStyles() {
             }
             
             .action-btn.secondary {
-                background: white;
+                background: var(--color-bg-primary);
                 color: #64748b;
                 border: 2px solid #e2e8f0;
             }
@@ -6689,13 +6689,13 @@ function createEnhancedDashboardStyles() {
 
             /* Additional styles for all sections */
             .gap-analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
-            .gap-card { background: white; border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
-            .priority-matrix { background: white; border-radius: 16px; padding: 24px; border: 1px solid #e5e7eb; }
+            .gap-card { background: var(--color-bg-primary); border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
+            .priority-matrix { background: var(--color-bg-primary); border-radius: 16px; padding: 24px; border: 1px solid #e5e7eb; }
             .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-            .insight-card { background: white; border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
+            .insight-card { background: var(--color-bg-primary); border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
             .citizens-impact { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #0ea5e9; }
             .workflow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
-            .workflow-card { background: white; border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
+            .workflow-card { background: var(--color-bg-primary); border-radius: 16px; padding: 24px; border: 2px solid #e5e7eb; }
             
             @media (max-width: 768px) {
                 .executive-summary .summary-content { padding: 25px; }
@@ -6723,7 +6723,7 @@ function createEnhancedDashboardStyles() {
 }
 
 .geo-card { 
-    background: white; 
+    background: var(--color-bg-primary); 
     border-radius: 16px; 
     padding: 24px; 
     border: 1px solid #e0f2fe; 
