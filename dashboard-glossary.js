@@ -1445,8 +1445,8 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         right: -100%;
                         width: min(500px, 100vw);
                         height: 100vh;
-                        background: white;
-                        border-left: 1px solid #e2e8f0;
+                        background: var(--color-bg-primary);
+                        border-left: 1px solid var(--color-border-primary);
                         box-shadow: -10px 0 50px rgba(0, 0, 0, 0.3);
                         z-index: 10001;
                         transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1466,21 +1466,21 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         justify-content: space-between;
                         align-items: flex-start;
                         padding: 24px;
-                        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-                        border-bottom: 1px solid #e2e8f0;
+                        background: var(--color-bg-secondary);
+                        border-bottom: 1px solid var(--color-border-primary);
                         flex-shrink: 0;
                     }
                     
                     .glossary-title h2 {
                         margin: 0 0 4px 0;
-                        color: #1f2937;
+                        color: var(--color-text-primary);
                         font-size: 1.4rem;
                         font-weight: 700;
                     }
                     
                     .glossary-title p {
                         margin: 0;
-                        color: #64748b;
+                        color: var(--color-text-secondary);
                         font-size: 0.9rem;
                     }
                     
@@ -1488,7 +1488,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         background: none;
                         border: none;
                         font-size: 1.5rem;
-                        color: #64748b;
+                        color: var(--color-text-secondary);
                         cursor: pointer;
                         padding: 8px;
                         border-radius: 6px;
@@ -1498,7 +1498,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .glossary-close:hover {
-                        background: #f1f5f9;
+                        background: var(--color-bg-tertiary);
                         color: #ef4444;
                         transform: scale(1.1);
                     }
@@ -1511,7 +1511,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     /* Search */
                     .glossary-search {
                         padding: 16px 24px;
-                        border-bottom: 1px solid #e2e8f0;
+                        border-bottom: 1px solid var(--color-border-primary);
                         position: relative;
                         flex-shrink: 0;
                     }
@@ -1519,12 +1519,12 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     .glossary-search input {
                         width: 100%;
                         padding: 12px 40px 12px 16px;
-                        border: 2px solid #d1d5db;
+                        border: 2px solid var(--color-border-secondary);
                         border-radius: 8px;
                         font-size: 0.9rem;
                         transition: all 0.2s ease;
                         outline: none;
-                        background: white;
+                        background: var(--color-bg-primary);
                     }
                     
                     .glossary-search input:focus {
@@ -1555,16 +1555,16 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     
                     /* Smart Collapsible Navigation */
                     .smart-navigation {
-                        border-bottom: 1px solid #e2e8f0;
-                        background: #fafbfc;
+                        border-bottom: 1px solid var(--color-border-primary);
+                        background: var(--color-bg-secondary);
                         flex-shrink: 0;
                         overflow: hidden;
                     }
                     
                     .nav-toggle-header {
                         padding: 12px 24px;
-                        border-bottom: 1px solid #e2e8f0;
-                        background: #f8fafc;
+                        border-bottom: 1px solid var(--color-border-primary);
+                        background: var(--color-bg-secondary);
                     }
                     
                     .smart-nav-toggle {
@@ -1573,12 +1573,12 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         gap: 8px;
                         width: 100%;
                         padding: 8px 12px;
-                        background: white;
-                        border: 2px solid #d1d5db;
+                        background: var(--color-bg-primary);
+                        border: 2px solid var(--color-border-secondary);
                         border-radius: 8px;
                         font-size: 0.85rem;
                         font-weight: 600;
-                        color: #374151;
+                        color: var(--color-text-primary);
                         cursor: pointer;
                         transition: all 0.2s ease;
                         outline: none;
@@ -1586,7 +1586,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .smart-nav-toggle:hover {
-                        background: #f8fafc;
+                        background: var(--color-bg-secondary);
                         border-color: #3b82f6;
                         color: #3b82f6;
                         transform: translateY(-1px);
@@ -1620,7 +1620,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         opacity: 0;
                         overflow: hidden;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        background: #fafbfc;
+                        background: var(--color-bg-secondary);
                     }
                     
                     .nav-collapsible-content.expanded {
@@ -1640,7 +1640,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     .nav-label {
                         font-size: 0.8rem;
                         font-weight: 600;
-                        color: #374151;
+                        color: var(--color-text-primary);
                         margin-bottom: 8px;
                     }
                     
@@ -1654,8 +1654,8 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     .alpha-btn {
                         width: 32px;
                         height: 32px;
-                        border: 1px solid #d1d5db;
-                        background: white;
+                        border: 1px solid var(--color-border-secondary);
+                        background: var(--color-bg-primary);
                         border-radius: 6px;
                         font-size: 0.8rem;
                         font-weight: 600;
@@ -1674,7 +1674,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .alpha-btn.no-terms {
-                        color: #d1d5db;
+                        color: var(--color-border-secondary);
                         cursor: not-allowed;
                         background: #f9fafb;
                     }
@@ -1688,18 +1688,18 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         display: block;
                         font-size: 0.8rem;
                         font-weight: 600;
-                        color: #374151;
+                        color: var(--color-text-primary);
                         margin-bottom: 6px;
                     }
                     
                     .category-select {
                         width: 100%;
                         padding: 8px 12px;
-                        border: 2px solid #d1d5db;
+                        border: 2px solid var(--color-border-secondary);
                         border-radius: 6px;
-                        background: white;
+                        background: var(--color-bg-primary);
                         font-size: 0.85rem;
-                        color: #374151;
+                        color: var(--color-text-primary);
                         cursor: pointer;
                         transition: all 0.2s ease;
                         outline: none;
@@ -1719,12 +1719,12 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     
                     .quick-cat-btn {
                         padding: 6px 12px;
-                        background: white;
-                        border: 2px solid #e2e8f0;
+                        background: var(--color-bg-primary);
+                        border: 2px solid var(--color-border-primary);
                         border-radius: 20px;
                         font-size: 0.75rem;
                         font-weight: 600;
-                        color: #64748b;
+                        color: var(--color-text-secondary);
                         cursor: pointer;
                         transition: all 0.2s ease;
                         outline: none;
@@ -1733,7 +1733,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .quick-cat-btn:hover {
-                        background: #f8fafc;
+                        background: var(--color-bg-secondary);
                         border-color: #3b82f6;
                         color: #3b82f6;
                         transform: translateY(-1px);
@@ -1754,15 +1754,15 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     /* Simplified Results Summary */
                     .results-summary {
                         padding: 12px 24px;
-                        background: #f8fafc;
-                        border-bottom: 1px solid #e2e8f0;
+                        background: var(--color-bg-secondary);
+                        border-bottom: 1px solid var(--color-border-primary);
                         font-size: 0.85rem;
                         flex-shrink: 0;
                         text-align: center;
                     }
                     
                     .results-text {
-                        color: #64748b;
+                        color: var(--color-text-secondary);
                         font-weight: 500;
                     }
                     
@@ -1778,7 +1778,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     .glossary-entry {
                         margin-bottom: 32px;
                         padding-bottom: 24px;
-                        border-bottom: 1px solid #f1f5f9;
+                        border-bottom: 1px solid var(--color-bg-tertiary);
                         transition: all 0.3s ease;
                         border-radius: 8px;
                         padding: 20px;
@@ -1786,7 +1786,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .glossary-entry:hover {
-                        background: #fafbfc;
+                        background: var(--color-bg-secondary);
                         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                     }
                     
@@ -1807,7 +1807,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     
                     .entry-term {
                         margin: 0;
-                        color: #1f2937;
+                        color: var(--color-text-primary);
                         font-size: 1.2rem;
                         font-weight: 700;
                         line-height: 1.3;
@@ -1842,7 +1842,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     
                     .source-indicator.calculated {
                         background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
-                        color: #374151;
+                        color: var(--color-text-primary);
                         border-color: rgba(107, 114, 128, 0.3);
                     }
                     
@@ -1907,8 +1907,8 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .entry-related {
-                        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-                        border-left-color: #64748b;
+                        background: var(--color-bg-tertiary);
+                        border-left-color: var(--color-text-secondary);
                         color: #475569;
                     }
                     
@@ -2029,18 +2029,18 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .glossary-content::-webkit-scrollbar-track {
-                        background: #f1f5f9;
+                        background: var(--color-bg-tertiary);
                         border-radius: 4px;
                     }
                     
                     .glossary-content::-webkit-scrollbar-thumb {
-                        background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+                        background: linear-gradient(135deg, var(--color-border-secondary) 0%, var(--color-text-muted) 100%);
                         border-radius: 4px;
-                        border: 1px solid #e2e8f0;
+                        border: 1px solid var(--color-border-primary);
                     }
                     
                     .glossary-content::-webkit-scrollbar-thumb:hover {
-                        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+                        background: linear-gradient(135deg, var(--color-text-muted) 0%, var(--color-text-secondary) 100%);
                     }
                 </style>
             `;
