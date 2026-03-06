@@ -2253,7 +2253,7 @@
                 /* Performance Overview */
                 .performance-overview {
                     padding: 30px;
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .overview-grid {
@@ -2318,7 +2318,7 @@
                 .card-title {
                     font-size: 1.1rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     flex: 1;
                 }
                 
@@ -2349,13 +2349,13 @@
                 }
                 
                 .metric-label {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 500;
                 }
                 
                 .metric-value {
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .trend-indicator {
@@ -2378,12 +2378,12 @@
                 
                 .trend-indicator.neutral {
                     background: #f1f5f9;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .no-data-message {
                     text-align: center;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     padding: 20px;
                 }
                 
@@ -2484,12 +2484,12 @@
                 .score-grade {
                     font-weight: 700;
                     margin-bottom: 12px;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .score-factors {
                     font-size: 0.8rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     text-align: left;
                 }
                 
@@ -2518,19 +2518,19 @@
                 }
                 
                 .impact-label {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 500;
                     font-size: 0.9rem;
                 }
                 
                 .impact-value {
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 /* Dashboard Tabs */
                 .dashboard-tabs {
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .tab-nav {
@@ -2552,7 +2552,7 @@
                     border: none;
                     background: none;
                     cursor: pointer;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     border-bottom: 3px solid transparent;
                     transition: all 0.2s ease;
                     white-space: nowrap;
@@ -2574,7 +2574,7 @@
                 .tab-btn.active {
                     color: #1e293b;
                     border-bottom-color: #3b82f6;
-                    background: white;
+                    background: var(--color-bg-primary);
                     position: relative;
                 }
                 
@@ -2585,7 +2585,7 @@
                     left: 0;
                     right: 0;
                     height: 1px;
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .tab-icon {
@@ -2625,7 +2625,7 @@
                 /* Sections */
                 .section {
                     margin-bottom: 30px;
-                    background: white;
+                    background: var(--color-bg-primary);
                     border-radius: 16px;
                     padding: 24px;
                     border: 1px solid #e2e8f0;
@@ -2635,7 +2635,7 @@
                 .section-title {
                     font-size: 1.3rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     margin: 0 0 20px 0;
                     display: flex;
                     align-items: center;
@@ -2650,7 +2650,7 @@
                 }
                 
                 .metric-card {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 20px;
@@ -2683,7 +2683,7 @@
                 
                 .metric-label {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 600;
                 }
                 
@@ -2704,14 +2704,14 @@
                 
                 .metric-trend.up { color: #059669; }
                 .metric-trend.down { color: #dc2626; }
-                .metric-trend.neutral { color: #64748b; }
+                .metric-trend.neutral { color: var(--color-text-secondary); }
                 
                 .trend-value {
                     font-weight: 600;
                 }
                 
                 .trend-period {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 400;
                 }
                 
@@ -2785,7 +2785,7 @@
                     justify-content: center;
                     font-size: 0.8rem;
                     font-weight: 600;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     text-align: center;
                     line-height: 1.3;
                     padding: 20px;
@@ -2800,7 +2800,7 @@
                     padding: 20px;
                     display: flex;
                     justify-content: space-between;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-size: 0.8rem;
                     font-weight: 600;
                 }
@@ -2863,7 +2863,7 @@
                 
                 .category-metrics {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-bottom: 12px;
                     line-height: 1.4;
                 }
@@ -2891,7 +2891,7 @@
                     border-radius: 8px;
                     border-left: 4px solid #e5e7eb;
                     margin-bottom: 12px;
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .opportunity-item.high, .opportunity-card.high {
@@ -2932,13 +2932,13 @@
                 
                 .opp-metrics {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-bottom: 8px;
                 }
                 
                 .opp-action {
                     font-size: 0.85rem;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     font-weight: 500;
                 }
                 
@@ -2957,7 +2957,7 @@
                 }
                 
                 .gap-card {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 20px;
@@ -2987,7 +2987,7 @@
                 
                 .gap-description {
                     font-size: 0.9rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-bottom: 16px;
                     line-height: 1.4;
                 }
@@ -3029,7 +3029,7 @@
                 
                 .score-description {
                     font-size: 0.9rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3076,7 +3076,7 @@
                 
                 .metric-insight {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3095,7 +3095,7 @@
                     padding: 20px;
                     border-radius: 12px;
                     border-left: 4px solid #e5e7eb;
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                 }
                 
@@ -3116,7 +3116,7 @@
                 }
                 
                 .action-description {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-bottom: 8px;
                     line-height: 1.4;
                 }
@@ -3163,13 +3163,13 @@
                 .ux-value {
                     font-size: 1.5rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     margin-bottom: 8px;
                 }
                 
                 .ux-benchmark {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3186,7 +3186,7 @@
                     padding: 16px;
                     border-radius: 8px;
                     border-left: 4px solid #e5e7eb;
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .ux-recommendation.high {
@@ -3212,7 +3212,7 @@
                 
                 .ux-rec-description {
                     font-size: 0.9rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3259,7 +3259,7 @@
                 }
                 
                 .trend-description {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3275,7 +3275,7 @@
                 }
                 
                 .trend-metric-card {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 20px;
@@ -3324,7 +3324,7 @@
                 
                 .trend-change.neutral {
                     background: #f1f5f9;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .trend-values {
@@ -3334,18 +3334,18 @@
                 .current-value {
                     font-size: 1.2rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .previous-value {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-left: 12px;
                 }
                 
                 .trend-insight {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3363,7 +3363,7 @@
                     align-items: flex-start;
                     gap: 16px;
                     padding: 16px;
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 8px;
                 }
@@ -3398,7 +3398,7 @@
                 
                 .action-reason {
                     font-size: 0.9rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-top: 4px;
                 }
                 
@@ -3408,7 +3408,7 @@
                 }
                 
                 .forecast-card {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 24px;
@@ -3443,7 +3443,7 @@
                 
                 .forecast-value {
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .forecast-value.up {
@@ -3456,7 +3456,7 @@
                 
                 .forecast-confidence {
                     font-size: 0.8rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-left: 8px;
                 }
                 
@@ -3484,7 +3484,7 @@
                 
                 .forecast-rec-description {
                     font-size: 0.9rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -3494,7 +3494,7 @@
                     align-items: flex-start;
                     gap: 20px;
                     padding: 20px;
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     margin-bottom: 16px;
@@ -3534,7 +3534,7 @@
                     gap: 16px;
                     margin-top: 8px;
                     font-size: 0.8rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .action-priority-badge {
@@ -3609,12 +3609,12 @@
                 
                 .phase-duration {
                     font-size: 0.8rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .phase-content {
                     flex: 1;
-                    background: white;
+                    background: var(--color-bg-primary);
                     border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 20px;
@@ -3691,14 +3691,14 @@
                 .component-score {
                     font-size: 0.85rem;
                     font-weight: 600;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     min-width: 50px;
                     text-align: right;
                 }
                 
                 /* Table Styles */
                 .queries-table {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border-radius: 8px;
                     overflow: hidden;
                     border: 1px solid #e2e8f0;
@@ -3736,7 +3736,7 @@
                 
                 .col-query {
                     font-weight: 500;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
@@ -3768,7 +3768,7 @@
                     padding: 20px;
                     border-radius: 12px;
                     border: 1px solid #e2e8f0;
-                    background: white;
+                    background: var(--color-bg-primary);
                     transition: all 0.2s ease;
                 }
                 
@@ -3848,7 +3848,7 @@
                 .connection-message {
                     text-align: center;
                     padding: 60px 30px;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .connection-icon {
@@ -3861,7 +3861,7 @@
                     font-size: 1.3rem;
                     font-weight: 700;
                     margin-bottom: 8px;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .connection-description {
@@ -3901,12 +3901,12 @@
                 .action-header h3 {
                     font-size: 1.4rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     margin: 0 0 8px 0;
                 }
                 
                 .action-header p {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin: 0;
                 }
                 
@@ -3961,8 +3961,8 @@
                 }
                 
                 .action-btn.secondary {
-                    background: white;
-                    color: #64748b;
+                    background: var(--color-bg-primary);
+                    color: var(--color-text-secondary);
                     border: 1px solid #e2e8f0;
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                 }
