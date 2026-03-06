@@ -180,7 +180,7 @@
         
         const content = document.createElement('div');
         content.style.cssText = `
-            background: white; padding: 30px; border-radius: 15px;
+            background: var(--color-bg-primary); padding: 30px; border-radius: 15px;
             width: 90%; max-width: 700px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             max-height: 80vh; overflow-y: auto;
         `;
@@ -259,7 +259,7 @@
         let autoSelectMessage = '';
         if (currentDomain) {
             autoSelectMessage = `
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <div style="background: var(--color-warning-bg); border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px; color: #856404;">
                         <span style="font-size: 20px;">ℹ️</span>
                         <div>
@@ -280,7 +280,7 @@
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">
                     Choose Property:
                 </label>
-                <select id="propertySelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: white; min-height: 48px;">
+                <select id="propertySelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: var(--color-bg-primary); color: var(--color-text-primary); min-height: 48px;">
                     <option value="">-- Select a Property --</option>
                     ${GA4_PROPERTIES.map(prop => {
                         const isSelected = matchedProperty && prop.propertyId === matchedProperty.propertyId;
@@ -296,13 +296,13 @@
                 </label>
                 <input type="text" id="propertyIdInput" placeholder="e.g., 123456789" 
                        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"/>
-                <div style="margin-top: 8px; font-size: 0.9rem; color: #666;">
+                <div style="margin-top: 8px; font-size: 0.9rem; color: var(--color-text-secondary);">
                     This is usually a 9-10 digit number
                 </div>
                 
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <div style="background: var(--color-bg-secondary); padding: 15px; border-radius: 8px; margin-top: 15px;">
                     <strong>📍 How to find your Property ID:</strong>
-                    <ol style="margin: 8px 0 0 20px; color: #666; font-size: 0.9rem; line-height: 1.4;">
+                    <ol style="margin: 8px 0 0 20px; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.4;">
                         <li>Go to <a href="https://analytics.google.com" target="_blank" style="color: #ff6b35;">analytics.google.com</a></li>
                         <li>Click the gear icon ⚙️ (Admin) in the bottom left</li>
                         <li>In the "Property" column, click "Property Settings"</li>
@@ -517,7 +517,7 @@ Try:
         
         const content = document.createElement('div');
         content.style.cssText = `
-            background: white; padding: 30px; border-radius: 15px;
+            background: var(--color-bg-primary); padding: 30px; border-radius: 15px;
             max-width: 600px; max-height: 80vh; overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         `;
@@ -529,15 +529,15 @@ Try:
                 <strong>${message}</strong>
             </div>
             
-            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+            <div style="background: var(--color-warning-bg); color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
                 <strong>💡 Troubleshooting Steps:</strong><br>
                 <pre style="white-space: pre-wrap; font-family: inherit; margin: 8px 0 0 0;">${suggestions}</pre>
             </div>
             
             ${details ? `
             <details style="margin-bottom: 20px;">
-                <summary style="cursor: pointer; color: #666; font-size: 0.9rem;">Technical Details</summary>
-                <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 0.8rem; margin-top: 8px; overflow-x: auto;">${details}</pre>
+                <summary style="cursor: pointer; color: var(--color-text-secondary); font-size: 0.9rem;">Technical Details</summary>
+                <pre style="background: var(--color-bg-secondary); padding: 10px; border-radius: 4px; font-size: 0.8rem; margin-top: 8px; overflow-x: auto;">${details}</pre>
             </details>
             ` : ''}
             
@@ -930,12 +930,12 @@ function addGA4Button() {
             gap: 8px;
             padding: 8px 16px !important;
             margin: 0 8px !important;
-            background: #ffffff !important;
+            background: var(--color-bg-primary) !important;
             border: 1px solid #dadce0 !important;
             border-radius: 8px !important;
             cursor: pointer;
             font-size: 14px !important;
-            color: #3c4043 !important;
+            color: var(--color-text-primary) !important;
             transition: all 0.2s ease;
             font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-weight: 500;
@@ -1069,9 +1069,9 @@ function addMobileGA4Button() {
         if (connected) {
             // Connected state: Green light
             ga4Btn.classList.add('connected');
-            ga4Btn.style.background = '#ffffff !important';
-            ga4Btn.style.color = '#3c4043 !important';
-            ga4Btn.style.borderColor = '#34a853 !important';
+            ga4Btn.style.setProperty('background', 'var(--color-bg-primary)', 'important');
+            ga4Btn.style.setProperty('color', 'var(--color-text-primary)', 'important');
+            ga4Btn.style.setProperty('border-color', '#34a853', 'important');
             ga4Text.textContent = 'GA4';
             
             // Set green status light
@@ -1081,9 +1081,9 @@ function addMobileGA4Button() {
         } else {
             // Not connected state: Red light
             ga4Btn.classList.remove('connected');
-            ga4Btn.style.background = '#ffffff !important';
-            ga4Btn.style.color = '#3c4043 !important';
-            ga4Btn.style.borderColor = '#dadce0 !important';
+            ga4Btn.style.setProperty('background', 'var(--color-bg-primary)', 'important');
+            ga4Btn.style.setProperty('color', 'var(--color-text-primary)', 'important');
+            ga4Btn.style.setProperty('border-color', '#dadce0', 'important');
             ga4Text.textContent = 'GA4';
             
             // Set red status light
@@ -1182,7 +1182,7 @@ function addGA4Styles() {
         }
         
         .nav-ga4-btn:hover {
-            background: #f8f9fa !important;
+            background: var(--color-bg-secondary) !important;
             border-color: #ff6b35 !important;
             box-shadow: 0 2px 8px rgba(255, 107, 53, 0.15) !important;
             transform: translateY(-1px);
@@ -2077,7 +2077,7 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
         
         const content = document.createElement('div');
         content.style.cssText = `
-            background: white; border-radius: 12px; padding: 20px; max-width: 400px; width: 100%;
+            background: var(--color-bg-primary); border-radius: 12px; padding: 20px; max-width: 400px; width: 100%;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         `;
         
@@ -2090,20 +2090,20 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
             </h3>
             
             <div style="margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--color-bg-secondary); border-radius: 8px;">
                     <div>
                         <div style="font-weight: 600; margin-bottom: 4px;">Auto-Connect</div>
-                        <div style="font-size: 14px; color: #666;">Skip property selection when match found</div>
-                        ${currentDomain ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">Current domain: ${currentDomain}</div>` : ''}
+                        <div style="font-size: 14px; color: var(--color-text-secondary);">Skip property selection when match found</div>
+                        ${currentDomain ? `<div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">Current domain: ${currentDomain}</div>` : ''}
                     </div>
                     <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
                         <input type="checkbox" id="autoConnectToggle" ${isAutoConnectEnabled ? 'checked' : ''} 
                                style="opacity: 0; width: 0; height: 0;">
-                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
-                                   background-color: ${isAutoConnectEnabled ? '#007bff' : '#ccc'}; 
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+                                   background-color: ${isAutoConnectEnabled ? 'var(--primary)' : 'var(--color-border-secondary)'};
                                    transition: .4s; border-radius: 24px;"></span>
-                        <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isAutoConnectEnabled ? '29px' : '3px'}; 
-                                   bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                        <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isAutoConnectEnabled ? '29px' : '3px'};
+                                   bottom: 3px; background-color: var(--color-bg-primary); transition: .4s; border-radius: 50%;"></span>
                     </label>
                 </div>
             </div>
@@ -2128,7 +2128,7 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
         
         toggle.onchange = () => {
             const checked = toggle.checked;
-            toggleSlider.style.backgroundColor = checked ? '#007bff' : '#ccc';
+            toggleSlider.style.backgroundColor = checked ? 'var(--primary)' : 'var(--color-border-secondary)';
             toggleKnob.style.left = checked ? '29px' : '3px';
             window.localStorage.setItem('ga4AutoConnect', checked.toString());
             ga4Log(`Auto-connect ${checked ? 'enabled' : 'disabled'}`);
