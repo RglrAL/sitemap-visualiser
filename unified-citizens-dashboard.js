@@ -278,13 +278,13 @@
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background: white;
+                background: var(--color-bg-primary);
                 padding: 20px 30px;
                 border-radius: 12px;
                 box-shadow: 0 10px 25px rgba(0,0,0,0.2);
                 z-index: 100001;
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 display: flex;
                 align-items: center;
                 gap: 12px;
@@ -293,7 +293,7 @@
                 <div style="
                     width: 24px;
                     height: 24px;
-                    border: 3px solid #e5e7eb;
+                    border: 3px solid var(--color-border-primary);
                     border-top-color: #3b82f6;
                     border-radius: 50%;
                     animation: spin 1s linear infinite;
@@ -3085,24 +3085,24 @@ const citizensInfoStyles = `
 }
 
 .insight-category {
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .insight-impact {
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-size: 0.75rem;
 }
 
 .insight-message {
     font-size: 0.85rem;
-    color: #374151;
+    color: var(--color-text-primary);
     line-height: 1.4;
 }
 
 .citizens-recommendations-section {
     margin-top: 20px;
     padding: 16px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
     border-left: 4px solid #10b981;
 }
@@ -3115,9 +3115,9 @@ const citizensInfoStyles = `
 
 .recommendation-item {
     padding: 16px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .recommendation-item.priority-high {
@@ -3143,7 +3143,7 @@ const citizensInfoStyles = `
 
 .rec-action {
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 0.95rem;
 }
 
@@ -3171,7 +3171,7 @@ const citizensInfoStyles = `
 
 .priority-badge.low {
     background: #f1f5f9;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .timeframe-badge {
@@ -3188,7 +3188,7 @@ const citizensInfoStyles = `
 
 .rec-specifics {
     font-size: 0.85rem;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .rec-specifics ul {
@@ -3606,7 +3606,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             margin: 0;
             font-size: 1.5rem;
             font-weight: 700;
-            color: #1f2937;
+            color: var(--color-text-primary);
             display: flex;
             align-items: center;
             gap: 12px;
@@ -3635,7 +3635,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         .clean-card-content {
             padding: 0 32px 32px 32px;
-            color: #1f2937;
+            color: var(--color-text-primary);
             position: relative;
             z-index: 1;
             line-height: 1.6;
@@ -3716,7 +3716,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             align-items: center;
             gap: 20px;
             padding: 16px 0;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--color-border-primary);
         }
         
         .region-item:last-child {
@@ -3852,7 +3852,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
             padding: 20px;
             border-radius: 12px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--color-border-primary);
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
@@ -3945,7 +3945,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
             padding: 24px;
             border-radius: 16px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--color-border-primary);
             display: flex;
             gap: 20px;
             align-items: flex-start;
@@ -4031,7 +4031,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         .search-pattern-country {
             background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
             border-radius: 16px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--color-border-primary);
             overflow: hidden;
             transition: all 0.3s ease;
         }
@@ -4048,7 +4048,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             gap: 16px;
             padding: 20px;
             background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--color-border-primary);
         }
         
         .country-flag-container {
@@ -4057,7 +4057,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             display: flex;
             align-items: center;
             justify-content: center;
-            background: white;
+            background: var(--color-bg-primary);
             border-radius: 50%;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
@@ -4521,7 +4521,7 @@ function createCleanDemographicAnalysis(geoData, geoInsights) {
                                     </div>
                                 `).join('') 
                                 : 
-                                '<div class="no-queries" style="padding: 12px; color: #6b7280; font-style: italic;">No specific query data available for this period</div>'
+                                '<div class="no-queries" style="padding: 12px; color: var(--color-text-secondary); font-style: italic;">No specific query data available for this period</div>'
                             }
                         </div>
                     </div>
@@ -5923,10 +5923,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
             /* Enhanced Performance Matrix Styles */
             .enhanced-performance-matrix {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 20px;
                 padding: 24px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
                 box-shadow: 0 4px 20px rgba(0,0,0,0.08);
                 position: relative;
                 overflow: hidden;
@@ -5958,13 +5958,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
             .matrix-title {
                 font-size: 1.4rem;
                 font-weight: 700;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 margin: 0 0 8px 0;
             }
             
             .matrix-subtitle {
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-style: italic;
             }
             
@@ -5974,7 +5974,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 height: 380px;
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 border-radius: 16px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
                 margin-bottom: 24px;
                 overflow: hidden;
                 padding: 40px 60px 60px 60px; /* Space for labels */
@@ -6048,13 +6048,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
             .quadrant-title {
                 font-size: 0.9rem;
                 font-weight: 700;
-                color: #374151;
+                color: var(--color-text-primary);
                 margin-bottom: 4px;
             }
             
             .quadrant-desc {
                 font-size: 0.75rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 line-height: 1.3;
             }
             
@@ -6094,7 +6094,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 left: 50%;
                 transform: translateX(-50%);
                 font-size: 0.7rem;
-                color: #64748b;
+                color: var(--color-text-secondary);
                 font-weight: 600;
                 background: rgba(255,255,255,0.9);
                 padding: 4px 8px;
@@ -6109,7 +6109,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 left: -80px;
                 transform: translateY(-50%);
                 font-size: 0.7rem;
-                color: #64748b;
+                color: var(--color-text-secondary);
                 font-weight: 600;
                 background: rgba(255,255,255,0.9);
                 padding: 4px 8px;
@@ -6170,11 +6170,11 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 top: -120px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 12px;
                 padding: 12px 16px;
                 box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
                 opacity: 0;
                 pointer-events: none;
                 transition: all 0.3s ease;
@@ -6206,7 +6206,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             }
             
             .metric-label {
-                color: #6b7280;
+                color: var(--color-text-secondary);
             }
             
             .metric-value {
@@ -6240,7 +6240,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             .x-axis-title {
                 font-size: 0.9rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 margin-bottom: 8px;
             }
             
@@ -6253,7 +6253,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             
             .x-axis-scale .scale-point {
                 font-size: 0.75rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-weight: 500;
                 position: absolute;
             }
@@ -6289,7 +6289,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             .y-axis-title {
                 font-size: 0.9rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 transform: rotate(-90deg);
                 white-space: nowrap;
                 margin-bottom: 20px;
@@ -6306,7 +6306,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             
             .y-axis-scale .scale-point {
                 font-size: 0.75rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-weight: 500;
                 position: absolute;
                 white-space: nowrap;
@@ -6333,7 +6333,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 border-radius: 16px;
                 padding: 20px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             }
             
             .insights-header {
@@ -6345,9 +6345,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 align-items: center;
                 gap: 16px;
                 padding: 16px;
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 12px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             }
             
             .status-icon {
@@ -6373,13 +6373,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
             .status-title {
                 font-size: 1.1rem;
                 font-weight: 700;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 margin-bottom: 4px;
             }
             
             .status-description {
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 line-height: 1.4;
             }
             
@@ -6394,9 +6394,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 align-items: center;
                 gap: 16px;
                 padding: 16px;
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 12px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             }
             
             .metric-icon {
@@ -6417,13 +6417,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
             .metric-title {
                 font-size: 0.9rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 margin-bottom: 4px;
             }
             
             .metric-breakdown {
                 font-size: 0.8rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
             }
             
             .metric-score {
@@ -6443,16 +6443,16 @@ function createPerformanceMatrix(gscData, ga4Data) {
             
             /* Next Actions */
             .next-actions {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 12px;
                 padding: 16px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             }
             
             .actions-title {
                 font-size: 0.9rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 margin-bottom: 12px;
             }
             
@@ -6463,9 +6463,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
             
             .action-item {
                 font-size: 0.85rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 padding: 8px 12px;
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 border-radius: 8px;
                 border-left: 3px solid #3b82f6;
             }
@@ -6529,10 +6529,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Main Container */
 .surge-detection-enhanced {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 20px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     position: relative;
     overflow: hidden;
@@ -6560,7 +6560,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .no-surges-detected {
     text-align: center;
     padding: 60px 20px;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 .no-surge-icon {
@@ -6572,13 +6572,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .no-surge-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #374151;
+    color: var(--color-text-primary);
     margin-bottom: 8px;
 }
 
 .no-surge-description {
     font-size: 1rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 /* ================================================== */
@@ -6599,7 +6599,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     gap: 12px;
     margin-bottom: 20px;
     padding: 16px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
@@ -6637,7 +6637,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .critical-alert-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
     border: 1px solid rgba(239, 68, 68, 0.2);
@@ -6664,7 +6664,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .alert-title {
     font-size: 1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     flex: 1;
 }
 
@@ -6680,7 +6680,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .alert-details {
     font-size: 0.9rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     margin-bottom: 16px;
     line-height: 1.5;
 }
@@ -6711,7 +6711,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .alert-timeline {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-style: italic;
 }
 
@@ -6731,13 +6731,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .dashboard-header h3 {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin: 0 0 8px 0;
 }
 
 .surge-period {
     font-size: 0.9rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-style: italic;
 }
 
@@ -6748,11 +6748,11 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .surge-stat-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     padding: 24px;
     text-align: center;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
     position: relative;
@@ -6792,20 +6792,20 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .stat-number {
     font-size: 2.2rem;
     font-weight: 800;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 8px;
 }
 
 .stat-label {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     margin-bottom: 4px;
 }
 
 .stat-detail {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 /* ================================================== */
@@ -6819,7 +6819,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .surge-categories-section h4 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -6833,10 +6833,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .category-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
     position: relative;
@@ -6897,13 +6897,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .category-name {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     flex: 1;
 }
 
 .category-count {
     background: #f3f4f6;
-    color: #374151;
+    color: var(--color-text-primary);
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.8rem;
@@ -6912,13 +6912,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .category-volume {
     font-size: 0.9rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     margin-bottom: 8px;
 }
 
 .category-priority {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 /* ================================================== */
@@ -6932,7 +6932,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .detailed-surges-section h4 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -6941,11 +6941,11 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .surge-tabs {
     display: flex;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
     padding: 4px;
     margin-bottom: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .surge-tab {
@@ -6956,19 +6956,19 @@ function createPerformanceMatrix(gscData, ga4Data) {
     border-radius: 8px;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .surge-tab:hover {
-    color: #374151;
+    color: var(--color-text-primary);
     background: rgba(255,255,255,0.5);
 }
 
 .surge-tab.active {
-    background: white;
-    color: #1f2937;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -6991,10 +6991,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .surge-item {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
     position: relative;
@@ -7028,7 +7028,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .surge-query {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 16px;
     font-style: italic;
 }
@@ -7043,14 +7043,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .metric {
     text-align: center;
     padding: 12px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .metric-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     margin-bottom: 4px;
     display: block;
 }
@@ -7058,7 +7058,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .metric-value {
     font-size: 1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     display: block;
 }
 
@@ -7074,7 +7074,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .context-tag {
     display: inline-block;
     background: #f3f4f6;
-    color: #374151;
+    color: var(--color-text-primary);
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.75rem;
@@ -7104,10 +7104,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .emerging-topic-item {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-left: 4px solid #10b981;
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, white 100%);
@@ -7116,7 +7116,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .topic-query {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 16px;
     font-style: italic;
 }
@@ -7144,10 +7144,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .unmet-need-item {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-left: 4px solid #f59e0b;
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.02) 0%, white 100%);
@@ -7156,7 +7156,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .need-query {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 16px;
     font-style: italic;
 }
@@ -7188,7 +7188,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .contextual-insights-section h4 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -7204,10 +7204,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: flex;
     align-items: flex-start;
     gap: 16px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
 }
@@ -7244,7 +7244,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
     flex-shrink: 0;
 }
@@ -7256,13 +7256,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .insight-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 8px;
 }
 
 .insight-description {
     font-size: 0.9rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     margin-bottom: 8px;
     line-height: 1.5;
 }
@@ -7288,7 +7288,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .recommendations-section h4 {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -7301,10 +7301,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .recommendation-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
     position: relative;
@@ -7373,12 +7373,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .priority-label {
     font-size: 0.8rem;
     font-weight: 700;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .rec-timeframe {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     background: #f3f4f6;
     padding: 4px 8px;
     border-radius: 8px;
@@ -7388,13 +7388,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .rec-action {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 12px;
 }
 
 .rec-details {
     font-size: 0.9rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     margin-bottom: 12px;
     line-height: 1.5;
 }
@@ -7411,7 +7411,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .rec-assignee {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     text-transform: capitalize;
 }
 
@@ -7422,11 +7422,11 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .no-data {
     text-align: center;
     padding: 40px 20px;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-style: italic;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 /* ================================================== */
@@ -7574,7 +7574,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     border-radius: 20px;
     padding: 32px;
     margin-bottom: 32px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .geo-header {
@@ -7591,7 +7591,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .geo-explanation p {
     margin: 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.95rem;
     line-height: 1.5;
 }
@@ -7619,9 +7619,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Clean card styling */
 .geo-clean-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     overflow: hidden;
     transition: all 0.3s ease;
@@ -7649,7 +7649,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     margin: 0;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -7698,7 +7698,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .clean-empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 .empty-icon {
@@ -7726,9 +7726,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     padding: 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .stat-item {
@@ -7739,13 +7739,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: block;
     font-size: 1.6rem;
     font-weight: 800;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 4px;
 }
 
 .stat-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -7779,7 +7779,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .region-name {
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
 }
 
@@ -7833,7 +7833,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .country-name {
     flex: 1;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
 }
 
@@ -7852,14 +7852,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .analysis-summary {
     padding: 16px 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
     border-left: 3px solid #6366f1;
 }
 
 .analysis-summary p {
     margin: 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
     line-height: 1.5;
 }
@@ -7872,21 +7872,21 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .county-performance-item {
     padding: 16px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     text-align: center;
     transition: all 0.2s ease;
 }
 
 .county-performance-item:hover {
-    background: white;
+    background: var(--color-bg-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .county-name {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
     margin-bottom: 8px;
 }
@@ -7907,7 +7907,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .metric-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 .county-share {
@@ -7933,14 +7933,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: center;
     gap: 16px;
     padding: 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.2s ease;
 }
 
 .demographic-item:hover {
-    background: white;
+    background: var(--color-bg-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -7955,7 +7955,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .demo-title {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 0.95rem;
     margin-bottom: 4px;
 }
@@ -7969,7 +7969,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .demo-detail {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 /* Opportunities styling */
@@ -7987,14 +7987,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .opportunity-item {
     padding: 24px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.2s ease;
 }
 
 .opportunity-item:hover {
-    background: white;
+    background: var(--color-bg-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -8023,23 +8023,23 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .opp-title {
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     flex: 1;
 }
 
 .opp-timeframe {
     font-size: 0.8rem;
-    color: #6b7280;
-    background: white;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-primary);
     padding: 4px 8px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .opp-list {
     margin: 0;
     padding-left: 20px;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .opp-list li {
@@ -8057,9 +8057,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .impact-item {
     text-align: center;
     padding: 16px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .impact-value {
@@ -8128,7 +8128,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     border-radius: 20px;
     padding: 32px;
     margin-bottom: 32px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .geo-header {
@@ -8145,7 +8145,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .geo-explanation p {
     margin: 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.95rem;
     line-height: 1.5;
 }
@@ -8173,9 +8173,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Clean card styling */
 .geo-clean-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     overflow: hidden;
     transition: all 0.3s ease;
@@ -8222,7 +8222,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     margin: 0;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -8271,7 +8271,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .clean-empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 .empty-icon {
@@ -8306,9 +8306,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     padding: 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .stat-item {
@@ -8319,13 +8319,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: block;
     font-size: 1.6rem;
     font-weight: 800;
-    color: #1f2937;
+    color: var(--color-text-primary);
     margin-bottom: 4px;
 }
 
 .stat-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -8359,7 +8359,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .region-name {
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
 }
 
@@ -8413,7 +8413,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .country-name {
     flex: 1;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
 }
 
@@ -8432,14 +8432,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .analysis-summary {
     padding: 16px 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
     border-left: 3px solid #6366f1;
 }
 
 .analysis-summary p {
     margin: 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
     line-height: 1.5;
 }
@@ -8452,21 +8452,21 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .county-performance-item {
     padding: 16px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     text-align: center;
     transition: all 0.2s ease;
 }
 
 .county-performance-item:hover {
-    background: white;
+    background: var(--color-bg-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .county-name {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
     margin-bottom: 8px;
 }
@@ -8487,7 +8487,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .metric-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 .county-share {
@@ -8513,14 +8513,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: center;
     gap: 16px;
     padding: 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.2s ease;
 }
 
 .demographic-item:hover {
-    background: white;
+    background: var(--color-bg-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -8535,7 +8535,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .demo-title {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 0.95rem;
     margin-bottom: 4px;
 }
@@ -8549,7 +8549,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .demo-detail {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 /* Search patterns styling */
@@ -8568,7 +8568,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .patterns-summary p {
     margin: 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
     line-height: 1.5;
 }
@@ -8581,9 +8581,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .search-pattern-country {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     overflow: hidden;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -8654,7 +8654,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     justify-content: center;
     width: 48px;
     height: 48px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border: 2px solid #e2e8f0;
@@ -8675,7 +8675,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .country-name {
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     font-size: 1.1rem;
 }
 
@@ -8721,7 +8721,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .query-rank {
     font-size: 0.8rem;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
     width: 28px;
     height: 28px;
@@ -8730,7 +8730,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .query-content {
@@ -8743,7 +8743,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .query-text {
     font-size: 0.9rem;
-    color: #374151;
+    color: var(--color-text-primary);
     font-weight: 500;
     flex: 1;
     line-height: 1.3;
@@ -8836,14 +8836,14 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .opportunity-item {
     padding: 24px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.2s ease;
 }
 
 .opportunity-item:hover {
-    background: white;
+    background: var(--color-bg-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -8872,23 +8872,23 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .opp-title {
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-text-primary);
     flex: 1;
 }
 
 .opp-timeframe {
     font-size: 0.8rem;
-    color: #6b7280;
-    background: white;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-primary);
     padding: 4px 8px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .opp-list {
     margin: 0;
     padding-left: 20px;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .opp-list li {
@@ -8906,9 +8906,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .impact-item {
     text-align: center;
     padding: 16px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .impact-value {
@@ -8983,7 +8983,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .geo-kpi-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -9035,13 +9035,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .kpi-label {
     font-size: 1rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     margin-bottom: 4px;
 }
 
 .kpi-detail {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-style: italic;
 }
 
@@ -9066,7 +9066,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .kpi-trend.neutral {
     background: #f1f5f9;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .kpi-grade {
@@ -9147,7 +9147,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
    ================================================== */
 
 .overview-content {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     padding: 24px;
 }
@@ -9162,7 +9162,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-radius: 16px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     position: relative;
     overflow: hidden;
 }
@@ -9232,7 +9232,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .reach-indicator.low {
     background: #f1f5f9;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 /* ==================================================
@@ -9248,7 +9248,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .ireland-map-visual,
 .world-map-visual {
     position: relative;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 24px;
     min-height: 180px;
@@ -9358,7 +9358,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     justify-content: center;
     gap: 20px;
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .legend-item {
@@ -9396,11 +9396,11 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Main geographic sections below the side-by-side layout */
 .geo-detailed-section {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     padding: 32px;
     margin: 32px 0;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
 
@@ -9416,21 +9416,21 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .county-analysis-container,
 .demographic-analysis-container {
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     min-height: 200px;
 }
 
 /* Enhanced layout for main analysis */
 .geo-main-analysis {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 20px;
     padding: 32px;
     margin: 32px 0;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .geo-section-grid {
@@ -9443,7 +9443,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-radius: 16px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     position: relative;
     overflow: hidden;
     min-height: 500px;
@@ -9478,10 +9478,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .ireland-map-container,
 .world-map-container {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     flex: 1;
     min-height: 250px;
     display: flex;
@@ -9494,13 +9494,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
     background: rgba(255,255,255,0.8);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .regional-insights h4,
 .international-insights h4 {
     margin: 0 0 16px 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 1.1rem;
     font-weight: 600;
 }
@@ -9518,9 +9518,9 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: center;
     gap: 16px;
     padding: 16px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.2s ease;
 }
 
@@ -9543,7 +9543,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .region-name {
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.95rem;
 }
 
@@ -9555,7 +9555,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .region-users {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     text-align: right;
 }
 
@@ -9650,7 +9650,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     padding: 16px;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .stat-value {
@@ -9663,7 +9663,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .stat-label {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-weight: 500;
 }
 
@@ -9686,7 +9686,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -9697,7 +9697,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .performance-heatmap {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
     margin-top: 16px;
@@ -9706,7 +9706,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: center;
     justify-content: center;
     border: 2px dashed #e2e8f0;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 /* ==================================================
@@ -9714,7 +9714,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
    ================================================== */
 
 .opportunities-content {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     padding: 24px;
 }
@@ -9736,10 +9736,10 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .opportunity-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -9804,7 +9804,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .opportunity-description {
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin-bottom: 16px;
     line-height: 1.5;
 }
@@ -9822,7 +9822,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .opportunity-metrics .label {
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-weight: 500;
 }
 
@@ -9857,7 +9857,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
    ================================================== */
 
 .detailed-content {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 16px;
     padding: 24px;
 }
@@ -9865,7 +9865,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .detailed-section {
     margin-bottom: 32px;
     padding: 20px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
     border-left: 4px solid #0ea5e9;
 }
@@ -9880,15 +9880,15 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .search-patterns-container,
 .accessibility-matrix,
 .demographic-insights {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
     padding: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     min-height: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-style: italic;
 }
 
@@ -9919,7 +9919,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     align-items: center;
     justify-content: center;
     padding: 40px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-style: italic;
     min-height: 150px;
     background: rgba(255, 255, 255, 0.5);
@@ -11039,7 +11039,7 @@ function formatDuration(seconds) {
                 .metrics-card .card-label {
                     font-size: 0.75rem;
                     font-weight: 600;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                 }
@@ -11098,7 +11098,7 @@ function formatDuration(seconds) {
                 /* Performance Overview */
                 .performance-overview {
                     padding: 30px;
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .overview-grid {
@@ -11114,7 +11114,7 @@ function formatDuration(seconds) {
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     border-radius: 16px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -11177,7 +11177,7 @@ function formatDuration(seconds) {
                 .card-title {
                     font-size: 1.1rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     flex: 1;
                 }
                 
@@ -11209,7 +11209,7 @@ function formatDuration(seconds) {
                 }
                 
                 .metric-label {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 500;
                 }
                 
@@ -11246,12 +11246,12 @@ function formatDuration(seconds) {
                 
                 .trend-indicator.neutral {
                     background: #f1f5f9;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .no-data-message {
                     text-align: center;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     padding: 20px;
                 }
                 
@@ -11322,7 +11322,7 @@ function formatDuration(seconds) {
                 .score-grade {
                     font-weight: 700;
                     margin-bottom: 12px;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 /* Impact Metrics */
@@ -11351,17 +11351,17 @@ function formatDuration(seconds) {
                 
                 .impact-value {
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 /* Dashboard Tabs */
                 .dashboard-tabs {
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .tab-nav {
                     display: flex;
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                     border-bottom: 1px solid #e2e8f0;
                     overflow-x: auto;
                     scrollbar-width: none;
@@ -11378,7 +11378,7 @@ function formatDuration(seconds) {
                     border: none;
                     background: none;
                     cursor: pointer;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     border-bottom: 3px solid transparent;
                     transition: all 0.2s ease;
                     white-space: nowrap;
@@ -11407,7 +11407,7 @@ function formatDuration(seconds) {
                 .tab-btn.active {
                     color: #1e293b;
                     border-bottom-color: #3b82f6;
-                    background: white;
+                    background: var(--color-bg-primary);
                     position: relative;
                 }
                 
@@ -11418,7 +11418,7 @@ function formatDuration(seconds) {
                     left: 0;
                     right: 0;
                     height: 1px;
-                    background: white;
+                    background: var(--color-bg-primary);
                 }
                 
                 .tab-icon {
@@ -11460,10 +11460,10 @@ function formatDuration(seconds) {
                     .tab-nav {
                         flex-direction: column;
                         overflow-x: visible;
-                        background: white;
+                        background: var(--color-bg-primary);
                         border-radius: 0 0 12px 12px;
                         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-                        border: 1px solid #e2e8f0;
+                        border: 1px solid var(--color-border-primary);
                         border-top: none;
                     }
                     
@@ -11542,7 +11542,7 @@ function formatDuration(seconds) {
                         border-bottom: 1px solid #e2e8f0;
                         border-radius: 0;
                         min-height: 52px; /* Reduced from 60px */
-                        background: white;
+                        background: var(--color-bg-primary);
                         transition: all 0.2s ease;
                     }
                     
@@ -11551,7 +11551,7 @@ function formatDuration(seconds) {
                     }
                     
                     .tab-btn:hover {
-                        background: #f8fafc;
+                        background: var(--color-bg-secondary);
                         transform: translateX(4px);
                     }
                     
@@ -11582,14 +11582,14 @@ function formatDuration(seconds) {
                     .tab-label {
                         font-size: 15px;
                         font-weight: 600;
-                        color: #1f2937;
+                        color: var(--color-text-primary);
                         flex-grow: 1;
                     }
                     
                     .tab-description {
                         display: block; /* Show on mobile */
                         font-size: 11px;
-                        color: #6b7280;
+                        color: var(--color-text-secondary);
                         line-height: 1.2;
                         margin-left: 32px; /* Align with label */
                         font-weight: 400;
@@ -11840,17 +11840,17 @@ function formatDuration(seconds) {
                 /* Sections */
                 .section {
                     margin-bottom: 30px;
-                    background: white;
+                    background: var(--color-bg-primary);
                     border-radius: 16px;
                     padding: 24px;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid var(--color-border-primary);
                     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
                 }
                 
                 .section-title {
                     font-size: 1.3rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     margin: 0 0 20px 0;
                     display: flex;
                     align-items: center;
@@ -11865,8 +11865,8 @@ function formatDuration(seconds) {
                 }
                 
                 .metric-card {
-                    background: white;
-                    border: 1px solid #e2e8f0;
+                    background: var(--color-bg-primary);
+                    border: 1px solid var(--color-border-primary);
                     border-radius: 12px;
                     padding: 20px;
                     transition: all 0.2s ease;
@@ -11879,10 +11879,10 @@ function formatDuration(seconds) {
                 }
                 
                 .metric-card.no-data {
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                     border: 2px dashed #d1d5db;
                     text-align: center;
-                    color: #6b7280;
+                    color: var(--color-text-secondary);
                 }
                 
                 .metric-header {
@@ -11898,7 +11898,7 @@ function formatDuration(seconds) {
                 
                 .metric-label {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 600;
                 }
                 
@@ -11919,14 +11919,14 @@ function formatDuration(seconds) {
                 
                 .metric-trend.up { color: #059669; }
                 .metric-trend.down { color: #dc2626; }
-                .metric-trend.neutral { color: #64748b; }
+                .metric-trend.neutral { color: var(--color-text-secondary); }
                 
                 .trend-value {
                     font-weight: 600;
                 }
                 
                 .trend-period {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-weight: 400;
                 }
                 
@@ -11937,7 +11937,7 @@ function formatDuration(seconds) {
                     background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
                     border-radius: 12px;
                     overflow: hidden;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid var(--color-border-primary);
                 }
                 
                 .matrix-chart {
@@ -12000,7 +12000,7 @@ function formatDuration(seconds) {
                     justify-content: center;
                     font-size: 0.8rem;
                     font-weight: 600;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     text-align: center;
                     line-height: 1.3;
                     padding: 20px;
@@ -12015,7 +12015,7 @@ function formatDuration(seconds) {
                     padding: 20px;
                     display: flex;
                     justify-content: space-between;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     font-size: 0.8rem;
                     font-weight: 600;
                 }
@@ -12041,7 +12041,7 @@ function formatDuration(seconds) {
                 }
                 
                 .geo-card { 
-                    background: white; 
+                    background: var(--color-bg-primary); 
                     border-radius: 16px; 
                     padding: 24px; 
                     border: 1px solid #e0f2fe; 
@@ -12093,7 +12093,7 @@ function formatDuration(seconds) {
                 }
                 
                 .impact-metric-card {
-                    background: white;
+                    background: var(--color-bg-primary);
                     padding: 20px;
                     border-radius: 12px;
                     text-align: center;
@@ -12114,21 +12114,21 @@ function formatDuration(seconds) {
                 
                 .impact-metric-label {
                     font-weight: 600;
-                    color: #374151;
+                    color: var(--color-text-primary);
                     margin-bottom: 4px;
                 }
                 
                 .impact-metric-detail {
                     font-size: 0.8rem;
-                    color: #6b7280;
+                    color: var(--color-text-secondary);
                 }
                 
                 /* Table Styles */
                 .queries-table {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border-radius: 8px;
                     overflow: hidden;
-                    border: 1px solid #e2e8f0;
+                    border: 1px solid var(--color-border-primary);
                 }
                 
                 .table-header {
@@ -12136,9 +12136,9 @@ function formatDuration(seconds) {
                     grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
                     gap: 16px;
                     padding: 16px;
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                     font-weight: 600;
-                    color: #374151;
+                    color: var(--color-text-primary);
                     border-bottom: 1px solid #e2e8f0;
                     font-size: 0.85rem;
                 }
@@ -12154,7 +12154,7 @@ function formatDuration(seconds) {
                 }
                 
                 .table-row:hover {
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                 }
                 
                 .table-row:last-child {
@@ -12163,7 +12163,7 @@ function formatDuration(seconds) {
                 
                 .col-query {
                     font-weight: 500;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
@@ -12191,8 +12191,8 @@ function formatDuration(seconds) {
                 }
                 
                 .problem-query-card {
-                    background: white;
-                    border: 1px solid #e2e8f0;
+                    background: var(--color-bg-primary);
+                    border: 1px solid var(--color-border-primary);
                     border-radius: 12px;
                     padding: 20px;
                     border-left: 4px solid #e5e7eb;
@@ -12226,18 +12226,18 @@ function formatDuration(seconds) {
                 
                 .problem-query {
                     font-weight: 600;
-                    color: #374151;
+                    color: var(--color-text-primary);
                     margin-bottom: 8px;
                 }
                 
                 .problem-issue {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-bottom: 8px;
                 }
                 
                 .problem-metrics {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 /* Content Gaps */
@@ -12248,8 +12248,8 @@ function formatDuration(seconds) {
                 }
                 
                 .gap-card {
-                    background: white;
-                    border: 1px solid #e2e8f0;
+                    background: var(--color-bg-primary);
+                    border: 1px solid var(--color-border-primary);
                     border-radius: 12px;
                     padding: 20px;
                 }
@@ -12264,7 +12264,7 @@ function formatDuration(seconds) {
                 .gap-header h3 {
                     margin: 0;
                     font-size: 1.1rem;
-                    color: #374151;
+                    color: var(--color-text-primary);
                 }
                 
                 .gap-count {
@@ -12278,7 +12278,7 @@ function formatDuration(seconds) {
                 
                 .gap-description {
                     font-size: 0.9rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin-bottom: 16px;
                     line-height: 1.4;
                 }
@@ -12314,7 +12314,7 @@ function formatDuration(seconds) {
                 }
                 
                 .benchmark-card {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border-radius: 16px;
                     padding: 44px;
                     border-left: 4px solid #e5e7eb;
@@ -12335,7 +12335,7 @@ function formatDuration(seconds) {
                 
                 .benchmark-label {
                     font-weight: 600;
-                    color: #374151;
+                    color: var(--color-text-primary);
                 }
                 
                 .benchmark-status {
@@ -12353,26 +12353,26 @@ function formatDuration(seconds) {
                 .current-value {
                     font-size: 1.5rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .benchmark-comparison {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .benchmark-message {
                     font-size: 0.85rem;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
                 /* Priority Matrix */
                 .priority-matrix {
-                    background: white;
+                    background: var(--color-bg-primary);
                     border-radius: 16px;
                     padding: 24px;
-                    border: 1px solid #e5e7eb;
+                    border: 1px solid var(--color-border-primary);
                 }
                 
                 .priority-breakdown {
@@ -12391,7 +12391,7 @@ function formatDuration(seconds) {
                 .component-label {
                     font-size: 0.9rem;
                     font-weight: 600;
-                    color: #374151;
+                    color: var(--color-text-primary);
                 }
                 
                 .component-bar {
@@ -12412,13 +12412,13 @@ function formatDuration(seconds) {
                 .component-score {
                     font-size: 0.85rem;
                     font-weight: 600;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     min-width: 50px;
                     text-align: right;
                 }
                 
                 .priority-recommendation {
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                     padding: 20px;
                     border-radius: 12px;
                     border-left: 4px solid #3b82f6;
@@ -12426,11 +12426,11 @@ function formatDuration(seconds) {
                 
                 .priority-recommendation h3 {
                     margin: 0 0 8px 0;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .recommendation-text {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     line-height: 1.4;
                 }
                 
@@ -12477,8 +12477,8 @@ function formatDuration(seconds) {
                 .insight-card {
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: white;
+    border: 1px solid var(--color-border-primary);
+    background: var(--color-bg-primary);
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
@@ -12509,7 +12509,7 @@ function formatDuration(seconds) {
                 
                 .insight-card.neutral {
                     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                    border-color: #64748b;
+                    border-color: var(--color-text-secondary);
                 }
                 
                 .insight-icon {
@@ -12520,7 +12520,7 @@ function formatDuration(seconds) {
 }
 
 .insight-text {
-    color: #374151;
+    color: var(--color-text-primary);
     line-height: 1.5;
     font-weight: 500;
     flex-grow: 1; /* Take up remaining space */
@@ -12530,7 +12530,7 @@ function formatDuration(seconds) {
                 .connection-message {
                     text-align: center;
                     padding: 60px 30px;
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                 }
                 
                 .connection-icon {
@@ -12543,7 +12543,7 @@ function formatDuration(seconds) {
                     font-size: 1.3rem;
                     font-weight: 700;
                     margin-bottom: 8px;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                 }
                 
                 .connection-description {
@@ -12583,12 +12583,12 @@ function formatDuration(seconds) {
                 .action-header h3 {
                     font-size: 1.4rem;
                     font-weight: 700;
-                    color: #1f2937;
+                    color: var(--color-text-primary);
                     margin: 0 0 8px 0;
                 }
                 
                 .action-header p {
-                    color: #64748b;
+                    color: var(--color-text-secondary);
                     margin: 0;
                 }
                 
@@ -12643,14 +12643,14 @@ function formatDuration(seconds) {
                 }
                 
                 .action-btn.secondary {
-                    background: white;
-                    color: #64748b;
-                    border: 1px solid #e2e8f0;
+                    background: var(--color-bg-primary);
+                    color: var(--color-text-secondary);
+                    border: 1px solid var(--color-border-primary);
                     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                 }
                 
                 .action-btn.secondary:hover {
-                    background: #f8fafc;
+                    background: var(--color-bg-secondary);
                     color: #334155;
                     transform: translateY(-1px);
                     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
@@ -13143,7 +13143,7 @@ function formatDuration(seconds) {
     margin-top: 8px;
     display: inline-block;
     padding: 6px 12px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -13166,7 +13166,7 @@ function formatDuration(seconds) {
 }
 
 .trend-neutral {
-    color: #6b7280;
+    color: var(--color-text-secondary);
     background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
 }
 
@@ -13198,15 +13198,15 @@ function formatDuration(seconds) {
 .quality-breakdown {
     margin-top: 16px;
     padding: 16px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .breakdown-explanation {
     margin-bottom: 16px;
     font-size: 0.85rem;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .breakdown-components {
@@ -13216,10 +13216,10 @@ function formatDuration(seconds) {
 }
 
 .breakdown-item {
-    background: white;
+    background: var(--color-bg-primary);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border-primary);
 }
 
 .breakdown-header {
@@ -13236,7 +13236,7 @@ function formatDuration(seconds) {
 .breakdown-name {
     flex: 1;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
 }
 
@@ -13254,7 +13254,7 @@ function formatDuration(seconds) {
 
 .breakdown-details {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     margin-left: 24px;
 }
 
@@ -13265,7 +13265,7 @@ function formatDuration(seconds) {
 .breakdown-improvement {
     margin-top: 8px;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text-primary);
     font-style: italic;
 }
 
@@ -13356,7 +13356,7 @@ function formatDuration(seconds) {
 }
 
 .calc-label {
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .calc-value {
@@ -13365,7 +13365,7 @@ function formatDuration(seconds) {
 }
 
 .calc-source {
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-size: 0.75rem;
     font-style: italic;
 }
@@ -13401,7 +13401,7 @@ function formatDuration(seconds) {
 
 .top-queries-preview li {
     margin-bottom: 4px;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .impact-summary {
@@ -13498,18 +13498,18 @@ function formatDuration(seconds) {
             .score-grade-large {
                 font-weight: 700;
                 font-size: 1.2rem;
-                color: #1f2937;
+                color: var(--color-text-primary);
             }
 
             .score-explanation h3 {
                 margin: 0 0 16px 0;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 font-size: 1.4rem;
             }
 
             .score-explanation p {
                 margin: 0;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 line-height: 1.6;
                 font-size: 1rem;
             }
@@ -13522,10 +13522,10 @@ function formatDuration(seconds) {
             }
 
             .quality-component-card {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 24px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
                 transition: all 0.2s ease;
             }
 
@@ -13553,13 +13553,13 @@ function formatDuration(seconds) {
             .component-title {
                 font-size: 1.2rem;
                 font-weight: 700;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 margin-bottom: 4px;
             }
 
             .component-subtitle {
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-style: italic;
             }
 
@@ -13597,14 +13597,14 @@ function formatDuration(seconds) {
 
             .detail-label {
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-weight: 500;
             }
 
             .detail-value {
                 font-size: 0.9rem;
                 font-weight: 600;
-                color: #1f2937;
+                color: var(--color-text-primary);
             }
 
             .component-improvement {
@@ -13612,7 +13612,7 @@ function formatDuration(seconds) {
                 align-items: flex-start;
                 gap: 12px;
                 padding: 16px;
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 border-radius: 8px;
                 border-left: 3px solid #3b82f6;
             }
@@ -13624,7 +13624,7 @@ function formatDuration(seconds) {
 
             .improvement-text {
                 font-size: 0.9rem;
-                color: #374151;
+                color: var(--color-text-primary);
                 line-height: 1.4;
                 font-weight: 500;
             }
@@ -13652,7 +13652,7 @@ function formatDuration(seconds) {
                 padding: 16px;
                 border-radius: 8px;
                 border-left: 3px solid #e5e7eb;
-                background: white;
+                background: var(--color-bg-primary);
             }
 
             .insight-card.critical {
@@ -13680,23 +13680,23 @@ function formatDuration(seconds) {
             }
 
             .insight-category {
-                color: #374151;
+                color: var(--color-text-primary);
             }
 
             .insight-impact {
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-size: 0.75rem;
             }
 
             .insight-message {
                 font-size: 0.9rem;
-                color: #374151;
+                color: var(--color-text-primary);
                 line-height: 1.4;
             }
 
             /* Recommendations Section */
             .recommendations-expanded {
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 padding: 24px;
                 border-radius: 12px;
                 border-left: 4px solid #10b981;
@@ -13714,10 +13714,10 @@ function formatDuration(seconds) {
             }
 
             .recommendation-card {
-                background: white;
+                background: var(--color-bg-primary);
                 padding: 20px;
                 border-radius: 12px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
             }
 
             .recommendation-card.priority-high {
@@ -13758,12 +13758,12 @@ function formatDuration(seconds) {
             .priority-label {
                 font-weight: 600;
                 font-size: 0.9rem;
-                color: #374151;
+                color: var(--color-text-primary);
             }
 
             .rec-timeframe {
                 font-size: 0.8rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 background: #f1f5f9;
                 padding: 4px 8px;
                 border-radius: 6px;
@@ -13772,7 +13772,7 @@ function formatDuration(seconds) {
             .rec-action {
                 font-size: 1.1rem;
                 font-weight: 700;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 margin-bottom: 8px;
             }
 
@@ -13785,7 +13785,7 @@ function formatDuration(seconds) {
 
             .specifics-title {
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 margin-bottom: 8px;
                 font-size: 0.9rem;
             }
@@ -13793,7 +13793,7 @@ function formatDuration(seconds) {
             .specifics-list {
                 margin: 0;
                 padding-left: 20px;
-                color: #6b7280;
+                color: var(--color-text-secondary);
             }
 
             .specifics-list li {
@@ -13865,7 +13865,7 @@ function formatDuration(seconds) {
                 bottom: 20px;
                 right: 20px;
                 background: rgba(255, 255, 255, 0.95);
-                border: 1px solid #e5e7eb;
+                border: 1px solid var(--color-border-primary);
                 border-radius: 12px;
                 padding: 12px 16px;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -13911,14 +13911,14 @@ function formatDuration(seconds) {
 
             .period-label {
                 font-weight: 600;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-size: 11px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
 
             .period-dates {
-                color: #1f2937;
+                color: var(--color-text-primary);
                 font-weight: 500;
             }
 
@@ -14389,7 +14389,7 @@ function formatDuration(seconds) {
             
             .narrative-section {
                 background: rgba(255, 255, 255, 0.95);
-                color: #1f2937;
+                color: var(--color-text-primary);
                 border-radius: 16px;
                 padding: 32px;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -14409,7 +14409,7 @@ function formatDuration(seconds) {
             .narrative-intro p {
                 font-size: 1.1rem;
                 line-height: 1.7;
-                color: #374151;
+                color: var(--color-text-primary);
             }
             
             .key-pattern {
@@ -14457,13 +14457,13 @@ function formatDuration(seconds) {
             .severity-message {
                 margin: 16px 0 0 0;
                 font-weight: 500;
-                color: #374151;
+                color: var(--color-text-primary);
             }
             
             .divergence-explainer {
                 margin: 8px 0;
                 font-size: 0.9rem;
-                color: #374151;
+                color: var(--color-text-primary);
                 line-height: 1.4;
             }
             
@@ -14478,7 +14478,7 @@ function formatDuration(seconds) {
             .divergence-info-section h6 {
                 margin: 0 0 12px 0;
                 font-size: 1rem;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 font-weight: 600;
             }
             
@@ -14544,7 +14544,7 @@ function formatDuration(seconds) {
             
             .indicator-badge {
                 background: #ffffff;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 font-size: 0.75rem;
                 font-weight: 600;
                 padding: 2px 6px;
@@ -14627,7 +14627,7 @@ function formatDuration(seconds) {
             .strategic-response h6 {
                 font-size: 1.1rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
                 margin: 0 0 12px 0;
             }
             
@@ -14688,7 +14688,7 @@ function formatDuration(seconds) {
             
             .footer-note {
                 font-size: 0.875rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-style: italic;
                 margin: 0;
             }
@@ -15400,6 +15400,13 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         </div>
                         <div class="tab-description">Regional performance and insights</div>
                     </button>
+                    <button class="tab-btn" data-tab="content">
+                        <div class="tab-header">
+                            <span class="tab-icon">📄</span>
+                            <span class="tab-label">Content Intelligence</span>
+                        </div>
+                        <div class="tab-description">Readability, SEO audit &amp; writing style</div>
+                    </button>
                 </div>
                 
                 <div class="tab-content">
@@ -15424,6 +15431,12 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                             ${createEnhancedGeographicServiceIntelligence(gscData, ga4Data, url) || '<div style="padding: 20px;"><h3>Geographic Intelligence</h3><p>Loading geographic data...</p></div>'}
                         </div>
                     </div>
+
+                    <div class="tab-panel" data-panel="content">
+                        <div class="panel-content" style="padding: 20px 24px;">
+                            <div class="content-intel-mount" data-url="${url}" data-loaded="false" style="min-height: 200px;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             ${createActionCenter(url)}
@@ -15435,7 +15448,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
             <div class="unified-dashboard-container" style="padding: 20px; text-align: center;">
                 <h2>Dashboard Error</h2>
                 <p>There was an error creating the dashboard. Please try again.</p>
-                <p style="color: #666; font-size: 12px;">Error: ${error.message}</p>
+                <p style="color: var(--color-text-secondary); font-size: 12px;">Error: ${error.message}</p>
             </div>
         `;
     }
@@ -15505,6 +15518,15 @@ function initializeUnifiedDashboard(dashboardId) {
             if (targetPanel) {
                 targetPanel.classList.add('active');
                 console.log('✅ Activated panel:', targetTab);
+
+                // Lazy-load Content Intelligence on first visit
+                if (targetTab === 'content') {
+                    const mount = targetPanel.querySelector('.content-intel-mount');
+                    if (mount && mount.dataset.loaded === 'false' && window.PageIntelligence) {
+                        mount.dataset.loaded = 'true';
+                        window.PageIntelligence.renderFullReport(mount, mount.dataset.url);
+                    }
+                }
             } else {
                 console.error('❌ Target panel not found:', targetTab);
             }
@@ -17044,7 +17066,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 .impact-summary .trend-neutral {
     background: rgba(255, 255, 255, 0.8);
-    color: #374151;
+    color: var(--color-text-primary);
     border-color: rgba(55, 65, 81, 0.2);
 }
 
@@ -17072,22 +17094,22 @@ function createCitizenQueryIntelligenceStyles() {
             .citizen-query-intelligence .section-title {
                 font-size: 1.75rem;
                 margin-bottom: 8px;
-                color: #1f2937;
+                color: var(--color-text-primary);
             }
             
             .citizen-query-intelligence .section-subtitle {
                 font-size: 1rem;
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-weight: 400;
             }
             
             /* Intelligence Overview */
             .intelligence-overview {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 24px;
                 margin-bottom: 32px;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             }
             
@@ -17130,14 +17152,14 @@ function createCitizenQueryIntelligenceStyles() {
             .overview-metrics .metric-number {
                 font-size: 2.5rem;
                 font-weight: 800;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 margin-bottom: 8px;
                 line-height: 1;
             }
             
             .overview-metrics .metric-label {
                 font-size: 1rem;
-                color: #374151;
+                color: var(--color-text-primary);
                 font-weight: 600;
             }
             
@@ -17163,16 +17185,16 @@ function createCitizenQueryIntelligenceStyles() {
             
             /* Improved Tabs */
             .citizen-analysis-tabs {
-                background: white;
+                background: var(--color-bg-primary);
                 border-radius: 16px;
                 overflow: hidden;
-                border: 1px solid #e2e8f0;
+                border: 1px solid var(--color-border-primary);
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             }
             
             .citizen-tab-nav {
                 display: flex;
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 border-bottom: 1px solid #e2e8f0;
                 padding: 8px;
                 gap: 8px;
@@ -17184,7 +17206,7 @@ function createCitizenQueryIntelligenceStyles() {
                 border: none;
                 background: transparent;
                 cursor: pointer;
-                color: #64748b;
+                color: var(--color-text-secondary);
                 border-radius: 8px;
                 transition: all 0.2s ease;
                 position: relative;
@@ -17202,8 +17224,8 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .citizen-tab-btn.active {
-                background: white;
-                color: #1f2937;
+                background: var(--color-bg-primary);
+                color: var(--color-text-primary);
                 box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
                 border: 1px solid #3b82f6;
             }
@@ -17246,7 +17268,7 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .citizen-tab-content {
-                background: white;
+                background: var(--color-bg-primary);
             }
             
             .citizen-tab-panel {
@@ -17291,7 +17313,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .stat-label {
                 font-size: 0.8rem;
-                color: #374151;
+                color: var(--color-text-primary);
                 font-weight: 600;
             }
             
@@ -17373,11 +17395,11 @@ function createCitizenQueryIntelligenceStyles() {
             
             .service-name {
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
             }
             
             .service-count {
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-size: 0.75rem;
             }
             
@@ -17419,7 +17441,7 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .intent-distribution {
-                background: #f8fafc;
+                background: var(--color-bg-secondary);
                 padding: 20px;
                 border-radius: 8px;
                 margin-bottom: 24px;
@@ -17506,11 +17528,11 @@ function createCitizenQueryIntelligenceStyles() {
             
             .intent-name {
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text-primary);
             }
             
             .intent-count {
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-size: 0.8rem;
             }
             
@@ -17575,12 +17597,12 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .filter-value {
-                color: #1f2937;
+                color: var(--color-text-primary);
                 font-weight: 700;
             }
             
             .filter-count {
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-size: 0.8rem;
             }
             
@@ -17592,8 +17614,8 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .citizen-query-item, .opportunity-item {
-                background: white;
-                border: 1px solid #e2e8f0;
+                background: var(--color-bg-primary);
+                border: 1px solid var(--color-border-primary);
                 border-radius: 10px;
                 padding: 20px;
                 transition: all 0.2s ease;
@@ -17613,7 +17635,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .query-text {
                 font-weight: 600;
-                color: #1f2937;
+                color: var(--color-text-primary);
                 font-size: 0.95rem;
                 flex-grow: 1;
             }
@@ -17661,7 +17683,7 @@ function createCitizenQueryIntelligenceStyles() {
                 display: flex;
                 gap: 16px;
                 font-size: 0.85rem;
-                color: #64748b;
+                color: var(--color-text-secondary);
                 margin-bottom: 8px;
             }
             
@@ -17711,12 +17733,12 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .journey-label {
-                color: #6b7280;
+                color: var(--color-text-secondary);
                 font-weight: 500;
             }
             
             .journey-stage {
-                color: #374151;
+                color: var(--color-text-primary);
                 font-weight: 600;
             }
             
@@ -17745,13 +17767,13 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .metric-label {
-                color: #64748b;
+                color: var(--color-text-secondary);
                 font-weight: 500;
             }
             
             .metric-value {
                 font-weight: 600;
-                color: #1f2937;
+                color: var(--color-text-primary);
             }
             
             .opportunity-factors, .potential-results {
@@ -17759,7 +17781,7 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .opportunity-factors h5, .potential-results h5 {
-                color: #374151;
+                color: var(--color-text-primary);
                 margin-bottom: 8px;
                 font-size: 0.9rem;
             }
@@ -17767,7 +17789,7 @@ function createCitizenQueryIntelligenceStyles() {
             .factor-list {
                 margin: 0;
                 padding-left: 20px;
-                color: #64748b;
+                color: var(--color-text-secondary);
             }
             
             .factor-list li {
@@ -17824,7 +17846,7 @@ function createCitizenQueryIntelligenceStyles() {
             .no-data-message, .no-opportunities-message {
                 text-align: center;
                 padding: 40px;
-                color: #6b7280;
+                color: var(--color-text-secondary);
             }
             
             .info-icon {
@@ -17836,11 +17858,11 @@ function createCitizenQueryIntelligenceStyles() {
                 font-size: 1.2rem;
                 font-weight: 700;
                 margin-bottom: 8px;
-                color: #374151;
+                color: var(--color-text-primary);
             }
             
             .info-description {
-                color: #6b7280;
+                color: var(--color-text-secondary);
             }
             
             /* Responsive Design */
@@ -17884,7 +17906,7 @@ function createCitizenQueryIntelligenceStyles() {
 }
 
 .geo-main-analysis {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 20px;
     padding: 32px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
@@ -17901,7 +17923,7 @@ function createCitizenQueryIntelligenceStyles() {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-radius: 16px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     position: relative;
     overflow: hidden;
     min-height: 500px;
@@ -17947,10 +17969,10 @@ function createCitizenQueryIntelligenceStyles() {
 }
 
 .ireland-map-container, .world-map-container {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     flex: 1;
     min-height: 250px;
 }
@@ -17960,12 +17982,12 @@ function createCitizenQueryIntelligenceStyles() {
     background: rgba(255,255,255,0.8);
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
 }
 
 .regional-insights h4, .international-insights h4 {
     margin: 0 0 16px 0;
-    color: #374151;
+    color: var(--color-text-primary);
     font-size: 1.1rem;
 }
 
@@ -18008,9 +18030,9 @@ function createCitizenQueryIntelligenceStyles() {
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     transition: all 0.2s ease;
 }
 
@@ -18033,7 +18055,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 .region-name {
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .region-percentage {
@@ -18044,7 +18066,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 .region-users {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     text-align: right;
 }
 
@@ -18056,10 +18078,10 @@ function createCitizenQueryIntelligenceStyles() {
 }
 
 .opportunity-card {
-    background: white;
+    background: var(--color-bg-primary);
     border-radius: 12px;
     padding: 24px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-border-primary);
     display: flex;
     gap: 16px;
     transition: all 0.2s ease;
@@ -18077,13 +18099,13 @@ function createCitizenQueryIntelligenceStyles() {
 
 .opp-content h4 {
     margin: 0 0 16px 0;
-    color: #374151;
+    color: var(--color-text-primary);
 }
 
 .opp-list {
     margin: 0;
     padding-left: 20px;
-    color: #6b7280;
+    color: var(--color-text-secondary);
 }
 
 .opp-list li {
@@ -18101,7 +18123,7 @@ function createCitizenQueryIntelligenceStyles() {
 .impact-stat {
     text-align: center;
     padding: 16px;
-    background: #f8fafc;
+    background: var(--color-bg-secondary);
     border-radius: 8px;
 }
 
@@ -18115,7 +18137,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 .stat-label {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-secondary);
     font-weight: 500;
 }
 
@@ -18301,7 +18323,7 @@ function filterQueriesByIntent(filterIntent) {
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6b7280;">
+            <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
                 <p>No queries found for this journey stage: <strong>${filterIntent}</strong></p>
                 <button onclick="clearJourneyFilter()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
                     Show All Queries
@@ -18445,7 +18467,7 @@ function filterQueriesByService(filterService) {
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6b7280;">
+            <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
                 <p>No queries found for this Irish service: <strong>${getServiceDisplayName(filterService)}</strong></p>
                 <button onclick="clearServiceFilter()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
                     Show All Queries
@@ -18572,7 +18594,7 @@ function filterQueriesByUrgency() {
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6b7280;">
+            <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
                 <p>No urgent queries found.</p>
                 <button onclick="clearJourneyFilter()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 12px;">
                     Show All Queries
@@ -23072,7 +23094,7 @@ window.refreshUnifiedDashboard = async function(url) {
     
     loadingOverlay.innerHTML = `
         <div style="
-            background: white;
+            background: var(--color-bg-primary);
             padding: 32px 40px;
             border-radius: 20px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
@@ -23082,7 +23104,7 @@ window.refreshUnifiedDashboard = async function(url) {
             align-items: center;
             gap: 16px;
             font-weight: 600;
-            color: #374151;
+            color: var(--color-text-primary);
             min-width: 300px;
         ">
             <div style="
@@ -23093,8 +23115,8 @@ window.refreshUnifiedDashboard = async function(url) {
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
             "></div>
-            <div style="font-size: 1.1rem; color: #1f2937;">Refreshing Dashboard</div>
-            <div style="font-size: 0.9rem; color: #6b7280; font-weight: 500; line-height: 1.6;">
+            <div style="font-size: 1.1rem; color: var(--color-text-primary);">Refreshing Dashboard</div>
+            <div style="font-size: 0.9rem; color: var(--color-text-secondary); font-weight: 500; line-height: 1.6;">
                 Fetching data for <strong style="color: #3b82f6;">${formatPeriodLabel(window.currentDateRange?.period || '30d')}</strong>
                 <br>
                 <span style="font-size: 0.85rem; color: #9ca3af;">
