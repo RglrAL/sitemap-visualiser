@@ -1563,30 +1563,28 @@
     // ─── AI Rewrite wiring ────────────────────────────────────────────────────
 
     function _buildLongSentencesPrompt(sentences) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('long-sentences')
+            : {
+                system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite sentences to be shorter and clearer. Split long sentences into two shorter ones where helpful. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number, matching the original order. Do not include any preamble or explanation.',
+                userPrefix: 'Shorten these sentences. Number each rewrite:',
+            };
         return [
-            {
-                role: 'system',
-                content: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite sentences to be shorter and clearer. Split long sentences into two shorter ones where helpful. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number, matching the original order. Do not include any preamble or explanation.'
-            },
-            {
-                role: 'user',
-                content: 'Shorten these sentences. Number each rewrite:\n\n' +
-                    sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n')
-            }
+            { role: 'system', content: p.system },
+            { role: 'user',   content: p.userPrefix + '\n\n' + sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n') },
         ];
     }
 
     function _buildPassivePrompt(sentences) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('passive-voice')
+            : {
+                system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite passive voice sentences in active voice. Start each sentence with the subject — who does the action. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number. Do not include any preamble or explanation.',
+                userPrefix: 'Rewrite these passive voice sentences in active voice. Number each rewrite:',
+            };
         return [
-            {
-                role: 'system',
-                content: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite passive voice sentences in active voice. Start each sentence with the subject — who does the action. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number. Do not include any preamble or explanation.'
-            },
-            {
-                role: 'user',
-                content: 'Rewrite these passive voice sentences in active voice. Number each rewrite:\n\n' +
-                    sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n')
-            }
+            { role: 'system', content: p.system },
+            { role: 'user',   content: p.userPrefix + '\n\n' + sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n') },
         ];
     }
 
