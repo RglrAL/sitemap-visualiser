@@ -15,6 +15,18 @@
     const _linkStatusCache = new Map(); // fullUrl → { status: number|null, checkedAt: number }
     const LINK_STATUS_TTL = 10 * 60 * 1000; // 10 minutes
 
+    // Shared AI results cache — keyed by promptKey → { [index]: text }
+    // Cleared at the start of each new analysis so stale results never bleed across URLs.
+    var _aiResultsCache = {};
+
+    function _cacheAIResult(key, index, text) {
+        if (!_aiResultsCache[key]) _aiResultsCache[key] = {};
+        _aiResultsCache[key][index] = text;
+    }
+    function _getCachedAIResult(key, index) {
+        return (_aiResultsCache[key] && _aiResultsCache[key][index]) || null;
+    }
+
     // Same proxy list as index.html sitemap fetcher
     const CORS_PROXIES = [
         url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
@@ -1657,6 +1669,58 @@
         ];
     }
 
+    function _buildHedgeWordsPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('hedge-words')
+            : { system: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. For each numbered hedge phrase shown with a context sentence, suggest a more direct and confident rewrite of that sentence without the hedge. Keep the meaning. Use plain English. Respond with a numbered list only — one rewrite per number. No preamble.', userPrefix: 'Rewrite these hedge phrases to be more direct. Number each:' };
+        const hedgeAll  = (data.writingStyle && data.writingStyle.hedgeMatchesAll) || [];
+        const sentences = data.sentenceTexts || [];
+        const items = hedgeAll.slice(0, 6).map(function(h, i) {
+            const phrase  = h.phrase.toLowerCase();
+            const example = sentences.find(function(s) { return s.toLowerCase().indexOf(phrase) !== -1; });
+            var line = (i + 1) + '. Phrase: "' + h.phrase + '"' + (h.count > 1 ? ' (\xd7' + h.count + ')' : '');
+            if (example) line += '\n   Example: "' + example.slice(0, 160).trim() + '"';
+            return line;
+        });
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + items.join('\n') },
+        ];
+    }
+
+    function _buildH2HeadingsPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('h2-headings')
+            : { system: 'You are a content editor for citizensinformation.ie, an Irish government information website. Rewrite each H2 heading to be clearer, more action-oriented, and user-focused. Use plain English. Keep each under 8 words. Respond with a numbered list only — one rewrite per number. No preamble.', userPrefix: 'Rewrite these H2 headings to be clearer. Number each:' };
+        const h2s = (data.h2Texts || []).slice(0, 10);
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + h2s.map(function(h, i) { return (i + 1) + '. "' + h + '"'; }).join('\n') },
+        ];
+    }
+
+
+    // Renders a standard AI suggestion card into `el` and wires its Copy button.
+    // Used by both Analysis tab and Document tab so they always look identical.
+    function _renderAICard(el, text) {
+        var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        el.style.display = '';
+        el.innerHTML =
+            '<div class="pi-ai-card">' +
+            '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
+            '<div class="pi-ai-card-body">' + _e(text) + '</div>' +
+            '</div>';
+        var copyBtn = el.querySelector('.pi-copy-btn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(text).then(function() {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                });
+            });
+        }
+    }
+
     function _wireAISection(container, config) {
         if (!window.GroqAI) return;
         const mount = container.querySelector('#' + config.mountId);
@@ -1672,6 +1736,7 @@
             const slot = document.createElement('div');
             slot.className = 'pi-ai-inline-output';
             slot.style.display = 'none';
+            if (config.cacheKey) slot.id = 'pi-ai-slot-' + config.cacheKey + '-' + i;
             row.after(slot);
             return slot;
         });
@@ -1711,22 +1776,16 @@
             function injectItem(index, text) {
                 const slot = slots[index];
                 if (!slot) return;
-                slot.style.display = '';
-                slot.innerHTML =
-                    `<div class="pi-ai-card">` +
-                        `<div class="pi-ai-card-header">` +
-                            `<span class="pi-ai-label">✨ AI suggestion</span>` +
-                            `<button class="pi-copy-btn">Copy</button>` +
-                        `</div>` +
-                        `<div class="pi-ai-card-body">${esc(text)}</div>` +
-                    `</div>`;
-                const copyBtn = slot.querySelector('.pi-copy-btn');
-                copyBtn.addEventListener('click', function() {
-                    navigator.clipboard.writeText(text).then(function() {
-                        copyBtn.textContent = 'Copied!';
-                        setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
-                    });
-                });
+                _renderAICard(slot, text);
+                // Cache and mirror to Document tab slot (if it exists)
+                if (config.cacheKey) {
+                    _cacheAIResult(config.cacheKey, index, text);
+                    var docSlot = document.getElementById('pi-doc-slot-' + config.cacheKey + '-' + index);
+                    if (docSlot) {
+                        docSlot.parentElement && (docSlot.parentElement.style.opacity = '0.65');
+                        _renderAICard(docSlot, text);
+                    }
+                }
             }
 
             function tryInjectNext() {
@@ -1784,13 +1843,15 @@
             sentences:    data.longSentencesAll || data.longSentences || [],
             buildPrompt:  _buildLongSentencesPrompt,
             data:         data,
+            cacheKey:     'long-sentences',
         });
         _wireAISection(container, {
             mountId:      'pi-passive-ai',
             rowIdPrefix:  'pi-sent-pass-',
-            sentences:    (data.writingStyle && data.writingStyle.passiveSentenceExamplesAll) || [],
+            sentences:    (data.writingStyle && (data.writingStyle.passiveSentenceExamplesAll || data.writingStyle.passiveSentenceExamples)) || [],
             buildPrompt:  _buildPassivePrompt,
             data:         data,
+            cacheKey:     'passive-voice',
         });
 
         // ── Meta description ──
@@ -1812,11 +1873,11 @@
                 try {
                     const result = await window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 });
                     const text = result.trim();
-                    output.style.display = '';
-                    output.innerHTML = '<div class="pi-ai-card"><div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div><div class="pi-ai-card-body">' + esc(text) + '</div></div>';
-                    output.querySelector('.pi-copy-btn').addEventListener('click', function() {
-                        navigator.clipboard.writeText(text).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); });
-                    });
+                    _renderAICard(output, text);
+                    _cacheAIResult('meta-desc', 0, text);
+                    // Mirror to Document tab if already rendered
+                    var docMetaMount = document.getElementById('pi-doc-meta-ai');
+                    if (docMetaMount) _renderAICard(docMetaMount, text);
                     btn.disabled = false; btn.textContent = '↺ Regenerate';
                 } catch (err) {
                     output.style.display = '';
@@ -1931,6 +1992,109 @@
                         btn.disabled = false; btn.textContent = '✨ Suggest anchor text';
                     },
                     { max_tokens: 300, temperature: 0.4 }
+                );
+            });
+        })();
+
+        // ── Hedge words ──
+        (function() {
+            const mount = container.querySelector('#pi-hedge-ai');
+            if (!mount) return;
+            const hedgeAll = (data.writingStyle && data.writingStyle.hedgeMatchesAll) || [];
+            if (hedgeAll.length === 0) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Suggest direct alternatives';
+            const output = document.createElement('div');
+            output.style.cssText = 'margin-top:6px;';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Generating…';
+                output.innerHTML = '';
+                let buffer = '';
+                window.GroqAI.stream(
+                    _buildHedgeWordsPrompt(data),
+                    function(token) { buffer += token; },
+                    function() {
+                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
+                        if (lines.length > 0) {
+                            const originals = hedgeAll.slice(0, 6);
+                            output.innerHTML = lines.map((l, i) => {
+                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                                const phrase = originals[i] ? '"' + esc(originals[i].phrase) + '"' : '';
+                                return '<div class="pi-ai-card">' +
+                                    '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
+                                    (phrase ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + phrase + '</div>' : '') +
+                                    '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
+                                    '</div>';
+                            }).join('');
+                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
+                                copyBtn.addEventListener('click', function() {
+                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                });
+                            });
+                        }
+                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                    },
+                    function(err) {
+                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        btn.disabled = false; btn.textContent = '✨ Suggest direct alternatives';
+                    },
+                    { max_tokens: 600, temperature: 0.4 }
+                );
+            });
+        })();
+
+        // ── H2 headings ──
+        (function() {
+            const mount = container.querySelector('#pi-h2-ai');
+            if (!mount) return;
+            const h2s = data.h2Texts || [];
+            if (h2s.length === 0) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Rewrite headings';
+            const output = document.createElement('div');
+            output.style.cssText = 'margin-top:6px;';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Generating…';
+                output.innerHTML = '';
+                let buffer = '';
+                window.GroqAI.stream(
+                    _buildH2HeadingsPrompt(data),
+                    function(token) { buffer += token; },
+                    function() {
+                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
+                        if (lines.length > 0) {
+                            output.innerHTML = lines.map((l, i) => {
+                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                                const original = h2s[i] ? '"' + esc(h2s[i]) + '"' : '';
+                                return '<div class="pi-ai-card">' +
+                                    '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
+                                    (original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + '</div>' : '') +
+                                    '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
+                                    '</div>';
+                            }).join('');
+                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
+                                copyBtn.addEventListener('click', function() {
+                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                });
+                            });
+                        }
+                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                    },
+                    function(err) {
+                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        btn.disabled = false; btn.textContent = '✨ Rewrite headings';
+                    },
+                    { max_tokens: 400, temperature: 0.5 }
                 );
             });
         })();
@@ -2299,8 +2463,7 @@
 
     // ─── Document tab AI wiring ───────────────────────────────────────────────
 
-    function _runDocStream(pairs, messages, onDone, onError) {
-        var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+    function _runDocStream(pairs, messages, cacheKey, onDone, onError) {
         var buffer = '';
         var injectedCount = 0;
 
@@ -2308,22 +2471,13 @@
             var pair = pairs[index];
             if (!pair) return;
             pair.el.style.opacity = '0.65';
-            pair.slot.style.display = '';
-            pair.slot.innerHTML =
-                '<div class="pi-ai-card">' +
-                '<div class="pi-ai-card-header">' +
-                '<span class="pi-ai-label">✨ AI suggestion</span>' +
-                '<button class="pi-copy-btn">Copy</button>' +
-                '</div>' +
-                '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
-                '</div>';
-            var copyBtn = pair.slot.querySelector('.pi-copy-btn');
-            copyBtn.addEventListener('click', function() {
-                navigator.clipboard.writeText(text).then(function() {
-                    copyBtn.textContent = 'Copied!';
-                    setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
-                });
-            });
+            _renderAICard(pair.slot, text);
+            // Cache and mirror to Analysis tab slot
+            if (cacheKey) {
+                _cacheAIResult(cacheKey, index, text);
+                var analysisSlot = document.getElementById('pi-ai-slot-' + cacheKey + '-' + index);
+                if (analysisSlot) _renderAICard(analysisSlot, text);
+            }
         }
 
         function tryInjectNext() {
@@ -2352,7 +2506,7 @@
             function(err) {
                 if (pairs[0]) {
                     pairs[0].slot.style.display = '';
-                    pairs[0].slot.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                    pairs[0].slot.innerHTML = '<div class="pi-ai-error">❌ ' + (err && err.message ? err.message : 'Something went wrong.') + '</div>';
                 }
                 onDone(); // still signal done so the counter completes
             },
@@ -2371,16 +2525,17 @@
         var longEls    = Array.prototype.slice.call(panel.querySelectorAll('.pi-sent[data-len-zone^="long"]')).slice(0, 8);
         var passiveEls = Array.prototype.slice.call(panel.querySelectorAll('.pi-sent[data-passive="1"]')).slice(0, 8);
 
-        // Create inline slots after each sentence
-        function makeSlot(el) {
+        // Create inline slots after each sentence, with stable IDs for cross-tab mirroring
+        function makeSlot(el, cacheKey, index) {
             var slot = document.createElement('div');
             slot.className = 'pi-doc-ai-slot';
             slot.style.display = 'none';
+            slot.id = 'pi-doc-slot-' + cacheKey + '-' + index;
             el.after(slot);
             return { el: el, slot: slot };
         }
-        var longPairs    = longEls.map(makeSlot);
-        var passivePairs = passiveEls.map(makeSlot);
+        var longPairs    = longEls.map(function(el, i) { return makeSlot(el, 'long-sentences', i); });
+        var passivePairs = passiveEls.map(function(el, i) { return makeSlot(el, 'passive-voice', i); });
         var totalSents   = longPairs.length + passivePairs.length;
 
         // Toolbar controls
@@ -2400,6 +2555,28 @@
         toolbar.appendChild(reviewBtn);
         toolbar.appendChild(progress);
         toolbar.appendChild(clearLink);
+
+        // Pre-fill any results already generated in the Analysis tab
+        var anyPrefilled = false;
+        longPairs.forEach(function(pair, i) {
+            var cached = _getCachedAIResult('long-sentences', i);
+            if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached); anyPrefilled = true; }
+        });
+        passivePairs.forEach(function(pair, i) {
+            var cached = _getCachedAIResult('passive-voice', i);
+            if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached); anyPrefilled = true; }
+        });
+        if (anyPrefilled) {
+            clearLink.style.display = '';
+            reviewBtn.textContent = '↺ Re-review';
+        }
+
+        // Pre-fill meta desc from Analysis tab cache
+        var metaMountEarly = panel.querySelector('#pi-doc-meta-ai');
+        if (metaMountEarly) {
+            var cachedMeta = _getCachedAIResult('meta-desc', 0);
+            if (cachedMeta) _renderAICard(metaMountEarly, cachedMeta);
+        }
 
         if (totalSents === 0) {
             reviewBtn.textContent = '✨ AI Review';
@@ -2451,12 +2628,12 @@
 
             // Run both streams concurrently
             if (longPairs.length > 0) {
-                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), onBothDone, onBothDone);
+                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), 'long-sentences', onBothDone, onBothDone);
             } else {
                 onBothDone(); // count as done if no long sentences
             }
             if (passivePairs.length > 0) {
-                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), onBothDone, onBothDone);
+                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), 'passive-voice', onBothDone, onBothDone);
             } else {
                 onBothDone();
             }
@@ -2538,18 +2715,11 @@
                 window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 })
                     .then(function(result) {
                         var text = result.trim();
-                        metaMount.style.display = '';
-                        metaMount.innerHTML =
-                            '<div class="pi-ai-card">' +
-                            '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
-                            '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
-                            '</div>';
-                        metaMount.querySelector('.pi-copy-btn').addEventListener('click', function() {
-                            navigator.clipboard.writeText(text).then(function() {
-                                metaMount.querySelector('.pi-copy-btn').textContent = 'Copied!';
-                                setTimeout(function() { metaMount.querySelector('.pi-copy-btn').textContent = 'Copy'; }, 1500);
-                            });
-                        });
+                        _renderAICard(metaMount, text);
+                        _cacheAIResult('meta-desc', 0, text);
+                        // Mirror to Analysis tab output if already rendered
+                        var analysisMetaMount = document.getElementById('pi-meta-desc-ai');
+                        if (analysisMetaMount) _renderAICard(analysisMetaMount, text);
                         metaBtn.disabled = false;
                         metaBtn.textContent = '↺ Regenerate';
                     })
@@ -2565,6 +2735,7 @@
     // ─── Full Report (dashboard tab) ────────────────────────────────────────
 
     function renderFullResults(container, data, url) {
+        _aiResultsCache = {}; // reset per-analysis so results never bleed across URLs
         const isDark = window.__isDarkTheme || document.body.classList.contains('dark-theme');
         const grade = data.readabilityScore !== null ? readabilityGrade(data.readabilityScore) : null;
         const scoreColor = grade ? (isDark ? grade.darkColor : grade.color) : 'var(--color-text-secondary)';
@@ -3016,7 +3187,23 @@
                   hedgeAll.map(m =>
                       `<span style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);">${esc(m.phrase)}${m.count > 1 ? ` \xd7${m.count}` : ''}</span>`
                   ).join('') +
-                  `</div></details>`
+                  `</div>` +
+                  `<div id="pi-hedge-ai" style="margin-top:6px;"></div>` +
+                  `</details>`
+                : '';
+
+            // H2 headings <details>
+            const h2sForCard = data.h2Texts || [];
+            const headingStructureDetails = h2sForCard.length > 0
+                ? `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">\ud83d\udccb H2 Headings \u2014 ${h2sForCard.length} heading${h2sForCard.length !== 1 ? 's' : ''}</summary>` +
+                  `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:4px;">` +
+                  h2sForCard.slice(0, 10).map(h =>
+                      `<div style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.5;border-left:2px solid var(--color-border-primary);padding:3px 10px;">${esc(h)}</div>`
+                  ).join('') +
+                  `</div>` +
+                  `<div id="pi-h2-ai" style="margin-top:6px;"></div>` +
+                  `</details>`
                 : '';
 
             writingQualityHtml = card(null, `
@@ -3029,6 +3216,7 @@
                 ${nomDetails}
                 ${adverbDetails}
                 ${hedgeDetails}
+                ${headingStructureDetails}
             `);
         }
 
