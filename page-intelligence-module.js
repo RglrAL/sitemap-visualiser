@@ -1594,65 +1594,127 @@
         if (!window.GroqAI) return;
         const mount = container.querySelector('#' + config.mountId);
         if (!mount) return;
-        if (!config.sentences || config.sentences.length === 0) return;
+        const sentences = (config.sentences || []).slice(0, 8);
+        if (sentences.length === 0) return;
+
+        // Create an inline rewrite slot below each sentence row
+        const slots = sentences.map((_, i) => {
+            const row = container.querySelector('#' + config.rowIdPrefix + i);
+            if (!row) return null;
+            const slot = document.createElement('div');
+            slot.className = 'pi-ai-inline-output';
+            slot.style.display = 'none';
+            row.after(slot);
+            return slot;
+        });
+
+        // Small thinking indicator inside the mount (below button)
+        const thinking = document.createElement('div');
+        thinking.className = 'pi-ai-thinking';
+        thinking.style.display = 'none';
+        thinking.textContent = '⏳ Generating rewrites…';
 
         const btn = document.createElement('button');
         btn.className   = 'pi-ai-btn';
         btn.textContent = '✨ Rewrite with AI';
 
-        const output = document.createElement('div');
-        output.className    = 'pi-ai-output';
-        output.style.display = 'none';
-
         mount.appendChild(btn);
-        mount.appendChild(output);
+        mount.appendChild(thinking);
 
-        btn.addEventListener('click', () => {
+        function runStream() {
             if (!window.GroqAI.isConfigured()) {
                 window.GroqAI.showSettings();
                 return;
             }
 
+            // Reset all slots
+            slots.forEach(slot => {
+                if (slot) { slot.style.display = 'none'; slot.innerHTML = ''; }
+            });
+
             btn.disabled    = true;
             btn.textContent = 'Generating…';
-            output.style.display = '';
-            output.textContent   = '⏳ Thinking…';
+            thinking.style.display = '';
 
-            const messages = config.buildPrompt(config.sentences);
+            const messages = config.buildPrompt(sentences);
+            let buffer       = '';
+            let injectedCount = 0;
+
+            function injectItem(index, text) {
+                const slot = slots[index];
+                if (!slot) return;
+                slot.style.display = '';
+                slot.innerHTML =
+                    `<div class="pi-ai-rewrite-row">` +
+                        `<span class="pi-rewrite-text">${esc(text)}</span>` +
+                        `<button class="pi-copy-btn" title="Copy rewrite">Copy</button>` +
+                    `</div>`;
+                const copyBtn = slot.querySelector('.pi-copy-btn');
+                copyBtn.addEventListener('click', function() {
+                    navigator.clipboard.writeText(text).then(function() {
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                    });
+                });
+            }
+
+            function tryInjectNext() {
+                var nextMarker = '\n' + (injectedCount + 2) + '.';
+                var idx = buffer.indexOf(nextMarker);
+                if (idx !== -1) {
+                    var itemBlock = buffer.substring(0, idx);
+                    var match = itemBlock.match(/^\d+\.\s+([\s\S]+)$/);
+                    if (match) {
+                        injectItem(injectedCount, match[1].trim());
+                        injectedCount++;
+                    }
+                    buffer = buffer.substring(idx + 1);
+                    tryInjectNext();
+                }
+            }
 
             window.GroqAI.stream(
                 messages,
-                // onChunk — first token clears the placeholder
                 function(token) {
-                    if (output.textContent === '⏳ Thinking…') output.textContent = '';
-                    output.textContent += token;
+                    buffer += token;
+                    tryInjectNext();
                 },
-                // onDone
                 function() {
+                    // Inject last remaining item
+                    var match = buffer.match(/^\d+\.\s+([\s\S]+)$/);
+                    if (match) injectItem(injectedCount, match[1].trim());
+                    thinking.style.display = 'none';
                     btn.disabled    = false;
                     btn.textContent = '↺ Regenerate';
                 },
-                // onError
                 function(err) {
-                    output.textContent = '❌ ' + (err && err.message ? err.message : 'Something went wrong.');
+                    thinking.style.display = 'none';
+                    // Show error in first slot (or mount if no slots)
+                    var errTarget = slots[0] || mount;
+                    errTarget.style.display = '';
+                    errTarget.innerHTML = `<div class="pi-ai-error">❌ ${esc(err && err.message ? err.message : 'Something went wrong.')}</div>`;
                     btn.disabled    = false;
                     btn.textContent = '✨ Rewrite with AI';
                 },
                 { max_tokens: 1024, temperature: 0.4 }
             );
-        });
+        }
+
+        btn.addEventListener('click', runStream);
     }
 
     function wireAIRewrites(container, data) {
         _wireAISection(container, {
-            mountId:     'pi-long-sentences-ai',
-            sentences:   data.longSentencesAll || data.longSentences || [],
-            buildPrompt: _buildLongSentencesPrompt,
+            mountId:      'pi-long-sentences-ai',
+            rowIdPrefix:  'pi-sent-long-',
+            sentences:    data.longSentencesAll || data.longSentences || [],
+            buildPrompt:  _buildLongSentencesPrompt,
         });
         _wireAISection(container, {
-            mountId:     'pi-passive-ai',
-            sentences:   (data.writingStyle && data.writingStyle.passiveSentenceExamplesAll) || [],
-            buildPrompt: _buildPassivePrompt,
+            mountId:      'pi-passive-ai',
+            rowIdPrefix:  'pi-sent-pass-',
+            sentences:    (data.writingStyle && data.writingStyle.passiveSentenceExamplesAll) || [],
+            buildPrompt:  _buildPassivePrompt,
         });
     }
 
@@ -2367,9 +2429,9 @@
                   `<summary style="${detailsSummaryStyle}">\u26a0\ufe0f ${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:10px;">` +
                       `<div id="pi-long-sentences-list">` +
-                      allLong.map(s => {
+                      allLong.map((s, i) => {
                           const wc = s.split(/\s+/).filter(w => w.length > 0).length;
-                          return `<div style="font-size:0.8rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid ${_rptWcColor(wc)};padding:6px 12px;">&ldquo;${esc(s)}&rdquo; <span style="color:${_rptWcColor(wc)};font-size:0.72rem;white-space:nowrap;font-weight:600;">(${wc}w)</span></div>`;
+                          return `<div id="pi-sent-long-${i}" style="font-size:0.8rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid ${_rptWcColor(wc)};padding:6px 12px;">&ldquo;${esc(s)}&rdquo; <span style="color:${_rptWcColor(wc)};font-size:0.72rem;white-space:nowrap;font-weight:600;">(${wc}w)</span></div>`;
                       }).join('') +
                       `</div>` +
                       `<div id="pi-long-sentences-ai" style="margin-top:10px;"></div>` +
@@ -2384,8 +2446,8 @@
                 `<summary style="${detailsSummaryStyle}">${passiveWarn ? '\u26a0\ufe0f' : '\u2705'} Passive voice \u2014 ${ws.passiveSentenceCount} of ${ws.totalSentences} sentences (${passivePct}%)</summary>` +
                 `<div style="padding:8px 0 4px;">` +
                     (passiveAll.length > 0
-                        ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map(s =>
-                            `<div style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid var(--color-border-primary);padding:5px 12px;">&ldquo;${esc(s.length > 250 ? s.slice(0,250) + '\u2026' : s)}&rdquo;</div>`
+                        ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map((s, i) =>
+                            `<div id="pi-sent-pass-${i}" style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid var(--color-border-primary);padding:5px 12px;">&ldquo;${esc(s.length > 250 ? s.slice(0,250) + '\u2026' : s)}&rdquo;</div>`
                         ).join('')}</div><div id="pi-passive-ai" style="margin-top:10px;"></div>`
                         : `<div style="font-size:0.76rem;color:var(--color-text-muted);">No passive voice detected.</div>`) +
                     `<div style="margin-top:8px;font-size:0.72rem;color:var(--color-text-muted);line-height:1.5;font-style:italic;">Passive voice is sometimes appropriate when the actor is unknown, the focus is on the person affected, or legal wording requires it.</div>` +
