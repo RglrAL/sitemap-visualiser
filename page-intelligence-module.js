@@ -9,6 +9,9 @@
     const pendingRequests = new Map();  // url → Promise (deduplication)
     const CACHE_MAX_AGE = 30 * 60 * 1000; // 30 minutes
 
+    const GENERIC_ANCHOR_TEXTS = new Set(['click here','here','read more','more','link',
+        'this','learn more','click','visit','see more']);
+
     const _linkStatusCache = new Map(); // fullUrl → { status: number|null, checkedAt: number }
     const LINK_STATUS_TTL = 10 * 60 * 1000; // 10 minutes
 
@@ -1588,6 +1591,62 @@
         ];
     }
 
+    function _buildMetaDescPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('meta-description')
+            : { system: 'You are an SEO editor for citizensinformation.ie, an Irish government information website. Write a single meta description in plain English. Maximum 155 characters. It must be action-oriented, state the main topic clearly, and end without truncation. Output the meta description text only — no quotes, no label, no explanation.', userPrefix: 'Write a meta description for this page.' };
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: p.userPrefix + '\n\n' +
+                'Page title: ' + (data.titleText || '(none)') + '\n' +
+                'Current meta description: ' + (data.metaDescText || '(none)') + '\n' +
+                'Main headings: ' + ((data.h2Texts || []).slice(0, 3).join(' / ') || '(none)') + '\n' +
+                'Word count: ' + (data.wordCount || 0)
+            },
+        ];
+    }
+
+    function _buildTitleTagPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('title-tag')
+            : { system: 'You are an SEO editor for citizensinformation.ie, an Irish government information website. Suggest 3 alternative title tags. Each must be under 60 characters, in plain English, topic first, no clickbait. Output a numbered list only — one title per number. No preamble.', userPrefix: 'Suggest 3 alternative title tags. Number each:' };
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: p.userPrefix + '\n\n' +
+                'Current title: ' + (data.titleText || '(none)') + '\n' +
+                'H1: ' + ((data.h1Texts && data.h1Texts[0]) || '(none)') + '\n' +
+                'Meta description: ' + (data.metaDescText || '(none)')
+            },
+        ];
+    }
+
+    function _buildWeakAnchorsPrompt(weakLinks) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('weak-anchors')
+            : { system: 'You are a content editor for citizensinformation.ie, an Irish government information website. Each item is a generic hyperlink anchor text with its destination URL. Suggest descriptive replacement anchor text for each. Respond with a numbered list only — one suggestion per number, matching the original order. Keep each under 8 words. No preamble.', userPrefix: 'Suggest descriptive anchor text for each weak link. Number each:' };
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: p.userPrefix + '\n\n' +
+                weakLinks.slice(0, 8).map((lk, i) => `${i + 1}. "${lk.text}" → ${lk.href}`).join('\n')
+            },
+        ];
+    }
+
+    function _buildPageIntroPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('page-intro')
+            : { system: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite the provided page introduction to be clearer, more direct, and action-oriented. The first sentence must state exactly what the page is about and who it helps. Use plain English. Keep all key information. Output the rewritten introduction only — no explanation.', userPrefix: 'Rewrite this page introduction to be clearer and more direct:' };
+        const introText = (data.structuredBlocks || [])
+            .filter(b => b.type === 'p')
+            .slice(0, 3)
+            .map(b => b.text)
+            .join('\n\n');
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: p.userPrefix + '\n\n' + introText },
+        ];
+    }
+
     function _wireAISection(container, config) {
         if (!window.GroqAI) return;
         const mount = container.querySelector('#' + config.mountId);
@@ -1703,6 +1762,9 @@
     }
 
     function wireAIRewrites(container, data) {
+        if (!window.GroqAI) return;
+        const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
         _wireAISection(container, {
             mountId:      'pi-long-sentences-ai',
             rowIdPrefix:  'pi-sent-long-',
@@ -1715,6 +1777,147 @@
             sentences:    (data.writingStyle && data.writingStyle.passiveSentenceExamplesAll) || [],
             buildPrompt:  _buildPassivePrompt,
         });
+
+        // ── Meta description ──
+        (function() {
+            const mount = container.querySelector('#pi-meta-desc-ai');
+            if (!mount) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Rewrite meta description';
+            const output = document.createElement('div');
+            output.className = 'pi-ai-output';
+            output.style.display = 'none';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', async function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Generating…';
+                output.style.display = 'none'; output.innerHTML = '';
+                try {
+                    const result = await window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 });
+                    const text = result.trim();
+                    output.style.display = '';
+                    output.innerHTML = '<div class="pi-ai-rewrite-row"><span class="pi-rewrite-text">' + esc(text) + '</span><button class="pi-copy-btn">Copy</button></div>';
+                    output.querySelector('.pi-copy-btn').addEventListener('click', function() {
+                        navigator.clipboard.writeText(text).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); });
+                    });
+                    btn.disabled = false; btn.textContent = '↺ Regenerate';
+                } catch (err) {
+                    output.style.display = '';
+                    output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                    btn.disabled = false; btn.textContent = '✨ Rewrite meta description';
+                }
+            });
+        })();
+
+        // ── Title tag suggestions ──
+        (function() {
+            const mount = container.querySelector('#pi-title-tag-ai');
+            if (!mount || !data.titleText) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Suggest title tags';
+            const output = document.createElement('div');
+            output.className = 'pi-ai-output';
+            output.style.cssText = 'display:none;white-space:pre-wrap;';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Generating…';
+                output.style.display = ''; output.textContent = '⏳ Thinking…';
+                let buffer = '';
+                window.GroqAI.stream(
+                    _buildTitleTagPrompt(data),
+                    function(token) {
+                        if (output.textContent === '⏳ Thinking…') output.textContent = '';
+                        buffer += token;
+                        output.textContent = buffer;
+                    },
+                    function() {
+                        // Render as individual rows with copy buttons
+                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
+                        if (lines.length > 0) {
+                            output.innerHTML = lines.map(l => {
+                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                                return '<div class="pi-ai-rewrite-row"><span class="pi-rewrite-text">' + esc(text) + '</span><button class="pi-copy-btn">Copy</button></div>';
+                            }).join('');
+                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                                const text = lines[idx].replace(/^\d+\.\s*/, '').trim();
+                                copyBtn.addEventListener('click', function() {
+                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                });
+                            });
+                        }
+                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                    },
+                    function(err) {
+                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        btn.disabled = false; btn.textContent = '✨ Suggest title tags';
+                    },
+                    { max_tokens: 200, temperature: 0.6 }
+                );
+            });
+        })();
+
+        // ── Weak anchor text ──
+        (function() {
+            const mount = container.querySelector('#pi-weak-anchors-ai');
+            if (!mount) return;
+            const weakLinks = [...(data.internalLinkData || []), ...(data.externalLinkData || [])]
+                .filter(lk => !lk.isImageLink)
+                .filter(lk => { const t = (lk.text || '').toLowerCase().trim(); return GENERIC_ANCHOR_TEXTS.has(t) || (t.length <= 2 && t.length > 0); })
+                .slice(0, 8);
+            if (weakLinks.length === 0) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Suggest anchor text';
+            const output = document.createElement('div');
+            output.className = 'pi-ai-output';
+            output.style.display = 'none';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Generating…';
+                output.style.display = ''; output.textContent = '⏳ Thinking…';
+                let buffer = '';
+                window.GroqAI.stream(
+                    _buildWeakAnchorsPrompt(weakLinks),
+                    function(token) {
+                        if (output.textContent === '⏳ Thinking…') output.textContent = '';
+                        buffer += token;
+                        output.textContent = buffer;
+                    },
+                    function() {
+                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
+                        if (lines.length > 0) {
+                            output.innerHTML = lines.map((l, i) => {
+                                const suggestion = l.replace(/^\d+\.\s*/, '').trim();
+                                const original = weakLinks[i] ? '"' + esc(weakLinks[i].text) + '"' : '';
+                                return '<div class="pi-ai-rewrite-row" style="flex-direction:column;align-items:flex-start;gap:2px;">' +
+                                    (original ? '<span style="font-size:0.68rem;color:var(--color-text-muted);">' + original + ' →</span>' : '') +
+                                    '<div style="display:flex;align-items:baseline;gap:8px;width:100%;"><span class="pi-rewrite-text">' + esc(suggestion) + '</span><button class="pi-copy-btn">Copy</button></div>' +
+                                    '</div>';
+                            }).join('');
+                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
+                                copyBtn.addEventListener('click', function() {
+                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                });
+                            });
+                        }
+                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                    },
+                    function(err) {
+                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        btn.disabled = false; btn.textContent = '✨ Suggest anchor text';
+                    },
+                    { max_tokens: 300, temperature: 0.4 }
+                );
+            });
+        })();
     }
 
     async function renderContentTab(container, url) {
@@ -2055,6 +2258,226 @@
         wireDatamuseBadges(panel);
     }
 
+    // ─── Document tab AI wiring ───────────────────────────────────────────────
+
+    function _runDocStream(pairs, messages, onDone, onError) {
+        var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        var buffer = '';
+        var injectedCount = 0;
+
+        function injectItem(index, text) {
+            var pair = pairs[index];
+            if (!pair) return;
+            pair.el.style.opacity = '0.65';
+            pair.slot.style.display = '';
+            pair.slot.innerHTML =
+                '<div class="pi-ai-rewrite-row">' +
+                '<span style="font-size:0.78rem;color:#10b981;margin-right:4px;flex-shrink:0;">✨</span>' +
+                '<span class="pi-rewrite-text">' + esc(text) + '</span>' +
+                '<button class="pi-copy-btn">Copy</button>' +
+                '</div>';
+            var copyBtn = pair.slot.querySelector('.pi-copy-btn');
+            copyBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(text).then(function() {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                });
+            });
+        }
+
+        function tryInjectNext() {
+            var nextMarker = '\n' + (injectedCount + 2) + '.';
+            var idx = buffer.indexOf(nextMarker);
+            if (idx !== -1) {
+                var itemBlock = buffer.substring(0, idx);
+                var match = itemBlock.match(/^\d+\.\s+([\s\S]+)$/);
+                if (match) {
+                    injectItem(injectedCount, match[1].trim());
+                    injectedCount++;
+                }
+                buffer = buffer.substring(idx + 1);
+                tryInjectNext();
+            }
+        }
+
+        window.GroqAI.stream(
+            messages,
+            function(token) { buffer += token; tryInjectNext(); },
+            function() {
+                var match = buffer.match(/^\d+\.\s+([\s\S]+)$/);
+                if (match) injectItem(injectedCount, match[1].trim());
+                onDone();
+            },
+            function(err) {
+                if (pairs[0]) {
+                    pairs[0].slot.style.display = '';
+                    pairs[0].slot.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                }
+                onDone(); // still signal done so the counter completes
+            },
+            { max_tokens: 1024, temperature: 0.4 }
+        );
+    }
+
+    function wireDocumentAIReview(panel, data) {
+        if (!window.GroqAI) return;
+        var toolbar = panel.querySelector('.pi-doc-toolbar');
+        if (!toolbar) return;
+
+        var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+
+        // Collect flagged sentences (cap at 8 each)
+        var longEls    = Array.prototype.slice.call(panel.querySelectorAll('.pi-sent[data-len-zone^="long"]')).slice(0, 8);
+        var passiveEls = Array.prototype.slice.call(panel.querySelectorAll('.pi-sent[data-passive="1"]')).slice(0, 8);
+
+        // Create inline slots after each sentence
+        function makeSlot(el) {
+            var slot = document.createElement('div');
+            slot.className = 'pi-doc-ai-slot';
+            slot.style.display = 'none';
+            el.after(slot);
+            return { el: el, slot: slot };
+        }
+        var longPairs    = longEls.map(makeSlot);
+        var passivePairs = passiveEls.map(makeSlot);
+        var totalSents   = longPairs.length + passivePairs.length;
+
+        // Toolbar controls
+        var reviewBtn = document.createElement('button');
+        reviewBtn.className = 'pi-ai-btn';
+        reviewBtn.style.marginLeft = '8px';
+
+        var progress = document.createElement('span');
+        progress.className = 'pi-doc-toolbar-progress';
+        progress.style.display = 'none';
+
+        var clearLink = document.createElement('button');
+        clearLink.className = 'pi-doc-toolbar-clear';
+        clearLink.textContent = 'Clear suggestions';
+        clearLink.style.display = 'none';
+
+        toolbar.appendChild(reviewBtn);
+        toolbar.appendChild(progress);
+        toolbar.appendChild(clearLink);
+
+        if (totalSents === 0) {
+            reviewBtn.textContent = '✨ AI Review';
+            reviewBtn.disabled = true;
+            reviewBtn.title = 'No long or passive sentences found';
+            return;
+        }
+
+        reviewBtn.textContent = '✨ AI Review';
+
+        clearLink.addEventListener('click', function() {
+            longPairs.concat(passivePairs).forEach(function(pair) {
+                pair.el.style.opacity = '';
+                pair.slot.style.display = 'none';
+                pair.slot.innerHTML = '';
+            });
+            clearLink.style.display = 'none';
+            reviewBtn.textContent = '✨ AI Review';
+        });
+
+        reviewBtn.addEventListener('click', function() {
+            if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+
+            // Reset
+            longPairs.concat(passivePairs).forEach(function(pair) {
+                pair.el.style.opacity = '';
+                pair.slot.style.display = 'none';
+                pair.slot.innerHTML = '';
+            });
+            clearLink.style.display = 'none';
+            reviewBtn.disabled = true;
+            reviewBtn.textContent = 'Reviewing…';
+            progress.textContent = 'Reviewing ' + totalSents + ' sentence' + (totalSents !== 1 ? 's' : '') + '…';
+            progress.style.display = '';
+
+            var doneCount = 0;
+            function onBothDone() {
+                doneCount++;
+                if (doneCount >= 2) {
+                    reviewBtn.disabled = false;
+                    reviewBtn.textContent = '↺ Re-review';
+                    progress.style.display = 'none';
+                    clearLink.style.display = '';
+                }
+            }
+
+            var longTexts    = longEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
+            var passiveTexts = passiveEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
+
+            // Run both streams concurrently
+            if (longPairs.length > 0) {
+                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts), onBothDone, onBothDone);
+            } else {
+                onBothDone(); // count as done if no long sentences
+            }
+            if (passivePairs.length > 0) {
+                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts), onBothDone, onBothDone);
+            } else {
+                onBothDone();
+            }
+        });
+
+        // ── Rewrite intro button ──
+        var introBlocks = (data.structuredBlocks || []).filter(function(b) { return b.type === 'p'; });
+        if (introBlocks.length > 0) {
+            var introBtn = document.createElement('button');
+            introBtn.className = 'pi-ai-btn';
+            introBtn.style.marginLeft = '6px';
+            introBtn.textContent = '✨ Rewrite intro';
+            toolbar.insertBefore(introBtn, clearLink);
+
+            // Output area — inserted before the document body
+            var docBody = panel.querySelector('.pi-doc-body');
+            var introOutput = document.createElement('div');
+            introOutput.className = 'pi-doc-intro-output';
+            introOutput.style.display = 'none';
+            if (docBody) docBody.parentNode.insertBefore(introOutput, docBody);
+
+            introBtn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                introBtn.disabled = true;
+                introBtn.textContent = 'Rewriting…';
+                introOutput.style.display = '';
+                introOutput.innerHTML = '<em style="color:var(--color-text-muted);font-size:0.8rem;">⏳ Thinking…</em>';
+
+                var introText = introBlocks.slice(0, 3).map(function(b) { return b.text; }).join('\n\n');
+                var buffer = '';
+                window.GroqAI.stream(
+                    _buildPageIntroPrompt(data),
+                    function(token) {
+                        buffer += token;
+                        if (introOutput.querySelector('em')) introOutput.innerHTML = '';
+                        introOutput.textContent = buffer;
+                    },
+                    function() {
+                        var finalText = buffer;
+                        introOutput.innerHTML =
+                            '<div style="margin-bottom:8px;">' + esc(finalText) + '</div>' +
+                            '<button class="pi-copy-btn">Copy rewritten intro</button>';
+                        introOutput.querySelector('.pi-copy-btn').addEventListener('click', function() {
+                            navigator.clipboard.writeText(finalText).then(function() {
+                                introOutput.querySelector('.pi-copy-btn').textContent = 'Copied!';
+                                setTimeout(function() { introOutput.querySelector('.pi-copy-btn').textContent = 'Copy rewritten intro'; }, 1500);
+                            });
+                        });
+                        introBtn.disabled = false;
+                        introBtn.textContent = '↺ Rewrite intro';
+                    },
+                    function(err) {
+                        introOutput.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        introBtn.disabled = false;
+                        introBtn.textContent = '✨ Rewrite intro';
+                    },
+                    { max_tokens: 400, temperature: 0.5 }
+                );
+            });
+        }
+    }
+
     // ─── Full Report (dashboard tab) ────────────────────────────────────────
 
     function renderFullResults(container, data, url) {
@@ -2197,6 +2620,7 @@
                         <span style="font-size:0.74rem;color:${titleStatus.color};font-weight:600;">${titleStatus.icon} ${titleStatus.label}</span>
                     </div>
                     ${data.titleText ? `<div style="font-size:0.82rem;color:var(--color-text-primary);font-weight:500;padding-left:48px;line-height:1.5;">&ldquo;${esc(data.titleText)}&rdquo;</div>` : ''}
+                    <div id="pi-title-tag-ai" style="margin-top:8px;padding-left:48px;"></div>
                 </div>
                 <div>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
@@ -2204,6 +2628,7 @@
                         <span style="font-size:0.74rem;color:${metaStatus.color};font-weight:600;">${metaStatus.icon} ${metaStatus.label}</span>
                     </div>
                     ${data.metaDescText ? `<div style="font-size:0.8rem;color:var(--color-text-secondary);font-style:italic;padding-left:48px;line-height:1.5;">&ldquo;${esc(data.metaDescText)}&rdquo;</div>` : `<div style="font-size:0.78rem;color:var(--color-text-muted);padding-left:48px;">No meta description found.</div>`}
+                    <div id="pi-meta-desc-ai" style="margin-top:8px;padding-left:48px;"></div>
                 </div>
                 <div style="padding-top:4px;border-top:1px solid var(--color-border-primary);">
                     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;">
@@ -2234,8 +2659,6 @@
         const altColor = data.imagesWithoutAlt > 0 ? '#d97706' : '#059669';
 
         // Weak anchor detection
-        const GENERIC_ANCHOR_TEXTS = new Set(['click here','here','read more','more','link',
-            'this','learn more','click','visit','see more']);
         let weakAnchorCount = 0;
         [...(data.internalLinkData || []), ...(data.externalLinkData || [])].forEach(lk => {
             if (lk.isImageLink) return;
@@ -2343,6 +2766,7 @@
                     <div style="font-size:0.65rem;color:var(--color-text-muted);margin-top:2px;">weak anchors</div>
                 </div>` : ''}
             </div>
+            ${weakAnchorCount > 0 ? `<div id="pi-weak-anchors-ai" style="margin-bottom:10px;"></div>` : ''}
             ${densityTier ? `<div style="font-size:0.76rem;color:var(--color-text-secondary);background:var(--color-bg-secondary);border-left:3px solid ${densityTier.color};border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:10px;">${densityTier.advice}</div>` : ''}
             <div style="font-size:0.8rem;color:${altColor};font-weight:500;margin-bottom:18px;">${altLabel}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -2560,6 +2984,7 @@
             if (!docPanel._rendered) {
                 docPanel.innerHTML = renderAnnotatedView(data);
                 wireDocumentOverlays(docPanel);
+                wireDocumentAIReview(docPanel, data);
                 docPanel._rendered = true;
             }
             analysisPanel.style.display = 'none';
