@@ -46,6 +46,14 @@
             system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite the provided page introduction to be clearer, more direct, and action-oriented. The first sentence must state exactly what the page is about and who it helps. Use plain English. Keep all key information. Output the rewritten introduction only — no explanation.',
             userPrefix: 'Rewrite this page introduction to be clearer and more direct:',
         },
+        'hedge-words': {
+            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. For each numbered hedge phrase shown with a context sentence, suggest a more direct and confident rewrite of that sentence without the hedge. If no sentence is given, suggest a direct replacement word or phrase. Keep the meaning. Use plain English. Respond with a numbered list only — one rewrite per number. No preamble.',
+            userPrefix: 'Rewrite these hedge phrases to be more direct. Number each:',
+        },
+        'h2-headings': {
+            system:     'You are a content editor for citizensinformation.ie, an Irish government information website. Rewrite each H2 heading to be clearer, more action-oriented, and user-focused. Use plain English. Keep each under 8 words. Start with the topic or a verb where possible. Respond with a numbered list only — one rewrite per number, matching the original order. No preamble.',
+            userPrefix: 'Rewrite these H2 headings to be clearer. Number each:',
+        },
     };
 
     // Prompt metadata for the library UI
@@ -64,6 +72,8 @@
         { key: 'title-tag',        name: 'Title Tag Suggestions', description: 'Suggests 3 alternative title tags under 60 characters — plain English, topic first.' },
         { key: 'weak-anchors',     name: 'Weak Anchor Text',      description: 'Suggests descriptive anchor text for generic links such as "click here" or "read more".' },
         { key: 'page-intro',       name: 'Page Introduction',     description: 'Rewrites the first 2–3 paragraphs to be clearer, more direct, and action-oriented.' },
+        { key: 'hedge-words',      name: 'Hedge Words',           description: 'Suggests direct, confident rewrites for vague language like "might", "possibly", "could be considered".' },
+        { key: 'h2-headings',      name: 'H2 Headings',           description: 'Rewrites H2 headings to be clearer and more action-oriented, under 8 words each.' },
     ];
 
     // ─── Private state ────────────────────────────────────────────────────────
