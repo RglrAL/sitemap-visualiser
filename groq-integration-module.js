@@ -349,43 +349,70 @@ body.dark-theme .nav-ai-btn.configured {
     cursor: not-allowed;
 }
 
-/* ── Inline rewrite slot (appears below each source sentence) */
-.pi-ai-inline-output {
-    border-left: 3px solid #10b981;
-    background: rgba(16,185,129,0.05);
-    border-radius: 0 6px 6px 0;
-    margin: 2px 0 6px 0;
+/* ── AI suggestion cards ──────────────────────────────────── */
+@keyframes pi-bubble-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
-.pi-ai-rewrite-row {
+.pi-ai-card {
+    position: relative;
+    background: var(--color-bg-elevated, var(--color-bg-secondary));
+    border: 1px solid rgba(16,185,129,0.28);
+    border-radius: 12px;
+    padding: 10px 14px 12px;
+    margin: 6px 0 8px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(16,185,129,0.12);
+    animation: pi-bubble-in 0.32s cubic-bezier(0.34,1.4,0.64,1) both;
+    overflow: hidden;
+}
+.pi-ai-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #10b981, #6366f1);
+    border-radius: 12px 12px 0 0;
+}
+.pi-ai-card-header {
     display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 5px 12px;
-    font-size: 0.78rem;
-    color: var(--color-text-primary);
-    line-height: 1.6;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
 }
-.pi-rewrite-text {
-    flex: 1;
-    word-break: break-word;
-}
-.pi-copy-btn {
-    flex-shrink: 0;
-    font-size: 0.67rem;
-    font-weight: 600;
-    padding: 2px 8px;
-    border: 1px solid var(--color-border-primary);
-    border-radius: 4px;
-    background: var(--color-bg-primary);
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    font-family: inherit;
-    transition: border-color 0.15s, color 0.15s;
-}
-.pi-copy-btn:hover {
-    border-color: #10b981;
+.pi-ai-label {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
     color: #10b981;
 }
+.pi-ai-card-body {
+    font-size: 0.82rem;
+    color: var(--color-text-primary);
+    line-height: 1.65;
+    word-break: break-word;
+}
+
+/* Inline rewrite slot container */
+.pi-ai-inline-output { margin: 2px 0 4px 0; }
+
+/* ── Copy button (pill shape) ─────────────────────────────── */
+.pi-copy-btn {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border: 1px solid rgba(16,185,129,0.4);
+    border-radius: 20px;
+    background: rgba(16,185,129,0.07);
+    color: #10b981;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    letter-spacing: 0.2px;
+}
+.pi-copy-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; }
+.pi-copy-btn:active { transform: scale(0.95); }
 .pi-ai-thinking {
     margin-top: 6px;
     font-size: 0.73rem;
@@ -648,13 +675,8 @@ body.dark-theme .nav-ai-btn.configured {
 .groq-pin-status.success { color: #10b981; font-weight: 600; }
 .groq-pin-status.error   { color: #ef4444; }
 
-/* ── Document tab AI Review slot ─────────────────────────── */
-.pi-doc-ai-slot {
-    border-left: 3px solid #10b981;
-    background: rgba(16,185,129,0.05);
-    border-radius: 0 6px 6px 0;
-    margin: 0 0 4px 11px;
-}
+/* ── Document tab toolbar + slots ────────────────────────── */
+.pi-doc-ai-slot { margin: 4px 0 6px 11px; }
 .pi-doc-toolbar .pi-ai-btn { font-size: 0.7rem; padding: 4px 11px; }
 .pi-doc-toolbar-progress {
     font-size: 0.7rem;
@@ -675,17 +697,72 @@ body.dark-theme .nav-ai-btn.configured {
     margin-left: 4px;
     padding: 0;
 }
+
+/* ── Intro rewrite output (streaming + final card) ──────── */
 .pi-doc-intro-output {
-    margin: 10px 11px;
-    padding: 12px 14px;
-    background: rgba(99,102,241,0.05);
-    border-left: 3px solid #6366f1;
-    border-radius: 0 8px 8px 0;
+    position: relative;
+    margin: 0 0 16px 0;
+    padding: 12px 14px 14px;
+    background: var(--color-bg-elevated, var(--color-bg-secondary));
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 12px;
     font-size: 0.85rem;
     color: var(--color-text-primary);
     line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-word;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(99,102,241,0.1);
+    animation: pi-bubble-in 0.32s cubic-bezier(0.34,1.4,0.64,1) both;
+    overflow: hidden;
+}
+.pi-doc-intro-output::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #6366f1, #10b981);
+    border-radius: 12px 12px 0 0;
+}
+
+/* ── Meta description banner in Document tab ────────────── */
+.pi-doc-meta-banner {
+    margin-bottom: 16px;
+    padding: 12px 14px 14px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 10px;
+}
+.pi-doc-meta-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.pi-doc-meta-label {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+.pi-doc-meta-chars {
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
+}
+.pi-doc-meta-text {
+    margin: 0;
+    font-size: 0.84rem;
+    color: var(--color-text-primary);
+    line-height: 1.6;
+}
+.pi-doc-meta-banner--empty .pi-doc-meta-missing {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    font-style: italic;
 }
         `;
         document.head.appendChild(style);
