@@ -687,26 +687,76 @@ body.dark-theme .nav-ai-btn.configured {
 
 /* ── Document tab toolbar + slots ────────────────────────── */
 .pi-doc-ai-slot { margin: 4px 0 6px 11px; }
-.pi-doc-toolbar .pi-ai-btn { font-size: 0.7rem; padding: 4px 11px; }
+
+/* Clear-all-filters button (inside filter group) */
+.pi-doc-clear-filters {
+    font-size: 0.67rem;
+    color: var(--color-text-muted);
+    background: none;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 6px;
+    padding: 3px 9px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.12s;
+    align-self: center;
+}
+.pi-doc-clear-filters:hover { color: var(--color-text-primary); }
+
+/* FAB group on the right of the toolbar */
+.pi-doc-fab-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    align-items: flex-end;
+    flex-shrink: 0;
+    padding-left: 14px;
+}
+.pi-doc-fab {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(16,185,129,0.38);
+    white-space: nowrap;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+    transition: box-shadow 0.15s, transform 0.15s;
+}
+.pi-doc-fab:hover:not(:disabled) {
+    box-shadow: 0 4px 14px rgba(16,185,129,0.5);
+    transform: translateY(-1px);
+}
+.pi-doc-fab:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.pi-doc-fab-intro {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 2px 10px rgba(99,102,241,0.38);
+}
+.pi-doc-fab-intro:hover:not(:disabled) {
+    box-shadow: 0 4px 14px rgba(99,102,241,0.5);
+}
 .pi-doc-toolbar-progress {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: var(--color-text-muted);
     font-style: italic;
-    align-self: center;
-    margin-left: 6px;
+    text-align: right;
 }
 .pi-doc-toolbar-clear {
-    font-size: 0.7rem;
-    color: #10b981;
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
     background: none;
     border: none;
     cursor: pointer;
     font-family: inherit;
     text-decoration: underline;
-    align-self: center;
-    margin-left: 4px;
+    text-align: right;
     padding: 0;
 }
+.pi-doc-toolbar-clear:hover { color: var(--color-text-secondary); }
 
 /* ── Intro rewrite output (streaming + final card) ──────── */
 .pi-doc-intro-output {
