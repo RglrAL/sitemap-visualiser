@@ -12,6 +12,18 @@
     const GENERIC_ANCHOR_TEXTS = new Set(['click here','here','read more','more','link',
         'this','learn more','click','visit','see more']);
 
+    // Issue pill metadata — color-coded to match the Document overlay system
+    const AI_ISSUE_OPTS = {
+        'long-sentences': { label: 'Long sentence',   color: '#dc2626', bg: 'rgba(220,38,38,0.09)',  border: 'rgba(220,38,38,0.3)'  },
+        'passive-voice':  { label: 'Passive voice',   color: '#f97316', bg: 'rgba(249,115,22,0.09)', border: 'rgba(249,115,22,0.3)' },
+        'meta-desc':      { label: 'Meta description',color: '#0891b2', bg: 'rgba(8,145,178,0.09)',  border: 'rgba(8,145,178,0.3)'  },
+        'title-tag':      { label: 'Title tag',        color: '#6366f1', bg: 'rgba(99,102,241,0.09)', border: 'rgba(99,102,241,0.3)' },
+        'weak-anchors':   { label: 'Anchor text',      color: '#10b981', bg: 'rgba(16,185,129,0.09)', border: 'rgba(16,185,129,0.3)' },
+        'h2-headings':    { label: 'H2 heading',       color: '#7c3aed', bg: 'rgba(124,58,237,0.09)', border: 'rgba(124,58,237,0.3)' },
+        'hedge-words':    { label: 'Hedge word',       color: '#ca8a04', bg: 'rgba(202,138,4,0.09)',  border: 'rgba(202,138,4,0.3)'  },
+        'page-intro':     { label: 'Page intro',        color: '#6366f1', bg: 'rgba(99,102,241,0.09)', border: 'rgba(99,102,241,0.3)' },
+    };
+
     const _linkStatusCache = new Map(); // fullUrl → { status: number|null, checkedAt: number }
     const LINK_STATUS_TTL = 10 * 60 * 1000; // 10 minutes
 
@@ -1700,16 +1712,33 @@
     }
 
 
-    // Renders a standard AI suggestion card into `el` and wires its Copy button.
-    // Used by both Analysis tab and Document tab so they always look identical.
-    function _renderAICard(el, text) {
+    // Returns card HTML string.
+    // opts  = AI_ISSUE_OPTS entry — adds colored issue pill and optional labelText override.
+    // extra = optional HTML string inserted between header and body (e.g. original text line).
+    function _buildCardHTML(text, opts, extra) {
         var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-        el.style.display = '';
-        el.innerHTML =
-            '<div class="pi-ai-card">' +
-            '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
+        var labelText = (opts && opts.labelText) ? opts.labelText : '✨ AI suggestion';
+        var pill = (opts && opts.label)
+            ? '<span style="font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:20px;' +
+              'background:' + opts.bg + ';color:' + opts.color + ';border:1px solid ' + opts.border + ';' +
+              'letter-spacing:0.3px;white-space:nowrap;">' + _e(opts.label) + '</span>'
+            : '';
+        return '<div class="pi-ai-card">' +
+            '<div class="pi-ai-card-header">' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+            '<span class="pi-ai-label">' + labelText + '</span>' + pill +
+            '</div>' +
+            '<button class="pi-copy-btn">Copy</button>' +
+            '</div>' +
+            (extra || '') +
             '<div class="pi-ai-card-body">' + _e(text) + '</div>' +
             '</div>';
+    }
+
+    // Renders a card into `el`, wires the Copy button, and handles display.
+    function _renderAICard(el, text, opts) {
+        el.style.display = '';
+        el.innerHTML = _buildCardHTML(text, opts);
         var copyBtn = el.querySelector('.pi-copy-btn');
         if (copyBtn) {
             copyBtn.addEventListener('click', function() {
@@ -1776,14 +1805,16 @@
             function injectItem(index, text) {
                 const slot = slots[index];
                 if (!slot) return;
-                _renderAICard(slot, text);
+                const opts = config.cacheKey ? AI_ISSUE_OPTS[config.cacheKey] : null;
+                _renderAICard(slot, text, opts);
                 // Cache and mirror to Document tab slot (if it exists)
                 if (config.cacheKey) {
                     _cacheAIResult(config.cacheKey, index, text);
                     var docSlot = document.getElementById('pi-doc-slot-' + config.cacheKey + '-' + index);
                     if (docSlot) {
-                        docSlot.parentElement && (docSlot.parentElement.style.opacity = '0.65');
-                        _renderAICard(docSlot, text);
+                        var docPair = docSlot.parentElement;
+                        if (docPair) docPair.style.opacity = '0.65';
+                        _renderAICard(docSlot, text, opts);
                     }
                 }
             }
@@ -1873,11 +1904,11 @@
                 try {
                     const result = await window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 });
                     const text = result.trim();
-                    _renderAICard(output, text);
+                    _renderAICard(output, text, AI_ISSUE_OPTS['meta-desc']);
                     _cacheAIResult('meta-desc', 0, text);
                     // Mirror to Document tab if already rendered
                     var docMetaMount = document.getElementById('pi-doc-meta-ai');
-                    if (docMetaMount) _renderAICard(docMetaMount, text);
+                    if (docMetaMount) _renderAICard(docMetaMount, text, AI_ISSUE_OPTS['meta-desc']);
                     btn.disabled = false; btn.textContent = '↺ Regenerate';
                 } catch (err) {
                     output.style.display = '';
@@ -1917,7 +1948,7 @@
                         if (lines.length > 0) {
                             output.innerHTML = lines.map((l, i) => {
                                 const text = l.replace(/^\d+\.\s*/, '').trim();
-                                return '<div class="pi-ai-card"><div class="pi-ai-card-header"><span class="pi-ai-label">✨ Option ' + (i + 1) + '</span><button class="pi-copy-btn">Copy</button></div><div class="pi-ai-card-body">' + esc(text) + '</div></div>';
+                                return _buildCardHTML(text, Object.assign({}, AI_ISSUE_OPTS['title-tag'], { labelText: '✨ Option ' + (i + 1) }));
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
                                 const text = lines[idx].replace(/^\d+\.\s*/, '').trim();
@@ -1972,11 +2003,8 @@
                             output.innerHTML = lines.map((l, i) => {
                                 const suggestion = l.replace(/^\d+\.\s*/, '').trim();
                                 const original = weakLinks[i] ? '"' + esc(weakLinks[i].text) + '"' : '';
-                                return '<div class="pi-ai-card">' +
-                                    '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
-                                    (original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + ' →</div>' : '') +
-                                    '<div class="pi-ai-card-body">' + esc(suggestion) + '</div>' +
-                                    '</div>';
+                                const extra = original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + ' →</div>' : '';
+                                return _buildCardHTML(suggestion, AI_ISSUE_OPTS['weak-anchors'], extra);
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
                                 const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
@@ -2024,11 +2052,8 @@
                             output.innerHTML = lines.map((l, i) => {
                                 const text = l.replace(/^\d+\.\s*/, '').trim();
                                 const phrase = originals[i] ? '"' + esc(originals[i].phrase) + '"' : '';
-                                return '<div class="pi-ai-card">' +
-                                    '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
-                                    (phrase ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + phrase + '</div>' : '') +
-                                    '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
-                                    '</div>';
+                                const extra = phrase ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + phrase + '</div>' : '';
+                                return _buildCardHTML(text, AI_ISSUE_OPTS['hedge-words'], extra);
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
                                 const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
@@ -2075,11 +2100,8 @@
                             output.innerHTML = lines.map((l, i) => {
                                 const text = l.replace(/^\d+\.\s*/, '').trim();
                                 const original = h2s[i] ? '"' + esc(h2s[i]) + '"' : '';
-                                return '<div class="pi-ai-card">' +
-                                    '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
-                                    (original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + '</div>' : '') +
-                                    '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
-                                    '</div>';
+                                const extra = original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + '</div>' : '';
+                                return _buildCardHTML(text, AI_ISSUE_OPTS['h2-headings'], extra);
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
                                 const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
@@ -2470,13 +2492,14 @@
         function injectItem(index, text) {
             var pair = pairs[index];
             if (!pair) return;
+            var opts = cacheKey ? AI_ISSUE_OPTS[cacheKey] : null;
             pair.el.style.opacity = '0.65';
-            _renderAICard(pair.slot, text);
+            _renderAICard(pair.slot, text, opts);
             // Cache and mirror to Analysis tab slot
             if (cacheKey) {
                 _cacheAIResult(cacheKey, index, text);
                 var analysisSlot = document.getElementById('pi-ai-slot-' + cacheKey + '-' + index);
-                if (analysisSlot) _renderAICard(analysisSlot, text);
+                if (analysisSlot) _renderAICard(analysisSlot, text, opts);
             }
         }
 
@@ -2560,11 +2583,11 @@
         var anyPrefilled = false;
         longPairs.forEach(function(pair, i) {
             var cached = _getCachedAIResult('long-sentences', i);
-            if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached); anyPrefilled = true; }
+            if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached, AI_ISSUE_OPTS['long-sentences']); anyPrefilled = true; }
         });
         passivePairs.forEach(function(pair, i) {
             var cached = _getCachedAIResult('passive-voice', i);
-            if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached); anyPrefilled = true; }
+            if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached, AI_ISSUE_OPTS['passive-voice']); anyPrefilled = true; }
         });
         if (anyPrefilled) {
             clearLink.style.display = '';
@@ -2575,7 +2598,7 @@
         var metaMountEarly = panel.querySelector('#pi-doc-meta-ai');
         if (metaMountEarly) {
             var cachedMeta = _getCachedAIResult('meta-desc', 0);
-            if (cachedMeta) _renderAICard(metaMountEarly, cachedMeta);
+            if (cachedMeta) _renderAICard(metaMountEarly, cachedMeta, AI_ISSUE_OPTS['meta-desc']);
         }
 
         if (totalSents === 0) {
@@ -2715,11 +2738,11 @@
                 window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 })
                     .then(function(result) {
                         var text = result.trim();
-                        _renderAICard(metaMount, text);
+                        _renderAICard(metaMount, text, AI_ISSUE_OPTS['meta-desc']);
                         _cacheAIResult('meta-desc', 0, text);
                         // Mirror to Analysis tab output if already rendered
                         var analysisMetaMount = document.getElementById('pi-meta-desc-ai');
-                        if (analysisMetaMount) _renderAICard(analysisMetaMount, text);
+                        if (analysisMetaMount) _renderAICard(analysisMetaMount, text, AI_ISSUE_OPTS['meta-desc']);
                         metaBtn.disabled = false;
                         metaBtn.textContent = '↺ Regenerate';
                     })
