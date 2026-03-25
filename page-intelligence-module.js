@@ -1596,6 +1596,7 @@
         if (!mount) return;
         const sentences = (config.sentences || []).slice(0, 8);
         if (sentences.length === 0) return;
+        const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
         // Create an inline rewrite slot below each sentence row
         const slots = sentences.map((_, i) => {
