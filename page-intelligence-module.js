@@ -2402,7 +2402,8 @@
 </style>`;
 
         const toolbar =
-            `<div class="pi-doc-toolbar" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 14px 0;border-bottom:1px solid var(--color-border-primary);margin-bottom:14px;position:sticky;top:0;background:var(--color-bg-primary);z-index:5;">` +
+            `<div class="pi-doc-toolbar" style="display:flex;align-items:flex-start;gap:0;padding:8px 0 14px 0;border-bottom:1px solid var(--color-border-primary);margin-bottom:14px;position:sticky;top:0;background:var(--color-bg-primary);z-index:5;">` +
+            `<div class="pi-doc-toolbar-filters" style="display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;">` +
             `<button class="pi-overlay-btn active" data-overlay="long" title="Sentences over 20 words. Aim for under 20 words each.">Long sentences <span class="pi-badge" style="background:#dc2626;">${longCount}</span>${long30Count > 0 ? `<span style="font-size:0.65rem;color:var(--color-text-muted);margin-left:1px;">30+&thinsp;<span style="color:#b91c1c;font-weight:700;">${long30Count}</span>${long40Count > 0 ? `&ensp;40+&thinsp;<span style="color:#7f1d1d;font-weight:700;">${long40Count}</span>` : ''}</span>` : ''}</button>` +
             `<button class="pi-overlay-btn active" data-overlay="passive" title="Passive constructions. Rewrite as active: \u2018The team fixed it\u2019 not \u2018It was fixed by the team\u2019.">Passive voice <span class="pi-badge" style="background:#f97316;">${passiveCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="complex" title="Uncommon or long words. Hover a highlighted word for simpler alternatives.">Complex words <span class="pi-badge" style="background:#6366f1;">${complexCount}</span></button>` +
@@ -2411,6 +2412,9 @@
             `<button class="pi-overlay-btn active" data-overlay="transition" title="Words that connect ideas (however, therefore, also). Good \u2014 target: >15% of sentences.">Transitions <span class="pi-badge" style="background:#16a34a;">${transitionCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="directaddress" title="Words that speak to the reader (you, your). Good \u2014 target: \u22652% of words.">Direct address <span class="pi-badge" style="background:#0891b2;">${directAddrCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="adverb" title="Words ending in -ly. Replace with stronger verbs where possible. Target: <5% of words.">Adverbs (-ly) <span class="pi-badge" style="background:#7c3aed;">${adverbCount}</span></button>` +
+            `<button class="pi-doc-clear-filters" title="Reset all overlays to visible">\u2715 Clear all</button>` +
+            `</div>` +
+            `<div class="pi-doc-fab-group"></div>` +
             `</div>`;
 
         const swatchBox = (bg) => `<span style="display:inline-block;width:12px;height:12px;background:${bg};border-radius:2px;vertical-align:middle;flex-shrink:0;"></span>`;
@@ -2480,6 +2484,15 @@
                 }
             });
         });
+        const clearFiltersBtn = panel.querySelector('.pi-doc-clear-filters');
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', function() {
+                ['long','passive','complex','hedge','nominalisation','transition','directaddress','adverb'].forEach(function(ov) {
+                    wrap.classList.remove('show-' + ov);
+                });
+                panel.querySelectorAll('.pi-overlay-btn').forEach(function(b) { b.classList.remove('active'); });
+            });
+        }
         wireDatamuseBadges(panel);
     }
 
@@ -2499,7 +2512,12 @@
             if (cacheKey) {
                 _cacheAIResult(cacheKey, index, text);
                 var analysisSlot = document.getElementById('pi-ai-slot-' + cacheKey + '-' + index);
-                if (analysisSlot) _renderAICard(analysisSlot, text, opts);
+                if (analysisSlot) {
+                    _renderAICard(analysisSlot, text, opts);
+                    // Auto-open any collapsed <details> ancestor so results are visible
+                    var det = analysisSlot.closest('details');
+                    if (det) det.open = true;
+                }
             }
         }
 
@@ -2541,6 +2559,7 @@
         if (!window.GroqAI) return;
         var toolbar = panel.querySelector('.pi-doc-toolbar');
         if (!toolbar) return;
+        var fabGroup = panel.querySelector('.pi-doc-fab-group') || toolbar;
 
         var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
@@ -2561,12 +2580,11 @@
         var passivePairs = passiveEls.map(function(el, i) { return makeSlot(el, 'passive-voice', i); });
         var totalSents   = longPairs.length + passivePairs.length;
 
-        // Toolbar controls
+        // FAB controls — mounted in the right-side FAB group
         var reviewBtn = document.createElement('button');
-        reviewBtn.className = 'pi-ai-btn';
-        reviewBtn.style.marginLeft = '8px';
+        reviewBtn.className = 'pi-doc-fab';
 
-        var progress = document.createElement('span');
+        var progress = document.createElement('div');
         progress.className = 'pi-doc-toolbar-progress';
         progress.style.display = 'none';
 
@@ -2575,9 +2593,9 @@
         clearLink.textContent = 'Clear suggestions';
         clearLink.style.display = 'none';
 
-        toolbar.appendChild(reviewBtn);
-        toolbar.appendChild(progress);
-        toolbar.appendChild(clearLink);
+        fabGroup.appendChild(reviewBtn);
+        fabGroup.appendChild(progress);
+        fabGroup.appendChild(clearLink);
 
         // Pre-fill any results already generated in the Analysis tab
         var anyPrefilled = false;
@@ -2666,10 +2684,9 @@
         var introBlocks = (data.structuredBlocks || []).filter(function(b) { return b.type === 'p'; });
         if (introBlocks.length > 0) {
             var introBtn = document.createElement('button');
-            introBtn.className = 'pi-ai-btn';
-            introBtn.style.marginLeft = '6px';
+            introBtn.className = 'pi-doc-fab pi-doc-fab-intro';
             introBtn.textContent = '✨ Rewrite intro';
-            toolbar.insertBefore(introBtn, clearLink);
+            fabGroup.insertBefore(introBtn, clearLink);
 
             // Output area — inserted before the document body
             var docBody = panel.querySelector('.pi-doc-body');
@@ -3126,7 +3143,8 @@
 
             // Long sentences <details>
             const longSentencesDetails = allLong.length > 0
-                ? `<details${allLong.length <= 3 ? ' open' : ''} style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                ? `<div id="pi-long-sentences-ai" style="margin-bottom:6px;"></div>` +
+                  `<details${allLong.length <= 3 ? ' open' : ''} style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
                   `<summary style="${detailsSummaryStyle}">\u26a0\ufe0f ${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:10px;">` +
                       `<div id="pi-long-sentences-list">` +
@@ -3135,7 +3153,6 @@
                           return `<div id="pi-sent-long-${i}" style="font-size:0.8rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid ${_rptWcColor(wc)};padding:6px 12px;">&ldquo;${esc(s)}&rdquo; <span style="color:${_rptWcColor(wc)};font-size:0.72rem;white-space:nowrap;font-weight:600;">(${wc}w)</span></div>`;
                       }).join('') +
                       `</div>` +
-                      `<div id="pi-long-sentences-ai" style="margin-top:10px;"></div>` +
                   `</div>` +
                   `</details>`
                 : '';
@@ -3143,13 +3160,14 @@
             // Passive voice <details>
             const passiveAll = ws.passiveSentenceExamplesAll || ws.passiveSentenceExamples || [];
             const passiveDetails =
+                (passiveAll.length > 0 ? `<div id="pi-passive-ai" style="margin-bottom:6px;"></div>` : '') +
                 `<details${passiveAll.length <= 5 ? ' open' : ''} style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
                 `<summary style="${detailsSummaryStyle}">${passiveWarn ? '\u26a0\ufe0f' : '\u2705'} Passive voice \u2014 ${ws.passiveSentenceCount} of ${ws.totalSentences} sentences (${passivePct}%)</summary>` +
                 `<div style="padding:8px 0 4px;">` +
                     (passiveAll.length > 0
                         ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map((s, i) =>
                             `<div id="pi-sent-pass-${i}" style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid var(--color-border-primary);padding:5px 12px;">&ldquo;${esc(s.length > 250 ? s.slice(0,250) + '\u2026' : s)}&rdquo;</div>`
-                        ).join('')}</div><div id="pi-passive-ai" style="margin-top:10px;"></div>`
+                        ).join('')}</div>`
                         : `<div style="font-size:0.76rem;color:var(--color-text-muted);">No passive voice detected.</div>`) +
                     `<div style="margin-top:8px;font-size:0.72rem;color:var(--color-text-muted);line-height:1.5;font-style:italic;">Passive voice is sometimes appropriate when the actor is unknown, the focus is on the person affected, or legal wording requires it.</div>` +
                     (passiveWarn
