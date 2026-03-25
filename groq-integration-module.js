@@ -273,6 +273,46 @@ body.dark-theme .nav-ai-btn.configured {
     to { transform: rotate(360deg); }
 }
 
+/* ── AI Rewrite button (inside Content Intelligence report) ── */
+.pi-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid rgba(16,185,129,0.35);
+    border-radius: 8px;
+    background: rgba(16,185,129,0.06);
+    color: #10b981;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.pi-ai-btn:hover:not(:disabled) {
+    background: rgba(16,185,129,0.14);
+    border-color: rgba(16,185,129,0.6);
+}
+.pi-ai-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Streaming output area ────────────────────────────────── */
+.pi-ai-output {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-primary);
+    border-left: 3px solid #10b981;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--color-text-primary);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 /* ── Modal helpers ────────────────────────────────────────── */
 .groq-spinner {
     display: inline-block;
