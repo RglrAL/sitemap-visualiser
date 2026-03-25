@@ -1426,7 +1426,7 @@
                         `<span style="font-size:0.7rem;font-weight:600;color:${contractionWarn ? '#d97706' : 'var(--color-text-secondary)'};">${ws.contractionCount} found ${contractionWarn ? '\u26a0\ufe0f' : '\u2705'}</span>` +
                     `</div>` +
                     `<div style="position:relative;height:6px;background:linear-gradient(to right,#94a3b8,#16a34a);border-radius:3px;margin-bottom:3px;">` +
-                        `<div style="position:absolute;top:50%;left:${dialPct}%;transform:translate(-50%,-50%);width:10px;height:10px;background:white;border:2px solid ${contractionWarn ? '#d97706' : '#16a34a'};border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>` +
+                        `<div style="position:absolute;top:50%;left:${dialPct}%;transform:translate(-50%,-50%);width:10px;height:10px;background:var(--color-bg-primary);border:2px solid ${contractionWarn ? '#d97706' : '#16a34a'};border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>` +
                     `</div>` +
                     `<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--color-text-muted);"><span>Very formal</span><span>Conversational</span></div>` +
                     (contractionWarn ? `<div style="font-size:0.63rem;color:#d97706;margin-top:2px;">Try: don\u2019t, can\u2019t, you\u2019ll, it\u2019s</div>` : '') +
@@ -1481,7 +1481,7 @@
         const wordCountFmt = data.wordCount >= 1000 ? (data.wordCount / 1000).toFixed(1) + 'k' : String(data.wordCount);
 
         container.innerHTML = `
-            ${data.isNoindex ? `<div style="background: var(--color-danger-bg, #fee2e2); border: 1px solid #fca5a5; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 0.75rem; font-weight: 700; color: #dc2626; text-align: center;">⛔ NOINDEX — Google will not index this page</div>` : ''}
+            ${data.isNoindex ? `<div style="background: var(--color-danger-bg); border: 1px solid var(--color-border-primary); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 0.75rem; font-weight: 700; color: #dc2626; text-align: center;">⛔ NOINDEX — Google will not index this page</div>` : ''}
 
             <!-- Section 2: Hero Panel — Score + Content Metadata -->
             <div style="background: var(--color-bg-secondary); border-radius: 10px; padding: 11px 13px; border: 2px solid ${scoreColor}; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;">
@@ -1558,6 +1558,102 @@
             </div>
         `;
         wireDatamuseBadges(container);
+    }
+
+    // ─── AI Rewrite wiring ────────────────────────────────────────────────────
+
+    function _buildLongSentencesPrompt(sentences) {
+        return [
+            {
+                role: 'system',
+                content: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite sentences to be shorter and clearer. Split long sentences into two shorter ones where helpful. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number, matching the original order. Do not include any preamble or explanation.'
+            },
+            {
+                role: 'user',
+                content: 'Shorten these sentences. Number each rewrite:\n\n' +
+                    sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n')
+            }
+        ];
+    }
+
+    function _buildPassivePrompt(sentences) {
+        return [
+            {
+                role: 'system',
+                content: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite passive voice sentences in active voice. Start each sentence with the subject — who does the action. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number. Do not include any preamble or explanation.'
+            },
+            {
+                role: 'user',
+                content: 'Rewrite these passive voice sentences in active voice. Number each rewrite:\n\n' +
+                    sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n')
+            }
+        ];
+    }
+
+    function _wireAISection(container, config) {
+        if (!window.GroqAI) return;
+        const mount = container.querySelector('#' + config.mountId);
+        if (!mount) return;
+        if (!config.sentences || config.sentences.length === 0) return;
+
+        const btn = document.createElement('button');
+        btn.className   = 'pi-ai-btn';
+        btn.textContent = '✨ Rewrite with AI';
+
+        const output = document.createElement('div');
+        output.className    = 'pi-ai-output';
+        output.style.display = 'none';
+
+        mount.appendChild(btn);
+        mount.appendChild(output);
+
+        btn.addEventListener('click', () => {
+            if (!window.GroqAI.isConfigured()) {
+                window.GroqAI.showSettings();
+                return;
+            }
+
+            btn.disabled    = true;
+            btn.textContent = 'Generating…';
+            output.style.display = '';
+            output.textContent   = '⏳ Thinking…';
+
+            const messages = config.buildPrompt(config.sentences);
+
+            window.GroqAI.stream(
+                messages,
+                // onChunk — first token clears the placeholder
+                function(token) {
+                    if (output.textContent === '⏳ Thinking…') output.textContent = '';
+                    output.textContent += token;
+                },
+                // onDone
+                function() {
+                    btn.disabled    = false;
+                    btn.textContent = '↺ Regenerate';
+                },
+                // onError
+                function(err) {
+                    output.textContent = '❌ ' + (err && err.message ? err.message : 'Something went wrong.');
+                    btn.disabled    = false;
+                    btn.textContent = '✨ Rewrite with AI';
+                },
+                { max_tokens: 1024, temperature: 0.4 }
+            );
+        });
+    }
+
+    function wireAIRewrites(container, data) {
+        _wireAISection(container, {
+            mountId:     'pi-long-sentences-ai',
+            sentences:   data.longSentencesAll || data.longSentences || [],
+            buildPrompt: _buildLongSentencesPrompt,
+        });
+        _wireAISection(container, {
+            mountId:     'pi-passive-ai',
+            sentences:   (data.writingStyle && data.writingStyle.passiveSentenceExamplesAll) || [],
+            buildPrompt: _buildPassivePrompt,
+        });
     }
 
     async function renderContentTab(container, url) {
@@ -1949,7 +2045,7 @@
 
         // ── Noindex banner (dark-mode fix) ──
         const noindexBanner = data.isNoindex
-            ? `<div style="background:var(--color-danger-bg, #fee2e2);border:1px solid #fca5a5;border-radius:10px;padding:10px 18px;margin-bottom:14px;font-size:0.82rem;font-weight:700;color:#dc2626;text-align:center;">⛔ NOINDEX — Google will not index this page</div>`
+            ? `<div style="background:var(--color-danger-bg);border:1px solid var(--color-border-primary);border-radius:10px;padding:10px 18px;margin-bottom:14px;font-size:0.82rem;font-weight:700;color:#dc2626;text-align:center;">⛔ NOINDEX — Google will not index this page</div>`
             : '';
 
         // ── SEO Health score ──
@@ -2257,7 +2353,7 @@
                     `<div style="display:flex;align-items:center;gap:12px;">` +
                         `<span style="font-size:0.72rem;color:var(--color-text-muted);white-space:nowrap;">Very formal</span>` +
                         `<div style="flex:1;position:relative;height:8px;background:linear-gradient(to right,#94a3b8,#16a34a);border-radius:4px;">` +
-                            `<div style="position:absolute;top:50%;left:${dialPct}%;transform:translate(-50%,-50%);width:14px;height:14px;background:white;border:2px solid ${contrWarn ? '#d97706' : '#16a34a'};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>` +
+                            `<div style="position:absolute;top:50%;left:${dialPct}%;transform:translate(-50%,-50%);width:14px;height:14px;background:var(--color-bg-primary);border:2px solid ${contrWarn ? '#d97706' : '#16a34a'};border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>` +
                         `</div>` +
                         `<span style="font-size:0.72rem;color:var(--color-text-muted);white-space:nowrap;">Conversational</span>` +
                         `<span style="font-size:0.8rem;font-weight:700;color:${contrWarn ? '#d97706' : '#059669'};white-space:nowrap;">${ws.contractionCount} found ${contrWarn ? '\u26a0\ufe0f' : '\u2705'}</span>` +
@@ -2270,10 +2366,13 @@
                 ? `<details${allLong.length <= 3 ? ' open' : ''} style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
                   `<summary style="${detailsSummaryStyle}">\u26a0\ufe0f ${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:10px;">` +
+                      `<div id="pi-long-sentences-list">` +
                       allLong.map(s => {
                           const wc = s.split(/\s+/).filter(w => w.length > 0).length;
                           return `<div style="font-size:0.8rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid ${_rptWcColor(wc)};padding:6px 12px;">&ldquo;${esc(s)}&rdquo; <span style="color:${_rptWcColor(wc)};font-size:0.72rem;white-space:nowrap;font-weight:600;">(${wc}w)</span></div>`;
                       }).join('') +
+                      `</div>` +
+                      `<div id="pi-long-sentences-ai" style="margin-top:10px;"></div>` +
                   `</div>` +
                   `</details>`
                 : '';
@@ -2285,9 +2384,9 @@
                 `<summary style="${detailsSummaryStyle}">${passiveWarn ? '\u26a0\ufe0f' : '\u2705'} Passive voice \u2014 ${ws.passiveSentenceCount} of ${ws.totalSentences} sentences (${passivePct}%)</summary>` +
                 `<div style="padding:8px 0 4px;">` +
                     (passiveAll.length > 0
-                        ? `<div style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map(s =>
+                        ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map(s =>
                             `<div style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid var(--color-border-primary);padding:5px 12px;">&ldquo;${esc(s.length > 250 ? s.slice(0,250) + '\u2026' : s)}&rdquo;</div>`
-                        ).join('')}</div>`
+                        ).join('')}</div><div id="pi-passive-ai" style="margin-top:10px;"></div>`
                         : `<div style="font-size:0.76rem;color:var(--color-text-muted);">No passive voice detected.</div>`) +
                     `<div style="margin-top:8px;font-size:0.72rem;color:var(--color-text-muted);line-height:1.5;font-style:italic;">Passive voice is sometimes appropriate when the actor is unknown, the focus is on the person affected, or legal wording requires it.</div>` +
                     (passiveWarn
@@ -2382,6 +2481,7 @@
         initRhythmChartFull(container);
         wireDatamuseBadges(container);
         wireLinkChecker(container, data, _urlOrigin);
+        wireAIRewrites(container, data);
 
         const analysisBtn   = container.querySelector('#pi-tab-analysis');
         const docBtn        = container.querySelector('#pi-tab-document');
@@ -2422,7 +2522,7 @@
         }
     }
 
-    window.PageIntelligence = { renderContentTab, renderFullReport };
+    window.PageIntelligence = { renderContentTab, renderFullReport, getCachedData: url => cache.get(url)?.data || null };
     console.log('📄 Page Intelligence module loaded');
 
 })();
