@@ -1565,7 +1565,17 @@
 
     // ─── AI Rewrite wiring ────────────────────────────────────────────────────
 
-    function _buildLongSentencesPrompt(sentences) {
+    function _buildPageContext(data) {
+        if (!data) return '';
+        var parts = [];
+        if (data.titleText)                       parts.push('Page title: ' + data.titleText);
+        if (data.h1Texts && data.h1Texts[0])      parts.push('H1: ' + data.h1Texts[0]);
+        if (data.h2Texts && data.h2Texts.length)  parts.push('Key sections: ' + data.h2Texts.slice(0, 4).join(' | '));
+        if (data.wordCount)                       parts.push('Word count: ' + data.wordCount);
+        return parts.length ? '--- Page context ---\n' + parts.join('\n') + '\n---\n\n' : '';
+    }
+
+    function _buildLongSentencesPrompt(sentences, data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('long-sentences')
             : {
@@ -1574,11 +1584,11 @@
             };
         return [
             { role: 'system', content: p.system },
-            { role: 'user',   content: p.userPrefix + '\n\n' + sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n') },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n') },
         ];
     }
 
-    function _buildPassivePrompt(sentences) {
+    function _buildPassivePrompt(sentences, data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('passive-voice')
             : {
@@ -1587,7 +1597,7 @@
             };
         return [
             { role: 'system', content: p.system },
-            { role: 'user',   content: p.userPrefix + '\n\n' + sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n') },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + sentences.slice(0, 8).map((s, i) => `${i + 1}. "${s}"`).join('\n') },
         ];
     }
 
@@ -1620,13 +1630,13 @@
         ];
     }
 
-    function _buildWeakAnchorsPrompt(weakLinks) {
+    function _buildWeakAnchorsPrompt(weakLinks, data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('weak-anchors')
             : { system: 'You are a content editor for citizensinformation.ie, an Irish government information website. Each item is a generic hyperlink anchor text with its destination URL. Suggest descriptive replacement anchor text for each. Respond with a numbered list only — one suggestion per number, matching the original order. Keep each under 8 words. No preamble.', userPrefix: 'Suggest descriptive anchor text for each weak link. Number each:' };
         return [
             { role: 'system', content: p.system },
-            { role: 'user',   content: p.userPrefix + '\n\n' +
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' +
                 weakLinks.slice(0, 8).map((lk, i) => `${i + 1}. "${lk.text}" → ${lk.href}`).join('\n')
             },
         ];
@@ -1694,7 +1704,7 @@
             btn.textContent = 'Generating…';
             thinking.style.display = '';
 
-            const messages = config.buildPrompt(sentences);
+            const messages = config.buildPrompt(sentences, config.data);
             let buffer       = '';
             let injectedCount = 0;
 
@@ -1703,9 +1713,12 @@
                 if (!slot) return;
                 slot.style.display = '';
                 slot.innerHTML =
-                    `<div class="pi-ai-rewrite-row">` +
-                        `<span class="pi-rewrite-text">${esc(text)}</span>` +
-                        `<button class="pi-copy-btn" title="Copy rewrite">Copy</button>` +
+                    `<div class="pi-ai-card">` +
+                        `<div class="pi-ai-card-header">` +
+                            `<span class="pi-ai-label">✨ AI suggestion</span>` +
+                            `<button class="pi-copy-btn">Copy</button>` +
+                        `</div>` +
+                        `<div class="pi-ai-card-body">${esc(text)}</div>` +
                     `</div>`;
                 const copyBtn = slot.querySelector('.pi-copy-btn');
                 copyBtn.addEventListener('click', function() {
@@ -1770,12 +1783,14 @@
             rowIdPrefix:  'pi-sent-long-',
             sentences:    data.longSentencesAll || data.longSentences || [],
             buildPrompt:  _buildLongSentencesPrompt,
+            data:         data,
         });
         _wireAISection(container, {
             mountId:      'pi-passive-ai',
             rowIdPrefix:  'pi-sent-pass-',
             sentences:    (data.writingStyle && data.writingStyle.passiveSentenceExamplesAll) || [],
             buildPrompt:  _buildPassivePrompt,
+            data:         data,
         });
 
         // ── Meta description ──
@@ -1798,7 +1813,7 @@
                     const result = await window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 });
                     const text = result.trim();
                     output.style.display = '';
-                    output.innerHTML = '<div class="pi-ai-rewrite-row"><span class="pi-rewrite-text">' + esc(text) + '</span><button class="pi-copy-btn">Copy</button></div>';
+                    output.innerHTML = '<div class="pi-ai-card"><div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div><div class="pi-ai-card-body">' + esc(text) + '</div></div>';
                     output.querySelector('.pi-copy-btn').addEventListener('click', function() {
                         navigator.clipboard.writeText(text).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); });
                     });
@@ -1839,9 +1854,9 @@
                         // Render as individual rows with copy buttons
                         const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
                         if (lines.length > 0) {
-                            output.innerHTML = lines.map(l => {
+                            output.innerHTML = lines.map((l, i) => {
                                 const text = l.replace(/^\d+\.\s*/, '').trim();
-                                return '<div class="pi-ai-rewrite-row"><span class="pi-rewrite-text">' + esc(text) + '</span><button class="pi-copy-btn">Copy</button></div>';
+                                return '<div class="pi-ai-card"><div class="pi-ai-card-header"><span class="pi-ai-label">✨ Option ' + (i + 1) + '</span><button class="pi-copy-btn">Copy</button></div><div class="pi-ai-card-body">' + esc(text) + '</div></div>';
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
                                 const text = lines[idx].replace(/^\d+\.\s*/, '').trim();
@@ -1884,7 +1899,7 @@
                 output.style.display = ''; output.textContent = '⏳ Thinking…';
                 let buffer = '';
                 window.GroqAI.stream(
-                    _buildWeakAnchorsPrompt(weakLinks),
+                    _buildWeakAnchorsPrompt(weakLinks, data),
                     function(token) {
                         if (output.textContent === '⏳ Thinking…') output.textContent = '';
                         buffer += token;
@@ -1896,9 +1911,10 @@
                             output.innerHTML = lines.map((l, i) => {
                                 const suggestion = l.replace(/^\d+\.\s*/, '').trim();
                                 const original = weakLinks[i] ? '"' + esc(weakLinks[i].text) + '"' : '';
-                                return '<div class="pi-ai-rewrite-row" style="flex-direction:column;align-items:flex-start;gap:2px;">' +
-                                    (original ? '<span style="font-size:0.68rem;color:var(--color-text-muted);">' + original + ' →</span>' : '') +
-                                    '<div style="display:flex;align-items:baseline;gap:8px;width:100%;"><span class="pi-rewrite-text">' + esc(suggestion) + '</span><button class="pi-copy-btn">Copy</button></div>' +
+                                return '<div class="pi-ai-card">' +
+                                    '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
+                                    (original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + ' →</div>' : '') +
+                                    '<div class="pi-ai-card-body">' + esc(suggestion) + '</div>' +
                                     '</div>';
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
@@ -2233,9 +2249,32 @@
             keyRow(swatchBox('rgba(168,85,247,0.2)'),   'Adverbs (-ly)',   'Replace with a stronger verb where possible (target <5%)') +
             `</div></details>`;
 
+        const metaCharCount = data.metaDescText ? data.metaDescText.length : 0;
+        const metaCharNote = metaCharCount > 155
+            ? ' &mdash; <strong style="color:#dc2626;">too long</strong>'
+            : metaCharCount > 0 && metaCharCount < 70
+                ? ' &mdash; <span style="color:#ca8a04;">too short</span>'
+                : '';
+        const metaBanner = data.metaDescText
+            ? `<div class="pi-doc-meta-banner">
+                   <div class="pi-doc-meta-header">
+                       <span class="pi-doc-meta-label">Meta description</span>
+                       <span class="pi-doc-meta-chars">${metaCharCount} chars${metaCharNote}</span>
+                   </div>
+                   <p class="pi-doc-meta-text">${esc(data.metaDescText)}</p>
+                   <div id="pi-doc-meta-ai"></div>
+               </div>`
+            : `<div class="pi-doc-meta-banner pi-doc-meta-banner--empty">
+                   <div class="pi-doc-meta-header">
+                       <span class="pi-doc-meta-label">Meta description</span>
+                   </div>
+                   <p class="pi-doc-meta-missing">No meta description set &mdash; this page won&rsquo;t display a preview snippet in search results.</p>
+                   <div id="pi-doc-meta-ai"></div>
+               </div>`;
+
         return css +
             `<div class="pi-doc-wrap show-long show-passive show-complex show-hedge show-nominalisation show-transition show-directaddress show-adverb" style="padding:0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
-            toolbar + legend +
+            toolbar + legend + metaBanner +
             `<div class="pi-doc-body" style="max-width:780px;">${bodyHtml}</div>` +
             `</div>`;
     }
@@ -2271,10 +2310,12 @@
             pair.el.style.opacity = '0.65';
             pair.slot.style.display = '';
             pair.slot.innerHTML =
-                '<div class="pi-ai-rewrite-row">' +
-                '<span style="font-size:0.78rem;color:#10b981;margin-right:4px;flex-shrink:0;">✨</span>' +
-                '<span class="pi-rewrite-text">' + esc(text) + '</span>' +
+                '<div class="pi-ai-card">' +
+                '<div class="pi-ai-card-header">' +
+                '<span class="pi-ai-label">✨ AI suggestion</span>' +
                 '<button class="pi-copy-btn">Copy</button>' +
+                '</div>' +
+                '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
                 '</div>';
             var copyBtn = pair.slot.querySelector('.pi-copy-btn');
             copyBtn.addEventListener('click', function() {
@@ -2410,12 +2451,12 @@
 
             // Run both streams concurrently
             if (longPairs.length > 0) {
-                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts), onBothDone, onBothDone);
+                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), onBothDone, onBothDone);
             } else {
                 onBothDone(); // count as done if no long sentences
             }
             if (passivePairs.length > 0) {
-                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts), onBothDone, onBothDone);
+                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), onBothDone, onBothDone);
             } else {
                 onBothDone();
             }
@@ -2455,13 +2496,14 @@
                     },
                     function() {
                         var finalText = buffer;
+                        introOutput.style.whiteSpace = '';
                         introOutput.innerHTML =
-                            '<div style="margin-bottom:8px;">' + esc(finalText) + '</div>' +
-                            '<button class="pi-copy-btn">Copy rewritten intro</button>';
+                            '<div class="pi-ai-card-header" style="margin-bottom:8px;"><span class="pi-ai-label" style="color:#6366f1;">✨ Rewritten introduction</span><button class="pi-copy-btn" style="border-color:rgba(99,102,241,0.4);color:#6366f1;background:rgba(99,102,241,0.07);">Copy</button></div>' +
+                            '<div style="font-size:0.85rem;line-height:1.7;color:var(--color-text-primary);word-break:break-word;">' + esc(finalText) + '</div>';
                         introOutput.querySelector('.pi-copy-btn').addEventListener('click', function() {
                             navigator.clipboard.writeText(finalText).then(function() {
                                 introOutput.querySelector('.pi-copy-btn').textContent = 'Copied!';
-                                setTimeout(function() { introOutput.querySelector('.pi-copy-btn').textContent = 'Copy rewritten intro'; }, 1500);
+                                setTimeout(function() { introOutput.querySelector('.pi-copy-btn').textContent = 'Copy'; }, 1500);
                             });
                         });
                         introBtn.disabled = false;
@@ -2476,6 +2518,48 @@
                 );
             });
         }
+
+        // ── Meta description rewrite in Document tab ──
+        (function() {
+            var metaBanner = panel.querySelector('.pi-doc-meta-banner');
+            var metaMount  = panel.querySelector('#pi-doc-meta-ai');
+            if (!metaBanner || !metaMount) return;
+
+            var metaBtn = document.createElement('button');
+            metaBtn.className = 'pi-ai-btn';
+            metaBtn.style.cssText = 'font-size:0.65rem;padding:3px 10px;margin-top:10px;';
+            metaBtn.textContent = '✨ Rewrite meta';
+            metaBanner.insertBefore(metaBtn, metaMount);
+
+            metaBtn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                metaBtn.disabled = true;
+                metaBtn.textContent = 'Generating…';
+                window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 })
+                    .then(function(result) {
+                        var text = result.trim();
+                        metaMount.style.display = '';
+                        metaMount.innerHTML =
+                            '<div class="pi-ai-card">' +
+                            '<div class="pi-ai-card-header"><span class="pi-ai-label">✨ AI suggestion</span><button class="pi-copy-btn">Copy</button></div>' +
+                            '<div class="pi-ai-card-body">' + esc(text) + '</div>' +
+                            '</div>';
+                        metaMount.querySelector('.pi-copy-btn').addEventListener('click', function() {
+                            navigator.clipboard.writeText(text).then(function() {
+                                metaMount.querySelector('.pi-copy-btn').textContent = 'Copied!';
+                                setTimeout(function() { metaMount.querySelector('.pi-copy-btn').textContent = 'Copy'; }, 1500);
+                            });
+                        });
+                        metaBtn.disabled = false;
+                        metaBtn.textContent = '↺ Regenerate';
+                    })
+                    .catch(function(err) {
+                        metaMount.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        metaBtn.disabled = false;
+                        metaBtn.textContent = '✨ Rewrite meta';
+                    });
+            });
+        })();
     }
 
     // ─── Full Report (dashboard tab) ────────────────────────────────────────
