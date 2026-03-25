@@ -1712,6 +1712,29 @@
     }
 
 
+    // Renders numbered hedge-word suggestion lines into a container element.
+    // originals = hedgeMatchesAll.slice(0,6) — provides the original phrase for each card.
+    function _renderHedgeCards(mount, lines, originals) {
+        var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        mount.style.display = '';
+        mount.innerHTML = lines.map(function(l, i) {
+            var text  = l.replace(/^\d+\.\s*/, '').trim();
+            var phrase = originals[i] ? '"' + _e(originals[i].phrase) + '"' : '';
+            var extra  = phrase ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + phrase + '</div>' : '';
+            _cacheAIResult('hedge-words', i, text);
+            return _buildCardHTML(text, AI_ISSUE_OPTS['hedge-words'], extra);
+        }).join('');
+        mount.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+            var text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
+            copyBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(text).then(function() {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                });
+            });
+        });
+    }
+
     // Returns card HTML string.
     // opts  = AI_ISSUE_OPTS entry — adds colored issue pill and optional labelText override.
     // extra = optional HTML string inserted between header and body (e.g. original text line).
@@ -1807,6 +1830,9 @@
                 if (!slot) return;
                 const opts = config.cacheKey ? AI_ISSUE_OPTS[config.cacheKey] : null;
                 _renderAICard(slot, text, opts);
+                // Auto-open parent <details> so results are visible even when collapsed
+                var det = slot.closest('details');
+                if (det) det.open = true;
                 // Cache and mirror to Document tab slot (if it exists)
                 if (config.cacheKey) {
                     _cacheAIResult(config.cacheKey, index, text);
@@ -2034,6 +2060,7 @@
             btn.className = 'pi-ai-btn';
             btn.textContent = '✨ Suggest direct alternatives';
             const output = document.createElement('div');
+            output.id = 'pi-hedge-ai-output';
             output.style.cssText = 'margin-top:6px;';
             mount.appendChild(btn);
             mount.appendChild(output);
@@ -2049,18 +2076,10 @@
                         const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
                         if (lines.length > 0) {
                             const originals = hedgeAll.slice(0, 6);
-                            output.innerHTML = lines.map((l, i) => {
-                                const text = l.replace(/^\d+\.\s*/, '').trim();
-                                const phrase = originals[i] ? '"' + esc(originals[i].phrase) + '"' : '';
-                                const extra = phrase ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + phrase + '</div>' : '';
-                                return _buildCardHTML(text, AI_ISSUE_OPTS['hedge-words'], extra);
-                            }).join('');
-                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
-                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
-                                copyBtn.addEventListener('click', function() {
-                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
-                                });
-                            });
+                            _renderHedgeCards(output, lines, originals);
+                            // Mirror to Document tab if already open
+                            var docHedgeMount = document.getElementById('pi-doc-hedge-ai');
+                            if (docHedgeMount) _renderHedgeCards(docHedgeMount, lines, originals);
                         }
                         btn.disabled = false; btn.textContent = '↺ Regenerate';
                     },
@@ -2465,6 +2484,7 @@
         return css +
             `<div class="pi-doc-wrap show-long show-passive show-complex show-hedge show-nominalisation show-transition show-directaddress show-adverb" style="padding:0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
             toolbar + legend + metaBanner +
+            `<div id="pi-doc-hedge-ai" style="display:none;margin:0 0 14px 0;"></div>` +
             `<div class="pi-doc-body" style="max-width:780px;">${bodyHtml}</div>` +
             `</div>`;
     }
@@ -2597,6 +2617,9 @@
         fabGroup.appendChild(progress);
         fabGroup.appendChild(clearLink);
 
+        var hedgeAll = (data.writingStyle && data.writingStyle.hedgeMatchesAll) || [];
+        var hedgeMount = panel.querySelector('#pi-doc-hedge-ai');
+
         // Pre-fill any results already generated in the Analysis tab
         var anyPrefilled = false;
         longPairs.forEach(function(pair, i) {
@@ -2607,6 +2630,19 @@
             var cached = _getCachedAIResult('passive-voice', i);
             if (cached) { pair.el.style.opacity = '0.65'; _renderAICard(pair.slot, cached, AI_ISSUE_OPTS['passive-voice']); anyPrefilled = true; }
         });
+        if (hedgeMount && hedgeAll.length > 0) {
+            var hedgeCached = [];
+            for (var _hi = 0; _hi < hedgeAll.length; _hi++) {
+                var _hc = _getCachedAIResult('hedge-words', _hi);
+                if (!_hc) break;
+                hedgeCached.push({ phrase: hedgeAll[_hi].phrase, text: _hc });
+            }
+            if (hedgeCached.length > 0) {
+                var fakeLines = hedgeCached.map(function(h, i) { return (i + 1) + '. ' + h.text; });
+                _renderHedgeCards(hedgeMount, fakeLines, hedgeAll.slice(0, hedgeCached.length));
+                anyPrefilled = true;
+            }
+        }
         if (anyPrefilled) {
             clearLink.style.display = '';
             reviewBtn.textContent = '↺ Re-review';
@@ -2634,6 +2670,7 @@
                 pair.slot.style.display = 'none';
                 pair.slot.innerHTML = '';
             });
+            if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
             clearLink.style.display = 'none';
             reviewBtn.textContent = '✨ AI Review';
         });
@@ -2647,16 +2684,19 @@
                 pair.slot.style.display = 'none';
                 pair.slot.innerHTML = '';
             });
+            if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
             clearLink.style.display = 'none';
             reviewBtn.disabled = true;
             reviewBtn.textContent = 'Reviewing…';
-            progress.textContent = 'Reviewing ' + totalSents + ' sentence' + (totalSents !== 1 ? 's' : '') + '…';
+            var issueCount = (longPairs.length > 0 ? 1 : 0) + (passivePairs.length > 0 ? 1 : 0) + (hedgeAll.length > 0 ? 1 : 0);
+            progress.textContent = 'Reviewing ' + totalSents + ' sentence' + (totalSents !== 1 ? 's' : '') + (hedgeAll.length > 0 ? ' + hedge words' : '') + '…';
             progress.style.display = '';
 
             var doneCount = 0;
-            function onBothDone() {
+            var totalStreams = 3; // long, passive, hedge — each calls onAllDone even if skipped
+            function onAllDone() {
                 doneCount++;
-                if (doneCount >= 2) {
+                if (doneCount >= totalStreams) {
                     reviewBtn.disabled = false;
                     reviewBtn.textContent = '↺ Re-review';
                     progress.style.display = 'none';
@@ -2667,16 +2707,41 @@
             var longTexts    = longEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
             var passiveTexts = passiveEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
 
-            // Run both streams concurrently
+            // Run all three streams concurrently
             if (longPairs.length > 0) {
-                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), 'long-sentences', onBothDone, onBothDone);
+                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), 'long-sentences', onAllDone, onAllDone);
             } else {
-                onBothDone(); // count as done if no long sentences
+                onAllDone();
             }
             if (passivePairs.length > 0) {
-                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), 'passive-voice', onBothDone, onBothDone);
+                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), 'passive-voice', onAllDone, onAllDone);
             } else {
-                onBothDone();
+                onAllDone();
+            }
+            if (hedgeAll.length > 0 && hedgeMount) {
+                hedgeMount.style.display = '';
+                hedgeMount.innerHTML = '<em style="font-size:0.78rem;color:var(--color-text-muted);">⏳ Reviewing hedge words…</em>';
+                var hBuffer = '';
+                window.GroqAI.stream(
+                    _buildHedgeWordsPrompt(data),
+                    function(token) { hBuffer += token; },
+                    function() {
+                        var lines = hBuffer.split('\n').filter(function(l) { return /^\d+\./.test(l.trim()); });
+                        if (lines.length > 0) {
+                            _renderHedgeCards(hedgeMount, lines, hedgeAll.slice(0, 6));
+                            // Mirror to Analysis tab
+                            var analysisHedgeOutput = document.getElementById('pi-hedge-ai-output');
+                            if (analysisHedgeOutput) _renderHedgeCards(analysisHedgeOutput, lines, hedgeAll.slice(0, 6));
+                        } else {
+                            hedgeMount.style.display = 'none';
+                        }
+                        onAllDone();
+                    },
+                    function() { hedgeMount.style.display = 'none'; onAllDone(); },
+                    { max_tokens: 600, temperature: 0.4 }
+                );
+            } else {
+                onAllDone();
             }
         });
 
