@@ -30,6 +30,22 @@
             system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite passive voice sentences in active voice. Start each sentence with the subject — who does the action. Keep all key information. Use plain English. Respond with a numbered list only — one rewrite per number. Do not include any preamble or explanation.',
             userPrefix: 'Rewrite these passive voice sentences in active voice. Number each rewrite:',
         },
+        'meta-description': {
+            system:     'You are an SEO editor for citizensinformation.ie, an Irish government information website. Write a single meta description in plain English. Maximum 155 characters. It must be action-oriented, state the main topic clearly, and end without truncation. Output the meta description text only — no quotes, no label, no explanation.',
+            userPrefix: 'Write a meta description for this page.',
+        },
+        'title-tag': {
+            system:     'You are an SEO editor for citizensinformation.ie, an Irish government information website. Suggest 3 alternative title tags. Each must be under 60 characters, in plain English, topic first, no clickbait. Output a numbered list only — one title per number. No preamble.',
+            userPrefix: 'Suggest 3 alternative title tags. Number each:',
+        },
+        'weak-anchors': {
+            system:     'You are a content editor for citizensinformation.ie, an Irish government information website. Each item is a generic hyperlink anchor text with its destination URL. Suggest descriptive replacement anchor text for each. Respond with a numbered list only — one suggestion per number, matching the original order. Keep each under 8 words. No preamble.',
+            userPrefix: 'Suggest descriptive anchor text for each weak link. Number each:',
+        },
+        'page-intro': {
+            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite the provided page introduction to be clearer, more direct, and action-oriented. The first sentence must state exactly what the page is about and who it helps. Use plain English. Keep all key information. Output the rewritten introduction only — no explanation.',
+            userPrefix: 'Rewrite this page introduction to be clearer and more direct:',
+        },
     };
 
     // Prompt metadata for the library UI
@@ -44,6 +60,10 @@
             name:        'Passive Voice',
             description: 'Rewrites passive voice sentences in active voice, naming who does the action.',
         },
+        { key: 'meta-description', name: 'Meta Description',      description: 'Generates an optimised meta description (max 155 chars) using the title, headings, and word count.' },
+        { key: 'title-tag',        name: 'Title Tag Suggestions', description: 'Suggests 3 alternative title tags under 60 characters — plain English, topic first.' },
+        { key: 'weak-anchors',     name: 'Weak Anchor Text',      description: 'Suggests descriptive anchor text for generic links such as "click here" or "read more".' },
+        { key: 'page-intro',       name: 'Page Introduction',     description: 'Rewrites the first 2–3 paragraphs to be clearer, more direct, and action-oriented.' },
     ];
 
     // ─── Private state ────────────────────────────────────────────────────────
@@ -627,6 +647,46 @@ body.dark-theme .nav-ai-btn.configured {
 }
 .groq-pin-status.success { color: #10b981; font-weight: 600; }
 .groq-pin-status.error   { color: #ef4444; }
+
+/* ── Document tab AI Review slot ─────────────────────────── */
+.pi-doc-ai-slot {
+    border-left: 3px solid #10b981;
+    background: rgba(16,185,129,0.05);
+    border-radius: 0 6px 6px 0;
+    margin: 0 0 4px 11px;
+}
+.pi-doc-toolbar .pi-ai-btn { font-size: 0.7rem; padding: 4px 11px; }
+.pi-doc-toolbar-progress {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    align-self: center;
+    margin-left: 6px;
+}
+.pi-doc-toolbar-clear {
+    font-size: 0.7rem;
+    color: #10b981;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: underline;
+    align-self: center;
+    margin-left: 4px;
+    padding: 0;
+}
+.pi-doc-intro-output {
+    margin: 10px 11px;
+    padding: 12px 14px;
+    background: rgba(99,102,241,0.05);
+    border-left: 3px solid #6366f1;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
+    color: var(--color-text-primary);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
         `;
         document.head.appendChild(style);
     }
