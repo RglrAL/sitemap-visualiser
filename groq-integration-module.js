@@ -298,7 +298,56 @@ body.dark-theme .nav-ai-btn.configured {
     cursor: not-allowed;
 }
 
-/* ── Streaming output area ────────────────────────────────── */
+/* ── Inline rewrite slot (appears below each source sentence) */
+.pi-ai-inline-output {
+    border-left: 3px solid #10b981;
+    background: rgba(16,185,129,0.05);
+    border-radius: 0 6px 6px 0;
+    margin: 2px 0 6px 0;
+}
+.pi-ai-rewrite-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    color: var(--color-text-primary);
+    line-height: 1.6;
+}
+.pi-rewrite-text {
+    flex: 1;
+    word-break: break-word;
+}
+.pi-copy-btn {
+    flex-shrink: 0;
+    font-size: 0.67rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 4px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.15s, color 0.15s;
+}
+.pi-copy-btn:hover {
+    border-color: #10b981;
+    color: #10b981;
+}
+.pi-ai-thinking {
+    margin-top: 6px;
+    font-size: 0.73rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+.pi-ai-error {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: #dc2626;
+}
+
+/* ── Legacy streaming output area (kept for safety) ──────── */
 .pi-ai-output {
     margin-top: 10px;
     padding: 12px 14px;
