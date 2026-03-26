@@ -1629,8 +1629,8 @@ function showDashboardLoading() {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        opacity: 1;
+        transition: opacity 0.25s ease;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
     
@@ -1751,18 +1751,15 @@ function hideDashboardLoading(onComplete) {
     const remainingTime = Math.max(0, minimumDuration - elapsedTime);
 
     setTimeout(() => {
+        window.dashboardLoadingStartTime = null;
+        // Fire callback immediately so the panel starts its slide-up at the same
+        // time as the overlay fades out — no gap where the tree map shows through.
+        if (onComplete) onComplete();
         if (loadingOverlay && loadingOverlay.parentNode) {
             loadingOverlay.style.opacity = '0';
             setTimeout(() => {
-                if (loadingOverlay && loadingOverlay.parentNode) {
-                    loadingOverlay.remove();
-                }
-                window.dashboardLoadingStartTime = null;
-                if (onComplete) onComplete();
+                if (loadingOverlay && loadingOverlay.parentNode) loadingOverlay.remove();
             }, 300);
-        } else {
-            window.dashboardLoadingStartTime = null;
-            if (onComplete) onComplete();
         }
     }, remainingTime);
 }
@@ -2052,12 +2049,11 @@ function showDashboardModal(htmlContent) {
     panel.appendChild(content);
     document.body.appendChild(panel);
 
-    // Wait for loading overlay to finish fading, then slide the panel up
+    // Start the panel slide-up at the same moment the loading overlay begins fading out.
+    // One rAF ensures the initial translateY(100%) is painted before we animate.
     hideDashboardLoading(() => {
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                panel.style.transform = 'translateY(0)';
-            });
+            panel.style.transform = 'translateY(0)';
         });
     });
 }
