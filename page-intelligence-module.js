@@ -934,20 +934,41 @@
         'citizensinformation.ie': {
             accent: '#72A300', nav: '#005F9E', navText: '#ffffff',
             font: "'Lato', 'Helvetica Neue', Arial, sans-serif",
-            label: 'Citizens Information'
+            label: 'Citizens Information', siteName: 'Citizens Information',
+            pageHeadBg: '#f0f5fa', pageHeadText: '#1a2a3a', crumbColor: '#005F9E',
+            branded: true,
+            logo: '<svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="7" r="4.2"/><path d="M3.5 22c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5" stroke="white" stroke-width="0" fill="white"/><path d="M4 22c0-4.42 3.58-8 8-8s8 3.58 8 8" fill="white"/></svg>'
         },
         'mabs.ie': {
-            accent: '#0077C8', nav: '#005A96', navText: '#ffffff',
-            font: "'Open Sans', Arial, sans-serif", label: 'MABS'
+            accent: '#0077C8', nav: '#003F7D', navText: '#ffffff',
+            font: "'Open Sans', Arial, sans-serif",
+            label: 'MABS', siteName: 'Money Advice & Budgeting Service',
+            pageHeadBg: '#f0f6fb', pageHeadText: '#0a1a2a', crumbColor: '#0077C8',
+            branded: true,
+            logo: '<svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 9.5h2.5V22h5v-6h5v6h5V9.5H22L12 2z"/></svg>'
         },
         'gov.ie': {
             accent: '#004f28', nav: '#004f28', navText: '#ffffff',
-            font: "'Lato', Arial, sans-serif", label: 'gov.ie'
+            font: "'Lato', Arial, sans-serif",
+            label: 'gov.ie', siteName: 'Government of Ireland',
+            pageHeadBg: '#f2f5f2', pageHeadText: '#0a1a0a', crumbColor: '#004f28',
+            branded: true,
+            logo: '<svg width="18" height="22" viewBox="0 0 18 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="2.8" height="23" rx="1.4" fill="white"/><path d="M3.3 2C8 1 16 4.5 16 12.5C16 19.5 9.5 23 3.3 22.5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round"/><line x1="3.3" y1="6" x2="12.5" y2="6.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="3.3" y1="10" x2="14" y2="11" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="3.3" y1="14.5" x2="13.5" y2="15.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="3.3" y1="19" x2="10.5" y2="20.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>'
         }
     };
     var _THEME_FALLBACK = {
         accent: 'var(--color-link)', nav: 'var(--color-bg-secondary)', navText: 'var(--color-text-primary)',
-        font: 'inherit', label: null
+        font: 'inherit', label: null, branded: false
+    };
+
+    var _SCHEMA_BADGES = {
+        'FAQPage':     { label: 'FAQ',      bg: '#7c3aed' },
+        'HowTo':       { label: 'How-to',   bg: '#0891b2' },
+        'Article':     { label: 'Article',  bg: '#4f46e5' },
+        'NewsArticle': { label: 'News',     bg: '#dc2626' },
+        'JobPosting':  { label: 'Job',      bg: '#16a34a' },
+        'Event':       { label: 'Event',    bg: '#d97706' },
+        'WebPage':     { label: 'Web page', bg: '#64748b' }
     };
 
     function _pickContrastText(hex) {
@@ -994,35 +1015,85 @@
 
     function renderPageHeaderChrome(data, theme, pageUrl) {
         var _esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-        var host = '', pathCrumbs = '';
+        var host = '', pathParts = [];
         try {
             var u = new URL(pageUrl);
             host = u.hostname.replace(/^www\./, '');
-            var parts = u.pathname.split('/').filter(Boolean);
-            if (parts.length > 0) {
-                pathCrumbs = ' \u203a ' + parts.map(function(p) {
-                    return _esc(p.replace(/-/g, ' '));
-                }).join(' \u203a ');
-            }
+            pathParts = u.pathname.split('/').filter(Boolean);
         } catch(e) {}
-        var siteLabel = _esc(theme.label || host) + pathCrumbs;
         var safeUrl = _esc(pageUrl);
 
-        return '<div class="pi-doc-header-chrome" style="' +
-            'background:linear-gradient(135deg,' + theme.nav + ' 0%,' + theme.accent + ' 100%);' +
-            'color:' + theme.navText + ';padding:20px 20px 16px;border-radius:6px 6px 0 0;margin-bottom:0;">' +
-            '<div style="font-size:0.72rem;opacity:0.75;margin-bottom:6px;letter-spacing:0.03em;display:flex;justify-content:space-between;align-items:center;">' +
-                '<span>' + siteLabel + '</span>' +
-                '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="color:' + theme.navText + ';opacity:0.8;font-size:0.7rem;text-decoration:none;border:1px solid currentColor;padding:2px 7px;border-radius:3px;">Open page \u2197</a>' +
-            '</div>' +
-            '<h1 style="margin:0 0 8px;font-size:1.35rem;font-weight:700;line-height:1.3;color:' + theme.navText + ';">' +
-                _esc(data.h1Text || data.titleText || 'Untitled') +
-            '</h1>' +
-            '<div style="font-size:0.75rem;opacity:0.75;display:flex;gap:12px;flex-wrap:wrap;">' +
+        // Schema badge (first meaningful schema type)
+        var schemaBadge = '';
+        if (data.schemaTypes && data.schemaTypes.length) {
+            for (var si = 0; si < data.schemaTypes.length; si++) {
+                var sb = _SCHEMA_BADGES[data.schemaTypes[si]];
+                if (sb) {
+                    schemaBadge = '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:' + sb.bg + ';color:#fff;font-size:0.65rem;font-weight:700;letter-spacing:0.04em;vertical-align:middle;margin-left:8px;">' + sb.label + '</span>';
+                    break;
+                }
+            }
+        }
+
+        if (theme.branded) {
+            // ── Branded 2-zone layout (known sites) ──────────────────────────
+            // Zone 1: nav bar — dark bg, logo + site name + open link
+            var navBar =
+                '<div style="background:' + theme.nav + ';color:' + theme.navText + ';padding:10px 18px;border-radius:6px 6px 0 0;display:flex;align-items:center;gap:10px;">' +
+                    '<span style="display:flex;align-items:center;flex-shrink:0;">' + (theme.logo || '') + '</span>' +
+                    '<span style="font-weight:700;font-size:0.88rem;letter-spacing:0.01em;flex:1;">' + _esc(theme.siteName || theme.label || host) + '</span>' +
+                    '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="color:' + theme.navText + ';opacity:0.75;font-size:0.68rem;text-decoration:none;border:1px solid rgba(255,255,255,0.45);padding:2px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0;">Open page \u2197</a>' +
+                '</div>';
+
+            // Zone 2: page head — light bg, breadcrumb + H1 + metadata
+            var crumbs = [_esc(theme.label || host)];
+            for (var pi = 0; pi < pathParts.length; pi++) {
+                var crumbLabel = pathParts[pi].replace(/-/g, '\u2009');
+                crumbs.push('<span style="color:' + (theme.crumbColor || theme.accent) + ';">' + _esc(crumbLabel) + '</span>');
+            }
+            var breadcrumb = '<nav style="font-size:0.72rem;color:' + (theme.pageHeadText || '#333') + ';opacity:0.65;margin-bottom:10px;">' +
+                crumbs.join(' <span style="margin:0 3px;opacity:0.5;">\u203a</span> ') + '</nav>';
+
+            var metaRow = '<div style="font-size:0.75rem;color:' + (theme.pageHeadText || '#333') + ';opacity:0.6;display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:8px;">' +
                 (data.wordCount ? '<span>~' + data.wordCount + ' words</span>' : '') +
                 (data.readingTime ? '<span>' + data.readingTime + ' min read</span>' : '') +
-            '</div>' +
-        '</div>';
+                (data.pageLanguage === 'ga' ? '<span style="opacity:1;padding:1px 6px;border-radius:8px;background:rgba(0,0,0,0.08);font-size:0.65rem;font-weight:600;">As Gaeilge</span>' : '') +
+                '</div>';
+
+            var pageHead =
+                '<div style="background:' + (theme.pageHeadBg || '#f5f7fa') + ';padding:16px 20px 18px;border-bottom:3px solid ' + theme.accent + ';">' +
+                    breadcrumb +
+                    '<h1 style="margin:0;font-size:1.5rem;font-weight:800;line-height:1.25;color:' + (theme.pageHeadText || '#1a2a3a') + ';font-family:' + (theme.font || 'inherit') + ';">' +
+                        _esc(data.h1Text || data.titleText || 'Untitled') + schemaBadge +
+                    '</h1>' +
+                    metaRow +
+                '</div>';
+
+            return '<div class="pi-doc-header-chrome">' + navBar + pageHead + '</div>';
+
+        } else {
+            // ── Generic gradient layout (unknown / fallback sites) ────────────
+            var pathCrumbs = pathParts.length
+                ? ' \u203a ' + pathParts.map(function(p) { return _esc(p.replace(/-/g, ' ')); }).join(' \u203a ')
+                : '';
+            var siteLabel = _esc(theme.label || host) + pathCrumbs;
+
+            return '<div class="pi-doc-header-chrome" style="' +
+                'background:linear-gradient(135deg,' + theme.nav + ' 0%,' + theme.accent + ' 100%);' +
+                'color:' + theme.navText + ';padding:18px 20px 16px;border-radius:6px 6px 0 0;margin-bottom:0;">' +
+                '<div style="font-size:0.72rem;opacity:0.75;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">' +
+                    '<span>' + siteLabel + '</span>' +
+                    '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="color:' + theme.navText + ';opacity:0.8;font-size:0.7rem;text-decoration:none;border:1px solid currentColor;padding:2px 7px;border-radius:3px;">Open page \u2197</a>' +
+                '</div>' +
+                '<h1 style="margin:0 0 8px;font-size:1.35rem;font-weight:700;line-height:1.3;color:' + theme.navText + ';">' +
+                    _esc(data.h1Text || data.titleText || 'Untitled') + schemaBadge +
+                '</h1>' +
+                '<div style="font-size:0.75rem;opacity:0.75;display:flex;gap:12px;flex-wrap:wrap;">' +
+                    (data.wordCount ? '<span>~' + data.wordCount + ' words</span>' : '') +
+                    (data.readingTime ? '<span>' + data.readingTime + ' min read</span>' : '') +
+                '</div>' +
+            '</div>';
+        }
     }
 
     function renderTOC(data, theme) {
@@ -3012,6 +3083,7 @@
 
         const toolbar =
             `<div class="pi-doc-toolbar" style="display:flex;align-items:flex-start;gap:0;padding:8px 0 14px 0;border-bottom:1px solid var(--color-border-primary);margin-bottom:14px;position:sticky;top:0;background:var(--color-bg-primary);z-index:5;">` +
+            `<div class="pi-reading-progress" style="position:absolute;bottom:0;left:0;height:2px;width:0%;background:${_docTheme.accent};border-radius:0 1px 1px 0;transition:width 0.12s linear;"></div>` +
             `<div class="pi-doc-toolbar-filters" style="display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;">` +
             `<button class="pi-overlay-btn active" data-overlay="long" title="Sentences over 20 words. Aim for under 20 words each.">Long sentences <span class="pi-badge" style="background:#dc2626;">${longCount}</span>${long30Count > 0 ? `<span style="font-size:0.65rem;color:var(--color-text-muted);margin-left:1px;">30+&thinsp;<span style="color:#b91c1c;font-weight:700;">${long30Count}</span>${long40Count > 0 ? `&ensp;40+&thinsp;<span style="color:#7f1d1d;font-weight:700;">${long40Count}</span>` : ''}</span>` : ''}</button>` +
             `<button class="pi-overlay-btn active" data-overlay="passive" title="Passive constructions. Rewrite as active: \u2018The team fixed it\u2019 not \u2018It was fixed by the team\u2019.">Passive voice <span class="pi-badge" style="background:#f97316;">${passiveCount}</span></button>` +
@@ -3126,6 +3198,32 @@
                 setTimeout(function() { target.style.transition = ''; target.style.background = ''; }, 700);
             });
         });
+
+        // Reading progress bar
+        var progressBar = panel.querySelector('.pi-reading-progress');
+        if (progressBar) {
+            // Find the scrollable ancestor of the panel
+            var scrollEl = null;
+            var el = panel.parentElement;
+            while (el && el !== document.body) {
+                var ov = window.getComputedStyle(el).overflowY;
+                if (ov === 'auto' || ov === 'scroll') { scrollEl = el; break; }
+                el = el.parentElement;
+            }
+            if (!scrollEl) scrollEl = panel.closest('.tab-panel') || panel;
+            scrollEl.addEventListener('scroll', function() {
+                var docBody = panel.querySelector('.pi-doc-body');
+                if (!docBody) return;
+                var totalH = docBody.scrollHeight;
+                var viewH = scrollEl.clientHeight || 400;
+                var scrollTop = scrollEl.scrollTop;
+                // Offset by the position of docBody relative to scroll container
+                var docBodyTop = docBody.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top + scrollTop;
+                var scrollable = totalH + docBodyTop - viewH;
+                var pct = scrollable > 0 ? Math.min(100, Math.max(0, (scrollTop - docBodyTop + viewH * 0.1) / scrollable * 100)) : 0;
+                progressBar.style.width = pct + '%';
+            }, { passive: true });
+        }
     }
 
     // ─── Document tab AI wiring ───────────────────────────────────────────────
