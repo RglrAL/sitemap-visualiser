@@ -249,7 +249,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
     // ===========================================
     
     const glossaryData = {
-        // Search Console Metrics
+        // ── Search Console ────────────────────────────────────────────────
         'CTR (Click-Through Rate)': {
             category: 'Search Console',
             source: 'search_console',
@@ -257,296 +257,498 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             calculation: '(Clicks ÷ Impressions) × 100',
             benchmark: 'Position 1: ~28%, Position 2: ~15%, Position 3: ~11%, Position 4-5: ~6%',
             example: '5.2% CTR means 52 people clicked for every 1,000 who saw your page in search',
-            relatedTerms: ['Click Rate', 'Search CTR', 'Clicks', 'Impressions']
+            relatedTerms: ['Clicks', 'Impressions', 'Average Position', 'Opportunity Queries']
         },
-        
+
         'Clicks': {
             category: 'Search Console',
             source: 'search_console',
             definition: 'Number of times users clicked on your page from Google search results.',
             calculation: 'Direct count from Search Console',
-            benchmark: 'Varies by content type - government pages typically 100-1,000+ monthly',
+            benchmark: 'Government pages typically 100–1,000+ monthly',
             example: '245 clicks means 245 people visited your page from Google search this month',
-            relatedTerms: ['Search Clicks', 'Organic Clicks', 'CTR']
+            relatedTerms: ['Impressions', 'CTR (Click-Through Rate)', 'Organic Traffic']
         },
-        
+
         'Impressions': {
             category: 'Search Console',
             source: 'search_console',
             definition: 'Number of times your page appeared in Google search results.',
             calculation: 'Direct count from Search Console',
-            benchmark: 'Good: 10x more than clicks, Excellent: 20x+ more than clicks',
+            benchmark: 'Good: 10× more than clicks; Excellent: 20× more than clicks',
             example: '5,000 impressions means your page appeared in search results 5,000 times',
-            relatedTerms: ['Search Impressions', 'SERP Appearances', 'CTR']
+            relatedTerms: ['Clicks', 'CTR (Click-Through Rate)', 'Average Position']
         },
-        
+
         'Average Position': {
             category: 'Search Console',
             source: 'search_console',
             definition: 'Average ranking position of your page in Google search results.',
             calculation: 'Weighted average of all query positions',
-            benchmark: 'Excellent: 1-3, Good: 4-10, Fair: 11-20, Poor: 20+',
-            example: 'Position 5.2 means your page typically appears 5th-6th in search results',
-            relatedTerms: ['Ranking', 'SERP Position', 'Search Score']
+            benchmark: 'Excellent: 1–3, Good: 4–10, Fair: 11–20, Poor: 20+',
+            example: 'Position 5.2 means your page typically appears 5th–6th in search results',
+            relatedTerms: ['CTR (Click-Through Rate)', 'Search Score', 'Impressions']
         },
-        
+
         'Top Queries': {
             category: 'Search Console',
             source: 'search_console',
             definition: 'Most common search terms that lead people to your page.',
             calculation: 'Ranked by clicks or impressions from Search Console',
-            benchmark: 'Top query should represent 10-30% of total traffic',
+            benchmark: 'Top query should represent 10–30% of total traffic',
             example: '"passport application" bringing 45 clicks shows citizens need passport info',
-            relatedTerms: ['Search Queries', 'Keywords', 'Opportunity Queries']
+            relatedTerms: ['Opportunity Queries', 'Query Intent', 'Clicks']
         },
 
         'Opportunity Queries': {
             category: 'Search Console',
             source: 'calculated',
-            definition: 'High impressions queries with low CTR that represent optimization opportunities.',
-            calculation: 'Queries with high impressions but below-average CTR for their position',
+            definition: 'High-impression queries with below-average CTR for their position — represent optimisation opportunities.',
+            calculation: 'Queries with impressions above threshold and CTR below position benchmark',
             benchmark: 'CTR improvement potential >50% indicates high-value opportunity',
             example: 'Query with 1,000 impressions but 1% CTR when benchmark is 3% CTR',
-            relatedTerms: ['Top Queries', 'CTR Gap Analysis', 'Quick Wins']
+            relatedTerms: ['Top Queries', 'CTR (Click-Through Rate)', 'Query Intent']
         },
-        
-        // Google Analytics Metrics
+
+        // ── Google Analytics ──────────────────────────────────────────────
         'Users': {
             category: 'Google Analytics',
             source: 'ga4',
-            definition: 'Number of unique individuals who visited your page.',
-            calculation: 'Distinct count based on Google Analytics user identification',
-            benchmark: 'Government pages: 500-5,000+ monthly users typical',
+            definition: 'Number of unique individuals who visited your page during the selected period.',
+            calculation: 'Distinct count based on GA4 user identification',
+            benchmark: 'Government pages: 500–5,000+ monthly users typical',
             example: '1,250 users means 1,250 different people visited your page',
-            relatedTerms: ['New Users', 'Active Users', 'Citizens Reached']
+            relatedTerms: ['Page Views', 'Sessions', 'Citizens Reached']
         },
 
-        'New Users': {
-            category: 'Google Analytics',
-            source: 'ga4',
-            definition: 'Number of users visiting your page for the first time in the selected period.',
-            calculation: 'GA4 count of users with no previous sessions',
-            benchmark: '60-80% new users indicates strong discovery performance',
-            example: '800 new users out of 1,250 total means good content discoverability',
-            relatedTerms: ['Users', 'Active Users', 'Discovery']
-        },
-
-        'Active Users': {
-            category: 'Google Analytics',
-            source: 'ga4',
-            definition: 'Users who had at least one engaged session during the selected period.',
-            calculation: 'GA4 count of users with engaged sessions (10+ seconds, conversion, or 2+ page views)',
-            benchmark: 'Should be 70-90% of total users for quality content',
-            example: '1,100 active users from 1,250 total shows engaging content',
-            relatedTerms: ['Users', 'Engaged Sessions', 'Engagement Rate']
-        },
-        
         'Page Views': {
             category: 'Google Analytics',
             source: 'ga4',
-            definition: 'Total number of times your page was viewed (includes repeat visits).',
-            calculation: 'Count of all page view events from GA4',
-            benchmark: 'Typically 1.2-2.5x higher than users (people viewing multiple times)',
+            definition: 'Total number of times your page was viewed, including repeat visits by the same user.',
+            calculation: 'Count of all page_view events from GA4',
+            benchmark: 'Typically 1.2–2.5× higher than Users',
             example: '1,800 page views from 1,250 users means some people returned',
-            relatedTerms: ['Screen Page Views', 'Sessions', 'Users']
+            relatedTerms: ['Users', 'Sessions', 'Engagement Rate']
         },
-        
+
         'Sessions': {
             category: 'Google Analytics',
             source: 'ga4',
-            definition: 'Number of visits to your website (a session can include multiple pages).',
+            definition: 'Number of individual visits to your site. A session ends after 30 minutes of inactivity.',
             calculation: 'Count of distinct user sessions from GA4',
             benchmark: 'Usually similar to Users for single-page analysis',
             example: '1,300 sessions means people made 1,300 separate visits',
-            relatedTerms: ['Users', 'Page Views', 'Engaged Sessions']
+            relatedTerms: ['Users', 'Engaged Sessions', 'Bounce Rate']
         },
-        
-        'Average Session Duration': {
+
+        'Avg Engagement Time': {
             category: 'Google Analytics',
             source: 'ga4',
-            definition: 'Average time users spend on your page during a session.',
-            calculation: 'Total session duration ÷ Number of sessions',
-            benchmark: 'Government: 52+ seconds excellent, 35+ good, 20+ fair',
-            example: '2:15 duration means people typically spend 2 minutes 15 seconds reading',
-            relatedTerms: ['Engagement Score', 'Bounce Rate', 'Content Helpfulness']
+            definition: 'GA4\'s native metric for the average time users actively spend on your page (tab in foreground). Replaces the Universal Analytics "Average Session Duration".',
+            calculation: 'Total engaged time ÷ Number of users',
+            benchmark: 'Government content: 52+ seconds excellent, 35+ good, 20+ fair',
+            example: '1m 48s avg engagement time means users are actively reading your content',
+            relatedTerms: ['Engaged Sessions', 'Engagement Score', 'Bounce Rate']
         },
-        
+
+        'Engaged Sessions': {
+            category: 'Google Analytics',
+            source: 'ga4',
+            definition: 'Sessions lasting 10+ seconds, having 2+ page views, or triggering a conversion event. GA4\'s replacement for Bounce Rate inverse.',
+            calculation: 'Count of sessions meeting at least one engagement threshold',
+            benchmark: '50%+ of sessions should be engaged for quality content',
+            example: '650 engaged sessions out of 1,000 total = 65% engagement rate',
+            relatedTerms: ['Engagement Rate', 'Sessions', 'Bounce Rate']
+        },
+
         'Bounce Rate': {
             category: 'Google Analytics',
             source: 'ga4',
-            definition: 'Percentage of users who leave your page without interacting (single-page sessions).',
-            calculation: '(Single-page sessions ÷ Total sessions) × 100',
-            benchmark: 'Government: <40% excellent, 40-60% good, 60-80% fair, >80% poor',
-            example: '35% bounce rate means 35 out of 100 visitors left immediately',
-            relatedTerms: ['Engagement Rate', 'Content Helpfulness', 'Engagement Score']
+            definition: 'Percentage of sessions where users leave without engaging (inverse of Engagement Rate in GA4).',
+            calculation: '(Non-engaged sessions ÷ Total sessions) × 100',
+            benchmark: 'Government: <40% excellent, 40–60% good, 60–80% fair, >80% poor',
+            example: '35% bounce rate means 35 out of 100 visitors left without engaging',
+            relatedTerms: ['Engagement Rate', 'Engaged Sessions', 'Avg Engagement Time']
         },
-        
+
         'Engagement Rate': {
             category: 'Google Analytics',
             source: 'ga4',
-            definition: 'Percentage of sessions where users actively engaged with your content.',
+            definition: 'Percentage of sessions classified as engaged (10+ seconds, 2+ pages, or conversion).',
             calculation: '(Engaged sessions ÷ Total sessions) × 100',
-            benchmark: 'Government benchmark: 50%+ excellent, 35%+ good, 20%+ fair',
+            benchmark: 'Government: 50%+ excellent, 35%+ good, 20%+ fair',
             example: '65% engagement rate means 65 out of 100 visitors actively engaged',
-            relatedTerms: ['Active Users', 'Bounce Rate', 'Engagement Score']
+            relatedTerms: ['Engaged Sessions', 'Bounce Rate', 'Engagement Score']
         },
-        
-        // Dashboard Calculated Scores
+
+        // ── Dashboard Calculations ────────────────────────────────────────
         'Quality Score': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'Overall content performance score combining search, engagement, relevance, and UX.',
+            definition: 'Overall content performance score combining Search, Engagement, Relevance, and UX components.',
             calculation: '(Search Score + Engagement Score + Relevance Score + UX Score) ÷ 4',
-            benchmark: 'A: 85+, B: 75+, C: 65+, D: 55+, F: <55',
+            benchmark: 'A: 85+, B: 75+, C: 65+, D: 55+, Poor: <55',
             example: 'Quality Score 78 (B grade) indicates good overall performance',
-            relatedTerms: ['Search Score', 'Engagement Score', 'Priority Score']
+            relatedTerms: ['Search Score', 'Engagement Score', 'Period Comparison']
         },
-        
+
         'Search Score': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'How well your page performs in search results based on position and CTR.',
-            calculation: '(Position Score + CTR Score) ÷ 2, considering benchmarks for ranking position',
+            definition: 'Component of Quality Score measuring search result performance based on position and CTR benchmarks.',
+            calculation: '(Position Score + CTR Score) ÷ 2, calibrated against position-based CTR benchmarks',
             benchmark: '80+: Excellent, 60+: Good, 40+: Fair, <40: Poor',
             example: 'Search Score 72 indicates good search performance',
-            relatedTerms: ['Average Position', 'CTR', 'Quality Score']
+            relatedTerms: ['Average Position', 'CTR (Click-Through Rate)', 'Quality Score']
         },
-        
+
         'Engagement Score': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'How well your page engages visitors based on time and bounce rate.',
-            calculation: 'Combines session duration performance and bounce rate inverse',
+            definition: 'Component of Quality Score measuring how well the page holds user attention.',
+            calculation: 'Combines avg engagement time performance and bounce rate inverse against government benchmarks',
             benchmark: '80+: Highly engaging, 60+: Good, 40+: Fair, <40: Poor',
             example: 'Engagement Score 68 shows good user engagement',
-            relatedTerms: ['Average Session Duration', 'Bounce Rate', 'Quality Score']
+            relatedTerms: ['Avg Engagement Time', 'Bounce Rate', 'Quality Score']
         },
 
-        'Priority Score': {
+        'Query Intent': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'Government framework weighted score combining traffic, growth, search, and discovery.',
-            calculation: 'Traffic 40% + Growth 25% + Search 20% + Discovery 15%',
-            benchmark: '80+: Critical priority, 60+: High, 40+: Medium, <40: Low',
-            example: 'Priority Score 75 indicates high-priority content for improvement',
-            relatedTerms: ['Quality Score', 'Traffic Grade', 'Growth Component']
+            definition: 'Automatic classification of search queries into intent types used to suggest content improvements.',
+            calculation: 'Keyword pattern matching on top queries — types: how_to 🛠️, what_is ❓, form 📄, emergency 🚨, where_can 📍, when_does 📅',
+            example: '"how do I apply for..." → how_to intent → suggest step-by-step formatting',
+            relatedTerms: ['Top Queries', 'Opportunity Queries', 'Quality Score']
         },
 
-        'Traffic Grade': {
+        'Period Comparison': {
             category: 'Dashboard Calculations',
             source: 'calculated',
-            definition: 'Letter grade assessment of traffic volume based on click thresholds.',
-            calculation: 'A+: 1000+ clicks, A: 500+, B: 100+, C: 50+, D: 10+, F: <10',
-            benchmark: 'B grade or higher indicates strong traffic performance',
-            example: 'Traffic Grade B means 100-499 monthly clicks from search',
-            relatedTerms: ['Clicks', 'CTR Grade', 'Priority Score']
+            definition: 'Trend arrow shown beside each metric comparing the current period to the equivalent previous period.',
+            calculation: '((Current period value − Previous period value) ÷ Previous period value) × 100',
+            example: '↑ 12% beside Clicks means clicks are up 12% vs the previous equivalent period',
+            relatedTerms: ['Date Range', 'Quality Score', 'Search Score']
         },
 
-        'CTR Grade': {
-            category: 'Dashboard Calculations',
-            source: 'calculated',
-            definition: 'Letter grade comparing actual CTR to position-based benchmarks.',
-            calculation: 'Ratio of actual CTR vs expected CTR for ranking position',
-            benchmark: 'A+: 150%+ of benchmark, A: 120%+, B: 100%+, C: 80%+',
-            example: 'CTR Grade A means you exceed expected click rate for your position',
-            relatedTerms: ['CTR', 'Average Position', 'Traffic Grade']
-        },
-        
-        // Impact Metrics
+        // ── Impact Metrics ────────────────────────────────────────────────
         'Citizens Reached': {
             category: 'Impact Metrics',
             source: 'calculated',
             definition: 'Total number of citizens who accessed your content, combining search clicks and direct users.',
             calculation: 'Search Console clicks + GA4 users (with overlap consideration)',
-            benchmark: 'Varies by service type - aim for consistent monthly growth',
+            benchmark: 'Aim for consistent monthly growth',
             example: '2,850 citizens reached means your content helped 2,850 people find information',
-            relatedTerms: ['Users', 'Clicks', 'Monthly Reach']
-        },
-        
-        'Content Helpfulness': {
-            category: 'Impact Metrics',
-            source: 'calculated',
-            definition: 'Percentage indicating how helpful your content is to citizens based on engagement.',
-            calculation: '((1 - Bounce Rate) × 50) + (min(100, Session Duration ÷ 180) × 50)',
-            benchmark: '80+%: Very helpful, 65+%: Helpful, 50+%: Somewhat helpful, <50%: Needs improvement',
-            example: '72% helpfulness means most citizens find your content useful',
-            relatedTerms: ['Bounce Rate', 'Average Session Duration', 'Engagement Score']
-        },
-        
-        // Geographic Intelligence
-        'Dublin Concentration': {
-            category: 'Geographic Intelligence',
-            source: 'calculated',
-            definition: 'Percentage of your Irish users located in Dublin metropolitan area.',
-            calculation: '(Dublin Users ÷ Total Irish Users) × 100',
-            benchmark: '<30%: Well distributed, 30-50%: Moderate concentration, >50%: High concentration',
-            example: '42% Dublin concentration suggests service accessibility focus may be needed',
-            relatedTerms: ['Regional Distribution', 'International Traffic', 'Geographic Spread']
+            relatedTerms: ['Users', 'Clicks', 'Engagement Rate']
         },
 
-        'International Traffic': {
-            category: 'Geographic Intelligence',
-            source: 'calculated',
-            definition: 'Percentage of users accessing your content from outside Ireland.',
-            calculation: '(Non-Irish Users ÷ Total Users) × 100',
-            benchmark: 'Varies by service type - immigration services typically 40%+',
-            example: '23% international traffic shows global interest in Irish services',
-            relatedTerms: ['Dublin Concentration', 'Regional Distribution', 'Countries']
-        },
-
-        'Regional Distribution': {
-            category: 'Geographic Intelligence',
-            source: 'ga4',
-            definition: 'How your users are spread across Irish counties and regions.',
-            calculation: 'Percentage breakdown from GA4 geographic data by region',
-            benchmark: 'Balanced distribution reflects equitable service access',
-            example: 'Even spread across regions indicates good nationwide service accessibility',
-            relatedTerms: ['Dublin Concentration', 'International Traffic', 'Cities']
-        },
-        
-        // Traffic Sources
+        // ── Traffic Sources ───────────────────────────────────────────────
         'Organic Traffic': {
             category: 'Traffic Sources',
             source: 'ga4',
-            definition: 'Website visitors who arrive through unpaid search engine results.',
-            calculation: 'Users from Google, Bing, other search engines (excluding ads)',
-            benchmark: '60-80% organic traffic indicates strong SEO performance',
+            definition: 'Visitors who arrive through unpaid search engine results.',
+            calculation: 'Users attributed to organic search channel in GA4',
+            benchmark: '60–80% organic traffic indicates strong SEO performance',
             example: '1,200 organic visitors means people found you through search',
-            relatedTerms: ['Direct Traffic', 'Search Console', 'Clicks']
+            relatedTerms: ['Direct Traffic', 'Clicks', 'CTR (Click-Through Rate)']
         },
-        
+
         'Direct Traffic': {
             category: 'Traffic Sources',
             source: 'ga4',
-            definition: 'Users who visit by typing URL directly or using bookmarks.',
-            calculation: 'Sessions with no identifiable referral source',
-            benchmark: '20-40% direct traffic shows good brand recognition',
+            definition: 'Users who visit by typing the URL directly, using bookmarks, or from an untracked source.',
+            calculation: 'Sessions with no identifiable referral source in GA4',
+            benchmark: '20–40% direct traffic shows good brand recognition',
             example: '340 direct visits indicate citizens know your URL',
-            relatedTerms: ['Organic Traffic', 'Session Sources', 'Return Visitors']
+            relatedTerms: ['Organic Traffic', 'Sessions', 'Users']
         },
 
-        // Device Performance
+        // ── Device Performance ────────────────────────────────────────────
         'Mobile Users': {
             category: 'Device Performance',
             source: 'ga4',
             definition: 'Percentage of users accessing your content via mobile devices.',
-            calculation: '(Mobile Sessions ÷ Total Sessions) × 100',
+            calculation: '(Mobile sessions ÷ Total sessions) × 100',
             benchmark: '50%+ mobile usage is typical for government services',
-            example: '67% mobile users indicates need for mobile-optimized content',
-            relatedTerms: ['Desktop Users', 'Tablet Users', 'Device Categories']
+            example: '67% mobile users indicates need for mobile-optimised content',
+            relatedTerms: ['Desktop Users', 'Engagement Rate', 'Bounce Rate']
         },
 
         'Desktop Users': {
             category: 'Device Performance',
             source: 'ga4',
             definition: 'Percentage of users accessing your content via desktop computers.',
-            calculation: '(Desktop Sessions ÷ Total Sessions) × 100',
-            benchmark: 'Varies by service complexity - forms typically higher desktop usage',
+            calculation: '(Desktop sessions ÷ Total sessions) × 100',
+            benchmark: 'Forms and complex services typically see higher desktop usage',
             example: '45% desktop users may indicate complex content requiring larger screens',
-            relatedTerms: ['Mobile Users', 'Tablet Users', 'Device Categories']
+            relatedTerms: ['Mobile Users', 'Engagement Rate', 'Sessions']
+        },
+
+        // ── Content Intelligence ──────────────────────────────────────────
+        'Readability Score': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Flesch-Kincaid Reading Ease score (0–100). Higher = easier to read. Plain, accessible language scores 60+.',
+            calculation: '206.835 − (1.015 × avg sentence length) − (84.6 × avg syllables per word)',
+            benchmark: '90+: Very Easy, 70+: Easy, 60+: Plain English (target), 50+: Fairly Difficult, <30: Very Confusing',
+            example: 'Score 65 means the page is readable by most adults without specialist knowledge',
+            relatedTerms: ['Readability Grade', 'Avg Sentence Length', 'Complex Words', 'Reading Time']
+        },
+
+        'Readability Grade': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Plain-language label derived from the Flesch-Kincaid Readability Score.',
+            calculation: 'Very Easy (90+) / Easy (70+) / Plain English (60+) / Fairly Difficult (50+) / Difficult (30+) / Very Confusing (<30)',
+            example: '"Plain English" grade means content is accessible to the general public',
+            relatedTerms: ['Readability Score', 'Word Count', 'Avg Sentence Length']
+        },
+
+        'Reading Time': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Estimated minutes to read the page body at an average adult reading pace.',
+            calculation: 'Word Count ÷ 200 words per minute',
+            example: '4 min reading time on a benefits page suggests content may need chunking',
+            relatedTerms: ['Word Count', 'Avg Engagement Time', 'Readability Score']
+        },
+
+        'Word Count': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Total words in the visible body text of the page.',
+            example: '800 words is a reasonable length for a government service overview page',
+            relatedTerms: ['Reading Time', 'Readability Score', 'Link Density']
+        },
+
+        'Avg Sentence Length': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Average number of words per sentence. Long sentences are harder to parse.',
+            calculation: 'Total words ÷ Total sentences',
+            benchmark: 'Target: fewer than 20 words per sentence',
+            example: 'Avg sentence length 28 suggests sentences should be broken up',
+            relatedTerms: ['Readability Score', 'Long Sentences', 'Complex Words']
+        },
+
+        'Passive Voice': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Percentage of sentences using passive construction (e.g. "the form must be submitted" vs "you must submit the form"). Passive voice is less direct and harder to act on.',
+            calculation: '(Passive sentences ÷ Total sentences) × 100',
+            benchmark: 'Target: ≤15%',
+            example: '30% passive voice — rewriting to active voice will make instructions clearer',
+            relatedTerms: ['Direct Address Rate', 'Readability Score', 'Readability Grade']
+        },
+
+        'Complex Words': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Percentage of words with 3 or more syllables. High density signals jargon-heavy content.',
+            calculation: '(Words with 3+ syllables ÷ Total words) × 100',
+            benchmark: 'Target: below 10%',
+            example: '15% complex words suggests replacing technical terms with plain alternatives',
+            relatedTerms: ['Readability Score', 'Avg Sentence Length', 'Bureaucratic Phrases']
+        },
+
+        'Transition Coverage': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Percentage of sentences preceded by a linking or transition word (however, therefore, first, next). Transitions help readers follow logical flow.',
+            calculation: '(Sentences with a preceding transition word ÷ Total sentences) × 100',
+            benchmark: 'Target: >15%',
+            example: '8% transition coverage — adding signpost words improves scannability',
+            relatedTerms: ['Readability Score', 'Avg Sentence Length', 'Direct Address Rate']
+        },
+
+        'Direct Address Rate': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Percentage of words that are "you", "your", or "yours". Signals how directly the content speaks to the reader.',
+            calculation: '(you/your/yours word count ÷ Total words) × 100',
+            benchmark: 'Target: ≥2%',
+            example: '0.8% direct address — rewriting to address citizens directly increases clarity',
+            relatedTerms: ['Passive Voice', 'Readability Grade', 'Transition Coverage']
+        },
+
+        'Contractions': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Count of contractions (don\'t, can\'t, it\'s, etc.) in the page text. Contractions signal a conversational, approachable tone.',
+            example: '12 contractions on a service page helps citizens feel less intimidated by official content',
+            relatedTerms: ['Direct Address Rate', 'Readability Grade', 'Bureaucratic Phrases']
+        },
+
+        'Bureaucratic Phrases': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Count of verbose official phrases that have shorter plain-language alternatives (e.g. "in order to" → "to", "at this point in time" → "now").',
+            example: '6 bureaucratic phrases found — replacing them shortens the page and improves clarity',
+            relatedTerms: ['Contractions', 'Complex Words', 'Readability Score']
+        },
+
+        'Hedge Words': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Count of vague qualifying words (may, might, possibly, perhaps). Overuse can undermine user confidence in official information.',
+            example: '14 hedge words — review whether each qualification is legally necessary',
+            relatedTerms: ['Bureaucratic Phrases', 'Direct Address Rate', 'Readability Grade']
+        },
+
+        'Long Sentences': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Sentences over 20 words in length. These are harder for citizens to parse, especially on mobile.',
+            calculation: 'Count of sentences with more than 20 words',
+            benchmark: 'Aim for 0–2 long sentences per page section',
+            example: '8 long sentences flagged — splitting them will improve mobile readability',
+            relatedTerms: ['Avg Sentence Length', 'Readability Score', 'Complex Words']
+        },
+
+        'Meta Description': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'The HTML &lt;meta name="description"&gt; tag. Shown in search results below your page title. Influences click-through rate.',
+            benchmark: 'Ideal length: 70–160 characters',
+            example: 'Missing meta description — Google will auto-generate a snippet, which may be unhelpful',
+            relatedTerms: ['Title Tag', 'CTR (Click-Through Rate)', 'Canonical URL']
+        },
+
+        'Title Tag': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'The HTML &lt;title&gt; element. Shown as the clickable headline in Google search results and the browser tab.',
+            benchmark: 'Ideal length: ≤60 characters',
+            example: 'Title 72 chars — truncated in search results, reducing click-through',
+            relatedTerms: ['Meta Description', 'CTR (Click-Through Rate)', 'Average Position']
+        },
+
+        'Canonical URL': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'The &lt;link rel="canonical"&gt; tag tells Google which URL is the preferred version of this page, preventing duplicate content issues.',
+            example: 'Canonical points to the www version — Google will consolidate signals to that URL',
+            relatedTerms: ['Noindex', 'Meta Description', 'Sitemap']
+        },
+
+        'Noindex': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: '&lt;meta name="robots" content="noindex"&gt; tells search engines not to index this page. Pages with this tag will not appear in Google search results.',
+            example: 'Noindex detected — this page will not receive organic search traffic',
+            relatedTerms: ['Canonical URL', 'Average Position', 'Impressions']
+        },
+
+        'Schema Markup': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'JSON-LD structured data embedded in the page (e.g. Article, FAQPage, BreadcrumbList). Helps Google understand content and can unlock rich results in search.',
+            example: 'FAQPage schema detected — eligible for FAQ rich results in Google search',
+            relatedTerms: ['Meta Description', 'Title Tag', 'CTR (Click-Through Rate)']
+        },
+
+        'Image Alt Coverage': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Percentage of images on the page that have a non-empty alt attribute. Required for accessibility and used by Google for image understanding.',
+            calculation: '(Images with alt text ÷ Total images) × 100',
+            benchmark: 'Target: 100%',
+            example: '60% alt coverage — 4 of 10 images have no alt text, failing WCAG 2.1',
+            relatedTerms: ['Noindex', 'Readability Score', 'Page Language']
+        },
+
+        'Link Density': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'Number of internal links per 100 words of body text. Very low density may signal thin content; very high density can dilute link equity.',
+            calculation: '(Internal links ÷ Word Count) × 100',
+            benchmark: 'Typical range: 1–5 internal links per 100 words',
+            example: 'Link density 0.3 — very few internal links; consider linking to related services',
+            relatedTerms: ['Word Count', 'Canonical URL', 'Sitemap']
+        },
+
+        'Page Language': {
+            category: 'Content Intelligence',
+            source: 'content_intelligence',
+            definition: 'The lang attribute on the HTML element (e.g. lang="en" or lang="ga"). Used by screen readers for pronunciation and by Google for language targeting.',
+            example: 'lang="en" — English content correctly declared',
+            relatedTerms: ['Image Alt Coverage', 'Meta Description', 'Noindex']
+        },
+
+        // ── Graph & Visualisation ─────────────────────────────────────────
+        'Force Graph': {
+            category: 'Graph & Visualisation',
+            source: 'visualisation',
+            definition: 'The interactive 3D visualisation that shows all pages on the site as nodes connected by their parent-child relationships in the sitemap hierarchy.',
+            example: 'Zoom and rotate the force graph to explore how sections of the site relate to each other',
+            relatedTerms: ['Node', 'Depth Level', 'Leaf Node', 'Sitemap']
+        },
+
+        'Node': {
+            category: 'Graph & Visualisation',
+            source: 'visualisation',
+            definition: 'Each circle (sphere) in the force graph represents one URL / page on the site. Node size and colour can reflect metrics such as clicks or quality score.',
+            example: 'A large red node indicates a high-traffic page with performance issues',
+            relatedTerms: ['Force Graph', 'Leaf Node', 'Depth Level']
+        },
+
+        'Depth Level': {
+            category: 'Graph & Visualisation',
+            source: 'visualisation',
+            definition: 'How many clicks from the root URL a page sits in the sitemap hierarchy. The root (homepage) is depth 0; its direct children are depth 1, and so on.',
+            example: '/en/benefits/ is depth 1; /en/benefits/disability/ is depth 2',
+            relatedTerms: ['Node', 'Leaf Node', 'Force Graph', 'Sitemap']
+        },
+
+        'Leaf Node': {
+            category: 'Graph & Visualisation',
+            source: 'visualisation',
+            definition: 'A page with no child pages in the sitemap hierarchy — a terminal endpoint in the tree.',
+            example: 'A specific benefit application guide with no sub-pages is a leaf node',
+            relatedTerms: ['Node', 'Depth Level', 'Force Graph']
+        },
+
+        'Sitemap': {
+            category: 'Graph & Visualisation',
+            source: 'visualisation',
+            definition: 'The XML file (typically sitemap.xml) that lists all URLs on the site. This dashboard parses it to build the force graph and supply URLs for GSC and GA4 lookups.',
+            example: 'Paste your sitemap.xml URL into the input field to load the visualisation',
+            relatedTerms: ['Force Graph', 'Node', 'Canonical URL', 'Google Search Console (GSC)']
+        },
+
+        // ── Data Sources & Settings ───────────────────────────────────────
+        'Google Search Console (GSC)': {
+            category: 'Data Sources & Settings',
+            source: 'system',
+            definition: 'Free Google tool showing how your pages perform in Google Search. Provides clicks, impressions, CTR, and average position per URL.',
+            example: 'Connect GSC via the "Connect Search Console" button to overlay search data on the graph',
+            relatedTerms: ['Clicks', 'Impressions', 'CTR (Click-Through Rate)', 'Google Analytics 4 (GA4)']
+        },
+
+        'Google Analytics 4 (GA4)': {
+            category: 'Data Sources & Settings',
+            source: 'system',
+            definition: 'Google\'s analytics platform tracking user behaviour on your site — sessions, engagement, bounce rate, and more. GA4 replaced Universal Analytics in 2023.',
+            example: 'Connect GA4 via the "Connect Analytics" button to overlay user engagement data on the graph',
+            relatedTerms: ['Users', 'Engaged Sessions', 'Engagement Rate', 'Google Search Console (GSC)']
+        },
+
+        'Data Availability Offset': {
+            category: 'Data Sources & Settings',
+            source: 'system',
+            definition: 'GSC and GA4 data has a processing delay of approximately 3 days. The dashboard automatically offsets the date range so reports end 3 days before today.',
+            example: 'Today is 10 Mar — the dashboard reports up to 7 Mar to avoid incomplete data',
+            relatedTerms: ['Date Range', 'Google Search Console (GSC)', 'Google Analytics 4 (GA4)']
+        },
+
+        'Date Range': {
+            category: 'Data Sources & Settings',
+            source: 'system',
+            definition: 'The configurable time window used for all GSC and GA4 metric queries. Default is the last 28 days (accounting for the data availability offset).',
+            example: 'Changing date range to 90 days gives a longer trend view but may include seasonality',
+            relatedTerms: ['Data Availability Offset', 'Period Comparison', 'Impressions']
         }
     };
-    
+
     const categories = {
         'Search Console': {
             icon: '🔍',
@@ -554,7 +756,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
         },
         'Google Analytics': {
             icon: '📊',
-            description: 'User behavior and engagement metrics from Google Analytics 4'
+            description: 'User behaviour and engagement metrics from Google Analytics 4'
         },
         'Dashboard Calculations': {
             icon: '🧮',
@@ -564,10 +766,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
             icon: '🎯',
             description: 'Measurements of real-world citizen service impact and effectiveness'
         },
-        'Geographic Intelligence': {
-            icon: '🌍',
-            description: 'Location-based analysis of service usage across Ireland and internationally'
-        },
         'Traffic Sources': {
             icon: '🚪',
             description: 'How citizens discover and arrive at your digital services'
@@ -575,6 +773,18 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
         'Device Performance': {
             icon: '📱',
             description: 'Usage patterns and performance across mobile, desktop, and tablet devices'
+        },
+        'Content Intelligence': {
+            icon: '📄',
+            description: 'Page-level content quality signals: readability, structure, SEO tags, and accessibility'
+        },
+        'Graph & Visualisation': {
+            icon: '🕸️',
+            description: 'Concepts behind the interactive 3D force graph and sitemap tree'
+        },
+        'Data Sources & Settings': {
+            icon: '⚙️',
+            description: 'How data is connected, processed, and time-windowed in the dashboard'
         }
     };
     
@@ -1676,7 +1886,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     .alpha-btn.no-terms {
                         color: var(--color-border-secondary);
                         cursor: not-allowed;
-                        background: #f9fafb;
+                        background: var(--color-bg-secondary);
                     }
                     
                     /* Category Navigation */
@@ -1841,7 +2051,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .source-indicator.calculated {
-                        background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+                        background: var(--color-bg-secondary);
                         color: var(--color-text-primary);
                         border-color: rgba(107, 114, 128, 0.3);
                     }
@@ -1874,7 +2084,7 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     }
                     
                     .entry-definition {
-                        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                        background: var(--color-success-bg);
                         border-left-color: #10b981;
                         color: #064e3b;
                     }
@@ -1973,7 +2183,8 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                         }
                         
                         .glossary-fab {
-                            top: 60px;
+                            top: auto;
+                            bottom: 20px;
                             right: 20px;
                             width: 48px;
                             height: 48px;
