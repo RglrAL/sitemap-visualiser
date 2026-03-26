@@ -1882,6 +1882,8 @@
 
     // Renders numbered hedge-word suggestion lines into a container element.
     // originals = hedgeMatchesAll.slice(0,6) — provides the original phrase for each card.
+    var _HEDGE_KEEP_OPTS = { label: 'Hedge preserved', labelText: '\u2713 Hedge preserved', color: '#0891b2', bg: 'rgba(8,145,178,0.07)', border: 'rgba(8,145,178,0.25)' };
+
     function _renderHedgeCards(mount, lines, originals) {
         var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
         mount.style.display = '';
@@ -1890,6 +1892,11 @@
             var phrase = originals[i] ? '"' + _e(originals[i].phrase) + '"' : '';
             var extra  = phrase ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + phrase + '</div>' : '';
             _cacheAIResult('hedge-words', i, text);
+            var keepMatch = text.match(/^keep\s*[—\-]\s*/i);
+            if (keepMatch) {
+                var reason = text.slice(keepMatch[0].length).trim();
+                return _buildCardHTML(reason, _HEDGE_KEEP_OPTS, extra);
+            }
             return _buildCardHTML(text, AI_ISSUE_OPTS['hedge-words'], extra);
         }).join('');
         mount.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
