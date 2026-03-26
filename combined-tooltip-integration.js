@@ -1629,7 +1629,6 @@ function showDashboardLoading() {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(8px);
         opacity: 0;
         transition: opacity 0.3s ease;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1977,6 +1976,10 @@ function calculateTrend(currentValue, previousValue, inverted = false) {
 
 
 // Modal display function (customize to match your UI style)
+// Expose under a stable name so unified-citizens-dashboard.js (which has its own
+// local showDashboardModal that shadows this one) can always reach the real implementation.
+window._showDashboardPanelFn = function(htmlContent) { showDashboardModal(htmlContent); };
+
 function showDashboardModal(htmlContent) {
     // Remove any existing panel
     const existing = document.getElementById('unified-dashboard-modal');
