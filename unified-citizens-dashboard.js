@@ -5,6 +5,7 @@
 (function() {
     'use strict';
 
+    const _reportDataCache = new Map();
 
     // ===========================================
     // UTILITY FUNCTIONS
@@ -3061,17 +3062,17 @@ const citizensInfoStyles = `
 }
 
 .insight-item.critical {
-    background: #fef2f2;
+    background: var(--color-danger-bg);
     border-left-color: #ef4444;
 }
 
 .insight-item.warning {
-    background: #fffbeb;
+    background: var(--color-warning-bg);
     border-left-color: #f59e0b;
 }
 
 .insight-item.success {
-    background: #f0fdf4;
+    background: var(--color-success-bg);
     border-left-color: #10b981;
 }
 
@@ -3160,17 +3161,17 @@ const citizensInfoStyles = `
 }
 
 .priority-badge.high {
-    background: #fee2e2;
+    background: var(--color-danger-bg);
     color: #dc2626;
 }
 
 .priority-badge.medium {
-    background: #fef3c7;
+    background: var(--color-warning-bg);
     color: #d97706;
 }
 
 .priority-badge.low {
-    background: #f1f5f9;
+    background: var(--color-bg-secondary);
     color: var(--color-text-secondary);
 }
 
@@ -3371,7 +3372,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         /* Main Container */
         .enhanced-geographic-intelligence {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(160deg, #0e1a0a 0%, #17240f 60%, #111a0c 100%);
             border-radius: 24px;
             padding: 40px;
             margin-bottom: 32px;
@@ -3390,7 +3391,19 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
             opacity: 0.3;
         }
-        
+
+        .enhanced-geographic-intelligence::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent 0%, #72A300 30%, #8abc00 70%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
         /* Header Styling */
         .geo-header {
             margin-bottom: 40px;
@@ -3399,7 +3412,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .geo-header .section-title {
-            font-size: 2rem;
+            font-size: 1.375rem;
             font-weight: 700;
             margin: 0 0 16px 0;
             color: white;
@@ -3407,11 +3420,11 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .geo-explanation {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.22);
             backdrop-filter: blur(10px);
             padding: 20px 24px;
             border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(114, 163, 0, 0.14);
             margin-top: 20px;
         }
         
@@ -3437,9 +3450,9 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .geo-kpi-card {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(114, 163, 0, 0.18);
             border-radius: 20px;
             padding: 28px;
             text-align: center;
@@ -3455,15 +3468,15 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             left: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(114,163,0,0.1) 0%, transparent 70%);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
+
         .geo-kpi-card:hover {
             transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(114,163,0,0.15);
+            border-color: rgba(114, 163, 0, 0.45);
         }
         
         .geo-kpi-card:hover::before {
@@ -3508,7 +3521,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         .coverage-bar {
             width: 100%;
             height: 8px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
             overflow: hidden;
             margin-top: 16px;
@@ -3823,7 +3836,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .analysis-summary {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            background: var(--color-success-bg);
             padding: 20px 24px;
             border-radius: 12px;
             margin-bottom: 24px;
@@ -3849,7 +3862,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .county-performance-item {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            background: var(--color-bg-primary);
             padding: 20px;
             border-radius: 12px;
             border: 1px solid var(--color-border-primary);
@@ -3955,7 +3968,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         .demographic-item:hover {
             transform: translateY(-3px);
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            background: var(--color-bg-primary);
         }
         
         .demo-icon {
@@ -3965,7 +3978,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            background: var(--color-bg-primary);
             border-radius: 16px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             flex-shrink: 0;
@@ -4029,7 +4042,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .search-pattern-country {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            background: var(--color-bg-primary);
             border-radius: 16px;
             border: 1px solid var(--color-border-primary);
             overflow: hidden;
@@ -6096,7 +6109,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 font-size: 0.7rem;
                 color: var(--color-text-secondary);
                 font-weight: 600;
-                background: rgba(255,255,255,0.9);
+                background: var(--color-bg-elevated);
                 padding: 4px 8px;
                 border-radius: 4px;
                 white-space: nowrap;
@@ -6111,7 +6124,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 font-size: 0.7rem;
                 color: var(--color-text-secondary);
                 font-weight: 600;
-                background: rgba(255,255,255,0.9);
+                background: var(--color-bg-elevated);
                 padding: 4px 8px;
                 border-radius: 4px;
                 white-space: nowrap;
@@ -6669,7 +6682,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .alert-urgency {
-    background: #fef2f2;
+    background: var(--color-danger-bg);
     color: #dc2626;
     padding: 4px 8px;
     border-radius: 8px;
@@ -6902,7 +6915,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .category-count {
-    background: #f3f4f6;
+    background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     padding: 4px 8px;
     border-radius: 12px;
@@ -7073,7 +7086,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .context-tag {
     display: inline-block;
-    background: #f3f4f6;
+    background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     padding: 4px 8px;
     border-radius: 12px;
@@ -7088,7 +7101,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .recommended-action {
-    background: #f0f9ff;
+    background: var(--color-info-bg);
     color: #0369a1;
     padding: 8px 12px;
     border-radius: 8px;
@@ -7129,7 +7142,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .topic-recommendation {
-    background: #f0fdf4;
+    background: var(--color-success-bg);
     color: #166534;
     padding: 12px;
     border-radius: 8px;
@@ -7169,7 +7182,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .need-gap {
-    background: #fefbf3;
+    background: var(--color-warning-bg);
     color: #92400e;
     padding: 12px;
     border-radius: 8px;
@@ -7271,7 +7284,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     font-size: 0.85rem;
     color: #059669;
     font-weight: 600;
-    background: #f0fdf4;
+    background: var(--color-success-bg);
     padding: 6px 10px;
     border-radius: 8px;
     display: inline-block;
@@ -7379,7 +7392,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .rec-timeframe {
     font-size: 0.8rem;
     color: var(--color-text-secondary);
-    background: #f3f4f6;
+    background: var(--color-bg-tertiary);
     padding: 4px 8px;
     border-radius: 8px;
     text-transform: capitalize;
@@ -7402,7 +7415,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .rec-impact {
     font-size: 0.85rem;
     color: #059669;
-    background: #f0fdf4;
+    background: var(--color-success-bg);
     padding: 8px 12px;
     border-radius: 8px;
     margin-bottom: 8px;
@@ -7570,7 +7583,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Main container - keep minimal styling */
 .enhanced-geographic-intelligence {
-    background: #fafbfc;
+    background: var(--color-bg-secondary);
     border-radius: 20px;
     padding: 32px;
     margin-bottom: 32px;
@@ -7665,12 +7678,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .status-badge.critical {
-    background: #fee2e2;
+    background: var(--color-danger-bg);
     color: #dc2626;
 }
 
 .status-badge.high {
-    background: #fef3c7;
+    background: var(--color-warning-bg);
     color: #d97706;
 }
 
@@ -7685,7 +7698,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .status-badge.high, .status-badge.medium, .status-badge.low {
-    background: #f0f9ff;
+    background: var(--color-info-bg);
     color: #0ea5e9;
 }
 
@@ -8124,7 +8137,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Main container - keep minimal styling */
 .enhanced-geographic-intelligence {
-    background: #fafbfc;
+    background: var(--color-bg-secondary);
     border-radius: 20px;
     padding: 32px;
     margin-bottom: 32px;
@@ -8238,12 +8251,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .status-badge.critical {
-    background: #fee2e2;
+    background: var(--color-danger-bg);
     color: #dc2626;
 }
 
 .status-badge.high {
-    background: #fef3c7;
+    background: var(--color-warning-bg);
     color: #d97706;
 }
 
@@ -8258,7 +8271,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .status-badge.high, .status-badge.medium, .status-badge.low {
-    background: #f0f9ff;
+    background: var(--color-info-bg);
     color: #0ea5e9;
 }
 
@@ -8561,7 +8574,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .patterns-summary {
     padding: 16px 20px;
-    background: #f0f9ff;
+    background: var(--color-info-bg);
     border-radius: 8px;
     border-left: 3px solid #0ea5e9;
 }
@@ -8601,7 +8614,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     gap: 16px;
     padding: 20px 24px;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--color-border-primary);
 }
 
 
@@ -8657,7 +8670,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     background: var(--color-bg-primary);
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--color-border-primary);
 }
 
 .country-flag-large {
@@ -9060,12 +9073,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .kpi-trend.negative {
-    background: #fee2e2;
+    background: var(--color-danger-bg);
     color: #dc2626;
 }
 
 .kpi-trend.neutral {
-    background: #f1f5f9;
+    background: var(--color-bg-secondary);
     color: var(--color-text-secondary);
 }
 
@@ -9193,13 +9206,13 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .concentration-alert.critical {
-    background: #fee2e2;
+    background: var(--color-danger-bg);
     color: #dc2626;
     animation: pulse 2s infinite;
 }
 
 .concentration-alert.high {
-    background: #fef3c7;
+    background: var(--color-warning-bg);
     color: #d97706;
 }
 
@@ -9226,12 +9239,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .reach-indicator.medium {
-    background: #fef3c7;
+    background: var(--color-warning-bg);
     color: #92400e;
 }
 
 .reach-indicator.low {
-    background: #f1f5f9;
+    background: var(--color-bg-secondary);
     color: var(--color-text-secondary);
 }
 
@@ -9491,7 +9504,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .regional-insights,
 .international-insights {
-    background: rgba(255,255,255,0.8);
+    background: var(--color-bg-secondary);
     border-radius: 12px;
     padding: 20px;
     border: 1px solid var(--color-border-primary);
@@ -9575,7 +9588,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 /* Opportunities section styling */
 .geo-opportunities-section {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    background: var(--color-warning-bg);
     border-radius: 16px;
     padding: 32px;
     margin: 32px 0;
@@ -9705,7 +9718,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px dashed #e2e8f0;
+    border: 2px dashed var(--color-border-primary);
     color: var(--color-text-secondary);
 }
 
@@ -9789,17 +9802,17 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .impact-badge.high {
-    background: #fee2e2;
+    background: var(--color-danger-bg);
     color: #dc2626;
 }
 
 .impact-badge.medium {
-    background: #fef3c7;
+    background: var(--color-warning-bg);
     color: #d97706;
 }
 
 .impact-badge.low {
-    background: #f0f9ff;
+    background: var(--color-info-bg);
     color: #0284c7;
 }
 
@@ -9900,7 +9913,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     border-radius: 16px;
     padding: 24px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--color-border-secondary);
     margin-top: 24px;
 }
 
@@ -9924,7 +9937,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     min-height: 150px;
     background: rgba(255, 255, 255, 0.5);
     border-radius: 8px;
-    border: 2px dashed #e2e8f0;
+    border: 2px dashed var(--color-border-primary);
 }
 
 /* ==================================================
@@ -10656,23 +10669,37 @@ function formatDuration(seconds) {
     }
 
     function createActionCenter(url) {
+        const u = escapeHtml(url);
         return `
             <div class="action-center">
                 <div class="action-header">
-                    <h3>🚀 Take Action</h3>
-                    <p>Export your data or take immediate action on this page</p>
+                    <h3>Take Action</h3>
+                    <p>Export your data, download a report, or share this analysis</p>
                 </div>
-                <div class="action-buttons">
-                    <button class="action-btn primary" onclick="window.open('${escapeHtml(url)}', '_blank')">
-                        <span class="btn-icon">🔗</span>
-                        <span class="btn-text">Visit Page</span>
-                    </button>
-                   
-                    <button class="action-btn secondary" onclick="copyUnifiedSummary('${escapeHtml(url)}')">
-                        <span class="btn-icon">📋</span>
-                        <span class="btn-text">Copy Summary</span>
-                    </button>
-                    
+                <div class="action-rows">
+                    <div class="action-row">
+                        <button class="action-btn primary" onclick="window.open('${u}', '_blank')">
+                            <span class="btn-icon">🔗</span><span class="btn-text">Visit Page</span>
+                        </button>
+                        <button class="action-btn secondary" onclick="printReport()">
+                            <span class="btn-icon">🖨️</span><span class="btn-text">Print / Save PDF</span>
+                        </button>
+                    </div>
+                    <div class="action-row">
+                        <span class="action-group-label">Download</span>
+                        <button class="action-btn secondary" onclick="exportAsCSV('${u}')">
+                            <span class="btn-icon">📥</span><span class="btn-text">CSV</span>
+                        </button>
+                        <button class="action-btn secondary" onclick="exportAsJSON('${u}')">
+                            <span class="btn-icon">📥</span><span class="btn-text">JSON</span>
+                        </button>
+                    </div>
+                    <div class="action-row">
+                        <span class="action-group-label">Share</span>
+                        <button class="action-btn secondary" onclick="copyAsMarkdown('${u}')">
+                            <span class="btn-icon">📋</span><span class="btn-text">Copy as Markdown</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -10689,7 +10716,7 @@ function formatDuration(seconds) {
                 
                 .unified-dashboard-container {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    background: #fafbfc;
+                    background: var(--color-bg-secondary);
                     border-radius: 20px;
                     overflow: hidden;
                     box-shadow: 0 20px 50px rgba(0,0,0,0.1);
@@ -11011,7 +11038,7 @@ function formatDuration(seconds) {
                 }
                 
                 .metrics-card {
-                    background: rgba(255,255,255,0.95);
+                    background: var(--color-bg-primary);
                     padding: 12px 16px;
                     border-radius: 12px;
                     backdrop-filter: blur(15px);
@@ -11240,12 +11267,12 @@ function formatDuration(seconds) {
                 }
                 
                 .trend-indicator.negative {
-                    background: #fee2e2;
+                    background: var(--color-danger-bg);
                     color: #991b1b;
                 }
                 
                 .trend-indicator.neutral {
-                    background: #f1f5f9;
+                    background: var(--color-bg-secondary);
                     color: var(--color-text-secondary);
                 }
                 
@@ -11297,13 +11324,13 @@ function formatDuration(seconds) {
                 }
                 
                 .score-circle.fair {
-                    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                    background: var(--color-warning-bg);
                     border-color: #f59e0b;
                     color: #92400e;
                 }
                 
                 .score-circle.poor {
-                    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+                    background: var(--color-danger-bg);
                     border-color: #ef4444;
                     color: #991b1b;
                 }
@@ -11362,7 +11389,7 @@ function formatDuration(seconds) {
                 .tab-nav {
                     display: flex;
                     background: var(--color-bg-secondary);
-                    border-bottom: 1px solid #e2e8f0;
+                    border-bottom: 1px solid var(--color-border-primary);
                     overflow-x: auto;
                     scrollbar-width: none;
                     -ms-overflow-style: none;
@@ -11400,12 +11427,12 @@ function formatDuration(seconds) {
                 }
                 
                 .tab-btn:hover:not(.active) {
-                    color: #475569;
+                    color: var(--color-text-primary);
                     background: rgba(0,0,0,0.02);
                 }
-                
+
                 .tab-btn.active {
-                    color: #1e293b;
+                    color: var(--color-text-primary);
                     border-bottom-color: #3b82f6;
                     background: var(--color-bg-primary);
                     position: relative;
@@ -11427,7 +11454,7 @@ function formatDuration(seconds) {
                 
                 .tab-content {
                     min-height: 500px;
-                    background: #fafbfc;
+                    background: var(--color-bg-secondary);
                 }
                 
                 .tab-panel {
@@ -11539,7 +11566,7 @@ function formatDuration(seconds) {
                         justify-content: flex-start;
                         flex-direction: column;
                         align-items: flex-start;
-                        border-bottom: 1px solid #e2e8f0;
+                        border-bottom: 1px solid var(--color-border-primary);
                         border-radius: 0;
                         min-height: 52px; /* Reduced from 60px */
                         background: var(--color-bg-primary);
@@ -11756,7 +11783,7 @@ function formatDuration(seconds) {
                         padding: 12px 16px;
                         font-size: 16px; /* Prevents zoom on iOS */
                         border-radius: 12px;
-                        border: 2px solid #e2e8f0;
+                        border: 2px solid var(--color-border-primary);
                         transition: all 0.2s ease;
                     }
                     
@@ -11821,7 +11848,7 @@ function formatDuration(seconds) {
                     .spinner {
                         width: 24px;
                         height: 24px;
-                        border: 3px solid #e2e8f0;
+                        border: 3px solid var(--color-border-primary);
                         border-top: 3px solid #4f46e5;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
@@ -12062,14 +12089,14 @@ function formatDuration(seconds) {
                 
                 .region-bar {
                     height: 8px; 
-                    background: #f1f5f9; 
+                    background: var(--color-bg-secondary); 
                     border-radius: 4px; 
                     margin: 6px 0; 
                     overflow: hidden; 
                 }
                 
                 .service-recommendation, .international-alert {
-                    background: #fff7ed; 
+                    background: var(--color-warning-bg); 
                     padding: 12px; 
                     border-radius: 8px; 
                     border-left: 3px solid #f59e0b; 
@@ -12079,7 +12106,7 @@ function formatDuration(seconds) {
                 
                 /* Citizens Impact Metrics */
                 .citizens-impact-metrics {
-                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                    background: var(--color-success-bg);
                     border-left: 4px solid #10b981;
                     border-radius: 12px;
                     padding: 24px;
@@ -12139,7 +12166,7 @@ function formatDuration(seconds) {
                     background: var(--color-bg-secondary);
                     font-weight: 600;
                     color: var(--color-text-primary);
-                    border-bottom: 1px solid #e2e8f0;
+                    border-bottom: 1px solid var(--color-border-primary);
                     font-size: 0.85rem;
                 }
                 
@@ -12199,12 +12226,12 @@ function formatDuration(seconds) {
                 }
                 
                 .problem-query-card.high {
-                    background: #fef2f2;
+                    background: var(--color-danger-bg);
                     border-left-color: #ef4444;
                 }
                 
                 .problem-query-card.medium {
-                    background: #fffbeb;
+                    background: var(--color-warning-bg);
                     border-left-color: #f59e0b;
                 }
                 
@@ -12302,7 +12329,7 @@ function formatDuration(seconds) {
                     font-weight: 500;
                     text-align: center;
                     padding: 12px;
-                    background: #f0fdf4;
+                    background: var(--color-success-bg);
                     border-radius: 6px;
                 }
                 
@@ -12396,7 +12423,7 @@ function formatDuration(seconds) {
                 
                 .component-bar {
                     height: 12px;
-                    background: #f1f5f9;
+                    background: var(--color-bg-secondary);
                     border-radius: 6px;
                     overflow: hidden;
                     position: relative;
@@ -12493,12 +12520,12 @@ function formatDuration(seconds) {
 }
                 
                 .insight-card.positive {
-                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                    background: var(--color-success-bg);
                     border-color: #10b981;
                 }
                 
                 .insight-card.warning {
-                    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                    background: var(--color-warning-bg);
                     border-color: #f59e0b;
                 }
                 
@@ -12573,7 +12600,7 @@ function formatDuration(seconds) {
                     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
                     padding: 30px;
                     text-align: center;
-                    border-top: 1px solid #e2e8f0;
+                    border-top: 1px solid var(--color-border-primary);
                 }
                 
                 .action-header {
@@ -13162,7 +13189,7 @@ function formatDuration(seconds) {
 
 .trend-negative {
     color: #dc2626;
-    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    background: var(--color-danger-bg);
 }
 
 .trend-neutral {
@@ -13249,8 +13276,8 @@ function formatDuration(seconds) {
 
 .breakdown-score.excellent { background: #dcfce7; color: #166534; }
 .breakdown-score.good { background: #dbeafe; color: #1e40af; }
-.breakdown-score.fair { background: #fef3c7; color: #92400e; }
-.breakdown-score.poor { background: #fee2e2; color: #991b1b; }
+.breakdown-score.fair { background: var(--color-warning-bg); color: #92400e; }
+.breakdown-score.poor { background: var(--color-danger-bg); color: #991b1b; }
 
 .breakdown-details {
     font-size: 0.8rem;
@@ -13270,7 +13297,7 @@ function formatDuration(seconds) {
 }
 
 .overall-recommendation {
-    background: #fffbeb;
+    background: var(--color-warning-bg);
     padding: 16px;
     border-radius: 8px;
     border-left: 4px solid #f59e0b;
@@ -13323,7 +13350,7 @@ function formatDuration(seconds) {
 .impact-breakdown-details {
     margin-top: 12px;
     padding: 16px;
-    background: #f0fdf4;
+    background: var(--color-success-bg);
     border-radius: 8px;
     border: 1px solid #bbf7d0;
 }
@@ -13473,13 +13500,13 @@ function formatDuration(seconds) {
             }
 
             .score-circle-large.fair {
-                background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                background: var(--color-warning-bg);
                 border-color: #f59e0b;
                 color: #92400e;
             }
 
             .score-circle-large.poor {
-                background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+                background: var(--color-danger-bg);
                 border-color: #ef4444;
                 color: #991b1b;
             }
@@ -13574,8 +13601,8 @@ function formatDuration(seconds) {
 
             .component-score.excellent { background: #dcfce7; color: #166534; }
             .component-score.good { background: #dbeafe; color: #1e40af; }
-            .component-score.fair { background: #fef3c7; color: #92400e; }
-            .component-score.poor { background: #fee2e2; color: #991b1b; }
+            .component-score.fair { background: var(--color-warning-bg); color: #92400e; }
+            .component-score.poor { background: var(--color-danger-bg); color: #991b1b; }
 
             .detail-grid {
                 display: grid;
@@ -13656,17 +13683,17 @@ function formatDuration(seconds) {
             }
 
             .insight-card.critical {
-                background: #fef2f2;
+                background: var(--color-danger-bg);
                 border-left-color: #ef4444;
             }
 
             .insight-card.warning {
-                background: #fffbeb;
+                background: var(--color-warning-bg);
                 border-left-color: #f59e0b;
             }
 
             .insight-card.success {
-                background: #f0fdf4;
+                background: var(--color-success-bg);
                 border-left-color: #10b981;
             }
 
@@ -13764,7 +13791,7 @@ function formatDuration(seconds) {
             .rec-timeframe {
                 font-size: 0.8rem;
                 color: var(--color-text-secondary);
-                background: #f1f5f9;
+                background: var(--color-bg-secondary);
                 padding: 4px 8px;
                 border-radius: 6px;
             }
@@ -13804,7 +13831,7 @@ function formatDuration(seconds) {
 
             /* Overall Recommendation */
             .overall-recommendation-expanded {
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                background: var(--color-warning-bg);
                 padding: 24px;
                 border-radius: 12px;
                 border-left: 4px solid #f59e0b;
@@ -13862,24 +13889,29 @@ function formatDuration(seconds) {
             /* Floating Date Range Indicator */
             .floating-date-indicator {
                 position: fixed !important;
-                bottom: 20px;
-                right: 20px;
-                background: rgba(255, 255, 255, 0.95);
+                bottom: 16px;
+                right: 16px;
+                background: var(--color-bg-primary, #fff);
                 border: 1px solid var(--color-border-primary);
-                border-radius: 12px;
-                padding: 12px 16px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+                border-radius: 20px;
+                padding: 4px 10px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
                 z-index: 10001 !important;
-                font-size: 13px;
-                transition: all 0.3s ease;
-                backdrop-filter: blur(10px);
-                max-width: 280px;
+                font-size: 11px;
+                transition: all 0.2s ease;
+                max-width: 400px;
                 pointer-events: auto;
+                white-space: nowrap;
+                color: var(--color-text-secondary);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+                user-select: none;
             }
 
             .floating-date-indicator.minimized {
-                padding: 8px 12px;
-                max-width: 50px;
+                padding: 4px 8px;
             }
 
             .floating-date-indicator.minimized .date-periods {
@@ -13889,16 +13921,15 @@ function formatDuration(seconds) {
             .date-indicator-content {
                 display: flex;
                 flex-direction: row;
-                gap: 8px;
+                gap: 6px;
                 align-items: center;
-                position: relative;
-                flex-wrap: wrap;
             }
-            
+
             .date-periods {
                 display: flex;
-                flex-direction: column;
-                gap: 6px;
+                flex-direction: row;
+                gap: 4px;
+                align-items: center;
                 flex: 1;
             }
 
@@ -13950,7 +13981,7 @@ function formatDuration(seconds) {
             }
 
             .date-indicator-toggle:hover {
-                background: #f3f4f6;
+                background: var(--color-bg-tertiary);
                 opacity: 1;
             }
 
@@ -14010,7 +14041,7 @@ function formatDuration(seconds) {
                =========================================== */
             
             .ai-overview-impact-section {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(160deg, #0e1a0a 0%, #17240f 60%, #111a0c 100%);
                 border-radius: 20px;
                 padding: 32px;
                 margin: 24px 0;
@@ -14030,6 +14061,18 @@ function formatDuration(seconds) {
                 opacity: 0.3;
                 pointer-events: none;
             }
+
+            .ai-overview-impact-section::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, transparent 0%, #72A300 30%, #8abc00 70%, transparent 100%);
+                pointer-events: none;
+                z-index: 2;
+            }
             
             .ai-overview-impact-section .section-header {
                 display: flex;
@@ -14041,7 +14084,7 @@ function formatDuration(seconds) {
             }
             
             .ai-overview-impact-section .section-title {
-                font-size: 1.75rem;
+                font-size: 1.375rem;
                 font-weight: 700;
                 margin: 0;
                 display: flex;
@@ -14050,7 +14093,7 @@ function formatDuration(seconds) {
             }
             
             .ai-overview-impact-section .section-icon {
-                font-size: 2rem;
+                font-size: 1.5rem;
                 filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
             }
             
@@ -14070,7 +14113,7 @@ function formatDuration(seconds) {
                 border-radius: 25px;
                 font-weight: 600;
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.15);
             }
             
             .impact-severity.extreme {
@@ -14118,9 +14161,9 @@ function formatDuration(seconds) {
             }
             
             .impact-metric-card {
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.04);
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(114, 163, 0, 0.18);
                 border-radius: 16px;
                 padding: 24px;
                 display: flex;
@@ -14138,15 +14181,15 @@ function formatDuration(seconds) {
                 left: 0;
                 right: 0;
                 height: 3px;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                background: linear-gradient(90deg, transparent, rgba(114,163,0,0.55), transparent);
                 transition: opacity 0.3s ease;
                 opacity: 0;
             }
             
             .impact-metric-card:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-                border-color: rgba(255, 255, 255, 0.3);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(114, 163, 0, 0.15);
+                border-color: rgba(114, 163, 0, 0.45);
             }
             
             .impact-metric-card:hover::before {
@@ -14204,9 +14247,9 @@ function formatDuration(seconds) {
             /* Old mini chart styles removed - using detailed static visual in narrative */
             
             .divergence-chart-container {
-                background: rgba(255, 255, 255, 0.15);
+                background: rgba(0, 0, 0, 0.22);
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.25);
+                border: 1px solid rgba(114, 163, 0, 0.14);
                 border-radius: 20px;
                 padding: 24px;
                 margin-bottom: 24px;
@@ -14243,7 +14286,13 @@ function formatDuration(seconds) {
                 color: #ffffff;
                 text-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
-            
+
+            .chart-legend-hint {
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.45);
+                margin-top: 4px;
+            }
+
             .chart-legend {
                 display: flex;
                 gap: 20px;
@@ -14413,7 +14462,7 @@ function formatDuration(seconds) {
             }
             
             .key-pattern {
-                background: #f3f4f6;
+                background: var(--color-bg-tertiary);
                 border-radius: 12px;
                 padding: 24px;
                 margin: 24px 0;
@@ -14536,14 +14585,14 @@ function formatDuration(seconds) {
             .indicator-line {
                 width: 2px;
                 height: 46px;
-                background: #ffffff;
+                background: var(--color-bg-primary);
                 margin: 0 auto 4px;
                 border-radius: 1px;
                 box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
             }
             
             .indicator-badge {
-                background: #ffffff;
+                background: var(--color-bg-primary);
                 color: var(--color-text-primary);
                 font-size: 0.75rem;
                 font-weight: 600;
@@ -14645,7 +14694,7 @@ function formatDuration(seconds) {
             }
             
             .bottom-line {
-                background: #f9fafb;
+                background: var(--color-bg-secondary);
                 border-radius: 12px;
                 padding: 24px;
                 margin: 24px 0;
@@ -14659,7 +14708,7 @@ function formatDuration(seconds) {
             }
             
             .public-service-warning {
-                background: #fef3c7;
+                background: var(--color-warning-bg);
                 border: 1px solid #fcd34d;
                 border-radius: 12px;
                 padding: 20px;
@@ -15293,8 +15342,13 @@ function formatDuration(seconds) {
                     padding: 12px;
                 }
             }
- 
-            
+            .action-rows { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+            .action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+            .action-group-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); min-width: 70px; text-align: right; }
+            @media (max-width: 600px) {
+                .action-row { flex-direction: column; align-items: stretch; }
+                .action-group-label { text-align: center; min-width: unset; }
+            }
         </style>
     `;
 }
@@ -15304,13 +15358,15 @@ function formatDuration(seconds) {
 // ===========================================
 
 function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, nodeData = null) {
+    _reportDataCache.set(url, { gscData, ga4Data, gscTrends, ga4Trends, nodeData, capturedAt: new Date().toISOString() });
+    if (_reportDataCache.size > 50) _reportDataCache.clear();
     console.log('📊 Creating unified dashboard with:', {
-        url, 
-        hasGscData: !!gscData, 
-        hasGa4Data: !!ga4Data, 
+        url,
+        hasGscData: !!gscData,
+        hasGa4Data: !!ga4Data,
         hasNodeData: !!nodeData
     });
-    
+
     // Store the current dashboard URL globally
     window.currentDashboardUrl = url;
     
@@ -15707,51 +15763,401 @@ function initializeUnifiedDashboard(dashboardId) {
 // EXPORT FUNCTIONS
 // ===========================================
 
-function exportUnifiedReport(url) {
-    console.log('📊 Exporting unified report for:', url);
-    const timestamp = new Date().toISOString();
-    let csv = `Unified Citizens Information Analytics Report\n`;
-    csv += `Generated: ${timestamp}\n`;
-    csv += `URL: ${url}\n\n`;
-    
-    showUnifiedNotification('📊 Report export functionality ready - integrate with your existing export system');
+function buildExportPayload(url) {
+    const cached = _reportDataCache.get(url) || {};
+    const gsc = (cached.gscData && !cached.gscData.noDataFound) ? cached.gscData : null;
+    const ga4 = (cached.ga4Data && !cached.ga4Data.noDataFound) ? cached.ga4Data : null;
+    const score = (gsc || ga4) ? calculateQualityScore(gsc, ga4) : null;
+    const ci = window.PageIntelligence?.getCachedData(url) || null;
+    const ciExtras = _buildCiExtras(ci);
+    return {
+        url, timestamp: new Date().toISOString(), capturedAt: cached.capturedAt || null,
+        gsc, ga4, gscTrends: cached.gscTrends || null, ga4Trends: cached.ga4Trends || null,
+        score, grade: score ? (score >= 85 ? 'A' : score >= 75 ? 'B' : score >= 65 ? 'C' : score >= 55 ? 'D' : 'F') : 'N/A',
+        dateStr: new Date().toISOString().split('T')[0],
+        ci, ciExtras
+    };
 }
 
-function copyUnifiedSummary(url) {
-    const summary = `
-📊 UNIFIED CITIZENS INFORMATION ANALYSIS
+function _ciReadabilityLabel(score) {
+    if (score == null) return 'N/A';
+    if (score >= 90) return 'Very Easy';
+    if (score >= 70) return 'Easy';
+    if (score >= 60) return 'Plain English';
+    if (score >= 50) return 'Fairly Difficult';
+    if (score >= 30) return 'Difficult';
+    return 'Very Confusing';
+}
 
-🔗 Page: ${url}
-📅 Generated: ${new Date().toLocaleDateString('en-IE')}
+function _buildCiExtras(ci) {
+    if (!ci) return null;
+    const ws = ci.writingStyle;
+    const passivePct = ws && ws.totalSentences > 0 ? Math.round(ws.passiveSentenceCount / ws.totalSentences * 100) : null;
+    const fixes = [];
+    if (ws) {
+        const passiveWarn = passivePct > 15;
+        const complexWarn = ws.complexWordPct >= 10;
+        const contractionWarn = ws.contractionCount === 0 && ci.wordCount > 300;
+        const adverbWarn = ws.adverbPct >= 5;
+        const transitionLow = ws.transitionCoverage < 15 && ci.wordCount > 300;
+        if (ci.longSentences?.length > 0) fixes.push(`${ci.longSentences.length} sentence${ci.longSentences.length > 1 ? 's' : ''} over 20 words — shorten them`);
+        if (passiveWarn)    fixes.push(`Passive voice ${passivePct}% (${ws.passiveSentenceCount} sentences) — rewrite to start with the subject`);
+        if (transitionLow)  fixes.push(`Transitions ${ws.transitionCoverage}% — add however / therefore / also between paragraphs`);
+        if (contractionWarn) fixes.push(`No contractions — try don't, can't, you'll to sound less formal`);
+        if (complexWarn)    fixes.push(`Complex words ${ws.complexWordPct}% — replace 3+ syllable words with simpler alternatives`);
+        if (ws.nominalisationCount > 3) fixes.push(`${ws.nominalisationCount} bureaucratic phrases — see list below`);
+        if (adverbWarn && fixes.length < 6) fixes.push(`Adverbs ${ws.adverbPct}% — remove or replace -ly adverbs`);
+    }
+    return { passivePct, fixes, ws };
+}
 
-🎯 KEY METRICS:
-- Search performance tracked
-- User behaviour analysed  
-- Government benchmarks assessed
-- Geographic intelligence provided
-- Content gaps identified
+function _slugifyUrl(url) {
+    return (url.replace(/https?:\/\/[^/]+/, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)) || 'page';
+}
 
-🏛️ GOVERNMENT INTELLIGENCE:
-- Performance benchmarks evaluated
-- Citizen need surges detected
-- Priority matrix calculated
-- Regional service demand mapped
+function _fmtTrend(pct) {
+    if (pct == null || isNaN(pct)) return '—';
+    return (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+}
 
-📋 NEXT STEPS:
-- Review optimisation recommendations
-- Implement priority actions
-- Monitor performance improvements
-- Schedule regular reviews
+function _escapeMd(str) { return (str || '').replace(/\|/g, '\\|'); }
 
-Generated by Unified Citizens Information Analytics Dashboard
-    `.trim();
-    
-    navigator.clipboard.writeText(summary).then(() => {
-        showUnifiedNotification('✅ Unified page summary copied to clipboard!');
+function exportAsCSV(url) {
+    const p = buildExportPayload(url);
+    const rows = [];
+    rows.push('Citizens Information Analytics Report');
+    rows.push(`Generated,${p.timestamp}`);
+    rows.push(`URL,${p.url}`);
+    rows.push(p.score !== null ? `Overall Score,${p.score}/100 (Grade: ${p.grade})` : 'Overall Score,N/A');
+    rows.push('');
+
+    if (p.gsc) {
+        rows.push('--- SEARCH CONSOLE ---');
+        rows.push(`Clicks,${p.gsc.clicks}`);
+        rows.push(`Impressions,${p.gsc.impressions}`);
+        rows.push(`CTR,${(p.gsc.ctr * 100).toFixed(2)}%`);
+        rows.push(`Avg Position,${p.gsc.position.toFixed(1)}`);
+        rows.push('');
+        if (p.gsc.topQueries?.length) {
+            rows.push('--- TOP QUERIES ---');
+            rows.push('Query,Clicks,Impressions,CTR,Position');
+            p.gsc.topQueries.slice(0, 15).forEach(q =>
+                rows.push(`"${(q.query||'').replace(/"/g,'""')}",${q.clicks},${q.impressions},${(q.ctr*100).toFixed(2)}%,${q.position.toFixed(1)}`)
+            );
+            rows.push('');
+        }
+        if (p.gsc.opportunities?.length) {
+            rows.push('--- OPPORTUNITIES ---');
+            rows.push('Query,Impressions,Clicks,Position');
+            p.gsc.opportunities.slice(0, 10).forEach(o =>
+                rows.push(`"${(o.query||'').replace(/"/g,'""')}",${o.impressions},${o.clicks},${o.position.toFixed(1)}`)
+            );
+            rows.push('');
+        }
+    } else {
+        rows.push('--- SEARCH CONSOLE ---');
+        rows.push('Status,Not connected');
+        rows.push('');
+    }
+
+    if (p.ga4) {
+        rows.push('--- GA4 ---');
+        rows.push(`Sessions,${p.ga4.sessions ?? 'N/A'}`);
+        rows.push(`Users,${p.ga4.users ?? 'N/A'}`);
+        rows.push(`Page Views,${p.ga4.pageViews ?? p.ga4.screenPageViews ?? 'N/A'}`);
+        rows.push(`Avg Engagement Time,${formatDuration(p.ga4.avgEngagementTime || p.ga4.avgSessionDuration)}`);
+    } else {
+        rows.push('--- GA4 ---');
+        rows.push('Status,Not connected');
+    }
+
+    rows.push('');
+    rows.push('--- CONTENT INTELLIGENCE ---');
+    if (p.ci) {
+        const altPct = p.ci.imageCount > 0 ? Math.round((p.ci.imageCount - p.ci.imagesWithoutAlt) / p.ci.imageCount * 100) : null;
+        const metaStatus = p.ci.metaDescLength === 0 ? 'Missing' : p.ci.metaDescLength < 70 ? `${p.ci.metaDescLength} chars (short)` : p.ci.metaDescLength > 160 ? `${p.ci.metaDescLength} chars (long)` : `${p.ci.metaDescLength} chars`;
+        const titleStatus = p.ci.titleLength === 0 ? 'Missing' : p.ci.titleLength > 60 ? `${p.ci.titleLength} chars (long)` : `${p.ci.titleLength} chars`;
+        rows.push(`Title Tag,"${(p.ci.titleText||'').replace(/"/g,'""')}" — ${titleStatus}`);
+        rows.push(`Meta Description,"${(p.ci.metaDescText||'').replace(/"/g,'""')}" — ${metaStatus}`);
+        rows.push(`Word Count,${p.ci.wordCount} (${p.ci.readingTime} min read)`);
+        rows.push(`Readability (Flesch-Kincaid),${p.ci.readabilityScore !== null ? p.ci.readabilityScore + '/100 — ' + _ciReadabilityLabel(p.ci.readabilityScore) : 'N/A'}`);
+        if (p.ci.avgSentenceLength != null) rows.push(`Avg Sentence Length,${p.ci.avgSentenceLength} words`);
+        if (p.ci.avgSyllablesPerWord != null) rows.push(`Avg Syllables per Word,${p.ci.avgSyllablesPerWord}`);
+        rows.push(`H1,"${(p.ci.h1Text||'—').replace(/"/g,'""')}"${p.ci.h1Count > 1 ? ' ⚠️ ' + p.ci.h1Count + ' H1s' : ''}`);
+        rows.push(`H2 Sections,${p.ci.h2Count}`);
+        rows.push(`H3 Subsections,${p.ci.h3Count}`);
+        rows.push(`Images,${p.ci.imageCount} total · ${p.ci.imagesWithoutAlt} missing alt${altPct !== null ? ' (' + altPct + '% coverage)' : ''}`);
+        rows.push(`Internal Links,${p.ci.internalLinks}`);
+        rows.push(`External Links,${p.ci.externalLinks}`);
+        rows.push(`Schema Types,${p.ci.schemaTypes.length ? p.ci.schemaTypes.join(', ') : 'None'}`);
+        rows.push(`Page Language,${p.ci.pageLanguage || 'Not set'}`);
+        rows.push(`Noindex,${p.ci.isNoindex ? 'Yes ⚠️' : 'No'}`);
+        if (p.ci.canonicalUrl) rows.push(`Canonical URL,${p.ci.canonicalUrl}`);
+
+        if (p.ciExtras?.ws) {
+            const { ws, passivePct } = p.ciExtras;
+            rows.push('');
+            rows.push('--- WRITING QUALITY ---');
+            rows.push(`Passive Voice,${passivePct !== null ? passivePct + '% (' + ws.passiveSentenceCount + ' of ' + ws.totalSentences + ' sentences) — target ≤15%' : 'N/A'}`);
+            rows.push(`Complex Words,${ws.complexWordPct}% — target <10%`);
+            rows.push(`Transition Coverage,${ws.transitionCoverage}% — target >15%`);
+            rows.push(`Direct Address (you/your),${ws.directAddressRate}% — target ≥2%`);
+            rows.push(`Adverbs (-ly),${ws.adverbPct}% — target <5%`);
+            rows.push(`Contractions,${ws.contractionCount} found`);
+            rows.push(`Bureaucratic Phrases,${ws.nominalisationCount}`);
+            rows.push(`Hedge Words,${ws.hedgeCount}${ws.hedgeExamples?.length ? ' (' + ws.hedgeExamples.join(', ') + ')' : ''}`);
+        }
+
+        if (p.ciExtras?.fixes?.length) {
+            rows.push('');
+            rows.push('--- TOP FIXES ---');
+            p.ciExtras.fixes.forEach((fix, i) => rows.push(`${i + 1},"${fix.replace(/"/g, '""')}"`));
+        }
+
+        if (p.ci.longSentences?.length) {
+            rows.push('');
+            rows.push('--- LONG SENTENCES (>20 words) ---');
+            p.ci.longSentences.forEach(s => rows.push(`"${s.replace(/"/g, '""')}"`));
+        }
+
+        const noms = p.ciExtras?.ws?.nominalisationMatches || p.ci.writingStyle?.nominalisationMatches;
+        if (noms?.length) {
+            rows.push('');
+            rows.push('--- BUREAUCRATIC PHRASES ---');
+            rows.push('Found,Suggestion,Count');
+            noms.forEach(m => rows.push(`"${(m.found||'').replace(/"/g,'""')}","${(m.suggest||'').replace(/"/g,'""')}",${m.count}`));
+        }
+    } else {
+        rows.push('Status,Not fetched — open the Content tab first');
+    }
+
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `citizens-info-${_slugifyUrl(url)}-${p.dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    showUnifiedNotification('CSV downloaded');
+}
+
+function exportAsJSON(url) {
+    const p = buildExportPayload(url);
+    const data = {
+        metadata: { tool: 'Citizens Information Analytics Dashboard', generatedAt: p.timestamp, dataCapturedAt: p.capturedAt, url: p.url },
+        scores: { overall: p.score, grade: p.grade },
+        gsc: p.gsc ? { connected: true, clicks: p.gsc.clicks, impressions: p.gsc.impressions, ctr: p.gsc.ctr, position: p.gsc.position, topQueries: p.gsc.topQueries || [], opportunities: p.gsc.opportunities || [] } : { connected: false },
+        ga4: p.ga4 ? { connected: true, sessions: p.ga4.sessions, users: p.ga4.users, pageViews: p.ga4.pageViews ?? p.ga4.screenPageViews, avgEngagementTime: p.ga4.avgEngagementTime || p.ga4.avgSessionDuration, bounceRate: p.ga4.bounceRate } : { connected: false },
+        trends: { gsc: p.gscTrends || null, ga4: p.ga4Trends || null },
+        contentIntelligence: p.ci ? (() => {
+            const ws = p.ci.writingStyle;
+            const passivePct = p.ciExtras?.passivePct ?? null;
+            return {
+                available: true,
+                wordCount: p.ci.wordCount,
+                readingTime: p.ci.readingTime,
+                readabilityScore: p.ci.readabilityScore,
+                readabilityLabel: _ciReadabilityLabel(p.ci.readabilityScore),
+                avgSentenceLength: p.ci.avgSentenceLength ?? null,
+                avgSyllablesPerWord: p.ci.avgSyllablesPerWord ?? null,
+                titleText: p.ci.titleText,
+                titleLength: p.ci.titleLength,
+                metaDescText: p.ci.metaDescText,
+                metaDescLength: p.ci.metaDescLength,
+                h1Text: p.ci.h1Text,
+                h1Count: p.ci.h1Count,
+                h2Count: p.ci.h2Count,
+                h2Texts: p.ci.h2Texts || [],
+                h3Count: p.ci.h3Count,
+                h3Texts: p.ci.h3Texts || [],
+                imageCount: p.ci.imageCount,
+                imagesWithoutAlt: p.ci.imagesWithoutAlt,
+                altCoverage: p.ci.imageCount > 0 ? Math.round((p.ci.imageCount - p.ci.imagesWithoutAlt) / p.ci.imageCount * 100) : null,
+                internalLinks: p.ci.internalLinks,
+                externalLinks: p.ci.externalLinks,
+                schemaTypes: p.ci.schemaTypes || [],
+                pageLanguage: p.ci.pageLanguage || null,
+                isNoindex: p.ci.isNoindex,
+                canonicalUrl: p.ci.canonicalUrl || null,
+                topFixes: p.ciExtras?.fixes || [],
+                writingQuality: ws ? {
+                    passiveVoicePct: passivePct,
+                    passiveSentenceCount: ws.passiveSentenceCount,
+                    totalSentences: ws.totalSentences,
+                    complexWordPct: ws.complexWordPct,
+                    transitionCoverage: ws.transitionCoverage,
+                    directAddressRate: ws.directAddressRate,
+                    adverbPct: ws.adverbPct,
+                    contractionCount: ws.contractionCount,
+                    nominalisationCount: ws.nominalisationCount,
+                    hedgeCount: ws.hedgeCount,
+                    hedgeExamples: ws.hedgeExamples || [],
+                    topAdverbs: ws.topAdverbs || [],
+                    nominalisations: (ws.nominalisationMatches || []).map(m => ({ found: m.found, suggest: m.suggest, count: m.count })),
+                    longSentences: p.ci.longSentences || []
+                } : null
+            };
+        })() : { available: false }
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `citizens-info-data-${_slugifyUrl(url)}-${p.dateStr}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    showUnifiedNotification('JSON downloaded');
+}
+
+function copyAsMarkdown(url) {
+    const p = buildExportPayload(url);
+    const d = new Date(p.timestamp).toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric' });
+    const lines = [
+        '# Citizens Information Page Report',
+        `**URL:** ${p.url}`,
+        `**Generated:** ${d}`,
+        p.score !== null ? `**Score:** ${p.score}/100 (Grade: ${p.grade})` : '',
+        '', '---', ''
+    ];
+
+    if (p.gsc) {
+        lines.push('## Search Performance\n');
+        lines.push('| Metric | Value |');
+        lines.push('|--------|-------|');
+        lines.push(`| Clicks | ${formatNumber(p.gsc.clicks)} |`);
+        lines.push(`| Impressions | ${formatNumber(p.gsc.impressions)} |`);
+        lines.push(`| CTR | ${(p.gsc.ctr * 100).toFixed(2)}% |`);
+        lines.push(`| Avg Position | #${p.gsc.position.toFixed(0)} |`);
+        lines.push('');
+        if (p.gscTrends?.trends) {
+            const t = p.gscTrends.trends;
+            lines.push('| Trend | Change |');
+            lines.push('|-------|--------|');
+            if (t.clicks) lines.push(`| Clicks | ${_fmtTrend(t.clicks.percentChange)} |`);
+            if (t.impressions) lines.push(`| Impressions | ${_fmtTrend(t.impressions.percentChange)} |`);
+            lines.push('');
+        }
+        if (p.gsc.topQueries?.length) {
+            lines.push('## Top Search Queries\n');
+            lines.push('| # | Query | Clicks | Impressions | CTR | Position |');
+            lines.push('|---|-------|--------|-------------|-----|----------|');
+            p.gsc.topQueries.slice(0, 10).forEach((q, i) =>
+                lines.push(`| ${i+1} | ${_escapeMd(q.query)} | ${q.clicks} | ${formatNumber(q.impressions)} | ${(q.ctr*100).toFixed(1)}% | #${q.position.toFixed(0)} |`)
+            );
+            lines.push('');
+        }
+        if (p.gsc.opportunities?.length) {
+            lines.push('## Opportunities\n');
+            lines.push('| Query | Impressions | Position |');
+            lines.push('|-------|-------------|----------|');
+            p.gsc.opportunities.slice(0, 5).forEach(o =>
+                lines.push(`| ${_escapeMd(o.query)} | ${formatNumber(o.impressions)} | #${o.position.toFixed(0)} |`)
+            );
+            lines.push('');
+        }
+    } else {
+        lines.push('## Search Performance\n_GSC not connected._\n');
+    }
+
+    if (p.ga4) {
+        lines.push('## User Engagement\n');
+        lines.push('| Metric | Value |');
+        lines.push('|--------|-------|');
+        lines.push(`| Sessions | ${formatNumber(p.ga4.sessions)} |`);
+        lines.push(`| Users | ${formatNumber(p.ga4.users)} |`);
+        lines.push(`| Page Views | ${formatNumber(p.ga4.pageViews ?? p.ga4.screenPageViews)} |`);
+        lines.push(`| Avg Engagement | ${formatDuration(p.ga4.avgEngagementTime || p.ga4.avgSessionDuration)} |`);
+        lines.push('');
+    } else {
+        lines.push('## User Engagement\n_GA4 not connected._\n');
+    }
+
+    if (p.ci) {
+        const altPct = p.ci.imageCount > 0 ? Math.round((p.ci.imageCount - p.ci.imagesWithoutAlt) / p.ci.imageCount * 100) : null;
+        const metaStatus = p.ci.metaDescLength === 0 ? '✗ Missing' : p.ci.metaDescLength < 70 ? `${p.ci.metaDescLength} chars ⚠️ short` : p.ci.metaDescLength > 160 ? `${p.ci.metaDescLength} chars ⚠️ long` : `${p.ci.metaDescLength} chars ✓`;
+        const titleStatus = p.ci.titleLength === 0 ? '✗ Missing' : p.ci.titleLength > 60 ? `${p.ci.titleLength} chars ⚠️ long` : `${p.ci.titleLength} chars ✓`;
+        lines.push('## Content Intelligence\n');
+        lines.push('| Metric | Value |');
+        lines.push('|--------|-------|');
+        lines.push(`| Words | ${formatNumber(p.ci.wordCount)} (${p.ci.readingTime} min read) |`);
+        lines.push(`| Readability | ${p.ci.readabilityScore !== null ? p.ci.readabilityScore + '/100 — ' + _ciReadabilityLabel(p.ci.readabilityScore) : 'N/A'} |`);
+        if (p.ci.avgSentenceLength != null) lines.push(`| Avg Sentence Length | ${p.ci.avgSentenceLength} words |`);
+        if (p.ci.avgSyllablesPerWord != null) lines.push(`| Avg Syllables/Word | ${p.ci.avgSyllablesPerWord} |`);
+        lines.push(`| Title | ${_escapeMd(p.ci.titleText || '—')} — ${titleStatus} |`);
+        lines.push(`| Meta Description | ${metaStatus} |`);
+        if (p.ci.metaDescText) lines.push(`| Meta Text | _${_escapeMd(p.ci.metaDescText.slice(0, 120))}${p.ci.metaDescText.length > 120 ? '…' : ''}_ |`);
+        lines.push(`| H1 | ${_escapeMd(p.ci.h1Text || '—')}${p.ci.h1Count > 1 ? ' ⚠️ ' + p.ci.h1Count + ' H1s' : ''} |`);
+        lines.push(`| H2 Sections | ${p.ci.h2Count} |`);
+        lines.push(`| H3 Subsections | ${p.ci.h3Count} |`);
+        lines.push(`| Images | ${p.ci.imageCount} total · ${p.ci.imagesWithoutAlt} missing alt${altPct !== null ? ' (' + altPct + '% coverage)' : ''} |`);
+        lines.push(`| Internal Links | ${p.ci.internalLinks} |`);
+        lines.push(`| External Links | ${p.ci.externalLinks} |`);
+        lines.push(`| Schema Types | ${p.ci.schemaTypes.length ? _escapeMd(p.ci.schemaTypes.join(', ')) : 'None'} |`);
+        lines.push(`| Page Language | ${p.ci.pageLanguage || 'Not set'} |`);
+        lines.push(`| Noindex | ${p.ci.isNoindex ? 'Yes ⚠️' : 'No'} |`);
+        lines.push('');
+        if (p.ci.h2Texts?.length) {
+            lines.push('**H2 Sections:** ' + p.ci.h2Texts.slice(0, 8).map(_escapeMd).join(' · '));
+            lines.push('');
+        }
+        if (p.ciExtras?.ws) {
+            const { ws, passivePct } = p.ciExtras;
+            lines.push('### Writing Quality\n');
+            lines.push('| Metric | Value | Target |');
+            lines.push('|--------|-------|--------|');
+            lines.push(`| Passive Voice | ${passivePct !== null ? passivePct + '% (' + ws.passiveSentenceCount + ' sentences)' : 'N/A'} | ≤15% ${passivePct !== null && passivePct <= 15 ? '✓' : '⚠️'} |`);
+            lines.push(`| Complex Words | ${ws.complexWordPct}% | <10% ${ws.complexWordPct < 10 ? '✓' : '⚠️'} |`);
+            lines.push(`| Transitions | ${ws.transitionCoverage}% | >15% ${ws.transitionCoverage >= 15 ? '✓' : '⚠️'} |`);
+            lines.push(`| Direct Address | ${ws.directAddressRate}% | ≥2% ${ws.directAddressRate >= 2 ? '✓' : '⚠️'} |`);
+            lines.push(`| Adverbs (-ly) | ${ws.adverbPct}% | <5% ${ws.adverbPct < 5 ? '✓' : '⚠️'} |`);
+            lines.push(`| Contractions | ${ws.contractionCount} found | — |`);
+            lines.push(`| Bureaucratic Phrases | ${ws.nominalisationCount} | 0 |`);
+            if (ws.hedgeCount > 0) lines.push(`| Hedge Words | ${ws.hedgeCount}${ws.hedgeExamples?.length ? ' (' + ws.hedgeExamples.slice(0,3).join(', ') + ')' : ''} | — |`);
+            lines.push('');
+        }
+        if (p.ciExtras?.fixes?.length) {
+            lines.push('**Top fixes:**');
+            p.ciExtras.fixes.forEach((fix, i) => lines.push(`${i + 1}. ${fix}`));
+            lines.push('');
+        }
+        if (p.ci.longSentences?.length) {
+            lines.push('**Long sentences (>20 words):**');
+            p.ci.longSentences.slice(0, 5).forEach(s => {
+                const wc = s.split(/\s+/).filter(w => w.length > 0).length;
+                lines.push(`> _"${_escapeMd(s)}"_ (${wc}w)`);
+            });
+            lines.push('');
+        }
+        const noms = p.ciExtras?.ws?.nominalisationMatches || p.ci.writingStyle?.nominalisationMatches;
+        if (noms?.length) {
+            lines.push('**Bureaucratic phrases to simplify:**');
+            noms.forEach(m => lines.push(`- "${_escapeMd(m.found)}"${m.count > 1 ? ' ×' + m.count : ''} → **${_escapeMd(m.suggest)}**`));
+            lines.push('');
+        }
+    } else {
+        lines.push('## Content Intelligence\n_Not fetched — open the Content tab first._\n');
+    }
+
+    lines.push('---');
+    lines.push('*Generated by Citizens Information Analytics Dashboard*');
+
+    const md = lines.filter(l => l !== null).join('\n');
+    navigator.clipboard.writeText(md).then(() => {
+        showUnifiedNotification('Markdown copied to clipboard');
     }).catch(() => {
-        alert('Failed to copy to clipboard. Please try again.');
+        const ta = Object.assign(document.createElement('textarea'), { value: md, style: 'position:fixed;opacity:0' });
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        showUnifiedNotification('Markdown copied to clipboard');
     });
 }
+
+function printReport() { window.print(); }
+
+function exportUnifiedReport(url) { exportAsCSV(url); }
+
+function copyUnifiedSummary(url) { copyAsMarkdown(url); }
 
 function scheduleUnifiedReview(url) {
     console.log('📅 Scheduling unified review for:', url);
@@ -16582,7 +16988,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                 <!-- Urgent Queries Filter -->
                 ${intentAnalysis.filter(item => item.hasUrgency).length > 0 ? `
                     <div class="urgent-filter-section" style="margin-bottom: 16px;">
-                        <div class="urgent-filter-bar clickable" data-filter-urgent="true" role="button" tabindex="0" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 2px solid #f87171; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s ease; position: relative;">
+                        <div class="urgent-filter-bar clickable" data-filter-urgent="true" role="button" tabindex="0" style="background: var(--color-danger-bg); border: 2px solid #f87171; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s ease; position: relative;">
                             <div style="display: flex; align-items: center; gap: 12px; color: #dc2626; font-weight: 600;">
                                 <span style="font-size: 1.2rem; animation: pulse 2s infinite;">🚨</span>
                                 <span style="font-size: 0.95rem; flex-grow: 1;">All Urgent Citizen Needs</span>
@@ -17125,27 +17531,27 @@ function createCitizenQueryIntelligenceStyles() {
                 padding: 24px;
                 border-radius: 12px;
                 text-align: center;
-                border: 2px solid #e2e8f0;
+                border: 2px solid var(--color-border-primary);
                 transition: all 0.3s ease;
             }
             
             .overview-metrics .metric-card.primary {
-                background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                background: var(--color-success-bg);
                 border-color: #10b981;
             }
             
             .overview-metrics .metric-card.urgent {
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                background: var(--color-danger-bg);
                 border-color: #ef4444;
             }
             
             .overview-metrics .metric-card.neutral {
-                background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                background: var(--color-bg-secondary);
                 border-color: #94a3b8;
             }
             
             .overview-metrics .metric-card.opportunity {
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                background: var(--color-warning-bg);
                 border-color: #f59e0b;
             }
             
@@ -17164,7 +17570,7 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .urgent-alert {
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                background: var(--color-danger-bg);
                 color: #dc2626;
                 padding: 16px 20px;
                 border-radius: 12px;
@@ -17195,7 +17601,7 @@ function createCitizenQueryIntelligenceStyles() {
             .citizen-tab-nav {
                 display: flex;
                 background: var(--color-bg-secondary);
-                border-bottom: 1px solid #e2e8f0;
+                border-bottom: 1px solid var(--color-border-primary);
                 padding: 8px;
                 gap: 8px;
             }
@@ -17282,7 +17688,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             /* Journey Panel */
             .irish-service-analysis {
-                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                background: var(--color-success-bg);
                 padding: 20px;
                 border-radius: 8px;
                 margin-bottom: 24px;
@@ -17671,7 +18077,7 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .confidence-badge {
-                background: #f1f5f9;
+                background: var(--color-bg-secondary);
                 color: #475569;
                 padding: 4px 8px;
                 border-radius: 12px;
@@ -17690,12 +18096,12 @@ function createCitizenQueryIntelligenceStyles() {
             /* Opportunity Specific Styles */
             .opportunity-item.high {
                 border-left: 4px solid #ef4444;
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                background: var(--color-danger-bg);
             }
             
             .opportunity-item.medium {
                 border-left: 4px solid #f59e0b;
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+                background: var(--color-warning-bg);
             }
             
             .opportunity-item.low {
@@ -17709,12 +18115,12 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .citizen-impact-badge.medium {
-                background: #fef3c7;
+                background: var(--color-warning-bg);
                 color: #92400e;
             }
             
             .citizen-impact-badge.low {
-                background: #f1f5f9;
+                background: var(--color-bg-secondary);
                 color: #475569;
             }
             
@@ -17821,7 +18227,7 @@ function createCitizenQueryIntelligenceStyles() {
                 margin-top: 24px;
                 text-align: center;
                 padding: 20px;
-                border-top: 1px solid #e2e8f0;
+                border-top: 1px solid var(--color-border-primary);
             }
             
             .show-more-btn {
@@ -17979,7 +18385,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 /* Regional Insights Tables */
 .regional-insights, .international-insights {
-    background: rgba(255,255,255,0.8);
+    background: var(--color-bg-secondary);
     border-radius: 12px;
     padding: 20px;
     border: 1px solid var(--color-border-primary);
@@ -17993,7 +18399,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 /* Opportunities Section */
 .geo-opportunities-section {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    background: var(--color-warning-bg);
     border-radius: 16px;
     padding: 32px;
     border-left: 4px solid #f59e0b;
@@ -18161,7 +18567,7 @@ function clearJourneyFilter() {
     document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
         if (bar.classList.contains('urgent-filter-bar')) {
-            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.background = 'var(--color-danger-bg)';
             bar.style.borderColor = '#f87171';
             const divElement = bar.querySelector('div');
             if (divElement) {
@@ -18206,7 +18612,7 @@ function clearServiceFilter() {
     document.querySelectorAll('.service-bar.active-filter, .intent-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
         if (bar.classList.contains('urgent-filter-bar')) {
-            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.background = 'var(--color-danger-bg)';
             bar.style.borderColor = '#f87171';
             const divElement = bar.querySelector('div');
             if (divElement) {
@@ -18283,7 +18689,7 @@ function filterQueriesByIntent(filterIntent) {
     document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
         if (bar.classList.contains('urgent-filter-bar')) {
-            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.background = 'var(--color-danger-bg)';
             bar.style.borderColor = '#f87171';
             const divElement = bar.querySelector('div');
             if (divElement) {
@@ -18422,7 +18828,7 @@ function filterQueriesByService(filterService) {
     document.querySelectorAll('.service-bar.active-filter, .intent-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
         if (bar.classList.contains('urgent-filter-bar')) {
-            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.background = 'var(--color-danger-bg)';
             bar.style.borderColor = '#f87171';
             const divElement = bar.querySelector('div');
             if (divElement) {
@@ -19438,10 +19844,10 @@ function createPerformanceHeatmap(geoData, servicePatterns) {
 }
 
 function getHeatmapColor(percentage) {
-    if (percentage > 20) return 'linear-gradient(135deg, #fee2e2, #fecaca)';
-    if (percentage > 10) return 'linear-gradient(135deg, #fef3c7, #fde68a)';
-    if (percentage > 5) return 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
-    return 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
+    if (percentage > 20) return 'var(--color-danger-bg)';
+    if (percentage > 10) return 'var(--color-warning-bg)';
+    if (percentage > 5) return 'var(--color-info-bg)';
+    return 'var(--color-success-bg)';
 }
 
 function generateSearchInsights(locationQueries, urgencyPatterns, servicePatterns, pageContext) {
@@ -20163,110 +20569,13 @@ function calculateTrend(currentValue, previousValue, inverted = false) {
 
 // Modal display function for dashboard refresh
 function showDashboardModal(htmlContent) {
-    // Remove existing modal if present
-    const existingModal = document.getElementById('unified-dashboard-modal');
-    if (existingModal) existingModal.remove();
-    
-    // Create modal backdrop
-    const modal = document.createElement('div');
-    modal.id = 'unified-dashboard-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.75);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(8px);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        padding: 20px;
-        box-sizing: border-box;
-    `;
-    
-    // Create modal content container
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
-        width: 100%;
-        max-width: 1200px;
-        max-height: 90vh;
-        overflow-y: auto;
-        position: relative;
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-    `;
-    
-    // Add close button
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10001;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        border: none;
-        width: 40px;
-        height: 40px;
-        border-radius: 20px;
-        font-size: 18px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    `;
-    
-    closeBtn.addEventListener('click', () => {
-        modal.style.opacity = '0';
-        modalContent.style.transform = 'scale(0.9)';
-        
-        // Remove floating date indicators when modal closes
-        const floatingIndicators = document.querySelectorAll('.floating-date-indicator');
-        floatingIndicators.forEach(indicator => indicator.remove());
-        
-        setTimeout(() => modal.remove(), 300);
-    });
-    
-    closeBtn.addEventListener('mouseenter', () => {
-        closeBtn.style.background = 'rgba(239, 68, 68, 0.9)';
-        closeBtn.style.transform = 'scale(1.1)';
-    });
-    
-    closeBtn.addEventListener('mouseleave', () => {
-        closeBtn.style.background = 'rgba(0, 0, 0, 0.7)';
-        closeBtn.style.transform = 'scale(1)';
-    });
-    
-    // Add dashboard content
-    modalContent.innerHTML = htmlContent;
-    modalContent.appendChild(closeBtn);
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-    
-    // Show with animation
-    requestAnimationFrame(() => {
-        modal.style.opacity = '1';
-        modalContent.style.transform = 'scale(1)';
-    });
-    
-    // Close on backdrop click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeBtn.click();
-        }
-    });
-    
-    // Close on Escape key
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            closeBtn.click();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
+    // Delegate to the full-screen panel implementation in combined-tooltip-integration.js.
+    // That function is defined as a plain function in the global scope and takes priority
+    // when called from outside this IIFE, but inside this IIFE the local declaration
+    // shadowed it. Routing via window ensures we always hit the correct version.
+    if (window._showDashboardPanelFn) {
+        window._showDashboardPanelFn(htmlContent);
+    }
 }
 
 
@@ -20285,7 +20594,7 @@ function resetDashboardFilters() {
     document.querySelectorAll('.intent-bar.active-filter, .service-bar.active-filter, .urgent-filter-bar').forEach(bar => {
         bar.classList.remove('active-filter');
         if (bar.classList.contains('urgent-filter-bar')) {
-            bar.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+            bar.style.background = 'var(--color-danger-bg)';
             bar.style.borderColor = '#f87171';
             const divElement = bar.querySelector('div');
             if (divElement) {
@@ -20504,8 +20813,12 @@ function getImpactSummary(impact, gscData, ga4Data) {
 
 window.createUnifiedCitizensDashboard = createUnifiedCitizensDashboard;
 window.initializeUnifiedDashboard = initializeUnifiedDashboard;
-window.exportUnifiedReport = exportUnifiedReport;
-window.copyUnifiedSummary = copyUnifiedSummary;
+window.exportUnifiedReport = exportAsCSV;
+window.copyUnifiedSummary  = copyAsMarkdown;
+window.exportAsCSV    = exportAsCSV;
+window.exportAsJSON   = exportAsJSON;
+window.copyAsMarkdown = copyAsMarkdown;
+window.printReport    = printReport;
 window.scheduleUnifiedReview = scheduleUnifiedReview;
 window.resetDashboardFilters = resetDashboardFilters;
 
@@ -20551,22 +20864,18 @@ function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, c
     floatingIndicator.id = `floating-date-indicator-${dashboardId}`;
     
     floatingIndicator.innerHTML = `
-        <div class="date-indicator-content">
-            <div class="date-periods">
-                <div class="current-period">
-                    <span class="period-label">Current:</span>
-                    <span class="period-dates">${formatDateRange(currentRange.startDate, currentRange.endDate)}</span>
-                </div>
-                <div class="comparison-period">
-                    <span class="period-label">vs</span>
-                    <span class="period-dates">${formatDateRange(compStartDate.toISOString().split('T')[0], compEndDate.toISOString().split('T')[0])}</span>
-                </div>
-            </div>
-            <button class="date-indicator-toggle" onclick="toggleDateIndicator('${dashboardId}')" title="Toggle date display">
-                <span class="toggle-icon">📅</span>
-            </button>
+        <span class="toggle-icon" style="font-size:12px;">📅</span>
+        <div class="date-periods">
+            <span style="font-weight:600;color:var(--color-text-primary);">${formatDateRange(currentRange.startDate, currentRange.endDate)}</span>
+            <span style="color:var(--color-text-muted);">vs</span>
+            <span>${formatDateRange(compStartDate.toISOString().split('T')[0], compEndDate.toISOString().split('T')[0])}</span>
         </div>
     `;
+    floatingIndicator.title = 'Click to hide';
+    floatingIndicator.addEventListener('click', function() {
+        this.classList.toggle('minimized');
+        this.title = this.classList.contains('minimized') ? 'Click to show dates' : 'Click to hide';
+    });
     
     // Append directly to body for true floating behavior
     document.body.appendChild(floatingIndicator);
@@ -21606,8 +21915,8 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                 <!-- Divergence Chart -->
                 <div class="divergence-chart-container">
                     <div class="chart-header">
-                        <h4 class="chart-title">📊 Search Performance Trends - Last 12 Months (Updated)</h4>
-                        <div style="color: #FFD700; font-size: 0.8rem; margin-top: 4px;">✨ Chart Enhanced - Click legend items to toggle data</div>
+                        <h4 class="chart-title">Search Performance Trends — Last 12 Months</h4>
+                        <div class="chart-legend-hint">Click legend items to toggle data series</div>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="ai-divergence-chart-${dashboardId.replace('unified-dashboard-', '')}" class="divergence-chart"></canvas>
@@ -23327,60 +23636,20 @@ window.refreshUnifiedDashboard = async function(url) {
             ga4Trends
         );
         
-        // Update modal content instead of removing/recreating to prevent mobile issues
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            console.log('🔄 Updating existing modal content...');
-            
-            // Extract and inject styles to prevent CSS appearing as text
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = newDashboardHtml;
-            
-            // Find and inject style tags into document head
-            const styleTags = tempDiv.querySelectorAll('style');
-            styleTags.forEach(styleTag => {
-                // Remove existing dashboard styles to prevent duplicates
-                const existingStyles = document.querySelectorAll('style[data-dashboard-styles]');
-                existingStyles.forEach(style => style.remove());
-                
-                // Add new styles to head
-                styleTag.setAttribute('data-dashboard-styles', 'true');
-                document.head.appendChild(styleTag);
-            });
-            
-            // Remove style tags from HTML content
-            styleTags.forEach(style => style.remove());
-            
-            // Update content without style tags
-            const htmlContent = tempDiv.innerHTML;
-            
-            // Find just the dashboard content, not the close button
-            const dashboardContainer = modalContent.querySelector('div:not(.close-btn)');
-            if (dashboardContainer) {
-                dashboardContainer.innerHTML = htmlContent;
-            } else {
-                // Fallback: replace all content but preserve close button
-                const closeBtn = modalContent.querySelector('.close-btn');
-                modalContent.innerHTML = htmlContent;
-                if (closeBtn) modalContent.appendChild(closeBtn);
-            }
-            
+        // Update the panel content in-place. The panel is a full-screen fixed element
+        // created by showDashboardModal in combined-tooltip-integration.js; it has a
+        // single child content div (no .modal-content wrapper from the old implementation).
+        const contentDiv = modal.firstElementChild;
+        if (contentDiv) {
+            console.log('🔄 Updating existing panel content...');
+            contentDiv.innerHTML = newDashboardHtml;
+
             // Re-initialize dashboard functionality
-            const dashboardId = modalContent.querySelector('[id^="unified-dashboard-"]')?.id;
+            const dashboardId = contentDiv.querySelector('[id^="unified-dashboard-"]')?.id;
             if (dashboardId) {
                 setTimeout(() => {
                     try {
                         initializeUnifiedDashboard(dashboardId);
-                        
-                        // Recreate floating date indicator after refresh
-                        const currentRange = window.currentDateRange || getDateRangeForPeriod('30d');
-                        const compStartDate = new Date(currentRange.startDate);
-                        compStartDate.setDate(compStartDate.getDate() - (compStartDate - new Date(currentRange.endDate)) / (1000 * 60 * 60 * 24));
-                        const compEndDate = new Date(currentRange.startDate);
-                        compEndDate.setDate(compEndDate.getDate() - 1);
-                        
-                        createFloatingDateIndicator(dashboardId, currentRange, compStartDate, compEndDate);
-                        
                         console.log('✅ Dashboard re-initialized after refresh');
                     } catch (error) {
                         console.error('❌ Error re-initializing dashboard:', error);
@@ -23388,9 +23657,8 @@ window.refreshUnifiedDashboard = async function(url) {
                 }, 100);
             }
         } else {
-            // Fallback to old method if modal structure is unexpected
-            console.log('⚠️ Modal content not found, using fallback method');
-            modal.remove();
+            // Panel exists but is empty — recreate it via the real showDashboardModal
+            console.log('⚠️ Panel content div not found, recreating panel');
             showDashboardModal(newDashboardHtml);
         }
         
