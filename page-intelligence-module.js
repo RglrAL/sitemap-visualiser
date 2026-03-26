@@ -29,16 +29,73 @@
     const _linkStatusCache = new Map(); // fullUrl → { status: number|null, checkedAt: number }
     const LINK_STATUS_TTL = 10 * 60 * 1000; // 10 minutes
 
-    // Shared AI results cache — keyed by promptKey → { [index]: text }
-    // Cleared at the start of each new analysis so stale results never bleed across URLs.
-    var _aiResultsCache = {};
+    // ─── Prompt config registry ───────────────────────────────────────────────
+    // Increment version when the prompt text changes — this busts the persistent cache.
+    const PROMPT_CONFIGS = {
+        'long-sentences':  { version: 1, mode: 'stream',   riskLevel: 'low'    },
+        'passive-voice':   { version: 1, mode: 'stream',   riskLevel: 'low'    },
+        'meta-desc':       { version: 1, mode: 'complete',  riskLevel: 'high'   },
+        'title-tag':       { version: 1, mode: 'complete',  riskLevel: 'high'   },
+        'weak-anchors':    { version: 1, mode: 'stream',   riskLevel: 'medium'  },
+        'page-intro':      { version: 1, mode: 'stream',   riskLevel: 'high'   },
+        'hedge-words':     { version: 1, mode: 'stream',   riskLevel: 'high'   },
+        'h2-headings':     { version: 1, mode: 'stream',   riskLevel: 'medium'  },
+        'nominalisations': { version: 1, mode: 'stream',   riskLevel: 'low'    },
+        'search-intent':   { version: 1, mode: 'stream',   riskLevel: 'high'   },
+    };
+
+    // ─── AI results cache — two-tier ─────────────────────────────────────────
+    // Tier 1: fast session cache (cleared per URL, prevents bleed between pages).
+    // Tier 2: versioned localStorage cache (survives refresh, keyed by prompt
+    //         version + URL + model so prompt or model changes auto-invalidate).
+
+    var _aiResultsCache  = {};   // session tier
+    var _currentAnalysisUrl = ''; // set at renderFullResults entry
+
+    const _CACHE_PREFIX  = 'pi-ai:';
+    const _CACHE_TTL_MS  = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    function _hashStr(s) {
+        var h = 5381;
+        for (var i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+        return (h >>> 0).toString(36);
+    }
+
+    function _persistentKey(promptKey, index) {
+        var cfg     = PROMPT_CONFIGS[promptKey];
+        var version = cfg ? cfg.version : 1;
+        var model   = (window.GroqAI && window.GroqAI.getModel) ? window.GroqAI.getModel() : 'default';
+        return _CACHE_PREFIX + promptKey + ':v' + version + ':' + _hashStr(_currentAnalysisUrl) + ':' + model + ':' + index;
+    }
 
     function _cacheAIResult(key, index, text) {
         if (!_aiResultsCache[key]) _aiResultsCache[key] = {};
         _aiResultsCache[key][index] = text;
+        // Write through to persistent tier
+        try {
+            localStorage.setItem(_persistentKey(key, index), JSON.stringify({ text: text, ts: Date.now() }));
+        } catch(e) {}
     }
+
     function _getCachedAIResult(key, index) {
-        return (_aiResultsCache[key] && _aiResultsCache[key][index]) || null;
+        // Tier 1 — session
+        if (_aiResultsCache[key] && _aiResultsCache[key][index] !== undefined) {
+            return _aiResultsCache[key][index];
+        }
+        // Tier 2 — persistent
+        try {
+            var raw = localStorage.getItem(_persistentKey(key, index));
+            if (!raw) return null;
+            var entry = JSON.parse(raw);
+            if (Date.now() - entry.ts > _CACHE_TTL_MS) {
+                localStorage.removeItem(_persistentKey(key, index));
+                return null;
+            }
+            // Promote to session tier so subsequent reads are fast
+            if (!_aiResultsCache[key]) _aiResultsCache[key] = {};
+            _aiResultsCache[key][index] = entry.text;
+            return entry.text;
+        } catch(e) { return null; }
     }
 
     // Same proxy list as index.html sitemap fetcher
@@ -1335,7 +1392,7 @@
             : { icon: '✅', label: `${data.titleLength} chars`, color: '#059669' };
 
         const altLabel = data.imageCount === 0
-            ? '— No images'
+            ? 'No images'
             : data.imagesWithoutAlt === 0
             ? `✅ ${data.imageCount} img, all have alt`
             : `⚠️ ${data.imagesWithoutAlt}/${data.imageCount} missing alt`;
@@ -1409,13 +1466,13 @@
         if (wsComputed) {
             const { ws, esc, passivePct, passiveWarn, complexWarn, contractionWarn, adverbWarn, transitionLow } = wsComputed;
             const fixes = [];
-            if (data.longSentences.length > 0)  fixes.push(`${data.longSentences.length} sentence${data.longSentences.length > 1 ? 's' : ''} over 20 words \u2014 shorten them`);
-            if (passiveWarn)                     fixes.push(`Passive voice ${passivePct}% (${ws.passiveSentenceCount} sentences) \u2014 rewrite to start with the subject`);
-            if (transitionLow)                   fixes.push(`Transitions ${ws.transitionCoverage}% \u2014 add however / therefore / also between paragraphs`);
-            if (contractionWarn)                 fixes.push(`No contractions \u2014 try don\u2019t, can\u2019t, you\u2019ll to sound less formal`);
-            if (complexWarn)                     fixes.push(`Complex words ${ws.complexWordPct}% \u2014 replace 3+ syllable words with simpler alternatives`);
-            if (ws.nominalisationCount > 3)      fixes.push(`${ws.nominalisationCount} bureaucratic phrases \u2014 see list below`);
-            if (adverbWarn && fixes.length < 3)  fixes.push(`Adverbs ${ws.adverbPct}% \u2014 remove or replace -ly adverbs`);
+            if (data.longSentences.length > 0)  fixes.push(`${data.longSentences.length} sentence${data.longSentences.length > 1 ? 's' : ''} over 20 words: shorten them`);
+            if (passiveWarn)                     fixes.push(`Passive voice ${passivePct}% (${ws.passiveSentenceCount} sentences): rewrite to start with the subject`);
+            if (transitionLow)                   fixes.push(`Transitions ${ws.transitionCoverage}%: add however / therefore / also between paragraphs`);
+            if (contractionWarn)                 fixes.push(`No contractions: try don\u2019t, can\u2019t, you\u2019ll to sound less formal`);
+            if (complexWarn)                     fixes.push(`Complex words ${ws.complexWordPct}%: replace 3+ syllable words with simpler alternatives`);
+            if (ws.nominalisationCount > 3)      fixes.push(`${ws.nominalisationCount} bureaucratic phrases: see list below`);
+            if (adverbWarn && fixes.length < 3)  fixes.push(`Adverbs ${ws.adverbPct}%: remove or replace -ly adverbs`);
             if (fixes.length > 0) {
                 topFixesHtml = `<div style="background: var(--color-bg-secondary); border-radius: 10px; padding: 11px 13px; border: 1px solid var(--color-border-primary); border-left: 3px solid #4f46e5; margin-bottom: 10px;">
                     <div style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #4f46e5; margin-bottom: 7px;">&#127919; Top things to fix</div>
@@ -1464,7 +1521,7 @@
             // Long sentences — collapsible list
             const longSentDetailsHtml = data.longSentences.length > 0
                 ? `<details${data.longSentences.length <= 3 ? ' open' : ''} style="margin-bottom:4px;">` +
-                    `<summary style="font-size:0.72rem;font-weight:600;color:#d97706;cursor:pointer;list-style:none;padding:4px 0;">\u26a0\ufe0f ${data.longSentences.length} long sentence${data.longSentences.length > 1 ? 's' : ''} \u2014 see list${_tooltipLongBreakdown}</summary>` +
+                    `<summary style="font-size:0.72rem;font-weight:600;color:#d97706;cursor:pointer;list-style:none;padding:4px 0;">\u26a0\ufe0f ${data.longSentences.length} long sentence${data.longSentences.length > 1 ? 's' : ''}${_tooltipLongBreakdown}</summary>` +
                     `<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-left:4px;padding-bottom:4px;">` +
                         data.longSentences.map(s => {
                             const wc = s.split(/\s+/).filter(w => w.length > 0).length;
@@ -1572,7 +1629,7 @@
                     </div>
                     <div>
                         <div style="font-size: 0.6rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;">Language</div>
-                        <div style="font-size: 0.7rem; color: var(--color-text-secondary);">${data.pageLanguage ? `🌐 ${data.pageLanguage}` : '<span style="color: var(--color-text-muted);">— Not set</span>'}</div>
+                        <div style="font-size: 0.7rem; color: var(--color-text-secondary);">${data.pageLanguage ? `🌐 ${data.pageLanguage}` : '<span style="color: var(--color-text-muted);">Not set</span>'}</div>
                     </div>
                     <div>
                         <div style="font-size: 0.6rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;">Links</div>
@@ -1580,7 +1637,7 @@
                     </div>
                     <div>
                         <div style="font-size: 0.6rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px;">Schema</div>
-                        <div style="font-size: 0.7rem; line-height: 1.6;">${data.schemaTypes.length > 0 ? schemaBadgesHtml : '<span style="color: var(--color-text-muted);">— None</span>'}</div>
+                        <div style="font-size: 0.7rem; line-height: 1.6;">${data.schemaTypes.length > 0 ? schemaBadgesHtml : '<span style="color: var(--color-text-muted);">None</span>'}</div>
                     </div>
                 </div>
                 ${metaPreview}
@@ -1750,15 +1807,30 @@
         ];
     }
 
+    // Derives a human-readable topic from a URL slug, e.g.
+    // "/benefits/disability-allowance" → "Disability allowance"
+    function _slugToTopic(href) {
+        try {
+            var segs = (new URL(href, 'https://x').pathname).split('/').filter(Boolean);
+            if (!segs.length) return '';
+            var last = segs[segs.length - 1].replace(/[-_]/g, ' ').replace(/\.\w+$/, '').trim();
+            return last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
+        } catch(e) { return ''; }
+    }
+
     function _buildWeakAnchorsPrompt(weakLinks, data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('weak-anchors')
-            : { system: 'You are a content editor for citizensinformation.ie, an Irish government information website. Each item is a generic hyperlink anchor text with its destination URL. Suggest descriptive replacement anchor text for each. Respond with a numbered list only — one suggestion per number, matching the original order. Keep each under 8 words. No preamble.', userPrefix: 'Suggest descriptive anchor text for each weak link. Number each:' };
+            : { system: 'You are a content editor for citizensinformation.ie, an Irish government information website. Each item shows a generic hyperlink anchor text and its destination URL, and may also include surrounding context. Suggest descriptive replacement anchor text for each. Base each suggestion only on the URL, any visible slug text, and any context provided. Do not invent destination content that is not evident from the input. Keep each suggestion specific, natural, and under 8 words. Respond with a numbered list only — one suggestion per number, matching the original order. No preamble.', userPrefix: 'Suggest descriptive anchor text for each weak link. Number each:' };
+        const items = weakLinks.slice(0, 8).map(function(lk, i) {
+            var topic = _slugToTopic(lk.href);
+            var line  = (i + 1) + '. Anchor: "' + lk.text + '" | URL: ' + lk.href;
+            if (topic) line += ' | Topic: ' + topic;
+            return line;
+        }).join('\n');
         return [
             { role: 'system', content: p.system },
-            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' +
-                weakLinks.slice(0, 8).map((lk, i) => `${i + 1}. "${lk.text}" → ${lk.href}`).join('\n')
-            },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + items },
         ];
     }
 
@@ -1823,7 +1895,7 @@
         const queries = ((data._gsc && data._gsc.topQueries) || [])
             .slice().sort(function(a, b) { return b.impressions - a.impressions; })
             .slice(0, 10)
-            .map(function(q, i) { return (i + 1) + '. "' + q.query + '" \u2014 ' + q.impressions + ' impressions, pos ' + q.position.toFixed(1) + ', CTR ' + (q.ctr * 100).toFixed(1) + '%'; })
+            .map(function(q, i) { return (i + 1) + '. "' + q.query + '" (' + q.impressions + ' impressions, pos ' + q.position.toFixed(1) + ', CTR ' + (q.ctr * 100).toFixed(1) + '%)'; })
             .join('\n');
         const headings = (data.h2Texts || []).map(function(h, i) { return (i + 1) + '. "' + h + '"'; }).join('\n') || '(no H2 headings)';
         // Use sentence texts for full coverage — much more comprehensive than just first few paragraphs
@@ -2602,15 +2674,15 @@
                     const dm = alts ? '' : ` data-datamuse-word="${esc(m.text.toLowerCase())}"`;
                     html += `<mark data-overlay="complex" title="${esc(titleStr)}"${dm}>${esc(m.text)}</mark>`;
                 } else if (m.type === 'hedge') {
-                    html += `<mark data-overlay="hedge" title="Hedge word \u2014 be more direct: remove or replace \u2018${esc(m.text)}\u2019">${esc(m.text)}</mark>`;
+                    html += `<mark data-overlay="hedge" title="Hedge word: consider removing or replacing \u2018${esc(m.text)}\u2019">${esc(m.text)}</mark>`;
                 } else if (m.type === 'transition') {
-                    html += `<mark data-overlay="transition" title="Transition word \u2014 good: shows logical flow between ideas">${esc(m.text)}</mark>`;
+                    html += `<mark data-overlay="transition" title="Transition word: good, shows logical flow between ideas">${esc(m.text)}</mark>`;
                 } else if (m.type === 'directaddress') {
-                    html += `<mark data-overlay="directaddress" title="Direct address \u2014 good: speaks directly to the reader">${esc(m.text)}</mark>`;
+                    html += `<mark data-overlay="directaddress" title="Direct address: good, speaks directly to the reader">${esc(m.text)}</mark>`;
                 } else if (m.type === 'adverb') {
-                    html += `<mark data-overlay="adverb" title="Adverb \u2014 consider a stronger verb instead (e.g. \u2018walked quickly\u2019 \u2192 \u2018strode\u2019)">${esc(m.text)}</mark>`;
+                    html += `<mark data-overlay="adverb" title="Adverb: consider a stronger verb instead (e.g. \u2018walked quickly\u2019 \u2192 \u2018strode\u2019)">${esc(m.text)}</mark>`;
                 } else {
-                    html += `<mark data-overlay="nominalisation" title="Nominalisation \u2014 use the verb form instead: ${esc(m.suggest)}">${esc(m.text)}</mark>`;
+                    html += `<mark data-overlay="nominalisation" title="Nominalisation: use the verb form instead: ${esc(m.suggest)}">${esc(m.text)}</mark>`;
                 }
                 pos = m.end;
             }
@@ -2788,8 +2860,8 @@
             `<button class="pi-overlay-btn active" data-overlay="complex" title="Uncommon or long words. Hover a highlighted word for simpler alternatives.">Complex words <span class="pi-badge" style="background:#6366f1;">${complexCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="hedge" title="Vague, non-committal language (might, possibly, could). Be more direct and specific.">Hedge words <span class="pi-badge" style="background:#ca8a04;">${hedgeCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="nominalisation" title="Verb ideas turned into nouns (discussion of \u2192 discuss). Use the verb form.">Nominalisations <span class="pi-badge" style="background:#ea580c;">${nomCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="transition" title="Words that connect ideas (however, therefore, also). Good \u2014 target: >15% of sentences.">Transitions <span class="pi-badge" style="background:#16a34a;">${transitionCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="directaddress" title="Words that speak to the reader (you, your). Good \u2014 target: \u22652% of words.">Direct address <span class="pi-badge" style="background:#0891b2;">${directAddrCount}</span></button>` +
+            `<button class="pi-overlay-btn active" data-overlay="transition" title="Words that connect ideas (however, therefore, also). Good: target >15% of sentences.">Transitions <span class="pi-badge" style="background:#16a34a;">${transitionCount}</span></button>` +
+            `<button class="pi-overlay-btn active" data-overlay="directaddress" title="Words that speak to the reader (you, your). Good: target \u22652% of words.">Direct address <span class="pi-badge" style="background:#0891b2;">${directAddrCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="adverb" title="Words ending in -ly. Replace with stronger verbs where possible. Target: <5% of words.">Adverbs (-ly) <span class="pi-badge" style="background:#7c3aed;">${adverbCount}</span></button>` +
             `<button class="pi-doc-clear-filters" title="Reset all overlays to visible">\u2715 Clear all</button>` +
             `</div>` +
@@ -2808,21 +2880,21 @@
             `<summary style="cursor:pointer;color:var(--color-text-muted);font-size:0.68rem;user-select:none;list-style:none;display:inline-flex;align-items:center;gap:4px;">` +
             `<span style="font-size:0.65rem;">&#9654;</span> Show key</summary>` +
             `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 24px;margin-top:8px;padding:10px 12px;background:var(--color-bg-secondary);border-radius:6px;border:1px solid var(--color-border-primary);">` +
-            keyRow(swatchBox('rgba(220,38,38,0.25)'),   'Long sentences',  'Sentences over 20 words \u2014 aim for shorter, clearer sentences') +
-            keyRow(swatchBox('rgba(249,115,22,0.2)'),   'Passive voice',   '\u201cIt was done by\u2026\u201d \u2014 rewrite as active voice') +
+            keyRow(swatchBox('rgba(220,38,38,0.25)'),   'Long sentences',  'Sentences over 20 words: aim for shorter, clearer sentences') +
+            keyRow(swatchBox('rgba(249,115,22,0.2)'),   'Passive voice',   '\u201cIt was done by\u2026\u201d: rewrite as active voice') +
             keyRow(swatchBox('rgba(99,102,241,0.18)'),  'Complex words',   'Hover for simpler alternatives') +
-            keyRow(swatchBox('rgba(234,179,8,0.3)'),    'Hedge words',     'Vague language \u2014 be direct and specific') +
-            keyRow(swatchBox('rgba(234,88,12,0.2)'),    'Nominalisations', 'Noun form of a verb \u2014 use the verb instead') +
-            keyRow(swatchBox('rgba(22,163,74,0.25)'),   'Transitions',     'Connecting words \u2014 shows good logical structure (target >15% of sentences)') +
-            keyRow(swatchBox('rgba(6,182,212,0.2)'),    'Direct address',  'You/your \u2014 good: speaks directly to the reader (target \u22652%)') +
+            keyRow(swatchBox('rgba(234,179,8,0.3)'),    'Hedge words',     'Vague language: be direct and specific') +
+            keyRow(swatchBox('rgba(234,88,12,0.2)'),    'Nominalisations', 'Noun form of a verb: use the verb instead') +
+            keyRow(swatchBox('rgba(22,163,74,0.25)'),   'Transitions',     'Connecting words: shows good logical structure (target >15% of sentences)') +
+            keyRow(swatchBox('rgba(6,182,212,0.2)'),    'Direct address',  'You/your: speaks directly to the reader (target \u22652%)') +
             keyRow(swatchBox('rgba(168,85,247,0.2)'),   'Adverbs (-ly)',   'Replace with a stronger verb where possible (target <5%)') +
             `</div></details>`;
 
         const metaCharCount = data.metaDescText ? data.metaDescText.length : 0;
         const metaCharNote = metaCharCount > 155
-            ? ' &mdash; <strong style="color:#dc2626;">too long</strong>'
+            ? ' <strong style="color:#dc2626;">(too long)</strong>'
             : metaCharCount > 0 && metaCharCount < 70
-                ? ' &mdash; <span style="color:#ca8a04;">too short</span>'
+                ? ' <span style="color:#ca8a04;">(too short)</span>'
                 : '';
         const metaBanner = data.metaDescText
             ? `<div class="pi-doc-meta-banner">
@@ -2837,7 +2909,7 @@
                    <div class="pi-doc-meta-header">
                        <span class="pi-doc-meta-label">Meta description</span>
                    </div>
-                   <p class="pi-doc-meta-missing">No meta description set &mdash; this page won&rsquo;t display a preview snippet in search results.</p>
+                   <p class="pi-doc-meta-missing">No meta description set. This page won&rsquo;t display a preview snippet in search results.</p>
                    <div id="pi-doc-meta-ai"></div>
                </div>`;
 
@@ -3272,7 +3344,8 @@
     // ─── Full Report (dashboard tab) ────────────────────────────────────────
 
     function renderFullResults(container, data, url) {
-        _aiResultsCache = {}; // reset per-analysis so results never bleed across URLs
+        _currentAnalysisUrl = url || '';
+        _aiResultsCache = {}; // reset session tier per-analysis so results never bleed across URLs
         const isDark = window.__isDarkTheme || document.body.classList.contains('dark-theme');
         const grade = data.readabilityScore !== null ? readabilityGrade(data.readabilityScore) : null;
         const scoreColor = grade ? (isDark ? grade.darkColor : grade.color) : 'var(--color-text-secondary)';
@@ -3328,7 +3401,7 @@
 
         // ── Noindex banner (dark-mode fix) ──
         const noindexBanner = data.isNoindex
-            ? `<div style="background:var(--color-danger-bg);border:1px solid var(--color-border-primary);border-radius:10px;padding:10px 18px;margin-bottom:14px;font-size:0.82rem;font-weight:700;color:#dc2626;text-align:center;">⛔ NOINDEX — Google will not index this page</div>`
+            ? `<div style="background:var(--color-danger-bg);border:1px solid var(--color-border-primary);border-radius:10px;padding:10px 18px;margin-bottom:14px;font-size:0.82rem;font-weight:700;color:#dc2626;text-align:center;">⛔ NOINDEX: Google will not index this page</div>`
             : '';
 
         // ── SEO Health score ──
@@ -3362,13 +3435,13 @@
             _adverbWarn  = ws.adverbPct >= 5;
             _contrWarn   = ws.contractionCount === 0 && data.wordCount > 300;
             _transLow    = ws.transitionCoverage < 15 && data.wordCount > 300;
-            if (allLong.length > 0)             allFixes.push(`${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words \u2014 shorten them`);
-            if (_passiveWarn)                   allFixes.push(`Passive voice ${_passivePct}% (${ws.passiveSentenceCount} sentences) \u2014 rewrite sentences to start with the subject`);
-            if (_transLow)                      allFixes.push(`Transitions ${ws.transitionCoverage}% \u2014 add however / therefore / also between paragraphs`);
-            if (_contrWarn)                     allFixes.push(`No contractions \u2014 try don\u2019t, can\u2019t, you\u2019ll to sound less formal`);
-            if (_complexWarn)                   allFixes.push(`Complex words ${ws.complexWordPct}% \u2014 replace 3+ syllable words with simpler alternatives`);
-            if (ws.nominalisationCount > 3)     allFixes.push(`${ws.nominalisationCount} bureaucratic phrases \u2014 see list below`);
-            if (_adverbWarn)                    allFixes.push(`Adverbs ${ws.adverbPct}% \u2014 remove or replace -ly adverbs`);
+            if (allLong.length > 0)             allFixes.push(`${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words: shorten them`);
+            if (_passiveWarn)                   allFixes.push(`Passive voice ${_passivePct}% (${ws.passiveSentenceCount} sentences): rewrite sentences to start with the subject`);
+            if (_transLow)                      allFixes.push(`Transitions ${ws.transitionCoverage}%: add however / therefore / also between paragraphs`);
+            if (_contrWarn)                     allFixes.push(`No contractions: try don\u2019t, can\u2019t, you\u2019ll to sound less formal`);
+            if (_complexWarn)                   allFixes.push(`Complex words ${ws.complexWordPct}%: replace 3+ syllable words with simpler alternatives`);
+            if (ws.nominalisationCount > 3)     allFixes.push(`${ws.nominalisationCount} bureaucratic phrases: see list below`);
+            if (_adverbWarn)                    allFixes.push(`Adverbs ${ws.adverbPct}%: remove or replace -ly adverbs`);
         }
 
         // ── [1] KPI Hero Strip ──
@@ -3436,7 +3509,7 @@
                     </div>
                     ${data.schemaTypes.length > 0
                         ? `<div><span style="font-size:0.66rem;font-weight:700;color:var(--color-text-muted);">SCHEMA </span>${data.schemaTypes.map(t => `<span style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:1px 7px;font-size:0.68rem;font-weight:600;color:var(--color-text-primary);margin-right:4px;">${esc(t)}</span>`).join('')}</div>`
-                        : `<div style="font-size:0.74rem;color:var(--color-text-muted);">No schema markup found — consider adding for richer Google results.</div>`
+                        : `<div style="font-size:0.74rem;color:var(--color-text-muted);">No schema markup found. Consider adding for richer Google results.</div>`
                     }
                 </div>
             </div>
@@ -3482,7 +3555,7 @@
                 badges += `<span style="font-size:0.6rem;color:${missingNoopener ? '#d97706' : 'var(--color-text-muted)'};background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:0 4px;margin-left:5px;flex-shrink:0;line-height:1.6;">${missingNoopener ? '⚠ new tab' : 'new tab'}</span>`;
             }
             if (lkImg) badges += `<span style="font-size:0.6rem;color:var(--color-text-muted);background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:0 4px;margin-left:5px;flex-shrink:0;line-height:1.6;">img link</span>`;
-            if (isWeak) badges += `<span style="font-size:0.65rem;color:#9ca3af;margin-left:5px;flex-shrink:0;" title="Generic anchor text — consider something more descriptive">⚠</span>`;
+            if (isWeak) badges += `<span style="font-size:0.65rem;color:#9ca3af;margin-left:5px;flex-shrink:0;" title="Generic anchor text: consider something more descriptive">⚠</span>`;
             return badges;
         };
 
@@ -3675,7 +3748,7 @@
                         : `<div style="font-size:0.76rem;color:var(--color-text-muted);">No passive voice detected.</div>`) +
                     `<div style="margin-top:8px;font-size:0.72rem;color:var(--color-text-muted);line-height:1.5;font-style:italic;">Passive voice is sometimes appropriate when the actor is unknown, the focus is on the person affected, or legal wording requires it.</div>` +
                     (passiveWarn
-                        ? `<div style="margin-top:10px;padding:8px 12px;background:var(--color-bg-secondary);border-radius:6px;font-size:0.72rem;line-height:1.6;color:var(--color-text-secondary);"><span style="font-weight:600;">Tip \u2014 name the actor:</span><br>Passive: <em>&ldquo;The complaint will be investigated.&rdquo;</em><br>Active: <em>&ldquo;The organisation will investigate the complaint.&rdquo;</em></div>`
+                        ? `<div style="margin-top:10px;padding:8px 12px;background:var(--color-bg-secondary);border-radius:6px;font-size:0.72rem;line-height:1.6;color:var(--color-text-secondary);"><span style="font-weight:600;">Tip: name the actor</span><br>Passive: <em>&ldquo;The complaint will be investigated.&rdquo;</em><br>Active: <em>&ldquo;The organisation will investigate the complaint.&rdquo;</em></div>`
                         : '') +
                 `</div></details>`;
 
