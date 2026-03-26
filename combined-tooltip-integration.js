@@ -1979,11 +1979,11 @@ function showDashboardModal(htmlContent) {
     const existing = document.getElementById('unified-dashboard-modal');
     if (existing) existing.remove();
 
-    // Measure the nav bar height dynamically so the panel sits exactly below it
+    // Measure nav bar height so the panel sits exactly below it
     const navBar = document.getElementById('navBar');
     const navHeight = navBar ? navBar.offsetHeight : 48;
 
-    // Full-screen panel — sits below the nav bar, fills the rest of the viewport
+    // Full-screen panel — below the nav bar, fills the rest of the viewport
     const panel = document.createElement('div');
     panel.id = 'unified-dashboard-modal';
     panel.style.cssText = `
@@ -1995,68 +1995,44 @@ function showDashboardModal(htmlContent) {
         z-index: 998;
         background: var(--color-bg-primary);
         overflow-y: auto;
-        opacity: 0;
-        transform: translateY(14px);
-        transition: opacity 0.22s ease, transform 0.22s ease;
+        transform: translateY(100%);
+        transition: transform 0.42s cubic-bezier(0.33, 1, 0.68, 1);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
 
-    // Close/dismiss logic
+    // Dismiss: slide back down. ease-in cubic for the exit feels snappier.
     const closeFn = () => {
-        panel.style.opacity = '0';
-        panel.style.transform = 'translateY(14px)';
+        panel.style.transition = 'transform 0.32s cubic-bezier(0.32, 0, 0.67, 0)';
+        panel.style.transform = 'translateY(100%)';
         document.removeEventListener('keydown', escHandler);
-        setTimeout(() => { if (panel.parentNode) panel.remove(); }, 220);
+        if (navBar) navBar.removeEventListener('click', navClickHandler);
+        setTimeout(() => { if (panel.parentNode) panel.remove(); }, 340);
     };
 
-    // Sticky "← Back to sitemap" strip
-    const backBar = document.createElement('div');
-    backBar.style.cssText = `
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: var(--color-bg-primary);
-        border-bottom: 1px solid var(--color-border-primary);
-        padding: 7px 20px;
-        display: flex;
-        align-items: center;
-    `;
-
-    const backBtn = document.createElement('button');
-    backBtn.innerHTML = '&#8592; Back to sitemap';
-    backBtn.style.cssText = `
-        background: none;
-        border: none;
-        color: var(--color-text-secondary);
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-        padding: 0;
-        letter-spacing: 0.01em;
-        transition: color 0.15s;
-    `;
-    backBtn.addEventListener('mouseenter', () => { backBtn.style.color = 'var(--color-text-primary)'; });
-    backBtn.addEventListener('mouseleave', () => { backBtn.style.color = 'var(--color-text-secondary)'; });
-    backBtn.addEventListener('click', closeFn);
-
-    backBar.appendChild(backBtn);
-
-    // Dashboard content
-    const content = document.createElement('div');
-    content.innerHTML = htmlContent;
-
-    panel.appendChild(backBar);
-    panel.appendChild(content);
-    document.body.appendChild(panel);
+    // Any click inside the nav bar slides the panel away,
+    // except utility toggles that don't navigate (GSC/GA4, AI settings, theme, search)
+    const NAV_EXCEPTIONS = ['#integrationsNav', '.nav-ai-btn', '.nav-theme-btn', '.nav-search'];
+    const navClickHandler = (e) => {
+        const isException = NAV_EXCEPTIONS.some(sel => e.target.closest(sel));
+        if (!isException) closeFn();
+    };
+    if (navBar) navBar.addEventListener('click', navClickHandler);
 
     // Escape key
     const escHandler = (e) => { if (e.key === 'Escape') closeFn(); };
     document.addEventListener('keydown', escHandler);
 
-    // Slide/fade in
+    // Dashboard content
+    const content = document.createElement('div');
+    content.innerHTML = htmlContent;
+    panel.appendChild(content);
+    document.body.appendChild(panel);
+
+    // Slide up from below — defer one frame so the initial transform is painted first
     requestAnimationFrame(() => {
-        panel.style.opacity = '1';
-        panel.style.transform = 'translateY(0)';
+        requestAnimationFrame(() => {
+            panel.style.transform = 'translateY(0)';
+        });
     });
 }
 
