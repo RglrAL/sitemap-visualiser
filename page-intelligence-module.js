@@ -1903,6 +1903,45 @@
         });
     }
 
+    // After _renderHedgeCards fills hedgeMount, move each card to appear immediately
+    // after the first paragraph containing the matching hedge <mark> in the document body.
+    // Hides hedgeMount once all cards are distributed.
+    function _distributeHedgeCards(hedgeMount, hedgeAll, panel) {
+        var body = panel.querySelector('.pi-doc-body');
+        if (!body) return;
+        var cards = Array.prototype.slice.call(hedgeMount.children);
+        var marks = Array.prototype.slice.call(body.querySelectorAll('mark[data-overlay="hedge"]'));
+        cards.forEach(function(card, i) {
+            var phrase = hedgeAll[i] ? hedgeAll[i].phrase : null;
+            if (!phrase) return;
+            var phraseLower = phrase.toLowerCase();
+            var targetMark = null;
+            for (var m = 0; m < marks.length; m++) {
+                if (marks[m].textContent.toLowerCase() === phraseLower) {
+                    targetMark = marks[m]; break;
+                }
+            }
+            if (!targetMark) return;
+            // Walk up to find the direct child of .pi-doc-body
+            var block = targetMark.parentElement;
+            while (block && block.parentElement && block.parentElement !== body) {
+                block = block.parentElement;
+            }
+            if (!block || block === body) return;
+            var wrapper = document.createElement('div');
+            wrapper.className = 'pi-doc-hedge-inline';
+            wrapper.style.cssText = 'margin:2px 0 8px 0;';
+            wrapper.appendChild(card);
+            if (block.nextSibling) {
+                block.parentNode.insertBefore(wrapper, block.nextSibling);
+            } else {
+                block.parentNode.appendChild(wrapper);
+            }
+        });
+        hedgeMount.style.display = 'none';
+        hedgeMount.innerHTML = '';
+    }
+
     // Returns card HTML string.
     // opts  = AI_ISSUE_OPTS entry — adds colored issue pill and optional labelText override.
     // extra = optional HTML string inserted between header and body (e.g. original text line).
@@ -2958,6 +2997,7 @@
             if (hedgeCached.length > 0) {
                 var fakeLines = hedgeCached.map(function(h, i) { return (i + 1) + '. ' + h.text; });
                 _renderHedgeCards(hedgeMount, fakeLines, hedgeAll.slice(0, hedgeCached.length));
+                _distributeHedgeCards(hedgeMount, hedgeAll.slice(0, hedgeCached.length), panel);
                 anyPrefilled = true;
             }
         }
@@ -3002,6 +3042,7 @@
                 pair.slot.innerHTML = '';
             });
             if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
+            panel.querySelectorAll('.pi-doc-hedge-inline').forEach(function(el) { el.remove(); });
             if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
             clearLink.style.display = 'none';
             reviewBtn.textContent = '✨ AI Review';
@@ -3019,6 +3060,7 @@
                 pair.slot.innerHTML = '';
             });
             if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
+            panel.querySelectorAll('.pi-doc-hedge-inline').forEach(function(el) { el.remove(); });
             if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
             clearLink.style.display = 'none';
             reviewBtn.disabled = true;
@@ -3068,6 +3110,7 @@
                         var items = _parseListItems(hBuffer);
                         if (items.length > 0) {
                             _renderHedgeCards(hedgeMount, items, hedgeAll.slice(0, 6));
+                            _distributeHedgeCards(hedgeMount, hedgeAll.slice(0, 6), panel);
                             var analysisHedgeOutput = document.getElementById('pi-hedge-ai-output');
                             if (analysisHedgeOutput) _renderHedgeCards(analysisHedgeOutput, items, hedgeAll.slice(0, 6));
                         } else {
@@ -3438,7 +3481,7 @@
 
         const internalListHtml = _intShown.length === 0
             ? `<div style="font-size:0.75rem;color:var(--color-text-muted);padding:6px 0;">No internal links found.</div>`
-            : `<div style="max-height:260px;overflow-y:auto;border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);">` +
+            : `<div style="border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);">` +
                 _intShown.map((lk, i) => {
                     const fullHref = _urlOrigin && lk.href.startsWith('/') ? _urlOrigin + lk.href : lk.href;
                     const disp = lk.href.length > 70 ? lk.href.slice(0, 67) + '\u2026' : lk.href;
@@ -3465,7 +3508,7 @@
         const _domains = [..._extMap.entries()].sort((a, b) => b[1].length - a[1].length);
         const externalListHtml = _domains.length === 0
             ? `<div style="font-size:0.75rem;color:var(--color-text-muted);padding:6px 0;">No external links found.</div>`
-            : `<div style="max-height:320px;overflow-y:auto;border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);">` +
+            : `<div style="border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);">` +
                 _domains.map(([domain, links], di) => {
                     const capped = links.slice(0, 30);
                     const over = links.length - capped.length;
