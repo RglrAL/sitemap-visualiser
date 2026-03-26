@@ -54,6 +54,14 @@
             system:     'You are a content editor for citizensinformation.ie, an Irish government information website. Rewrite each H2 heading to be clearer, more action-oriented, and user-focused. Use plain English. Keep each under 8 words. Start with the topic or a verb where possible. Respond with a numbered list only — one rewrite per number, matching the original order. No preamble.',
             userPrefix: 'Rewrite these H2 headings to be clearer. Number each:',
         },
+        'nominalisations': {
+            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Each item shows a nominalisation (a verb idea turned into a noun phrase) and its verb-form replacement, plus an example sentence. Rewrite the example sentence to use the verb form naturally. Keep all meaning. Use plain English. Respond with a numbered list only — one rewrite per number. No preamble.',
+            userPrefix: 'Rewrite each sentence to replace the nominalisation with the verb form. Number each:',
+        },
+        'search-intent': {
+            system:     'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s current H2 headings, and its introduction. Identify queries whose topic or intent is NOT clearly addressed by any heading or the introduction. For each gap, suggest one concrete editorial action: a new H2 to add, an existing heading to rename to match user language, or an intro sentence to add. Be specific — quote the query and name the gap. Respond with a numbered list only — one gap per number. Maximum 5 items. No preamble.',
+            userPrefix: 'Identify content gaps between the search queries and the page headings/intro.',
+        },
     };
 
     // Prompt metadata for the library UI
@@ -74,6 +82,8 @@
         { key: 'page-intro',       name: 'Page Introduction',     description: 'Rewrites the first 2–3 paragraphs to be clearer, more direct, and action-oriented.' },
         { key: 'hedge-words',      name: 'Hedge Words',           description: 'Suggests direct, confident rewrites for vague language like "might", "possibly", "could be considered".' },
         { key: 'h2-headings',      name: 'H2 Headings',           description: 'Rewrites H2 headings to be clearer and more action-oriented, under 8 words each.' },
+        { key: 'nominalisations',  name: 'Nominalisations',       description: 'Rewrites sentences to replace noun-form bureaucratic phrases ("discussion of") with their verb form ("discuss").' },
+        { key: 'search-intent',    name: 'Search Intent',         description: 'Compares top GSC search queries against page headings and intro to identify content gaps and suggest specific editorial actions.' },
     ];
 
     // ─── Private state ────────────────────────────────────────────────────────
