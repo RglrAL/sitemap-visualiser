@@ -1635,6 +1635,51 @@
         return false;
     }
 
+    // Parses structured Query/Gap/Action blocks from search-intent AI output.
+    // Returns array of { query, gap, action } objects.
+    // Falls back gracefully if the model didn't follow the format.
+    function _parseSearchIntentItems(text) {
+        var items = [];
+        // Split on lines that begin a new numbered item
+        var chunks = text.split(/(?=^\d+\.)/m);
+        chunks.forEach(function(chunk) {
+            chunk = chunk.trim();
+            if (!chunk) return;
+            var q = chunk.match(/Query:\s*[""\u201c\u201d]?(.+?)[""\u201c\u201d]?\s*(?:\n|$)/i);
+            var g = chunk.match(/Gap:\s*(.+?)(?:\n|$)/i);
+            var a = chunk.match(/Action:\s*(.+?)(?:\n|$)/i);
+            if (q || g || a) {
+                items.push({
+                    query:  q ? q[1].replace(/[""'']/g, '').trim() : '',
+                    gap:    g ? g[1].trim() : '',
+                    action: a ? a[1].trim() : '',
+                });
+            }
+        });
+        return items;
+    }
+
+    // Renders a single structured search-intent card (Query / Gap / Action).
+    // Returns HTML string. Copy text is the formatted Action line.
+    function _buildSearchIntentCard(item) {
+        var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        var opts  = AI_ISSUE_OPTS['search-intent'];
+        var copyText = [
+            item.query  ? 'Query: '  + item.query  : '',
+            item.gap    ? 'Gap: '    + item.gap    : '',
+            item.action ? 'Action: ' + item.action : '',
+        ].filter(Boolean).join('\n');
+        return '<div class="pi-ai-card" style="border:1px solid ' + opts.border + ';background:' + opts.bg + ';border-radius:8px;padding:10px 12px;margin-bottom:8px;">' +
+            '<div class="pi-ai-card-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+                '<span class="pi-ai-label" style="font-size:0.62rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:' + opts.color + ';background:' + opts.bg + ';border:1px solid ' + opts.border + ';border-radius:10px;padding:2px 8px;">' + opts.label + '</span>' +
+                '<button class="pi-copy-btn" style="font-size:0.65rem;padding:2px 8px;border-radius:6px;border:1px solid ' + opts.border + ';color:' + opts.color + ';background:transparent;cursor:pointer;" data-copy="' + _e(copyText) + '">Copy</button>' +
+            '</div>' +
+            (item.query  ? '<div style="font-size:0.72rem;margin-bottom:4px;"><span style="font-weight:700;color:' + opts.color + ';">Query</span> <span style="color:var(--color-text-muted);">"' + _e(item.query) + '"</span></div>' : '') +
+            (item.gap    ? '<div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:6px;"><span style="font-weight:700;color:var(--color-text-primary);">Gap</span> ' + _e(item.gap) + '</div>' : '') +
+            (item.action ? '<div style="font-size:0.8rem;color:var(--color-text-primary);"><span style="font-weight:700;">Action</span> ' + _e(item.action) + '</div>' : '') +
+        '</div>';
+    }
+
     function _buildLongSentencesPrompt(sentences, data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('long-sentences')
@@ -1770,7 +1815,7 @@
     function _buildSearchIntentPrompt(data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('search-intent')
-            : { system: 'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s H2 headings, and the full page body text. Identify queries whose topic or intent is NOT addressed anywhere in the page content — not in the headings, not in the body text. Only flag a true gap: a topic the page genuinely does not cover. Do NOT flag a gap if the topic appears anywhere in the body text, even if it is not a heading. For each real gap, suggest one concrete editorial action: a new H2 to add, or an intro sentence to add. Be specific — quote the query. Respond with a numbered list only — one gap per number. Maximum 5 items. If there are no real gaps, say "No content gaps found." No preamble.', userPrefix: 'Identify content gaps between the search queries and the full page content.' };
+            : { system: 'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s H2 headings, and the full body text. Identify queries whose topic or intent is NOT covered anywhere in the body text. Only flag a true gap — do NOT flag if the topic appears anywhere in the body text, even if it lacks a dedicated heading. For each genuine gap respond in exactly this format:\n\n1. Query: [the search query]\n   Gap: [what is missing — one sentence]\n   Action: [one specific editorial action, e.g. add H2 "X", rename heading "Y" to "Z", add intro sentence about X]\n\nMaximum 5 items. Use this format exactly. No preamble, no other text.', userPrefix: 'Identify content gaps. Use the Query / Gap / Action format for each:' };
         const queries = ((data._gsc && data._gsc.topQueries) || [])
             .slice().sort(function(a, b) { return b.impressions - a.impressions; })
             .slice(0, 10)
@@ -2360,20 +2405,36 @@
                     _buildSearchIntentPrompt(data),
                     function(token) { buffer += token; },
                     function() {
-                        const items = _parseListItems(buffer);
-                        if (items.length > 0) {
-                            output.innerHTML = items.map(function(text) {
-                                return _buildCardHTML(text, AI_ISSUE_OPTS['search-intent']);
+                        var structured = _parseSearchIntentItems(buffer);
+                        if (structured.length > 0) {
+                            output.innerHTML = structured.map(function(item) {
+                                return _buildSearchIntentCard(item);
                             }).join('');
-                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn) {
+                                var text = copyBtn.getAttribute('data-copy') || '';
                                 copyBtn.addEventListener('click', function() {
-                                    navigator.clipboard.writeText(items[idx] || '').then(function() {
+                                    navigator.clipboard.writeText(text).then(function() {
                                         copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
                                     });
                                 });
                             });
                         } else {
-                            output.innerHTML = '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No content gaps identified — the page appears to address its top queries well.</div>';
+                            // Fallback: model didn't use structured format — try plain list
+                            var plain = _parseListItems(buffer);
+                            if (plain.length > 0) {
+                                output.innerHTML = plain.map(function(text) {
+                                    return _buildCardHTML(text, AI_ISSUE_OPTS['search-intent']);
+                                }).join('');
+                                output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                                    copyBtn.addEventListener('click', function() {
+                                        navigator.clipboard.writeText(plain[idx] || '').then(function() {
+                                            copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                                        });
+                                    });
+                                });
+                            } else {
+                                output.innerHTML = '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No content gaps identified — the page appears to address its top queries well.</div>';
+                            }
                         }
                         _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Re-analyse';
                     },
