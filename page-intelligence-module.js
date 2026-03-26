@@ -21,7 +21,7 @@
         'weak-anchors':   { label: 'Anchor text',      color: '#10b981', bg: 'rgba(16,185,129,0.09)', border: 'rgba(16,185,129,0.3)' },
         'h2-headings':    { label: 'H2 heading',       color: '#7c3aed', bg: 'rgba(124,58,237,0.09)', border: 'rgba(124,58,237,0.3)' },
         'hedge-words':    { label: 'Hedge word',       color: '#ca8a04', bg: 'rgba(202,138,4,0.09)',  border: 'rgba(202,138,4,0.3)'  },
-        'nominalisations':{ label: 'Nominalisation',   color: '#ea580c', bg: 'rgba(234,88,12,0.09)',  border: 'rgba(234,88,12,0.3)'  },
+        'nominalisations':{ label: 'Bureaucratic phrase', color: '#ea580c', bg: 'rgba(234,88,12,0.09)',  border: 'rgba(234,88,12,0.3)'  },
         'search-intent':  { label: 'Content gap',      color: '#0891b2', bg: 'rgba(8,145,178,0.09)',  border: 'rgba(8,145,178,0.3)'  },
         'page-intro':     { label: 'Page intro',        color: '#6366f1', bg: 'rgba(99,102,241,0.09)', border: 'rgba(99,102,241,0.3)' },
     };
@@ -928,6 +928,118 @@
         });
     }
 
+    // ─── Document Tab — Site Theme System ────────────────────────────────────
+
+    var SITE_THEMES = {
+        'citizensinformation.ie': {
+            accent: '#72A300', nav: '#005F9E', navText: '#ffffff',
+            font: "'Lato', 'Helvetica Neue', Arial, sans-serif",
+            label: 'Citizens Information'
+        },
+        'mabs.ie': {
+            accent: '#0077C8', nav: '#005A96', navText: '#ffffff',
+            font: "'Open Sans', Arial, sans-serif", label: 'MABS'
+        },
+        'gov.ie': {
+            accent: '#004f28', nav: '#004f28', navText: '#ffffff',
+            font: "'Lato', Arial, sans-serif", label: 'gov.ie'
+        }
+    };
+    var _THEME_FALLBACK = {
+        accent: 'var(--color-link)', nav: 'var(--color-bg-secondary)', navText: 'var(--color-text-primary)',
+        font: 'inherit', label: null
+    };
+
+    function _pickContrastText(hex) {
+        if (!hex || hex.charAt(0) !== '#') return '#ffffff';
+        var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        var lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+        return lum > 0.55 ? '#1a1a1a' : '#ffffff';
+    }
+
+    function _buildThemeFromAccent(accent) {
+        return { accent: accent, nav: accent, navText: _pickContrastText(accent), font: 'inherit', label: null };
+    }
+
+    function extractPageTheme(doc, pageUrl) {
+        try {
+            var host = new URL(pageUrl).hostname.replace(/^www\./, '');
+            for (var key in SITE_THEMES) {
+                if (host === key || host.endsWith('.' + key)) return SITE_THEMES[key];
+            }
+            var metaTheme = doc.querySelector('meta[name="theme-color"]');
+            if (metaTheme && /^#[0-9a-f]{6}/i.test(metaTheme.getAttribute('content'))) {
+                return _buildThemeFromAccent(metaTheme.getAttribute('content'));
+            }
+            var styleEls = doc.querySelectorAll('style');
+            for (var s = 0; s < styleEls.length; s++) {
+                var m = styleEls[s].textContent.match(/--(?:color-primary|brand-color|theme-color|primary-color)\s*:\s*(#[0-9a-f]{6})/i);
+                if (m) return _buildThemeFromAccent(m[1]);
+            }
+        } catch(e) {}
+        return _THEME_FALLBACK;
+    }
+
+    function slugify(text) {
+        return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+
+    function getH2Slug(text, seen) {
+        var base = 'pi-h2-' + slugify(text);
+        var slug = base, n = 1;
+        while (seen[slug]) { slug = base + '-' + (n++); }
+        seen[slug] = true;
+        return slug;
+    }
+
+    function renderPageHeaderChrome(data, theme, pageUrl) {
+        var _esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        var host = '', pathCrumbs = '';
+        try {
+            var u = new URL(pageUrl);
+            host = u.hostname.replace(/^www\./, '');
+            var parts = u.pathname.split('/').filter(Boolean);
+            if (parts.length > 0) {
+                pathCrumbs = ' \u203a ' + parts.map(function(p) {
+                    return _esc(p.replace(/-/g, ' '));
+                }).join(' \u203a ');
+            }
+        } catch(e) {}
+        var siteLabel = _esc(theme.label || host) + pathCrumbs;
+        var safeUrl = _esc(pageUrl);
+
+        return '<div class="pi-doc-header-chrome" style="' +
+            'background:linear-gradient(135deg,' + theme.nav + ' 0%,' + theme.accent + ' 100%);' +
+            'color:' + theme.navText + ';padding:20px 20px 16px;border-radius:6px 6px 0 0;margin-bottom:0;">' +
+            '<div style="font-size:0.72rem;opacity:0.75;margin-bottom:6px;letter-spacing:0.03em;display:flex;justify-content:space-between;align-items:center;">' +
+                '<span>' + siteLabel + '</span>' +
+                '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="color:' + theme.navText + ';opacity:0.8;font-size:0.7rem;text-decoration:none;border:1px solid currentColor;padding:2px 7px;border-radius:3px;">Open page \u2197</a>' +
+            '</div>' +
+            '<h1 style="margin:0 0 8px;font-size:1.35rem;font-weight:700;line-height:1.3;color:' + theme.navText + ';">' +
+                _esc(data.h1Text || data.titleText || 'Untitled') +
+            '</h1>' +
+            '<div style="font-size:0.75rem;opacity:0.75;display:flex;gap:12px;flex-wrap:wrap;">' +
+                (data.wordCount ? '<span>~' + data.wordCount + ' words</span>' : '') +
+                (data.readingTime ? '<span>' + data.readingTime + ' min read</span>' : '') +
+            '</div>' +
+        '</div>';
+    }
+
+    function renderTOC(data, theme) {
+        if (!data.h2Texts || data.h2Texts.length < 2) return '';
+        var _esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        var seen = {};
+        var isOpen = data.h2Texts.length <= 6;
+        var items = data.h2Texts.map(function(text) {
+            var slug = getH2Slug(text, seen);
+            return '<li style="margin:3px 0;"><a href="#' + slug + '" class="pi-toc-link" style="color:' + theme.accent + ';text-decoration:none;font-size:0.82rem;line-height:1.4;">' + _esc(text) + '</a></li>';
+        }).join('');
+        return '<details class="pi-toc"' + (isOpen ? ' open' : '') + ' style="margin:0 0 12px;padding:10px 14px;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:4px;">' +
+            '<summary style="font-weight:600;font-size:0.8rem;cursor:pointer;color:var(--color-text-secondary);list-style:none;">Contents (' + data.h2Texts.length + ')</summary>' +
+            '<ol style="margin:8px 0 0 16px;padding:0;">' + items + '</ol>' +
+        '</details>';
+    }
+
     function parsePageContent(html, pageUrl) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -955,6 +1067,9 @@
         // noindex detection
         const robotsMeta = doc.querySelector('meta[name="robots"], meta[name="googlebot"]');
         const isNoindex = /noindex/i.test(robotsMeta?.getAttribute('content') || '');
+
+        // Extract theme before noise removal strips <style> tags
+        const theme = extractPageTheme(doc, pageUrl);
 
         // Remove noise before extracting text
         doc.querySelectorAll([
@@ -1180,7 +1295,9 @@
             sentenceLengths,
             sentenceTexts,
             writingStyle,
-            structuredBlocks
+            structuredBlocks,
+            theme,
+            pageUrl
         };
     }
 
@@ -2760,10 +2877,16 @@
             return `<p class="pi-para" style="margin:0 0 18px 0;padding:0;">${buf.join('')}</p>`;
         }
 
+        const _docTheme = data.theme || _THEME_FALLBACK;
+        const h2Seen = {};
+
         function renderBlock(block) {
             switch (block.type) {
                 case 'h1': return `<h1 style="font-size:1.25rem;font-weight:800;color:var(--color-text-heading);margin:24px 0 12px 0;padding:0;">${esc(block.text)}</h1>`;
-                case 'h2': return `<h2 style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);margin:22px 0 10px 0;padding:6px 10px;border-left:4px solid #0891b2;background:var(--color-bg-secondary);border-radius:0 6px 6px 0;">${esc(block.text)}</h2>`;
+                case 'h2': {
+                    const slug = getH2Slug(block.text, h2Seen);
+                    return `<h2 id="${slug}" style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);margin:22px 0 10px 0;padding:6px 10px;border-left:4px solid ${_docTheme.accent};background:var(--color-bg-secondary);border-radius:0 6px 6px 0;">${esc(block.text)}</h2>`;
+                }
                 case 'h3': return `<h3 style="font-size:0.92rem;font-weight:600;color:var(--color-text-secondary);margin:16px 0 8px 0;padding:4px 10px;border-left:3px solid var(--color-border-primary);border-radius:0 4px 4px 0;">${esc(block.text)}</h3>`;
                 case 'h4': return `<h4 style="font-size:0.85rem;font-weight:600;color:var(--color-text-muted);margin:12px 0 6px 0;padding:3px 8px;">${esc(block.text)}</h4>`;
                 case 'p': return renderSentences(block.text);
@@ -2786,14 +2909,14 @@
                         const isHead = block.hasHeader && ri === 0;
                         html += '<tr>' + row.map(cell =>
                             isHead
-                                ? `<th>${esc(cell)}</th>`
+                                ? `<th style="background:${_docTheme.accent};color:${_pickContrastText(_docTheme.accent)};padding:6px 10px;border:1px solid var(--color-border-primary);font-weight:600;text-align:left;">${esc(cell)}</th>`
                                 : `<td>${annotateText(cell)}</td>`
                         ).join('') + '</tr>';
                     });
                     return `<div style="overflow-x:auto;margin-bottom:18px;"><table class="pi-table">${colgroup}${html}</table></div>`;
                 }
                 case 'blockquote':
-                    return `<div class="pi-blockquote">${annotateText(block.text)}</div>`;
+                    return `<div class="pi-blockquote" style="border-left-color:${_docTheme.accent};">${annotateText(block.text)}</div>`;
                 case 'dl': {
                     const pairs = block.items.map(({ term, def }) =>
                         `<dt class="pi-dt">${esc(term)}</dt><dd class="pi-dd">${annotateText(def)}</dd>`
@@ -2826,7 +2949,7 @@
                 if (isH2 || isH3) {
                     flushPara();
                     const hStyle = isH2
-                        ? 'font-size:1.05rem;font-weight:700;color:var(--color-text-primary);margin:22px 0 10px 0;padding:6px 10px;border-left:4px solid #0891b2;background:var(--color-bg-secondary);border-radius:0 6px 6px 0;'
+                        ? `font-size:1.05rem;font-weight:700;color:var(--color-text-primary);margin:22px 0 10px 0;padding:6px 10px;border-left:4px solid ${_docTheme.accent};background:var(--color-bg-secondary);border-radius:0 6px 6px 0;`
                         : 'font-size:0.92rem;font-weight:600;color:var(--color-text-secondary);margin:16px 0 8px 0;padding:4px 10px;border-left:3px solid var(--color-border-primary);border-radius:0 4px 4px 0;';
                     bodyParts.push(`<${isH2 ? 'h2' : 'h3'} style="${hStyle}">${esc(text)}</${isH2 ? 'h2' : 'h3'}>`);
                     continue;
@@ -2894,7 +3017,7 @@
             `<button class="pi-overlay-btn active" data-overlay="passive" title="Passive constructions. Rewrite as active: \u2018The team fixed it\u2019 not \u2018It was fixed by the team\u2019.">Passive voice <span class="pi-badge" style="background:#f97316;">${passiveCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="complex" title="Uncommon or long words. Hover a highlighted word for simpler alternatives.">Complex words <span class="pi-badge" style="background:#6366f1;">${complexCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="hedge" title="Vague, non-committal language (might, possibly, could). Be more direct and specific.">Hedge words <span class="pi-badge" style="background:#ca8a04;">${hedgeCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="nominalisation" title="Verb ideas turned into nouns (discussion of \u2192 discuss). Use the verb form.">Nominalisations <span class="pi-badge" style="background:#ea580c;">${nomCount}</span></button>` +
+            `<button class="pi-overlay-btn active" data-overlay="nominalisation" title="Bureaucratic phrases: verb ideas turned into nouns (discussion of \u2192 discuss). Use the verb form.">Bureaucratic phrases <span class="pi-badge" style="background:#ea580c;">${nomCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="transition" title="Words that connect ideas (however, therefore, also). Good: target >15% of sentences.">Transitions <span class="pi-badge" style="background:#16a34a;">${transitionCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="directaddress" title="Words that speak to the reader (you, your). Good: target \u22652% of words.">Direct address <span class="pi-badge" style="background:#0891b2;">${directAddrCount}</span></button>` +
             `<button class="pi-overlay-btn active" data-overlay="adverb" title="Words ending in -ly. Replace with stronger verbs where possible. Target: <5% of words.">Adverbs (-ly) <span class="pi-badge" style="background:#7c3aed;">${adverbCount}</span></button>` +
@@ -2919,7 +3042,7 @@
             keyRow(swatchBox('rgba(249,115,22,0.2)'),   'Passive voice',   '\u201cIt was done by\u2026\u201d: rewrite as active voice') +
             keyRow(swatchBox('rgba(99,102,241,0.18)'),  'Complex words',   'Hover for simpler alternatives') +
             keyRow(swatchBox('rgba(234,179,8,0.3)'),    'Hedge words',     'Vague language: be direct and specific') +
-            keyRow(swatchBox('rgba(234,88,12,0.2)'),    'Nominalisations', 'Noun form of a verb: use the verb instead') +
+            keyRow(swatchBox('rgba(234,88,12,0.2)'),    'Bureaucratic phrases', 'Noun form of a verb: use the verb instead (e.g. \u201cdiscussion of\u201d \u2192 \u201cdiscuss\u201d)') +
             keyRow(swatchBox('rgba(22,163,74,0.25)'),   'Transitions',     'Connecting words: shows good logical structure (target >15% of sentences)') +
             keyRow(swatchBox('rgba(6,182,212,0.2)'),    'Direct address',  'You/your: speaks directly to the reader (target \u22652%)') +
             keyRow(swatchBox('rgba(168,85,247,0.2)'),   'Adverbs (-ly)',   'Replace with a stronger verb where possible (target <5%)') +
@@ -2948,12 +3071,16 @@
                    <div id="pi-doc-meta-ai"></div>
                </div>`;
 
+        const headerChrome = renderPageHeaderChrome(data, _docTheme, data.pageUrl || '');
+        const tocHtml = renderTOC(data, _docTheme);
+
         return css +
+            headerChrome +
             `<div class="pi-doc-wrap show-long show-passive show-complex show-hedge show-nominalisation show-transition show-directaddress show-adverb" style="padding:0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
             toolbar + legend + metaBanner +
             `<div id="pi-doc-hedge-ai" style="display:none;margin:0 0 14px 0;"></div>` +
             `<div id="pi-doc-nom-ai" style="display:none;margin:0 0 14px 0;"></div>` +
-            `<div class="pi-doc-body" style="max-width:780px;">${bodyHtml}</div>` +
+            `<div class="pi-doc-body" style="max-width:780px;">${tocHtml}${bodyHtml}</div>` +
             `</div>`;
     }
 
@@ -2982,6 +3109,23 @@
             });
         }
         wireDatamuseBadges(panel);
+
+        // TOC smooth scroll + brief H2 flash
+        panel.querySelectorAll('.pi-toc-link').forEach(function(a) {
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                var target = panel.querySelector(a.getAttribute('href'));
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                target.style.transition = 'background 0s';
+                target.style.background = 'rgba(128,128,128,0.15)';
+                setTimeout(function() {
+                    target.style.transition = 'background 0.6s ease';
+                    target.style.background = 'transparent';
+                }, 50);
+                setTimeout(function() { target.style.transition = ''; target.style.background = ''; }, 700);
+            });
+        });
     }
 
     // ─── Document tab AI wiring ───────────────────────────────────────────────
@@ -3184,7 +3328,7 @@
             reviewBtn.textContent = 'Reviewing…';
             var extras = [];
             if (hedgeAll.length > 0) extras.push('hedge words');
-            if (nomAll.length > 0)   extras.push('nominalisations');
+            if (nomAll.length > 0)   extras.push('bureaucratic phrases');
             progress.textContent = 'Reviewing ' + totalSents + ' sentence' + (totalSents !== 1 ? 's' : '') + (extras.length > 0 ? ' + ' + extras.join(' & ') : '') + '…';
             progress.style.display = '';
 
@@ -3248,7 +3392,7 @@
             }
             if (nomAll.length > 0 && nomMount) {
                 nomMount.style.display = '';
-                nomMount.innerHTML = '<em style="font-size:0.78rem;color:var(--color-text-muted);">⏳ Reviewing nominalisations…</em>';
+                nomMount.innerHTML = '<em style="font-size:0.78rem;color:var(--color-text-muted);">⏳ Reviewing bureaucratic phrases…</em>';
                 var nBuffer = '';
                 window.GroqAI.stream(
                     _buildNominalisationsPrompt(data),
