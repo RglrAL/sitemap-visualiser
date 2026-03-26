@@ -1730,24 +1730,26 @@
     function _buildSearchIntentPrompt(data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('search-intent')
-            : { system: 'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s current H2 headings, and its introduction. Identify queries whose topic or intent is NOT clearly addressed by any heading or the introduction. For each gap, suggest one concrete editorial action: a new H2 to add, an existing heading to rename to match user language, or an intro sentence to add. Be specific — quote the query and name the gap. Respond with a numbered list only — one gap per number. Maximum 5 items. No preamble.', userPrefix: 'Identify content gaps between the search queries and the page headings/intro.' };
+            : { system: 'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s H2 headings, and the full page body text. Identify queries whose topic or intent is NOT addressed anywhere in the page content — not in the headings, not in the body text. Only flag a true gap: a topic the page genuinely does not cover. Do NOT flag a gap if the topic appears anywhere in the body text, even if it is not a heading. For each real gap, suggest one concrete editorial action: a new H2 to add, or an intro sentence to add. Be specific — quote the query. Respond with a numbered list only — one gap per number. Maximum 5 items. If there are no real gaps, say "No content gaps found." No preamble.', userPrefix: 'Identify content gaps between the search queries and the full page content.' };
         const queries = ((data._gsc && data._gsc.topQueries) || [])
             .slice().sort(function(a, b) { return b.impressions - a.impressions; })
             .slice(0, 10)
             .map(function(q, i) { return (i + 1) + '. "' + q.query + '" \u2014 ' + q.impressions + ' impressions, pos ' + q.position.toFixed(1) + ', CTR ' + (q.ctr * 100).toFixed(1) + '%'; })
             .join('\n');
         const headings = (data.h2Texts || []).map(function(h, i) { return (i + 1) + '. "' + h + '"'; }).join('\n') || '(no H2 headings)';
-        const intro = (data.structuredBlocks || [])
-            .filter(function(b) { return b.type === 'p'; })
-            .slice(0, 3)
-            .map(function(b) { return b.text; })
-            .join(' ')
-            .slice(0, 500);
+        // Use sentence texts for full coverage — much more comprehensive than just first few paragraphs
+        const pageBody = (data.sentenceTexts && data.sentenceTexts.length)
+            ? data.sentenceTexts.join(' ').slice(0, 5000)
+            : (data.structuredBlocks || [])
+                .filter(function(b) { return b.type === 'p'; })
+                .map(function(b) { return b.text; })
+                .join(' ')
+                .slice(0, 5000);
         const userContent =
             _buildPageContext(data) + p.userPrefix + '\n\n' +
             '--- Top search queries ---\n' + queries + '\n\n' +
             '--- Current H2 headings ---\n' + headings + '\n\n' +
-            '--- Page introduction (first 500 chars) ---\n' + (intro || '(none)');
+            '--- Full page body text ---\n' + (pageBody || '(none)');
         return [
             { role: 'system', content: p.system },
             { role: 'user',   content: userContent },
