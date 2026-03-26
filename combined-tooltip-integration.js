@@ -2015,8 +2015,11 @@ function showDashboardModal(htmlContent) {
         '#unified-dashboard-modal .unified-dashboard-container{' +
             'border-radius:0!important;max-width:100%!important;' +
             'margin:0!important;box-shadow:none!important;}' +
-        // Hide map controls (tree + 3D) while the report panel is open
-        '.tree-controls{display:none!important;}';
+        // Hide map controls, KPI stats bar and colour legend while the report panel is open
+        '.tree-controls{display:none!important;}' +
+        '#stats{display:none!important;}' +
+        '#colourLegend{display:none!important;}' +
+        '#breadcrumbContainer{display:none!important;}';
     document.head.appendChild(styleOverride);
 
     // Dismiss: slide back down
