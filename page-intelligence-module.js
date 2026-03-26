@@ -21,6 +21,8 @@
         'weak-anchors':   { label: 'Anchor text',      color: '#10b981', bg: 'rgba(16,185,129,0.09)', border: 'rgba(16,185,129,0.3)' },
         'h2-headings':    { label: 'H2 heading',       color: '#7c3aed', bg: 'rgba(124,58,237,0.09)', border: 'rgba(124,58,237,0.3)' },
         'hedge-words':    { label: 'Hedge word',       color: '#ca8a04', bg: 'rgba(202,138,4,0.09)',  border: 'rgba(202,138,4,0.3)'  },
+        'nominalisations':{ label: 'Nominalisation',   color: '#ea580c', bg: 'rgba(234,88,12,0.09)',  border: 'rgba(234,88,12,0.3)'  },
+        'search-intent':  { label: 'Content gap',      color: '#0891b2', bg: 'rgba(8,145,178,0.09)',  border: 'rgba(8,145,178,0.3)'  },
         'page-intro':     { label: 'Page intro',        color: '#6366f1', bg: 'rgba(99,102,241,0.09)', border: 'rgba(99,102,241,0.3)' },
     };
 
@@ -1629,13 +1631,16 @@
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('meta-description')
             : { system: 'You are an SEO editor for citizensinformation.ie, an Irish government information website. Write a single meta description in plain English. Maximum 155 characters. It must be action-oriented, state the main topic clearly, and end without truncation. Output the meta description text only — no quotes, no label, no explanation.', userPrefix: 'Write a meta description for this page.' };
+        const queryLine = (data._gsc && data._gsc.topQueries && data._gsc.topQueries.length)
+            ? '\nTop search queries: ' + data._gsc.topQueries.slice(0, 5).map(function(q) { return '"' + q.query + '"'; }).join(', ')
+            : '';
         return [
             { role: 'system', content: p.system },
             { role: 'user',   content: p.userPrefix + '\n\n' +
                 'Page title: ' + (data.titleText || '(none)') + '\n' +
                 'Current meta description: ' + (data.metaDescText || '(none)') + '\n' +
                 'Main headings: ' + ((data.h2Texts || []).slice(0, 3).join(' / ') || '(none)') + '\n' +
-                'Word count: ' + (data.wordCount || 0)
+                'Word count: ' + (data.wordCount || 0) + queryLine
             },
         ];
     }
@@ -1644,12 +1649,15 @@
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('title-tag')
             : { system: 'You are an SEO editor for citizensinformation.ie, an Irish government information website. Suggest 3 alternative title tags. Each must be under 60 characters, in plain English, topic first, no clickbait. Output a numbered list only — one title per number. No preamble.', userPrefix: 'Suggest 3 alternative title tags. Number each:' };
+        const queryLine = (data._gsc && data._gsc.topQueries && data._gsc.topQueries.length)
+            ? '\nTop search queries: ' + data._gsc.topQueries.slice(0, 5).map(function(q) { return '"' + q.query + '"'; }).join(', ')
+            : '';
         return [
             { role: 'system', content: p.system },
             { role: 'user',   content: p.userPrefix + '\n\n' +
                 'Current title: ' + (data.titleText || '(none)') + '\n' +
                 'H1: ' + ((data.h1Texts && data.h1Texts[0]) || '(none)') + '\n' +
-                'Meta description: ' + (data.metaDescText || '(none)')
+                'Meta description: ' + (data.metaDescText || '(none)') + queryLine
             },
         ];
     }
@@ -1700,6 +1708,52 @@
         ];
     }
 
+    function _buildNominalisationsPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('nominalisations')
+            : { system: 'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Each item shows a nominalisation (a verb idea turned into a noun phrase) and its verb-form replacement, plus an example sentence. Rewrite the example sentence to use the verb form naturally. Keep all meaning. Use plain English. Respond with a numbered list only — one rewrite per number. No preamble.', userPrefix: 'Rewrite each sentence to replace the nominalisation with the verb form. Number each:' };
+        const nomAll   = (data.writingStyle && data.writingStyle.nominalisationMatchesAll) || [];
+        const sentences = data.sentenceTexts || [];
+        const items = nomAll.slice(0, 6).map(function(m, i) {
+            const phrase  = m.found.toLowerCase();
+            const example = sentences.find(function(s) { return s.toLowerCase().indexOf(phrase) !== -1; });
+            var line = (i + 1) + '. "' + m.found + '" \u2192 use "' + m.suggest + '" instead' + (m.count > 1 ? ' (\xd7' + m.count + ')' : '');
+            if (example) line += '\n   Example: "' + example.slice(0, 160).trim() + '"';
+            return line;
+        });
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + items.join('\n') },
+        ];
+    }
+
+    function _buildSearchIntentPrompt(data) {
+        const p = (window.GroqAI && window.GroqAI.getPrompt)
+            ? window.GroqAI.getPrompt('search-intent')
+            : { system: 'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s current H2 headings, and its introduction. Identify queries whose topic or intent is NOT clearly addressed by any heading or the introduction. For each gap, suggest one concrete editorial action: a new H2 to add, an existing heading to rename to match user language, or an intro sentence to add. Be specific — quote the query and name the gap. Respond with a numbered list only — one gap per number. Maximum 5 items. No preamble.', userPrefix: 'Identify content gaps between the search queries and the page headings/intro.' };
+        const queries = ((data._gsc && data._gsc.topQueries) || [])
+            .slice().sort(function(a, b) { return b.impressions - a.impressions; })
+            .slice(0, 10)
+            .map(function(q, i) { return (i + 1) + '. "' + q.query + '" \u2014 ' + q.impressions + ' impressions, pos ' + q.position.toFixed(1) + ', CTR ' + (q.ctr * 100).toFixed(1) + '%'; })
+            .join('\n');
+        const headings = (data.h2Texts || []).map(function(h, i) { return (i + 1) + '. "' + h + '"'; }).join('\n') || '(no H2 headings)';
+        const intro = (data.structuredBlocks || [])
+            .filter(function(b) { return b.type === 'p'; })
+            .slice(0, 3)
+            .map(function(b) { return b.text; })
+            .join(' ')
+            .slice(0, 500);
+        const userContent =
+            _buildPageContext(data) + p.userPrefix + '\n\n' +
+            '--- Top search queries ---\n' + queries + '\n\n' +
+            '--- Current H2 headings ---\n' + headings + '\n\n' +
+            '--- Page introduction (first 500 chars) ---\n' + (intro || '(none)');
+        return [
+            { role: 'system', content: p.system },
+            { role: 'user',   content: userContent },
+        ];
+    }
+
     function _buildH2HeadingsPrompt(data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('h2-headings')
@@ -1711,6 +1765,29 @@
         ];
     }
 
+
+    // Renders numbered nominalisation rewrite lines into a container element.
+    // originals = nominalisationMatchesAll.slice(0,6) — provides found+suggest for each card.
+    function _renderNomCards(mount, lines, originals) {
+        var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+        mount.style.display = '';
+        mount.innerHTML = lines.map(function(l, i) {
+            var text = l.replace(/^\d+\.\s*/, '').trim();
+            var orig = originals[i];
+            var extra = orig ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">"' + _e(orig.found) + '" \u2192 ' + _e(orig.suggest) + '</div>' : '';
+            _cacheAIResult('nominalisations', i, text);
+            return _buildCardHTML(text, AI_ISSUE_OPTS['nominalisations'], extra);
+        }).join('');
+        mount.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+            var text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
+            copyBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(text).then(function() {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                });
+            });
+        });
+    }
 
     // Renders numbered hedge-word suggestion lines into a container element.
     // originals = hedgeMatchesAll.slice(0,6) — provides the original phrase for each card.
@@ -2092,6 +2169,48 @@
             });
         })();
 
+        // ── Nominalisations ──
+        (function() {
+            const mount = container.querySelector('#pi-nom-ai');
+            if (!mount) return;
+            const nomAll = (data.writingStyle && data.writingStyle.nominalisationMatchesAll) || [];
+            if (nomAll.length === 0) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Rewrite sentences';
+            const output = document.createElement('div');
+            output.id = 'pi-nom-ai-output';
+            output.style.cssText = 'margin-top:6px;';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Generating…';
+                output.innerHTML = '';
+                let buffer = '';
+                window.GroqAI.stream(
+                    _buildNominalisationsPrompt(data),
+                    function(token) { buffer += token; },
+                    function() {
+                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
+                        if (lines.length > 0) {
+                            const originals = nomAll.slice(0, 6);
+                            _renderNomCards(output, lines, originals);
+                            // Mirror to Document tab if already open
+                            var docNomMount = document.getElementById('pi-doc-nom-ai');
+                            if (docNomMount) _renderNomCards(docNomMount, lines, originals);
+                        }
+                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                    },
+                    function(err) {
+                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        btn.disabled = false; btn.textContent = '✨ Rewrite sentences';
+                    },
+                    { max_tokens: 600, temperature: 0.4 }
+                );
+            });
+        })();
+
         // ── H2 headings ──
         (function() {
             const mount = container.querySelector('#pi-h2-ai');
@@ -2136,6 +2255,54 @@
                         btn.disabled = false; btn.textContent = '✨ Rewrite headings';
                     },
                     { max_tokens: 400, temperature: 0.5 }
+                );
+            });
+        })();
+
+        // ── Search Intent ──
+        (function() {
+            const mount = container.querySelector('#pi-search-intent-ai');
+            if (!mount || !data._gsc || !(data._gsc.topQueries || []).length) return;
+            const btn = document.createElement('button');
+            btn.className = 'pi-ai-btn';
+            btn.textContent = '✨ Analyse content gaps';
+            const output = document.createElement('div');
+            output.style.cssText = 'margin-top:8px;';
+            mount.appendChild(btn);
+            mount.appendChild(output);
+            btn.addEventListener('click', function() {
+                if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                btn.disabled = true; btn.textContent = 'Analysing…';
+                output.innerHTML = '';
+                var buffer = '';
+                window.GroqAI.stream(
+                    _buildSearchIntentPrompt(data),
+                    function(token) { buffer += token; },
+                    function() {
+                        const lines = buffer.split('\n').filter(function(l) { return /^\d+\./.test(l.trim()); });
+                        if (lines.length > 0) {
+                            output.innerHTML = lines.map(function(l) {
+                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                                return _buildCardHTML(text, AI_ISSUE_OPTS['search-intent']);
+                            }).join('');
+                            output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
+                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
+                                copyBtn.addEventListener('click', function() {
+                                    navigator.clipboard.writeText(text).then(function() {
+                                        copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+                                    });
+                                });
+                            });
+                        } else {
+                            output.innerHTML = '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No content gaps identified — the page appears to address its top queries well.</div>';
+                        }
+                        btn.disabled = false; btn.textContent = '↺ Re-analyse';
+                    },
+                    function(err) {
+                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        btn.disabled = false; btn.textContent = '✨ Analyse content gaps';
+                    },
+                    { max_tokens: 800, temperature: 0.4 }
                 );
             });
         })();
@@ -2485,6 +2652,7 @@
             `<div class="pi-doc-wrap show-long show-passive show-complex show-hedge show-nominalisation show-transition show-directaddress show-adverb" style="padding:0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
             toolbar + legend + metaBanner +
             `<div id="pi-doc-hedge-ai" style="display:none;margin:0 0 14px 0;"></div>` +
+            `<div id="pi-doc-nom-ai" style="display:none;margin:0 0 14px 0;"></div>` +
             `<div class="pi-doc-body" style="max-width:780px;">${bodyHtml}</div>` +
             `</div>`;
     }
@@ -2619,6 +2787,8 @@
 
         var hedgeAll = (data.writingStyle && data.writingStyle.hedgeMatchesAll) || [];
         var hedgeMount = panel.querySelector('#pi-doc-hedge-ai');
+        var nomAll   = (data.writingStyle && data.writingStyle.nominalisationMatchesAll) || [];
+        var nomMount = panel.querySelector('#pi-doc-nom-ai');
 
         // Pre-fill any results already generated in the Analysis tab
         var anyPrefilled = false;
@@ -2640,6 +2810,19 @@
             if (hedgeCached.length > 0) {
                 var fakeLines = hedgeCached.map(function(h, i) { return (i + 1) + '. ' + h.text; });
                 _renderHedgeCards(hedgeMount, fakeLines, hedgeAll.slice(0, hedgeCached.length));
+                anyPrefilled = true;
+            }
+        }
+        if (nomMount && nomAll.length > 0) {
+            var nomCached = [];
+            for (var _ni = 0; _ni < nomAll.length; _ni++) {
+                var _nc = _getCachedAIResult('nominalisations', _ni);
+                if (!_nc) break;
+                nomCached.push(_nc);
+            }
+            if (nomCached.length > 0) {
+                var nomFakeLines = nomCached.map(function(t, i) { return (i + 1) + '. ' + t; });
+                _renderNomCards(nomMount, nomFakeLines, nomAll.slice(0, nomCached.length));
                 anyPrefilled = true;
             }
         }
@@ -2671,6 +2854,7 @@
                 pair.slot.innerHTML = '';
             });
             if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
+            if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
             clearLink.style.display = 'none';
             reviewBtn.textContent = '✨ AI Review';
         });
@@ -2685,15 +2869,18 @@
                 pair.slot.innerHTML = '';
             });
             if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
+            if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
             clearLink.style.display = 'none';
             reviewBtn.disabled = true;
             reviewBtn.textContent = 'Reviewing…';
-            var issueCount = (longPairs.length > 0 ? 1 : 0) + (passivePairs.length > 0 ? 1 : 0) + (hedgeAll.length > 0 ? 1 : 0);
-            progress.textContent = 'Reviewing ' + totalSents + ' sentence' + (totalSents !== 1 ? 's' : '') + (hedgeAll.length > 0 ? ' + hedge words' : '') + '…';
+            var extras = [];
+            if (hedgeAll.length > 0) extras.push('hedge words');
+            if (nomAll.length > 0)   extras.push('nominalisations');
+            progress.textContent = 'Reviewing ' + totalSents + ' sentence' + (totalSents !== 1 ? 's' : '') + (extras.length > 0 ? ' + ' + extras.join(' & ') : '') + '…';
             progress.style.display = '';
 
             var doneCount = 0;
-            var totalStreams = 3; // long, passive, hedge — each calls onAllDone even if skipped
+            var totalStreams = 4; // long, passive, hedge, nom — each calls onAllDone even if skipped
             function onAllDone() {
                 doneCount++;
                 if (doneCount >= totalStreams) {
@@ -2707,7 +2894,7 @@
             var longTexts    = longEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
             var passiveTexts = passiveEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
 
-            // Run all three streams concurrently
+            // Run all four streams concurrently
             if (longPairs.length > 0) {
                 _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), 'long-sentences', onAllDone, onAllDone);
             } else {
@@ -2738,6 +2925,31 @@
                         onAllDone();
                     },
                     function() { hedgeMount.style.display = 'none'; onAllDone(); },
+                    { max_tokens: 600, temperature: 0.4 }
+                );
+            } else {
+                onAllDone();
+            }
+            if (nomAll.length > 0 && nomMount) {
+                nomMount.style.display = '';
+                nomMount.innerHTML = '<em style="font-size:0.78rem;color:var(--color-text-muted);">⏳ Reviewing nominalisations…</em>';
+                var nBuffer = '';
+                window.GroqAI.stream(
+                    _buildNominalisationsPrompt(data),
+                    function(token) { nBuffer += token; },
+                    function() {
+                        var lines = nBuffer.split('\n').filter(function(l) { return /^\d+\./.test(l.trim()); });
+                        if (lines.length > 0) {
+                            _renderNomCards(nomMount, lines, nomAll.slice(0, 6));
+                            // Mirror to Analysis tab
+                            var analysisNomOutput = document.getElementById('pi-nom-ai-output');
+                            if (analysisNomOutput) _renderNomCards(analysisNomOutput, lines, nomAll.slice(0, 6));
+                        } else {
+                            nomMount.style.display = 'none';
+                        }
+                        onAllDone();
+                    },
+                    function() { nomMount.style.display = 'none'; onAllDone(); },
                     { max_tokens: 600, temperature: 0.4 }
                 );
             } else {
@@ -3259,7 +3471,8 @@
             // Nominalisations <details>
             const nomAll = ws.nominalisationMatchesAll || ws.nominalisationMatches;
             const nomDetails = nomAll.length > 0
-                ? `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                ? `<div id="pi-nom-ai" style="margin-bottom:6px;"></div>` +
+                  `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
                   `<summary style="${detailsSummaryStyle}">\u26a0\ufe0f Bureaucratic phrases \u2014 ${ws.nominalisationCount} occurrence${ws.nominalisationCount !== 1 ? 's' : ''}</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:6px;">` +
                   nomAll.map(m =>
@@ -3326,6 +3539,41 @@
             `);
         }
 
+        // ── Search Intent card ──────────────────────────────────────────────────
+        const searchIntentCard = (function() {
+            const gsc = data._gsc;
+            if (!gsc || !gsc.topQueries || !gsc.topQueries.length) {
+                return card(null,
+                    sectionHead('Search Intent') +
+                    `<div style="font-size:0.8rem;color:var(--color-text-muted);padding:4px 0;">` +
+                    ((!window.GSCIntegration || !window.GSCIntegration.isConnected())
+                        ? 'Connect Google Search Console to analyse which search queries this page serves and identify content gaps.'
+                        : 'No search data available for this URL yet.') +
+                    `</div>`
+                );
+            }
+            const queries = gsc.topQueries.slice().sort(function(a, b) { return b.impressions - a.impressions; }).slice(0, 10);
+            const queryRows = queries.map(function(q) {
+                const ctrPct   = (q.ctr * 100).toFixed(1) + '%';
+                const posColor = q.position <= 3 ? '#059669' : q.position <= 10 ? '#d97706' : '#dc2626';
+                const oppBadge = q.opportunity
+                    ? `<span style="font-size:0.6rem;padding:1px 6px;border-radius:10px;background:rgba(99,102,241,0.1);color:#6366f1;margin-left:4px;">${q.opportunity === 'ctr-opportunity' ? 'low CTR' : 'low rank'}</span>`
+                    : '';
+                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--color-border-primary);font-size:0.78rem;">` +
+                    `<span style="flex:1;color:var(--color-text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(q.query)}</span>` +
+                    `<span style="color:${posColor};font-weight:700;font-size:0.72rem;white-space:nowrap;">pos ${q.position.toFixed(1)}</span>` +
+                    `<span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${q.impressions.toLocaleString()} impr</span>` +
+                    `<span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${ctrPct} CTR</span>` +
+                    oppBadge +
+                    `</div>`;
+            }).join('');
+            return card(null,
+                sectionHead('Search Intent') +
+                `<div style="margin-bottom:12px;">${queryRows}</div>` +
+                `<div id="pi-search-intent-ai"></div>`
+            );
+        })();
+
         const tabBtnBase   = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:0.83rem;font-weight:600;color:var(--color-text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;transition:all 0.15s;';
         const tabBtnActive = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:0.83rem;font-weight:600;color:var(--color-text-primary);border-bottom:2px solid var(--color-text-primary);margin-bottom:-2px;font-family:inherit;transition:all 0.15s;';
 
@@ -3336,7 +3584,7 @@
                 `<button id="pi-tab-document" style="${tabBtnBase}">Document</button>` +
             `</div>` +
             `<div id="pi-panel-analysis">` +
-                noindexBanner + kpiHeroStrip + topPriorityActions + rhythmCard + technicalSEO + writingQualityHtml + linksImages +
+                noindexBanner + kpiHeroStrip + topPriorityActions + rhythmCard + technicalSEO + searchIntentCard + writingQualityHtml + linksImages +
             `</div>` +
             `<div id="pi-panel-document" style="display:none;"></div>` +
             `</div>`;
@@ -3372,6 +3620,20 @@
         });
     }
 
+    async function _fetchGSCData(url) {
+        if (!window.GSCIntegration || !window.GSCIntegration.isConnected()) return null;
+        var cached = window.GSCIntegration.getData(url);
+        if (cached) return cached;
+        try { return await window.GSCIntegration.fetchNodeData({ url: url }); }
+        catch (e) { return null; }
+    }
+
+    async function _fetchGA4Data(url) {
+        if (!window.GA4Integration || !window.GA4Integration.isConnected()) return null;
+        try { return await window.GA4Integration.fetchData(url); }
+        catch (e) { return null; }
+    }
+
     async function renderFullReport(container, url) {
         if (!url) {
             container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--color-text-muted);font-size:0.9rem;">No URL available.</div>`;
@@ -3379,7 +3641,13 @@
         }
         renderLoading(container);
         try {
-            const data = await analyseUrl(url);
+            const [data, gscData, ga4Data] = await Promise.all([
+                analyseUrl(url),
+                _fetchGSCData(url),
+                _fetchGA4Data(url),
+            ]);
+            data._gsc = gscData;
+            data._ga4 = ga4Data;
             renderFullResults(container, data, url);
         } catch (err) {
             renderError(container, url, err && err.message);
