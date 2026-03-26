@@ -1988,10 +1988,6 @@ function getRelativeTime(lastModified) {
     
     return `
         <div class="dashboard-header">
-            <div class="help-corner">
-                <button class="help-btn" onclick="DashboardGlossary.open()" data-tooltip="Glossary">📚</button>
-            </div>
-            
             <div class="header-content">
                 <div class="page-info">
                     <div class="page-breadcrumb">
