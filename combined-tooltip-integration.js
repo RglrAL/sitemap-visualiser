@@ -1612,17 +1612,19 @@ function showDashboardLoading() {
     // Track loading start time
     window.dashboardLoadingStartTime = Date.now();
     
-    // Create loading overlay
+    // Create loading overlay — sits below the nav bar, same spatial zone as the panel
+    const _navBar = document.getElementById('navBar');
+    const _navH = _navBar ? _navBar.offsetHeight : 48;
     const loadingOverlay = document.createElement('div');
     loadingOverlay.id = 'dashboard-loading-overlay';
     loadingOverlay.style.cssText = `
         position: fixed;
-        top: 0;
+        top: ${_navH}px;
         left: 0;
         width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 15000;
+        height: calc(100% - ${_navH}px);
+        background: var(--color-bg-primary);
+        z-index: 999;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1739,16 +1741,16 @@ function showDashboardLoading() {
     return loadingOverlay;
 }
 
-function hideDashboardLoading() {
+function hideDashboardLoading(onComplete) {
     const loadingOverlay = document.getElementById('dashboard-loading-overlay');
-    if (!loadingOverlay) return;
-    
+    if (!loadingOverlay) { if (onComplete) onComplete(); return; }
+
     const startTime = window.dashboardLoadingStartTime || 0;
     const elapsedTime = Date.now() - startTime;
     const minimumDuration = 2000; // 2 seconds
-    
+
     const remainingTime = Math.max(0, minimumDuration - elapsedTime);
-    
+
     setTimeout(() => {
         if (loadingOverlay && loadingOverlay.parentNode) {
             loadingOverlay.style.opacity = '0';
@@ -1756,10 +1758,13 @@ function hideDashboardLoading() {
                 if (loadingOverlay && loadingOverlay.parentNode) {
                     loadingOverlay.remove();
                 }
+                window.dashboardLoadingStartTime = null;
+                if (onComplete) onComplete();
             }, 300);
+        } else {
+            window.dashboardLoadingStartTime = null;
+            if (onComplete) onComplete();
         }
-        // Clear the start time
-        window.dashboardLoadingStartTime = null;
     }, remainingTime);
 }
 
@@ -1973,8 +1978,6 @@ function calculateTrend(currentValue, previousValue, inverted = false) {
 
 // Modal display function (customize to match your UI style)
 function showDashboardModal(htmlContent) {
-    hideDashboardLoading();
-
     // Remove any existing panel
     const existing = document.getElementById('unified-dashboard-modal');
     if (existing) existing.remove();
@@ -2000,21 +2003,35 @@ function showDashboardModal(htmlContent) {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
 
-    // Dismiss: slide back down. ease-in cubic for the exit feels snappier.
+    // Override dashboard container styles that were designed for a modal context —
+    // remove rounded corners, max-width cap, and box shadow so content fills flush
+    const styleOverride = document.createElement('style');
+    styleOverride.id = 'dashboard-panel-overrides';
+    styleOverride.textContent =
+        '#unified-dashboard-modal .unified-dashboard-container{' +
+            'border-radius:0!important;max-width:100%!important;' +
+            'margin:0!important;box-shadow:none!important;}' +
+        // Hide map controls (tree + 3D) while the report panel is open
+        '.tree-controls{display:none!important;}';
+    document.head.appendChild(styleOverride);
+
+    // Dismiss: slide back down
     const closeFn = () => {
         panel.style.transition = 'transform 0.32s cubic-bezier(0.32, 0, 0.67, 0)';
         panel.style.transform = 'translateY(100%)';
         document.removeEventListener('keydown', escHandler);
         if (navBar) navBar.removeEventListener('click', navClickHandler);
-        setTimeout(() => { if (panel.parentNode) panel.remove(); }, 340);
+        setTimeout(() => {
+            if (panel.parentNode) panel.remove();
+            const so = document.getElementById('dashboard-panel-overrides');
+            if (so) so.remove();
+        }, 340);
     };
 
-    // Any click inside the nav bar slides the panel away,
-    // except utility toggles that don't navigate (GSC/GA4, AI settings, theme, search)
+    // Any nav click dismisses — except utility toggles (GSC/GA4, AI, theme, search)
     const NAV_EXCEPTIONS = ['#integrationsNav', '.nav-ai-btn', '.nav-theme-btn', '.nav-search'];
     const navClickHandler = (e) => {
-        const isException = NAV_EXCEPTIONS.some(sel => e.target.closest(sel));
-        if (!isException) closeFn();
+        if (!NAV_EXCEPTIONS.some(sel => e.target.closest(sel))) closeFn();
     };
     if (navBar) navBar.addEventListener('click', navClickHandler);
 
@@ -2028,10 +2045,12 @@ function showDashboardModal(htmlContent) {
     panel.appendChild(content);
     document.body.appendChild(panel);
 
-    // Slide up from below — defer one frame so the initial transform is painted first
-    requestAnimationFrame(() => {
+    // Wait for loading overlay to finish fading, then slide the panel up
+    hideDashboardLoading(() => {
         requestAnimationFrame(() => {
-            panel.style.transform = 'translateY(0)';
+            requestAnimationFrame(() => {
+                panel.style.transform = 'translateY(0)';
+            });
         });
     });
 }
