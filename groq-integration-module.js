@@ -43,11 +43,11 @@
             userPrefix: 'Suggest descriptive anchor text for each weak link. Number each:',
         },
         'page-intro': {
-            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. Rewrite the provided page introduction to be clearer, more direct, and action-oriented. The first sentence must state exactly what the page is about and who it helps. Use plain English. Keep all key information. Output the rewritten introduction only — no explanation.',
+            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. You will be given page context (title, H1, key sections) followed by the current introduction text. Use the context to judge whether the rewrite is on-topic and serves the right audience. Rewrite the introduction to be clearer, more direct, and action-oriented. The first sentence must state exactly what the page is about and who it helps. Use plain English. Keep all key information. Output the rewritten introduction only — no explanation.',
             userPrefix: 'Rewrite this page introduction to be clearer and more direct:',
         },
         'hedge-words': {
-            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. For each numbered hedge phrase shown with a context sentence, suggest a more direct and confident rewrite of that sentence without the hedge. If no sentence is given, suggest a direct replacement word or phrase. Keep the meaning. Use plain English. Respond with a numbered list only — one rewrite per number. No preamble.',
+            system:     'You are a plain-language editor for citizensinformation.ie, an Irish government information website. For each numbered hedge phrase shown with a context sentence, suggest a more direct and confident rewrite of that sentence without the hedge. If no sentence is given, suggest a direct replacement word or phrase. Keep the meaning. Use plain English. However, if the hedge expresses a legal condition, eligibility criterion, or genuine uncertainty that must be preserved (e.g. "you may be entitled", "this could apply if you meet the conditions"), keep the caution intact and rewrite only for clarity — do not remove the conditionality. Respond with a numbered list only — one rewrite per number. No preamble.',
             userPrefix: 'Rewrite these hedge phrases to be more direct. Number each:',
         },
         'h2-headings': {
@@ -59,8 +59,8 @@
             userPrefix: 'Rewrite each sentence to replace the nominalisation with the verb form. Number each:',
         },
         'search-intent': {
-            system:     'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s H2 headings, and the full body text of the page. Identify queries whose topic or intent is NOT covered anywhere in the body text. Only flag a true gap: a topic the page genuinely does not cover. Do NOT flag a gap if the topic appears anywhere in the body text, even if it is not a heading. For each genuine gap, suggest one concrete editorial action: a new H2 to add, an existing heading to rename to match user language, or a section to add. Be specific — quote the query and name the gap. Respond with a numbered list only — one gap per number. Maximum 5 items. No preamble.',
-            userPrefix: 'Identify content gaps between the search queries and the full page content.',
+            system:     'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s H2 headings, and the full body text. Identify queries whose topic or intent is NOT covered anywhere in the body text. Only flag a true gap — do NOT flag if the topic appears anywhere in the body text, even if it lacks a dedicated heading. For each genuine gap respond in exactly this format:\n\n1. Query: [the search query]\n   Gap: [what is missing — one sentence]\n   Action: [one specific editorial action, e.g. add H2 "X", rename heading "Y" to "Z", add intro sentence about X]\n\nMaximum 5 items. Use this format exactly. No preamble, no other text.',
+            userPrefix: 'Identify content gaps. Use the Query / Gap / Action format for each:',
         },
     };
 
@@ -88,9 +88,10 @@
 
     // ─── Private state ────────────────────────────────────────────────────────
 
-    let _apiKey  = null;
-    let _model   = DEFAULT_MODEL;
-    let _testing = false;
+    let _apiKey            = null;
+    let _model             = DEFAULT_MODEL;
+    let _testing           = false;
+    let _activeController  = null;   // AbortController for the most recent stream/complete call
 
     // ─── Storage helpers ──────────────────────────────────────────────────────
 
@@ -140,7 +141,8 @@
     // ─── Core API ─────────────────────────────────────────────────────────────
 
     async function _rawComplete(messages, options, overrideKey) {
-        const key = overrideKey || _apiKey;
+        const key    = overrideKey || _apiKey;
+        const signal = options && options.signal;
         const payload = {
             model:       (options && options.model)       || _model,
             messages,
@@ -157,9 +159,11 @@
                     'Authorization': 'Bearer ' + key,
                     'Content-Type':  'application/json',
                 },
-                body: JSON.stringify(payload),
+                body:   JSON.stringify(payload),
+                signal: signal || undefined,
             });
         } catch (networkErr) {
+            if (networkErr.name === 'AbortError') throw networkErr;   // re-throw so caller can detect
             throw new Error('Network error: ' + networkErr.message);
         }
 
@@ -179,16 +183,26 @@
     }
 
     // PUBLIC: non-streaming completion. Returns Promise<string>.
+    // Accepts options.signal (AbortSignal) to allow cancellation.
+    // If no signal provided, creates its own AbortController (stored as _activeController).
     async function complete(messages, options) {
         if (!_apiKey) {
             throw new Error(
                 'Groq AI not configured. Click ✨ AI in the toolbar to add your API key.'
             );
         }
-        return _rawComplete(messages, options);
+        if (options && options.signal) {
+            return _rawComplete(messages, options);
+        }
+        const controller = new AbortController();
+        _activeController = controller;
+        return _rawComplete(messages, Object.assign({}, options, { signal: controller.signal }));
     }
 
-    // PUBLIC: streaming completion. Tokens delivered via onChunk; full text via onDone.
+    // PUBLIC: streaming completion. Tokens delivered via onChunk(token); onDone() on finish.
+    // Accepts options.signal (AbortSignal) to allow cancellation.
+    // If no signal provided, creates its own AbortController (stored as _activeController).
+    // Aborting fires neither onDone nor onError — request silently stops.
     async function stream(messages, onChunk, onDone, onError, options) {
         if (!_apiKey) {
             if (typeof onError === 'function') {
@@ -197,6 +211,15 @@
                 ));
             }
             return;
+        }
+
+        // Resolve signal: use caller-provided one, or create our own controller
+        const signal = (options && options.signal) || null;
+        if (!signal) {
+            const controller = new AbortController();
+            _activeController = controller;
+            return stream(messages, onChunk, onDone, onError,
+                Object.assign({}, options, { signal: controller.signal }));
         }
 
         const payload = {
@@ -215,9 +238,11 @@
                     'Authorization': 'Bearer ' + _apiKey,
                     'Content-Type':  'application/json',
                 },
-                body: JSON.stringify(payload),
+                body:   JSON.stringify(payload),
+                signal: signal,
             });
         } catch (networkErr) {
+            if (networkErr.name === 'AbortError') return;   // cancelled — silent
             if (typeof onError === 'function') {
                 onError(new Error('Network error: ' + networkErr.message));
             }
@@ -266,6 +291,7 @@
             }
             if (fullText && typeof onDone === 'function') onDone(fullText);
         } catch (streamErr) {
+            if (streamErr.name === 'AbortError') return;    // cancelled — silent
             if (typeof onError === 'function') onError(streamErr);
         }
     }
@@ -1533,6 +1559,7 @@ body.dark-theme .nav-ai-btn.configured {
     window.GroqAI = {
         complete,
         stream,
+        cancel:       () => { if (_activeController) { _activeController.abort(); _activeController = null; } },
         isConfigured: () => !!_apiKey,
         getModel:     () => _model,
         showSettings: _showSettingsModal,
