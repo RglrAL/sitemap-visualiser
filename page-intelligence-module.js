@@ -1601,6 +1601,40 @@
         return parts.length ? '--- Page context ---\n' + parts.join('\n') + '\n---\n\n' : '';
     }
 
+    // Parses numbered (1. / 1)) or bulleted (- / • / *) list from AI response text.
+    // Returns array of stripped item strings. Handles varied model output formats.
+    function _parseListItems(text) {
+        var items = [];
+        var lines = text.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+            var l = lines[i].trim();
+            if (/^\d+[\.\)]\s+/.test(l))  items.push(l.replace(/^\d+[\.\)]\s+/, '').trim());
+            else if (/^[-•*]\s+/.test(l)) items.push(l.replace(/^[-•*]\s+/, '').trim());
+        }
+        return items.filter(Boolean);
+    }
+
+    // Strips wrapping quotes from model output and enforces 155-char limit.
+    function _cleanMetaDesc(text) {
+        var t = text.trim().replace(/^["']|["']$/g, '');
+        if (t.length > 155) t = t.slice(0, 152) + '...';
+        return t;
+    }
+
+    // If buffer has parseable items, renders them as cards with a "partial" warning.
+    // Returns true if partial content was rendered, false if buffer was empty/unparseable.
+    function _recoverPartial(output, buffer, opts) {
+        var items = _parseListItems(buffer);
+        if (items.length > 0) {
+            output.innerHTML = items.map(function(text) {
+                return _buildCardHTML(text, opts);
+            }).join('') +
+            '<div style="font-size:0.75rem;color:var(--color-text-muted);padding:4px 2px;margin-top:4px;">⚠️ Stream interrupted — partial results shown.</div>';
+            return true;
+        }
+        return false;
+    }
+
     function _buildLongSentencesPrompt(sentences, data) {
         const p = (window.GroqAI && window.GroqAI.getPrompt)
             ? window.GroqAI.getPrompt('long-sentences')
@@ -1634,13 +1668,18 @@
         const queryLine = (data._gsc && data._gsc.topQueries && data._gsc.topQueries.length)
             ? '\nTop search queries: ' + data._gsc.topQueries.slice(0, 5).map(function(q) { return '"' + q.query + '"'; }).join(', ')
             : '';
+        const introExcerpt = (data.structuredBlocks || [])
+            .filter(function(b) { return b.type === 'p'; })
+            .slice(0, 1).map(function(b) { return b.text; })
+            .join('').slice(0, 200);
         return [
             { role: 'system', content: p.system },
             { role: 'user',   content: p.userPrefix + '\n\n' +
                 'Page title: ' + (data.titleText || '(none)') + '\n' +
                 'Current meta description: ' + (data.metaDescText || '(none)') + '\n' +
                 'Main headings: ' + ((data.h2Texts || []).slice(0, 3).join(' / ') || '(none)') + '\n' +
-                'Word count: ' + (data.wordCount || 0) + queryLine
+                'Word count: ' + (data.wordCount || 0) +
+                (introExcerpt ? '\nPage intro: ' + introExcerpt : '') + queryLine
             },
         ];
     }
@@ -1682,10 +1721,11 @@
             .filter(b => b.type === 'p')
             .slice(0, 3)
             .map(b => b.text)
-            .join('\n\n');
+            .join('\n\n')
+            .slice(0, 1200);
         return [
             { role: 'system', content: p.system },
-            { role: 'user',   content: p.userPrefix + '\n\n' + introText },
+            { role: 'user',   content: _buildPageContext(data) + p.userPrefix + '\n\n' + introText },
         ];
     }
 
@@ -2002,20 +2042,25 @@
             output.style.display = 'none';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', async function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Generating…';
                 output.style.display = 'none'; output.innerHTML = '';
                 try {
-                    const result = await window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 });
-                    const text = result.trim();
+                    const result = await window.GroqAI.complete(_buildMetaDescPrompt(data), { signal: _abortCtrl.signal, max_tokens: 200, temperature: 0.5 });
+                    _abortCtrl = null;
+                    const text = _cleanMetaDesc(result);
                     _renderAICard(output, text, AI_ISSUE_OPTS['meta-desc']);
                     _cacheAIResult('meta-desc', 0, text);
-                    // Mirror to Document tab if already rendered
                     var docMetaMount = document.getElementById('pi-doc-meta-ai');
                     if (docMetaMount) _renderAICard(docMetaMount, text, AI_ISSUE_OPTS['meta-desc']);
                     btn.disabled = false; btn.textContent = '↺ Regenerate';
                 } catch (err) {
+                    _abortCtrl = null;
+                    if (err && err.name === 'AbortError') return;
                     output.style.display = '';
                     output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                     btn.disabled = false; btn.textContent = '✨ Rewrite meta description';
@@ -2035,8 +2080,11 @@
             output.style.cssText = 'display:none;white-space:pre-wrap;';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Generating…';
                 output.style.display = ''; output.textContent = '⏳ Thinking…';
                 let buffer = '';
@@ -2048,27 +2096,29 @@
                         output.textContent = buffer;
                     },
                     function() {
-                        // Render as individual rows with copy buttons
-                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
-                        if (lines.length > 0) {
-                            output.innerHTML = lines.map((l, i) => {
-                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                        const items = _parseListItems(buffer);
+                        if (items.length > 0) {
+                            output.innerHTML = items.map((text, i) => {
                                 return _buildCardHTML(text, Object.assign({}, AI_ISSUE_OPTS['title-tag'], { labelText: '✨ Option ' + (i + 1) }));
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
-                                const text = lines[idx].replace(/^\d+\.\s*/, '').trim();
                                 copyBtn.addEventListener('click', function() {
-                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                    navigator.clipboard.writeText(items[idx] || '').then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
                                 });
                             });
+                        } else if (buffer.trim()) {
+                            output.innerHTML = '<div style="font-size:0.82rem;color:var(--color-text-primary);padding:8px 4px;line-height:1.6;white-space:pre-wrap;">' + esc(buffer.trim()) + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Regenerate';
                     },
                     function(err) {
-                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        _abortCtrl = null;
+                        if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['title-tag'])) {
+                            output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        }
                         btn.disabled = false; btn.textContent = '✨ Suggest title tags';
                     },
-                    { max_tokens: 200, temperature: 0.6 }
+                    { signal: _abortCtrl.signal, max_tokens: 200, temperature: 0.6 }
                 );
             });
         })();
@@ -2090,8 +2140,11 @@
             output.style.display = 'none';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Generating…';
                 output.style.display = ''; output.textContent = '⏳ Thinking…';
                 let buffer = '';
@@ -2103,28 +2156,31 @@
                         output.textContent = buffer;
                     },
                     function() {
-                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
-                        if (lines.length > 0) {
-                            output.innerHTML = lines.map((l, i) => {
-                                const suggestion = l.replace(/^\d+\.\s*/, '').trim();
+                        const items = _parseListItems(buffer);
+                        if (items.length > 0) {
+                            output.innerHTML = items.map((suggestion, i) => {
                                 const original = weakLinks[i] ? '"' + esc(weakLinks[i].text) + '"' : '';
                                 const extra = original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + ' →</div>' : '';
                                 return _buildCardHTML(suggestion, AI_ISSUE_OPTS['weak-anchors'], extra);
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
-                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
                                 copyBtn.addEventListener('click', function() {
-                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                    navigator.clipboard.writeText(items[idx] || '').then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
                                 });
                             });
+                        } else if (buffer.trim()) {
+                            output.innerHTML = '<div style="font-size:0.82rem;color:var(--color-text-primary);padding:8px 4px;line-height:1.6;white-space:pre-wrap;">' + esc(buffer.trim()) + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Regenerate';
                     },
                     function(err) {
-                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        _abortCtrl = null;
+                        if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['weak-anchors'])) {
+                            output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        }
                         btn.disabled = false; btn.textContent = '✨ Suggest anchor text';
                     },
-                    { max_tokens: 300, temperature: 0.4 }
+                    { signal: _abortCtrl.signal, max_tokens: 300, temperature: 0.4 }
                 );
             });
         })();
@@ -2143,8 +2199,11 @@
             output.style.cssText = 'margin-top:6px;';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Generating…';
                 output.innerHTML = '';
                 let buffer = '';
@@ -2152,21 +2211,25 @@
                     _buildHedgeWordsPrompt(data),
                     function(token) { buffer += token; },
                     function() {
-                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
-                        if (lines.length > 0) {
+                        const items = _parseListItems(buffer);
+                        if (items.length > 0) {
                             const originals = hedgeAll.slice(0, 6);
-                            _renderHedgeCards(output, lines, originals);
-                            // Mirror to Document tab if already open
+                            _renderHedgeCards(output, items, originals);
                             var docHedgeMount = document.getElementById('pi-doc-hedge-ai');
-                            if (docHedgeMount) _renderHedgeCards(docHedgeMount, lines, originals);
+                            if (docHedgeMount) _renderHedgeCards(docHedgeMount, items, originals);
+                        } else if (buffer.trim()) {
+                            output.innerHTML = '<div style="font-size:0.82rem;color:var(--color-text-primary);padding:8px 4px;line-height:1.6;white-space:pre-wrap;">' + esc(buffer.trim()) + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Regenerate';
                     },
                     function(err) {
-                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        _abortCtrl = null;
+                        if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['hedge-words'])) {
+                            output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        }
                         btn.disabled = false; btn.textContent = '✨ Suggest direct alternatives';
                     },
-                    { max_tokens: 600, temperature: 0.4 }
+                    { signal: _abortCtrl.signal, max_tokens: 600, temperature: 0.4 }
                 );
             });
         })();
@@ -2185,8 +2248,11 @@
             output.style.cssText = 'margin-top:6px;';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Generating…';
                 output.innerHTML = '';
                 let buffer = '';
@@ -2194,21 +2260,25 @@
                     _buildNominalisationsPrompt(data),
                     function(token) { buffer += token; },
                     function() {
-                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
-                        if (lines.length > 0) {
+                        const items = _parseListItems(buffer);
+                        if (items.length > 0) {
                             const originals = nomAll.slice(0, 6);
-                            _renderNomCards(output, lines, originals);
-                            // Mirror to Document tab if already open
+                            _renderNomCards(output, items, originals);
                             var docNomMount = document.getElementById('pi-doc-nom-ai');
-                            if (docNomMount) _renderNomCards(docNomMount, lines, originals);
+                            if (docNomMount) _renderNomCards(docNomMount, items, originals);
+                        } else if (buffer.trim()) {
+                            output.innerHTML = '<div style="font-size:0.82rem;color:var(--color-text-primary);padding:8px 4px;line-height:1.6;white-space:pre-wrap;">' + esc(buffer.trim()) + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Regenerate';
                     },
                     function(err) {
-                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        _abortCtrl = null;
+                        if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['nominalisations'])) {
+                            output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        }
                         btn.disabled = false; btn.textContent = '✨ Rewrite sentences';
                     },
-                    { max_tokens: 600, temperature: 0.4 }
+                    { signal: _abortCtrl.signal, max_tokens: 600, temperature: 0.4 }
                 );
             });
         })();
@@ -2226,8 +2296,11 @@
             output.style.cssText = 'margin-top:6px;';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Generating…';
                 output.innerHTML = '';
                 let buffer = '';
@@ -2235,28 +2308,31 @@
                     _buildH2HeadingsPrompt(data),
                     function(token) { buffer += token; },
                     function() {
-                        const lines = buffer.split('\n').filter(l => /^\d+\./.test(l.trim()));
-                        if (lines.length > 0) {
-                            output.innerHTML = lines.map((l, i) => {
-                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                        const items = _parseListItems(buffer);
+                        if (items.length > 0) {
+                            output.innerHTML = items.map((text, i) => {
                                 const original = h2s[i] ? '"' + esc(h2s[i]) + '"' : '';
                                 const extra = original ? '<div style="font-size:0.67rem;color:var(--color-text-muted);margin-bottom:4px;">' + original + '</div>' : '';
                                 return _buildCardHTML(text, AI_ISSUE_OPTS['h2-headings'], extra);
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
-                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
                                 copyBtn.addEventListener('click', function() {
-                                    navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
+                                    navigator.clipboard.writeText(items[idx] || '').then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500); });
                                 });
                             });
+                        } else if (buffer.trim()) {
+                            output.innerHTML = '<div style="font-size:0.82rem;color:var(--color-text-primary);padding:8px 4px;line-height:1.6;white-space:pre-wrap;">' + esc(buffer.trim()) + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '↺ Regenerate';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Regenerate';
                     },
                     function(err) {
-                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        _abortCtrl = null;
+                        if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['h2-headings'])) {
+                            output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        }
                         btn.disabled = false; btn.textContent = '✨ Rewrite headings';
                     },
-                    { max_tokens: 400, temperature: 0.5 }
+                    { signal: _abortCtrl.signal, max_tokens: 400, temperature: 0.5 }
                 );
             });
         })();
@@ -2272,8 +2348,11 @@
             output.style.cssText = 'margin-top:8px;';
             mount.appendChild(btn);
             mount.appendChild(output);
+            var _abortCtrl = null;
             btn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_abortCtrl) { _abortCtrl.abort(); }
+                _abortCtrl = new AbortController();
                 btn.disabled = true; btn.textContent = 'Analysing…';
                 output.innerHTML = '';
                 var buffer = '';
@@ -2281,16 +2360,14 @@
                     _buildSearchIntentPrompt(data),
                     function(token) { buffer += token; },
                     function() {
-                        const lines = buffer.split('\n').filter(function(l) { return /^\d+\./.test(l.trim()); });
-                        if (lines.length > 0) {
-                            output.innerHTML = lines.map(function(l) {
-                                const text = l.replace(/^\d+\.\s*/, '').trim();
+                        const items = _parseListItems(buffer);
+                        if (items.length > 0) {
+                            output.innerHTML = items.map(function(text) {
                                 return _buildCardHTML(text, AI_ISSUE_OPTS['search-intent']);
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
-                                const text = lines[idx] ? lines[idx].replace(/^\d+\.\s*/, '').trim() : '';
                                 copyBtn.addEventListener('click', function() {
-                                    navigator.clipboard.writeText(text).then(function() {
+                                    navigator.clipboard.writeText(items[idx] || '').then(function() {
                                         copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
                                     });
                                 });
@@ -2298,13 +2375,16 @@
                         } else {
                             output.innerHTML = '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No content gaps identified — the page appears to address its top queries well.</div>';
                         }
-                        btn.disabled = false; btn.textContent = '↺ Re-analyse';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Re-analyse';
                     },
                     function(err) {
-                        output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        _abortCtrl = null;
+                        if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['search-intent'])) {
+                            output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
+                        }
                         btn.disabled = false; btn.textContent = '✨ Analyse content gaps';
                     },
-                    { max_tokens: 800, temperature: 0.4 }
+                    { signal: _abortCtrl.signal, max_tokens: 800, temperature: 0.4 }
                 );
             });
         })();
@@ -2688,7 +2768,7 @@
 
     // ─── Document tab AI wiring ───────────────────────────────────────────────
 
-    function _runDocStream(pairs, messages, cacheKey, onDone, onError) {
+    function _runDocStream(pairs, messages, cacheKey, onDone, onError, signal) {
         var buffer = '';
         var injectedCount = 0;
 
@@ -2741,7 +2821,7 @@
                 }
                 onDone(); // still signal done so the counter completes
             },
-            { max_tokens: 1024, temperature: 0.4 }
+            { signal: signal || undefined, max_tokens: 1024, temperature: 0.4 }
         );
     }
 
@@ -2773,6 +2853,7 @@
         // FAB controls — mounted in the right-side FAB group
         var reviewBtn = document.createElement('button');
         reviewBtn.className = 'pi-doc-fab';
+        var _reviewAbortCtrl = null;   // shared controller for all 4 FAB streams
 
         var progress = document.createElement('div');
         progress.className = 'pi-doc-toolbar-progress';
@@ -2863,6 +2944,8 @@
 
         reviewBtn.addEventListener('click', function() {
             if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+            if (_reviewAbortCtrl) { _reviewAbortCtrl.abort(); }
+            _reviewAbortCtrl = new AbortController();
 
             // Reset
             longPairs.concat(passivePairs).forEach(function(pair) {
@@ -2886,6 +2969,7 @@
             function onAllDone() {
                 doneCount++;
                 if (doneCount >= totalStreams) {
+                    _reviewAbortCtrl = null;
                     reviewBtn.disabled = false;
                     reviewBtn.textContent = '↺ Re-review';
                     progress.style.display = 'none';
@@ -2897,13 +2981,14 @@
             var passiveTexts = passiveEls.map(function(el) { return el.querySelector('.pi-sent-text').textContent.trim(); });
 
             // Run all four streams concurrently
+            var _sig = _reviewAbortCtrl ? _reviewAbortCtrl.signal : undefined;
             if (longPairs.length > 0) {
-                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), 'long-sentences', onAllDone, onAllDone);
+                _runDocStream(longPairs, _buildLongSentencesPrompt(longTexts, data), 'long-sentences', onAllDone, onAllDone, _sig);
             } else {
                 onAllDone();
             }
             if (passivePairs.length > 0) {
-                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), 'passive-voice', onAllDone, onAllDone);
+                _runDocStream(passivePairs, _buildPassivePrompt(passiveTexts, data), 'passive-voice', onAllDone, onAllDone, _sig);
             } else {
                 onAllDone();
             }
@@ -2915,19 +3000,23 @@
                     _buildHedgeWordsPrompt(data),
                     function(token) { hBuffer += token; },
                     function() {
-                        var lines = hBuffer.split('\n').filter(function(l) { return /^\d+\./.test(l.trim()); });
-                        if (lines.length > 0) {
-                            _renderHedgeCards(hedgeMount, lines, hedgeAll.slice(0, 6));
-                            // Mirror to Analysis tab
+                        var items = _parseListItems(hBuffer);
+                        if (items.length > 0) {
+                            _renderHedgeCards(hedgeMount, items, hedgeAll.slice(0, 6));
                             var analysisHedgeOutput = document.getElementById('pi-hedge-ai-output');
-                            if (analysisHedgeOutput) _renderHedgeCards(analysisHedgeOutput, lines, hedgeAll.slice(0, 6));
+                            if (analysisHedgeOutput) _renderHedgeCards(analysisHedgeOutput, items, hedgeAll.slice(0, 6));
                         } else {
                             hedgeMount.style.display = 'none';
                         }
                         onAllDone();
                     },
-                    function() { hedgeMount.style.display = 'none'; onAllDone(); },
-                    { max_tokens: 600, temperature: 0.4 }
+                    function(err) {
+                        if (!_recoverPartial(hedgeMount, hBuffer, AI_ISSUE_OPTS['hedge-words'])) {
+                            hedgeMount.style.display = 'none';
+                        }
+                        onAllDone();
+                    },
+                    { signal: _sig, max_tokens: 600, temperature: 0.4 }
                 );
             } else {
                 onAllDone();
@@ -2940,19 +3029,23 @@
                     _buildNominalisationsPrompt(data),
                     function(token) { nBuffer += token; },
                     function() {
-                        var lines = nBuffer.split('\n').filter(function(l) { return /^\d+\./.test(l.trim()); });
-                        if (lines.length > 0) {
-                            _renderNomCards(nomMount, lines, nomAll.slice(0, 6));
-                            // Mirror to Analysis tab
+                        var items = _parseListItems(nBuffer);
+                        if (items.length > 0) {
+                            _renderNomCards(nomMount, items, nomAll.slice(0, 6));
                             var analysisNomOutput = document.getElementById('pi-nom-ai-output');
-                            if (analysisNomOutput) _renderNomCards(analysisNomOutput, lines, nomAll.slice(0, 6));
+                            if (analysisNomOutput) _renderNomCards(analysisNomOutput, items, nomAll.slice(0, 6));
                         } else {
                             nomMount.style.display = 'none';
                         }
                         onAllDone();
                     },
-                    function() { nomMount.style.display = 'none'; onAllDone(); },
-                    { max_tokens: 600, temperature: 0.4 }
+                    function(err) {
+                        if (!_recoverPartial(nomMount, nBuffer, AI_ISSUE_OPTS['nominalisations'])) {
+                            nomMount.style.display = 'none';
+                        }
+                        onAllDone();
+                    },
+                    { signal: _sig, max_tokens: 600, temperature: 0.4 }
                 );
             } else {
                 onAllDone();
@@ -2974,8 +3067,11 @@
             introOutput.style.display = 'none';
             if (docBody) docBody.parentNode.insertBefore(introOutput, docBody);
 
+            var _introAbortCtrl = null;
             introBtn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_introAbortCtrl) { _introAbortCtrl.abort(); }
+                _introAbortCtrl = new AbortController();
                 introBtn.disabled = true;
                 introBtn.textContent = 'Rewriting…';
                 introOutput.style.display = '';
@@ -3002,15 +3098,17 @@
                                 setTimeout(function() { introOutput.querySelector('.pi-copy-btn').textContent = 'Copy'; }, 1500);
                             });
                         });
+                        _introAbortCtrl = null;
                         introBtn.disabled = false;
                         introBtn.textContent = '↺ Rewrite intro';
                     },
                     function(err) {
+                        _introAbortCtrl = null;
                         introOutput.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         introBtn.disabled = false;
                         introBtn.textContent = '✨ Rewrite intro';
                     },
-                    { max_tokens: 400, temperature: 0.5 }
+                    { signal: _introAbortCtrl.signal, max_tokens: 400, temperature: 0.5 }
                 );
             });
         }
@@ -3027,22 +3125,27 @@
             metaBtn.textContent = '✨ Rewrite meta';
             metaBanner.insertBefore(metaBtn, metaMount);
 
+            var _metaAbortCtrl = null;
             metaBtn.addEventListener('click', function() {
                 if (!window.GroqAI.isConfigured()) { window.GroqAI.showSettings(); return; }
+                if (_metaAbortCtrl) { _metaAbortCtrl.abort(); }
+                _metaAbortCtrl = new AbortController();
                 metaBtn.disabled = true;
                 metaBtn.textContent = 'Generating…';
-                window.GroqAI.complete(_buildMetaDescPrompt(data), { max_tokens: 200, temperature: 0.5 })
+                window.GroqAI.complete(_buildMetaDescPrompt(data), { signal: _metaAbortCtrl.signal, max_tokens: 200, temperature: 0.5 })
                     .then(function(result) {
-                        var text = result.trim();
+                        _metaAbortCtrl = null;
+                        var text = _cleanMetaDesc(result);
                         _renderAICard(metaMount, text, AI_ISSUE_OPTS['meta-desc']);
                         _cacheAIResult('meta-desc', 0, text);
-                        // Mirror to Analysis tab output if already rendered
                         var analysisMetaMount = document.getElementById('pi-meta-desc-ai');
                         if (analysisMetaMount) _renderAICard(analysisMetaMount, text, AI_ISSUE_OPTS['meta-desc']);
                         metaBtn.disabled = false;
                         metaBtn.textContent = '↺ Regenerate';
                     })
                     .catch(function(err) {
+                        _metaAbortCtrl = null;
+                        if (err && err.name === 'AbortError') { metaBtn.disabled = false; metaBtn.textContent = '✨ Rewrite meta'; return; }
                         metaMount.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         metaBtn.disabled = false;
                         metaBtn.textContent = '✨ Rewrite meta';
