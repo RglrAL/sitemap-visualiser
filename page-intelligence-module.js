@@ -1906,8 +1906,10 @@
                 .map(function(b) { return b.text; })
                 .join(' ')
                 .slice(0, 5000);
+        const h1Line = data.h1Text ? '--- Page H1 ---\n' + data.h1Text + '\n\n' : '';
         const userContent =
             _buildPageContext(data) + p.userPrefix + '\n\n' +
+            h1Line +
             '--- Top search queries ---\n' + queries + '\n\n' +
             '--- Current H2 headings ---\n' + headings + '\n\n' +
             '--- Full page body text ---\n' + (pageBody || '(none)');
@@ -2019,6 +2021,39 @@
         });
         hedgeMount.style.display = 'none';
         hedgeMount.innerHTML = '';
+    }
+
+    function _distributeNomCards(nomMount, nomAll, panel) {
+        var body = panel.querySelector('.pi-doc-body');
+        if (!body) return;
+        var cards = Array.prototype.slice.call(nomMount.children);
+        var marks = Array.prototype.slice.call(body.querySelectorAll('mark[data-overlay="nominalisation"]'));
+        cards.forEach(function(card, i) {
+            var found = nomAll[i] ? nomAll[i].found : null;
+            if (!found) return;
+            var foundLower = found.toLowerCase();
+            var targetMark = null;
+            for (var m = 0; m < marks.length; m++) {
+                if (marks[m].textContent.toLowerCase() === foundLower) { targetMark = marks[m]; break; }
+            }
+            if (!targetMark) return;
+            var block = targetMark.parentElement;
+            while (block && block.parentElement && block.parentElement !== body) {
+                block = block.parentElement;
+            }
+            if (!block || block === body) return;
+            var wrapper = document.createElement('div');
+            wrapper.className = 'pi-doc-nom-inline';
+            wrapper.style.cssText = 'margin:2px 0 8px 0;';
+            wrapper.appendChild(card);
+            if (block.nextSibling) {
+                block.parentNode.insertBefore(wrapper, block.nextSibling);
+            } else {
+                block.parentNode.appendChild(wrapper);
+            }
+        });
+        nomMount.style.display = 'none';
+        nomMount.innerHTML = '';
     }
 
     // Returns card HTML string.
@@ -3090,6 +3125,7 @@
             if (nomCached.length > 0) {
                 var nomFakeLines = nomCached.map(function(t, i) { return (i + 1) + '. ' + t; });
                 _renderNomCards(nomMount, nomFakeLines, nomAll.slice(0, nomCached.length));
+                _distributeNomCards(nomMount, nomAll.slice(0, nomCached.length), panel);
                 anyPrefilled = true;
             }
         }
@@ -3123,6 +3159,7 @@
             if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
             panel.querySelectorAll('.pi-doc-hedge-inline').forEach(function(el) { el.remove(); });
             if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
+            panel.querySelectorAll('.pi-doc-nom-inline').forEach(function(el) { el.remove(); });
             clearLink.style.display = 'none';
             reviewBtn.textContent = '✨ AI Review';
         });
@@ -3141,6 +3178,7 @@
             if (hedgeMount) { hedgeMount.style.display = 'none'; hedgeMount.innerHTML = ''; }
             panel.querySelectorAll('.pi-doc-hedge-inline').forEach(function(el) { el.remove(); });
             if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
+            panel.querySelectorAll('.pi-doc-nom-inline').forEach(function(el) { el.remove(); });
             clearLink.style.display = 'none';
             reviewBtn.disabled = true;
             reviewBtn.textContent = 'Reviewing…';
@@ -3219,6 +3257,7 @@
                         var items = _parseListItems(nBuffer);
                         if (items.length > 0) {
                             _renderNomCards(nomMount, items, nomAll.slice(0, 6));
+                            _distributeNomCards(nomMount, nomAll.slice(0, 6), panel);
                             var analysisNomOutput = document.getElementById('pi-nom-ai-output');
                             if (analysisNomOutput) _renderNomCards(analysisNomOutput, items, nomAll.slice(0, 6));
                         } else {
