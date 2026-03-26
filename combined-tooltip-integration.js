@@ -1731,12 +1731,18 @@ function showDashboardLoading() {
     `;
     
     document.body.appendChild(loadingOverlay);
-    
-    // Fade in
+
+    // Crossfade: fade the visualisation out as the loader fades in
+    const vizWrapper = document.querySelector('.visualization-wrapper');
+    if (vizWrapper) {
+        vizWrapper.style.transition = 'opacity 0.3s ease';
+        vizWrapper.style.opacity = '0';
+    }
+    loadingOverlay.style.opacity = '0';
     requestAnimationFrame(() => {
         loadingOverlay.style.opacity = '1';
     });
-    
+
     return loadingOverlay;
 }
 
@@ -2025,6 +2031,12 @@ function showDashboardModal(htmlContent) {
         panel.style.transform = 'translateY(100%)';
         document.removeEventListener('keydown', escHandler);
         if (navBar) navBar.removeEventListener('click', navClickHandler);
+        // Fade the visualisation back in as the panel slides away
+        const _viz = document.querySelector('.visualization-wrapper');
+        if (_viz) {
+            _viz.style.transition = 'opacity 0.32s ease';
+            _viz.style.opacity = '1';
+        }
         setTimeout(() => {
             if (panel.parentNode) panel.remove();
             const so = document.getElementById('dashboard-panel-overrides');
