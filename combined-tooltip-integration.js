@@ -1614,7 +1614,7 @@ function showDashboardLoading() {
     
     // Create loading overlay — sits below the nav bar, same spatial zone as the panel
     const _navBar = document.getElementById('navBar');
-    const _navH = _navBar ? _navBar.offsetHeight : 48;
+    const _navH = _navBar ? Math.round(_navBar.getBoundingClientRect().bottom) : 48;
     const loadingOverlay = document.createElement('div');
     loadingOverlay.id = 'dashboard-loading-overlay';
     loadingOverlay.style.cssText = `
@@ -1982,9 +1982,10 @@ function showDashboardModal(htmlContent) {
     const existing = document.getElementById('unified-dashboard-modal');
     if (existing) existing.remove();
 
-    // Measure nav bar height so the panel sits exactly below it
+    // Measure nav bar bottom edge — use getBoundingClientRect so the panel clears
+    // both the green header and the nav bar when the user is at the top of the page.
     const navBar = document.getElementById('navBar');
-    const navHeight = navBar ? navBar.offsetHeight : 48;
+    const navHeight = navBar ? Math.round(navBar.getBoundingClientRect().bottom) : 48;
 
     // Full-screen panel — below the nav bar, fills the rest of the viewport
     const panel = document.createElement('div');
