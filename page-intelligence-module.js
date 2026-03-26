@@ -1645,14 +1645,16 @@
         chunks.forEach(function(chunk) {
             chunk = chunk.trim();
             if (!chunk) return;
-            var q = chunk.match(/Query:\s*[""\u201c\u201d]?(.+?)[""\u201c\u201d]?\s*(?:\n|$)/i);
+            var q = chunk.match(/Query(?:\s+theme)?:\s*[""\u201c\u201d]?(.+?)[""\u201c\u201d]?\s*(?:\n|$)/i);
             var g = chunk.match(/Gap:\s*(.+?)(?:\n|$)/i);
+            var ev = chunk.match(/Evidence:\s*(.+?)(?:\n|$)/i);
             var a = chunk.match(/Action:\s*(.+?)(?:\n|$)/i);
             if (q || g || a) {
                 items.push({
-                    query:  q ? q[1].replace(/[""'']/g, '').trim() : '',
-                    gap:    g ? g[1].trim() : '',
-                    action: a ? a[1].trim() : '',
+                    query:    q  ? q[1].replace(/[""'']/g, '').trim() : '',
+                    gap:      g  ? g[1].trim() : '',
+                    evidence: ev ? ev[1].trim() : '',
+                    action:   a  ? a[1].trim() : '',
                 });
             }
         });
@@ -1665,18 +1667,20 @@
         var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
         var opts  = AI_ISSUE_OPTS['search-intent'];
         var copyText = [
-            item.query  ? 'Query: '  + item.query  : '',
-            item.gap    ? 'Gap: '    + item.gap    : '',
-            item.action ? 'Action: ' + item.action : '',
+            item.query    ? 'Query: '    + item.query    : '',
+            item.gap      ? 'Gap: '      + item.gap      : '',
+            item.evidence ? 'Evidence: ' + item.evidence : '',
+            item.action   ? 'Action: '   + item.action   : '',
         ].filter(Boolean).join('\n');
         return '<div class="pi-ai-card" style="border:1px solid ' + opts.border + ';background:' + opts.bg + ';border-radius:8px;padding:10px 12px;margin-bottom:8px;">' +
             '<div class="pi-ai-card-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
                 '<span class="pi-ai-label" style="font-size:0.62rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:' + opts.color + ';background:' + opts.bg + ';border:1px solid ' + opts.border + ';border-radius:10px;padding:2px 8px;">' + opts.label + '</span>' +
                 '<button class="pi-copy-btn" style="font-size:0.65rem;padding:2px 8px;border-radius:6px;border:1px solid ' + opts.border + ';color:' + opts.color + ';background:transparent;cursor:pointer;" data-copy="' + _e(copyText) + '">Copy</button>' +
             '</div>' +
-            (item.query  ? '<div style="font-size:0.72rem;margin-bottom:4px;"><span style="font-weight:700;color:' + opts.color + ';">Query</span> <span style="color:var(--color-text-muted);">"' + _e(item.query) + '"</span></div>' : '') +
-            (item.gap    ? '<div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:6px;"><span style="font-weight:700;color:var(--color-text-primary);">Gap</span> ' + _e(item.gap) + '</div>' : '') +
-            (item.action ? '<div style="font-size:0.8rem;color:var(--color-text-primary);"><span style="font-weight:700;">Action</span> ' + _e(item.action) + '</div>' : '') +
+            (item.query    ? '<div style="font-size:0.72rem;margin-bottom:4px;"><span style="font-weight:700;color:' + opts.color + ';">Query</span> <span style="color:var(--color-text-muted);">"' + _e(item.query) + '"</span></div>' : '') +
+            (item.gap      ? '<div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:4px;"><span style="font-weight:700;color:var(--color-text-primary);">Gap</span> ' + _e(item.gap) + '</div>' : '') +
+            (item.evidence ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:6px;font-style:italic;"><span style="font-weight:700;font-style:normal;color:var(--color-text-secondary);">Evidence</span> ' + _e(item.evidence) + '</div>' : '') +
+            (item.action   ? '<div style="font-size:0.8rem;color:var(--color-text-primary);"><span style="font-weight:700;">Action</span> ' + _e(item.action) + '</div>' : '') +
         '</div>';
     }
 
@@ -3263,7 +3267,14 @@
             `<div style="font-size:0.85rem;font-weight:700;color:var(--color-text-primary);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--color-border-primary);">${label}</div>`;
         const subHead = (icon, label, warn) =>
             `<div style="font-size:0.72rem;font-weight:700;color:${warn ? '#d97706' : 'var(--color-text-secondary)'};margin-bottom:7px;display:flex;align-items:center;gap:5px;">${icon ? `<span>${icon}</span>` : ''}<span>${esc(label)}</span></div>`;
-        const detailsSummaryStyle = 'font-size:0.78rem;font-weight:700;color:var(--color-text-secondary);cursor:pointer;list-style:none;padding:6px 0;user-select:none;';
+        const detailsSummaryStyle = 'font-size:0.78rem;font-weight:700;color:var(--color-text-secondary);cursor:pointer;list-style:none;padding:6px 0;user-select:none;display:flex;align-items:center;gap:4px;';
+        const chev = '<span class="pi-chev" style="display:inline-block;font-size:0.7em;transition:transform 0.15s;color:var(--color-text-muted);flex-shrink:0;">&#9654;</span>';
+        if (!document.getElementById('pi-details-chev-style')) {
+            const _cs = document.createElement('style');
+            _cs.id = 'pi-details-chev-style';
+            _cs.textContent = 'details.pi-sec>summary{list-style:none;}details.pi-sec>summary::-webkit-details-marker{display:none;}details.pi-sec[open] .pi-chev{transform:rotate(90deg);}';
+            document.head.appendChild(_cs);
+        }
 
         // ── Noindex banner (dark-mode fix) ──
         const noindexBanner = data.isNoindex
@@ -3587,8 +3598,8 @@
             // Long sentences <details>
             const longSentencesDetails = allLong.length > 0
                 ? `<div id="pi-long-sentences-ai" style="margin-bottom:6px;"></div>` +
-                  `<details${allLong.length <= 3 ? ' open' : ''} style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">\u26a0\ufe0f ${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}</summary>` +
+                  `<details${allLong.length <= 3 ? ' open' : ''} class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">${chev}\u26a0\ufe0f ${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:10px;">` +
                       `<div id="pi-long-sentences-list">` +
                       allLong.map((s, i) => {
@@ -3604,8 +3615,8 @@
             const passiveAll = ws.passiveSentenceExamplesAll || ws.passiveSentenceExamples || [];
             const passiveDetails =
                 (passiveAll.length > 0 ? `<div id="pi-passive-ai" style="margin-bottom:6px;"></div>` : '') +
-                `<details${passiveAll.length <= 5 ? ' open' : ''} style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                `<summary style="${detailsSummaryStyle}">${passiveWarn ? '\u26a0\ufe0f' : '\u2705'} Passive voice \u2014 ${ws.passiveSentenceCount} of ${ws.totalSentences} sentences (${passivePct}%)</summary>` +
+                `<details${passiveAll.length <= 5 ? ' open' : ''} class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                `<summary style="${detailsSummaryStyle}">${chev}${passiveWarn ? '\u26a0\ufe0f' : '\u2705'} Passive voice (${ws.passiveSentenceCount} of ${ws.totalSentences} sentences, ${passivePct}%)</summary>` +
                 `<div style="padding:8px 0 4px;">` +
                     (passiveAll.length > 0
                         ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map((s, i) =>
@@ -3621,8 +3632,8 @@
             // Complex words <details>
             const complexAll = ws.complexWordListAll || ws.complexWordList;
             const complexDetails = complexAll.length > 0
-                ? `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${complexWarn ? '\u26a0\ufe0f' : '\u2705'} Complex words (3+ syllables) \u2014 ${ws.complexWordCount} uses (${ws.complexWordPct}%)</summary>` +
+                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">${chev}${complexWarn ? '\u26a0\ufe0f' : '\u2705'} Complex words, 3+ syllables (${ws.complexWordCount} uses, ${ws.complexWordPct}%)</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:5px;">` +
                   complexAll.map(w => {
                       const alts = PLAIN_ALTS[w.toLowerCase()];
@@ -3638,8 +3649,8 @@
             const nomAll = ws.nominalisationMatchesAll || ws.nominalisationMatches;
             const nomDetails = nomAll.length > 0
                 ? `<div id="pi-nom-ai" style="margin-bottom:6px;"></div>` +
-                  `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">\u26a0\ufe0f Bureaucratic phrases \u2014 ${ws.nominalisationCount} occurrence${ws.nominalisationCount !== 1 ? 's' : ''}</summary>` +
+                  `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">${chev}\u26a0\ufe0f Bureaucratic phrases (${ws.nominalisationCount} occurrence${ws.nominalisationCount !== 1 ? 's' : ''})</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:6px;">` +
                   nomAll.map(m =>
                       `<div style="font-size:0.77rem;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-left:3px solid #d97706;padding:5px 12px;">` +
@@ -3654,8 +3665,8 @@
             // Adverbs <details>
             const advAll = ws.adverbsAll || ws.topAdverbs;
             const adverbDetails = ws.adverbCount > 0
-                ? `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${adverbWarn ? '\u26a0\ufe0f' : '\u2705'} Adverbs \u2014 ${ws.adverbCount} (${ws.adverbPct}% of words)</summary>` +
+                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">${chev}${adverbWarn ? '\u26a0\ufe0f' : '\u2705'} Adverbs (${ws.adverbCount}, ${ws.adverbPct}% of words)</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:5px;">` +
                   advAll.map(w =>
                       `<span style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);">${esc(w)}</span>`
@@ -3665,13 +3676,18 @@
 
             // Hedge words <details>
             const hedgeAll = ws.hedgeMatchesAll || [];
+            const _sentTexts = data.sentenceTexts || [];
             const hedgeDetails = ws.hedgeCount > 0
-                ? `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">\ud83d\udcac Hedge / vague language \u2014 ${ws.hedgeCount} occurrence${ws.hedgeCount !== 1 ? 's' : ''}</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:5px;">` +
-                  hedgeAll.map(m =>
-                      `<span style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);">${esc(m.phrase)}${m.count > 1 ? ` \xd7${m.count}` : ''}</span>`
-                  ).join('') +
+                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">${chev}\ud83d\udcac Hedge words (${ws.hedgeCount} occurrence${ws.hedgeCount !== 1 ? 's' : ''})</summary>` +
+                  `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:5px;">` +
+                  hedgeAll.map(m => {
+                      const ex = _sentTexts.find(s => s.toLowerCase().includes(m.phrase.toLowerCase())) || '';
+                      return `<div style="border-left:3px solid var(--color-border-primary);padding:5px 12px;">` +
+                          `<div style="font-size:0.77rem;font-weight:600;color:var(--color-text-secondary);">\u201c${esc(m.phrase)}\u201d${m.count > 1 ? ` <span style="color:var(--color-text-muted);">\xd7${m.count}</span>` : ''}</div>` +
+                          (ex ? `<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:3px;font-style:italic;line-height:1.5;">${esc(ex.length > 160 ? ex.slice(0, 157) + '\u2026' : ex)}</div>` : '') +
+                      `</div>`;
+                  }).join('') +
                   `</div>` +
                   `<div id="pi-hedge-ai" style="margin-top:6px;"></div>` +
                   `</details>`
@@ -3680,8 +3696,8 @@
             // H2 headings <details>
             const h2sForCard = data.h2Texts || [];
             const headingStructureDetails = h2sForCard.length > 0
-                ? `<details style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">\ud83d\udccb H2 Headings \u2014 ${h2sForCard.length} heading${h2sForCard.length !== 1 ? 's' : ''}</summary>` +
+                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
+                  `<summary style="${detailsSummaryStyle}">${chev}\ud83d\udccb H2 Headings (${h2sForCard.length} heading${h2sForCard.length !== 1 ? 's' : ''})</summary>` +
                   `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:4px;">` +
                   h2sForCard.slice(0, 10).map(h =>
                       `<div style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.5;border-left:2px solid var(--color-border-primary);padding:3px 10px;">${esc(h)}</div>`
