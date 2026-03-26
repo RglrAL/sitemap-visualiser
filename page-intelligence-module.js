@@ -971,6 +971,19 @@
         'WebPage':     { label: 'Web page', bg: '#64748b' }
     };
 
+    function _getSiteLogo(host) {
+        // Reuse logos already embedded in the quick-access buttons on the main page
+        var btns = document.querySelectorAll('.quick-access-btn');
+        for (var i = 0; i < btns.length; i++) {
+            var onclick = btns[i].getAttribute('onclick') || '';
+            if (onclick.indexOf(host) !== -1) {
+                var img = btns[i].querySelector('img');
+                if (img && img.src) return img.src;
+            }
+        }
+        return null;
+    }
+
     function _pickContrastText(hex) {
         if (!hex || hex.charAt(0) !== '#') return '#ffffff';
         var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
@@ -1038,9 +1051,13 @@
         if (theme.branded) {
             // ── Branded 2-zone layout (known sites) ──────────────────────────
             // Zone 1: nav bar — dark bg, logo + site name + open link
+            var logoSrc = _getSiteLogo(host);
+            var logoHtml = logoSrc
+                ? '<img src="' + logoSrc + '" height="32" style="height:32px;width:auto;object-fit:contain;display:block;">'
+                : (theme.logo || '');
             var navBar =
                 '<div style="background:' + theme.nav + ';color:' + theme.navText + ';padding:10px 18px;border-radius:6px 6px 0 0;display:flex;align-items:center;gap:10px;">' +
-                    '<span style="display:flex;align-items:center;flex-shrink:0;">' + (theme.logo || '') + '</span>' +
+                    '<span style="display:flex;align-items:center;flex-shrink:0;">' + logoHtml + '</span>' +
                     '<span style="font-weight:700;font-size:0.88rem;letter-spacing:0.01em;flex:1;">' + _esc(theme.siteName || theme.label || host) + '</span>' +
                     '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="color:' + theme.navText + ';opacity:0.75;font-size:0.68rem;text-decoration:none;border:1px solid rgba(255,255,255,0.45);padding:2px 8px;border-radius:3px;white-space:nowrap;flex-shrink:0;">Open page \u2197</a>' +
                 '</div>';
