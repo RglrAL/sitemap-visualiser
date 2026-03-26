@@ -448,7 +448,7 @@ onmouseout="
                         padding: 16px;
                         border: 1px solid var(--color-border-primary);
                     ">
-                        <div style="font-size: 0.9rem; font-weight: 600; color: #334155; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <div style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
                                 <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                 <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -482,18 +482,18 @@ onmouseout="
 
                     <!-- Additional Analytics Insights -->
                     <div style="
-                        background: linear-gradient(135deg, #fef7f0 0%, #fed7aa 100%);
+                        background: var(--color-bg-tertiary);
                         border-radius: 12px;
                         padding: 16px;
-                        border: 1px solid #fed7aa;
+                        border: 1px solid var(--color-border-primary);
                     ">
-                        <div style="font-size: 0.9rem; font-weight: 600; color: #9a3412; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <div style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
                                 <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                             </svg>
                             <span>Performance Insights</span>
                         </div>
-                        <div id="ga4-insights" style="font-size: 0.8rem; color: #9a3412; opacity: 0.8;">
+                        <div id="ga4-insights" style="font-size: 0.8rem; color: var(--color-text-secondary); opacity: 0.8;">
                             Connect GA4 for performance insights
                         </div>
                     </div>
@@ -609,7 +609,7 @@ onmouseout="
                 
                 .action-btn.secondary:hover {
                     background: var(--color-bg-secondary);
-                    color: #334155;
+                    color: var(--color-text-primary);
                     transform: translateY(-1px);
                     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 }
@@ -637,12 +637,12 @@ onmouseout="
                 }
                 
                 .tab-content::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
+                    background: var(--color-border-secondary);
                     border-radius: 2px;
                 }
-                
+
                 .tab-content::-webkit-scrollbar-thumb:hover {
-                    background: #94a3b8;
+                    background: var(--color-text-muted);
                 }
                 
                 /* Mobile-specific responsive styles */
@@ -1973,152 +1973,91 @@ function calculateTrend(currentValue, previousValue, inverted = false) {
 
 // Modal display function (customize to match your UI style)
 function showDashboardModal(htmlContent) {
-    console.log('🎭 showDashboardModal called with content length:', htmlContent?.length);
-    
     hideDashboardLoading();
-    
-    console.log('💡 Loading hidden, checking for existing modal...');
-    // Remove existing modal if present
-    const existingModal = document.getElementById('unified-dashboard-modal');
-    if (existingModal) {
-        console.log('🗑️ Removing existing modal');
-        existingModal.remove();
-    }
-    
-    // Create modal backdrop
-    const modal = document.createElement('div');
-    modal.id = 'unified-dashboard-modal';
-    
-    // Store original tooltip data for restoration
-    if (window.originalTooltipData) {
-        modal._originalTooltipData = window.originalTooltipData;
-    }
-    modal.style.cssText = `
+
+    // Remove any existing panel
+    const existing = document.getElementById('unified-dashboard-modal');
+    if (existing) existing.remove();
+
+    // Measure the nav bar height dynamically so the panel sits exactly below it
+    const navBar = document.getElementById('navBar');
+    const navHeight = navBar ? navBar.offsetHeight : 48;
+
+    // Full-screen panel — sits below the nav bar, fills the rest of the viewport
+    const panel = document.createElement('div');
+    panel.id = 'unified-dashboard-modal';
+    panel.style.cssText = `
         position: fixed;
-        top: 0;
+        top: ${navHeight}px;
         left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.75);
-        z-index: 99999;
+        right: 0;
+        bottom: 0;
+        z-index: 998;
+        background: var(--color-bg-primary);
+        overflow-y: auto;
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 0.22s ease, transform 0.22s ease;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    // Close/dismiss logic
+    const closeFn = () => {
+        panel.style.opacity = '0';
+        panel.style.transform = 'translateY(14px)';
+        document.removeEventListener('keydown', escHandler);
+        setTimeout(() => { if (panel.parentNode) panel.remove(); }, 220);
+    };
+
+    // Sticky "← Back to sitemap" strip
+    const backBar = document.createElement('div');
+    backBar.style.cssText = `
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--color-bg-primary);
+        border-bottom: 1px solid var(--color-border-primary);
+        padding: 7px 20px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(8px);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        padding: 20px;
-        box-sizing: border-box;
     `;
-    
-    // Add mobile-specific styles
-    if (window.innerWidth <= 768) {
-        modal.style.padding = '10px';
-        modal.style.alignItems = 'flex-start';
-        modal.style.paddingTop = '20px';
-    }
-    
-    // Create modal content container
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
-        width: 100%;
-        max-width: 1200px;
-        max-height: 90vh;
-        overflow-y: auto;
-        position: relative;
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-    `;
-    
-    // Add mobile-specific modal content styles
-    if (window.innerWidth <= 768) {
-        modalContent.style.maxWidth = '100%';
-        modalContent.style.maxHeight = '95vh';
-        modalContent.style.margin = '0';
-    }
-    
-    // Add close button
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10001;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
+
+    const backBtn = document.createElement('button');
+    backBtn.innerHTML = '&#8592; Back to sitemap';
+    backBtn.style.cssText = `
+        background: none;
         border: none;
-        width: 40px;
-        height: 40px;
-        border-radius: 20px;
-        font-size: 18px;
+        color: var(--color-text-secondary);
+        font-size: 0.82rem;
+        font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
+        padding: 0;
+        letter-spacing: 0.01em;
+        transition: color 0.15s;
     `;
-    
-    closeBtn.addEventListener('click', () => {
-        console.log('🚪 Closing dashboard modal');
-        modal.style.opacity = '0';
-        modalContent.style.transform = 'scale(0.9)';
-        
-        // On mobile, restore the original tooltip when modal closes
-        const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        setTimeout(() => {
-            modal.remove();
-            console.log('🗑️ Dashboard modal removed');
-            
-            // Don't restore tooltip automatically - let user re-trigger if needed
-            // This prevents conflicts with existing tooltips
-            console.log('📱 Dashboard closed, tooltip restoration disabled to prevent conflicts');
-        }, 300);
-    });
-    
-    closeBtn.addEventListener('mouseenter', () => {
-        closeBtn.style.background = 'rgba(239, 68, 68, 0.9)';
-        closeBtn.style.transform = 'scale(1.1)';
-    });
-    
-    closeBtn.addEventListener('mouseleave', () => {
-        closeBtn.style.background = 'rgba(0, 0, 0, 0.7)';
-        closeBtn.style.transform = 'scale(1)';
-    });
-    
-    // Add dashboard content
-    console.log('📄 Setting modal content HTML...');
-    modalContent.innerHTML = htmlContent;
-    console.log('🔘 Adding close button...');
-    modalContent.appendChild(closeBtn);
-    console.log('📦 Adding content to modal...');
-    modal.appendChild(modalContent);
-    console.log('🌐 Adding modal to document body...');
-    document.body.appendChild(modal);
-    console.log('✅ Modal added to DOM, modal element:', modal);
-    
-    // Show with animation
-    console.log('🎬 Starting modal animation...');
+    backBtn.addEventListener('mouseenter', () => { backBtn.style.color = 'var(--color-text-primary)'; });
+    backBtn.addEventListener('mouseleave', () => { backBtn.style.color = 'var(--color-text-secondary)'; });
+    backBtn.addEventListener('click', closeFn);
+
+    backBar.appendChild(backBtn);
+
+    // Dashboard content
+    const content = document.createElement('div');
+    content.innerHTML = htmlContent;
+
+    panel.appendChild(backBar);
+    panel.appendChild(content);
+    document.body.appendChild(panel);
+
+    // Escape key
+    const escHandler = (e) => { if (e.key === 'Escape') closeFn(); };
+    document.addEventListener('keydown', escHandler);
+
+    // Slide/fade in
     requestAnimationFrame(() => {
-        console.log('📺 Setting modal opacity and scale...');
-        modal.style.opacity = '1';
-        modalContent.style.transform = 'scale(1)';
-        console.log('🎉 Modal should now be visible!');
+        panel.style.opacity = '1';
+        panel.style.transform = 'translateY(0)';
     });
-    
-    // Close on backdrop click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeBtn.click();
-        }
-    });
-    
-    // Close on Escape key
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            closeBtn.click();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
 }
 
 
