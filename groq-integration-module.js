@@ -59,8 +59,8 @@
             userPrefix: 'Rewrite each sentence to replace the nominalisation with the verb form. Number each:',
         },
         'search-intent': {
-            system:     'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s current H2 headings, and its introduction. Identify queries whose topic or intent is NOT clearly addressed by any heading or the introduction. For each gap, suggest one concrete editorial action: a new H2 to add, an existing heading to rename to match user language, or an intro sentence to add. Be specific — quote the query and name the gap. Respond with a numbered list only — one gap per number. Maximum 5 items. No preamble.',
-            userPrefix: 'Identify content gaps between the search queries and the page headings/intro.',
+            system:     'You are an SEO content strategist for citizensinformation.ie, an Irish government information website. You are given the top search queries bringing users to a page, the page\'s H2 headings, and the full body text of the page. Identify queries whose topic or intent is NOT covered anywhere in the body text. Only flag a true gap: a topic the page genuinely does not cover. Do NOT flag a gap if the topic appears anywhere in the body text, even if it is not a heading. For each genuine gap, suggest one concrete editorial action: a new H2 to add, an existing heading to rename to match user language, or a section to add. Be specific — quote the query and name the gap. Respond with a numbered list only — one gap per number. Maximum 5 items. No preamble.',
+            userPrefix: 'Identify content gaps between the search queries and the full page content.',
         },
     };
 
