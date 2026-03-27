@@ -376,89 +376,85 @@ body.dark-theme .nav-ai-btn.configured {
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    border: 1px solid rgba(16,185,129,0.35);
-    border-radius: 8px;
-    background: rgba(16,185,129,0.06);
-    color: #10b981;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 6px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
     font-size: 0.78rem;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
     font-family: inherit;
 }
 .pi-ai-btn:hover:not(:disabled) {
-    background: rgba(16,185,129,0.14);
-    border-color: rgba(16,185,129,0.6);
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-text-muted);
+    color: var(--color-text-primary);
 }
 .pi-ai-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* ── AI suggestion cards ──────────────────────────────────── */
+/* ── AI alternative cards ─────────────────────────────────── */
 @keyframes pi-bubble-in {
-    from { opacity: 0; transform: translateY(8px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0);   }
 }
 .pi-ai-card {
-    position: relative;
-    background: var(--color-bg-elevated, var(--color-bg-secondary));
-    border: 1px solid rgba(16,185,129,0.28);
-    border-radius: 12px;
-    padding: 10px 14px 12px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 8px;
+    padding: 14px 16px;
     margin: 6px 0 8px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(16,185,129,0.12);
-    animation: pi-bubble-in 0.32s cubic-bezier(0.34,1.4,0.64,1) both;
-    overflow: hidden;
-}
-.pi-ai-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #10b981, #6366f1);
-    border-radius: 12px 12px 0 0;
+    animation: pi-bubble-in 0.2s ease both;
 }
 .pi-ai-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 }
 .pi-ai-label {
-    font-size: 0.63rem;
+    font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #10b981;
+    color: #8b5cf6;
 }
 .pi-ai-card-body {
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     color: var(--color-text-primary);
-    line-height: 1.65;
+    line-height: 1.6;
     word-break: break-word;
+}
+.pi-ai-card-context {
+    font-size: 0.76rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: 8px;
+    line-height: 1.5;
 }
 
 /* Inline rewrite slot container */
 .pi-ai-inline-output { margin: 2px 0 4px 0; }
 
-/* ── Copy button (pill shape) ─────────────────────────────── */
+/* ── Copy button ──────────────────────────────────────────── */
 .pi-copy-btn {
     flex-shrink: 0;
     font-size: 0.65rem;
-    font-weight: 700;
-    padding: 3px 11px;
-    border: 1px solid rgba(16,185,129,0.4);
-    border-radius: 20px;
-    background: rgba(16,185,129,0.07);
-    color: #10b981;
+    font-weight: 600;
+    padding: 3px 10px;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-text-muted);
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
-    letter-spacing: 0.2px;
 }
-.pi-copy-btn:hover { background: rgba(16,185,129,0.18); border-color: #10b981; }
-.pi-copy-btn:active { transform: scale(0.95); }
+.pi-copy-btn:hover { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
+.pi-copy-btn:active { transform: scale(0.96); }
 .pi-ai-thinking {
     margin-top: 6px;
     font-size: 0.73rem;
