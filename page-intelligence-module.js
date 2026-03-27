@@ -3006,8 +3006,8 @@
         const transitionCount = ws.transitionHits || 0;
         const directAddrCount = ws.youYourCount || 0;
         const adverbCount     = ws.adverbCount || 0;
-        // Muted amber for all long-sentence borders (no red traffic-light urgency)
-        const zoneColor    = len => len < 10 ? 'var(--color-border-primary)' : len <= 20 ? 'var(--color-border-primary)' : 'rgba(245,158,11,0.45)';
+        // Transparent by default — filter CSS adds colour only when a pattern is active
+        const zoneColor    = len => 'transparent';
         const zoneClass    = len => len < 10 ? 'short'   : len <= 20 ? 'medium'  : len < 30 ? 'long'    : len < 40 ? 'long30'  : 'long40';
 
         function renderSentences(text) {
