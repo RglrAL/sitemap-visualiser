@@ -3018,7 +3018,8 @@
                 const t = s.trim();
                 const len = t.split(/\s+/).filter(w => w.length > 0).length;
                 if (!len) continue;
-                const isPassive = passiveSet.has(t) ? '1' : '0';
+                const tNoPunct = t.replace(/[.!?]+$/, '').trim();
+                const isPassive = (passiveSet.has(t) || passiveSet.has(tNoPunct)) ? '1' : '0';
                 const idx = _sentIdx++;
                 buf.push(
                     `<div class="pi-sent" data-len="${len}" data-len-zone="${zoneClass(len)}" data-passive="${isPassive}" data-sent-index="${idx}"` +
@@ -3110,7 +3111,7 @@
                     continue;
                 }
                 if (len === 0) continue;
-                const isPassive = passiveSet.has(text) ? '1' : '0';
+                const isPassive = (passiveSet.has(text) || passiveSet.has(text.replace(/[.!?]+$/, '').trim())) ? '1' : '0';
                 const fbIdx = _sentIdx++;
                 paraBuf.push(
                     `<div class="pi-sent" data-len="${len}" data-len-zone="${zoneClass(len)}" data-passive="${isPassive}" data-sent-index="${fbIdx}"` +
@@ -3126,14 +3127,19 @@
         }
 
         const css = `<style>
-/* ── Annotation colours — muted, low-opacity ── */
-.pi-doc-wrap mark[data-overlay="complex"]{text-decoration:underline 1px dotted var(--color-text-muted);background:transparent;cursor:help;border-radius:0;}
-.pi-doc-wrap mark[data-overlay="hedge"]{background:rgba(254,243,199,0.6);border-radius:2px;}
-.pi-doc-wrap mark[data-overlay="nominalisation"]{background:rgba(243,232,255,0.5);border-radius:2px;}
-.pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(219,234,254,0.4);}
+/* ── Annotation colours ── */
+.pi-doc-wrap mark[data-overlay="complex"]{text-decoration:underline 2px dotted #f59e0b;background:transparent;cursor:help;border-radius:0;}
+.pi-doc-wrap mark[data-overlay="hedge"]{background:rgba(234,179,8,0.25);border-radius:2px;outline:1px solid rgba(234,179,8,0.4);}
+.pi-doc-wrap mark[data-overlay="nominalisation"]{background:rgba(139,92,246,0.2);border-radius:2px;outline:1px solid rgba(139,92,246,0.4);}
+.pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(59,130,246,0.15);border-radius:2px;}
+/* Dark mode — more visible on dark bg */
+body.dark-theme .pi-doc-wrap mark[data-overlay="hedge"]{background:rgba(234,179,8,0.3);outline:1px solid rgba(234,179,8,0.6);}
+body.dark-theme .pi-doc-wrap mark[data-overlay="nominalisation"]{background:rgba(167,139,250,0.3);outline:1px solid rgba(167,139,250,0.6);}
+body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,250,0.2);}
+/* Hidden unless filter is active */
 .pi-doc-wrap:not(.show-complex) mark[data-overlay="complex"]{text-decoration:none;}
-.pi-doc-wrap:not(.show-hedge) mark[data-overlay="hedge"]{background:transparent;}
-.pi-doc-wrap:not(.show-nominalisation) mark[data-overlay="nominalisation"]{background:transparent;}
+.pi-doc-wrap:not(.show-hedge) mark[data-overlay="hedge"]{background:transparent;outline:none;}
+.pi-doc-wrap:not(.show-nominalisation) mark[data-overlay="nominalisation"]{background:transparent;outline:none;}
 .pi-doc-wrap:not(.show-passive) .pi-sent[data-passive="1"]{background:transparent!important;}
 /* Sentence length — amber/red borders when filter is ON */
 .pi-doc-wrap.show-long .pi-sent[data-len-zone="long"]  {border-left-color:#d97706!important;}
