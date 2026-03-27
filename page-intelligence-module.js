@@ -3135,9 +3135,14 @@
 .pi-doc-wrap:not(.show-hedge) mark[data-overlay="hedge"]{background:transparent;}
 .pi-doc-wrap:not(.show-nominalisation) mark[data-overlay="nominalisation"]{background:transparent;}
 .pi-doc-wrap:not(.show-passive) .pi-sent[data-passive="1"]{background:transparent!important;}
+/* Sentence length — amber/red borders when filter is ON */
+.pi-doc-wrap.show-long .pi-sent[data-len-zone="long"]  {border-left-color:#d97706!important;}
+.pi-doc-wrap.show-long .pi-sent[data-len-zone="long30"]{border-left-color:#ea580c!important;}
+.pi-doc-wrap.show-long .pi-sent[data-len-zone="long40"]{border-left-color:#dc2626!important;}
+/* Sentence length — neutral border when filter is OFF */
 .pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long"],
 .pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long30"],
-.pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long40"]{border-left-color:var(--color-border-primary)!important;}
+.pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long40"]{border-left-color:transparent!important;}
 /* Adverb — grey dotted underline */
 .pi-doc-wrap mark[data-overlay="adverb"]{text-decoration:underline 1px dotted var(--color-text-muted);background:transparent;border-radius:0;}
 .pi-doc-wrap:not(.show-adverb) mark[data-overlay="adverb"]{text-decoration:none;}
