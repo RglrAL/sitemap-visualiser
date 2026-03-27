@@ -12,18 +12,18 @@
     const GENERIC_ANCHOR_TEXTS = new Set(['click here','here','read more','more','link',
         'this','learn more','click','visit','see more']);
 
-    // Issue pill metadata — color-coded to match the Document overlay system
+    // Issue opts — aiKey maps to AI_CARD_CONTEXT for the context line below alternatives
     const AI_ISSUE_OPTS = {
-        'long-sentences': { label: 'Long sentence',   color: '#dc2626', bg: 'rgba(220,38,38,0.09)',  border: 'rgba(220,38,38,0.3)'  },
-        'passive-voice':  { label: 'Passive voice',   color: '#f97316', bg: 'rgba(249,115,22,0.09)', border: 'rgba(249,115,22,0.3)' },
-        'meta-desc':      { label: 'Meta description',color: '#0891b2', bg: 'rgba(8,145,178,0.09)',  border: 'rgba(8,145,178,0.3)'  },
-        'title-tag':      { label: 'Title tag',        color: '#6366f1', bg: 'rgba(99,102,241,0.09)', border: 'rgba(99,102,241,0.3)' },
-        'weak-anchors':   { label: 'Anchor text',      color: '#10b981', bg: 'rgba(16,185,129,0.09)', border: 'rgba(16,185,129,0.3)' },
-        'h2-headings':    { label: 'H2 heading',       color: '#7c3aed', bg: 'rgba(124,58,237,0.09)', border: 'rgba(124,58,237,0.3)' },
-        'hedge-words':    { label: 'Hedge word',       color: '#ca8a04', bg: 'rgba(202,138,4,0.09)',  border: 'rgba(202,138,4,0.3)'  },
-        'nominalisations':{ label: 'Bureaucratic phrase', color: '#ea580c', bg: 'rgba(234,88,12,0.09)',  border: 'rgba(234,88,12,0.3)'  },
-        'search-intent':  { label: 'Content gap',      color: '#0891b2', bg: 'rgba(8,145,178,0.09)',  border: 'rgba(8,145,178,0.3)'  },
-        'page-intro':     { label: 'Page intro',        color: '#6366f1', bg: 'rgba(99,102,241,0.09)', border: 'rgba(99,102,241,0.3)' },
+        'long-sentences': { label: 'Long sentence',      aiKey: 'long-sentences' },
+        'passive-voice':  { label: 'Passive voice',      aiKey: 'passive-voice'  },
+        'meta-desc':      { label: 'Meta description',   aiKey: 'meta-desc'      },
+        'title-tag':      { label: 'Title tag',          aiKey: 'title-tag'      },
+        'weak-anchors':   { label: 'Anchor text',        aiKey: 'weak-anchors'   },
+        'h2-headings':    { label: 'H2 heading',         aiKey: 'h2-headings'    },
+        'hedge-words':    { label: 'Hedge word',         aiKey: 'hedge-words'    },
+        'nominalisations':{ label: 'Bureaucratic phrase',aiKey: 'nominalisations'},
+        'search-intent':  { label: 'Related topic',       aiKey: 'search-intent'  },
+        'page-intro':     { label: 'Page intro',         aiKey: 'page-intro'     },
     };
 
     const _linkStatusCache = new Map(); // fullUrl → { status: number|null, checkedAt: number }
@@ -42,6 +42,46 @@
         'h2-headings':     { version: 1, mode: 'stream',   riskLevel: 'medium'  },
         'nominalisations': { version: 1, mode: 'stream',   riskLevel: 'low'    },
         'search-intent':   { version: 1, mode: 'stream',   riskLevel: 'high'   },
+    };
+
+    // ─── Section context & AI card context ───────────────────────────────────
+    // Neutral intro text shown in each expanded pattern section.
+    const SECTION_CONTEXT = {
+        'long-sentences':    'Sentences over 20 words can be harder to parse, but length alone doesn\u2019t determine clarity.',
+        'passive-voice':     'Passive voice shifts focus from actor to action. Sometimes that\u2019s exactly right.',
+        'complex-words':     'Words with 3+ syllables may have simpler alternatives \u2014 or may be the precise term needed.',
+        'hedge-words':       'Hedging language (\u2018may\u2019, \u2018might\u2019, \u2018could\u2019) can weaken writing or appropriately convey uncertainty.',
+        'nominalisations':   'Nominalised phrases add formality. That\u2019s not always wrong.',
+        'adverbs':           'Adverbs can add precision or vagueness depending on context.',
+        'transitions':       'Transition words help readers follow your logic. Coverage varies by content type.',
+        'direct-address':    'Using \u2018you\u2019 creates a conversational tone. Formal documents may avoid it intentionally.',
+    };
+
+    // Tooltip text for the [?] help icon on each pattern section.
+    const SECTION_TOOLTIP = {
+        'long-sentences':    'Sentences over 20 words. Longer sentences aren\u2019t wrong \u2014 they just ask more of readers.',
+        'passive-voice':     'When the subject receives the action (\u2018The form was submitted\u2019) rather than performs it (\u2018You submitted the form\u2019).',
+        'complex-words':     'Words with 3+ syllables. Sometimes the precise term; sometimes a simpler word works better.',
+        'hedge-words':       'Qualifiers like \u2018may\u2019, \u2018might\u2019, \u2018could\u2019. They can weaken assertions or convey genuine uncertainty.',
+        'nominalisations':   'Noun-heavy phrases like \u2018make a decision\u2019 instead of \u2018decide\u2019. Common in formal writing.',
+        'adverbs':           'Words ending in -ly that modify verbs. Can add precision or vagueness depending on use.',
+        'transitions':       'Words that signal logical flow: \u2018however\u2019, \u2018therefore\u2019, \u2018additionally\u2019.',
+        'direct-address':    'Using \u2018you\u2019 and \u2018your\u2019 to speak directly to readers. Creates conversational tone.',
+    };
+
+    // Hardcoded context line shown below each AI alternative card.
+    // Keeps streaming intact — no JSON needed from the model.
+    const AI_CARD_CONTEXT = {
+        'passive-voice':     'This version uses active voice, placing the actor first.',
+        'long-sentences':    'This breaks the thought into smaller steps.',
+        'hedge-words':       'This is more direct, but removes the qualifier.',
+        'nominalisations':   'This uses the verb form, which is usually more direct.',
+        'meta-desc':         'This version is within the recommended length.',
+        'title-tag':         'This version is under 60 characters.',
+        'weak-anchors':      'This describes the destination rather than the action.',
+        'h2-headings':       'This phrasing signals what the section covers more clearly.',
+        'search-intent':     'This addresses a topic readers may also be looking for.',
+        'page-intro':        'This version states the page purpose in the opening sentence.',
     };
 
     // ─── AI results cache — two-tier ─────────────────────────────────────────
@@ -1666,24 +1706,51 @@
             };
         }
 
-        // ── Section 3: Top Fixes (standalone card) ──
-        let topFixesHtml = '';
-        if (wsComputed) {
-            const { ws, esc, passivePct, passiveWarn, complexWarn, contractionWarn, adverbWarn, transitionLow } = wsComputed;
-            const fixes = [];
-            if (data.longSentences.length > 0)  fixes.push(`${data.longSentences.length} sentence${data.longSentences.length > 1 ? 's' : ''} over 20 words: shorten them`);
-            if (passiveWarn)                     fixes.push(`Passive voice ${passivePct}% (${ws.passiveSentenceCount} sentences): rewrite to start with the subject`);
-            if (transitionLow)                   fixes.push(`Transitions ${ws.transitionCoverage}%: add however / therefore / also between paragraphs`);
-            if (contractionWarn)                 fixes.push(`No contractions: try don\u2019t, can\u2019t, you\u2019ll to sound less formal`);
-            if (complexWarn)                     fixes.push(`Complex words ${ws.complexWordPct}%: replace 3+ syllable words with simpler alternatives`);
-            if (ws.nominalisationCount > 3)      fixes.push(`${ws.nominalisationCount} bureaucratic phrases: see list below`);
-            if (adverbWarn && fixes.length < 3)  fixes.push(`Adverbs ${ws.adverbPct}%: remove or replace -ly adverbs`);
-            if (fixes.length > 0) {
-                topFixesHtml = `<div style="background: var(--color-bg-secondary); border-radius: 10px; padding: 11px 13px; border: 1px solid var(--color-border-primary); border-left: 3px solid #4f46e5; margin-bottom: 10px;">
-                    <div style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #4f46e5; margin-bottom: 7px;">&#127919; Top things to fix</div>
-                    <ol style="margin:0;padding-left:16px;display:flex;flex-direction:column;gap:4px;">
-                        ${fixes.slice(0, 3).map(f => `<li style="font-size:0.72rem;color:var(--color-text-secondary);line-height:1.4;">${esc(f)}</li>`).join('')}
-                    </ol></div>`;
+        // ── Section 3: Page Overview (neutral observations) ──
+        let pageOverviewHtml = '';
+        {
+            const _esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const primary = [];   // 2-3 most noticeable
+            const secondary = []; // also noticed
+
+            // Collect observations — no imperative language
+            if (data.longSentences && data.longSentences.length > 0) {
+                primary.push(`${data.longSentences.length} sentence${data.longSentences.length > 1 ? 's' : ''} over 20 words`);
+            }
+            if (data.metaDescLength === 0) {
+                primary.push('Meta description is missing');
+            } else if (data.metaDescLength > 160) {
+                primary.push(`Meta description is ${data.metaDescLength} chars (over typical length)`);
+            }
+            if (wsComputed) {
+                const { ws, passivePct, passiveWarn, complexWarn, contractionWarn, adverbWarn, transitionLow } = wsComputed;
+                if (passiveWarn)   primary.push(`Passive voice in ${passivePct}% of sentences`);
+                if (complexWarn)   secondary.push(`Complex word coverage: ${ws.complexWordPct}%`);
+                if (transitionLow) secondary.push(`Transition word coverage: ${ws.transitionCoverage}%`);
+                if (ws.nominalisationCount > 3) secondary.push(`${ws.nominalisationCount} bureaucratic phrases`);
+                if (contractionWarn) secondary.push('No contractions found');
+                if (adverbWarn)    secondary.push(`Adverb coverage: ${ws.adverbPct}%`);
+            }
+            if (data.titleLength > 60) {
+                secondary.push(`Title tag is ${data.titleLength} chars (over typical length)`);
+            }
+            if (data.imagesWithoutAlt > 0) {
+                secondary.push(`${data.imagesWithoutAlt} image${data.imagesWithoutAlt > 1 ? 's' : ''} missing alt text`);
+            }
+
+            // Move overflow from primary to secondary
+            while (primary.length > 3) secondary.unshift(primary.pop());
+
+            if (primary.length > 0 || secondary.length > 0) {
+                const item = obs => `<div style="font-size:0.73rem;color:var(--color-text-secondary);padding:3px 0 3px 12px;line-height:1.5;border-left:2px solid var(--color-border-primary);">${_esc(obs)}</div>`;
+                const sublabel = txt => `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:10px 0 5px;">${txt}</div>`;
+                pageOverviewHtml =
+                    `<div style="background:var(--color-bg-secondary);border-radius:10px;padding:12px 13px;border:1px solid var(--color-border-primary);margin-bottom:10px;">` +
+                    `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-secondary);margin-bottom:10px;">What we noticed</div>` +
+                    (primary.length > 0 ? sublabel('You might start by looking at') + primary.map(item).join('') : '') +
+                    (secondary.length > 0 ? sublabel('Also noticed') + secondary.map(item).join('') : '') +
+                    `<div style="font-size:0.63rem;color:var(--color-text-muted);margin-top:10px;font-style:italic;">These are observations, not rules. Context matters.</div>` +
+                    `</div>`;
             }
         }
 
@@ -1775,11 +1842,11 @@
             ${data.isNoindex ? `<div style="background: var(--color-danger-bg); border: 1px solid var(--color-border-primary); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 0.75rem; font-weight: 700; color: #dc2626; text-align: center;">⛔ NOINDEX — Google will not index this page</div>` : ''}
 
             <!-- Section 2: Hero Panel — Score + Content Metadata -->
-            <div style="background: var(--color-bg-secondary); border-radius: 10px; padding: 11px 13px; border: 2px solid ${scoreColor}; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;">
+            <div style="background: var(--color-bg-secondary); border-radius: 10px; padding: 11px 13px; border: 1px solid var(--color-border-primary); margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;">
                 <!-- Left: readability score (35%) -->
                 <div style="flex: 0 0 35%; text-align: center; padding-right: 10px; border-right: 1px solid var(--color-border-primary);">
                     <div style="font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); margin-bottom: 4px;">Readability</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: ${scoreColor}; line-height: 1;">
+                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-primary); line-height: 1;">
                         ${data.readabilityScore !== null ? data.readabilityScore : '—'}
                     </div>
                     <div style="font-size: 0.65rem; color: ${scoreColor}; font-weight: 700; margin-top: 2px; line-height: 1.2;">
@@ -1810,8 +1877,8 @@
                 </div>
             </div>
 
-            <!-- Section 3: Top Fixes -->
-            ${topFixesHtml}
+            <!-- Section 3: Page Overview -->
+            ${pageOverviewHtml}
 
             <!-- Section 4: Writing Quality -->
             ${writingQualityHtml}
@@ -1934,15 +2001,15 @@
             item.evidence ? 'Evidence: ' + item.evidence : '',
             item.action   ? 'Action: '   + item.action   : '',
         ].filter(Boolean).join('\n');
-        return '<div class="pi-ai-card" style="border:1px solid ' + opts.border + ';background:' + opts.bg + ';border-radius:8px;padding:10px 12px;margin-bottom:8px;">' +
-            '<div class="pi-ai-card-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
-                '<span class="pi-ai-label" style="font-size:0.62rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:' + opts.color + ';background:' + opts.bg + ';border:1px solid ' + opts.border + ';border-radius:10px;padding:2px 8px;">' + opts.label + '</span>' +
-                '<button class="pi-copy-btn" style="font-size:0.65rem;padding:2px 8px;border-radius:6px;border:1px solid ' + opts.border + ';color:' + opts.color + ';background:transparent;cursor:pointer;" data-copy="' + _e(copyText) + '">Copy</button>' +
+        return '<div class="pi-ai-card">' +
+            '<div class="pi-ai-card-header">' +
+                '<span class="pi-ai-label">Related search</span>' +
+                '<button class="pi-copy-btn" data-copy="' + _e(copyText) + '">Copy</button>' +
             '</div>' +
-            (item.query    ? '<div style="font-size:0.72rem;margin-bottom:4px;"><span style="font-weight:700;color:' + opts.color + ';">Query</span> <span style="color:var(--color-text-muted);">"' + _e(item.query) + '"</span></div>' : '') +
-            (item.gap      ? '<div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:4px;"><span style="font-weight:700;color:var(--color-text-primary);">Gap</span> ' + _e(item.gap) + '</div>' : '') +
-            (item.evidence ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:6px;font-style:italic;"><span style="font-weight:700;font-style:normal;color:var(--color-text-secondary);">Evidence</span> ' + _e(item.evidence) + '</div>' : '') +
-            (item.action   ? '<div style="font-size:0.8rem;color:var(--color-text-primary);"><span style="font-weight:700;">Action</span> ' + _e(item.action) + '</div>' : '') +
+            (item.query    ? '<div style="font-size:0.76rem;margin-bottom:5px;color:var(--color-text-secondary);"><span style="font-weight:600;color:var(--color-text-primary);">Query</span> &ldquo;' + _e(item.query) + '&rdquo;</div>' : '') +
+            (item.gap      ? '<div style="font-size:0.8rem;color:var(--color-text-secondary);margin-bottom:4px;"><span style="font-weight:600;color:var(--color-text-primary);">Topic</span> ' + _e(item.gap) + '</div>' : '') +
+            (item.evidence ? '<div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:6px;font-style:italic;">' + _e(item.evidence) + '</div>' : '') +
+            (item.action   ? '<div style="font-size:0.8rem;color:var(--color-text-secondary);"><span style="font-weight:600;color:var(--color-text-primary);">Suggestion</span> ' + _e(item.action) + '</div>' : '') +
         '</div>';
     }
 
@@ -2266,21 +2333,18 @@
     // extra = optional HTML string inserted between header and body (e.g. original text line).
     function _buildCardHTML(text, opts, extra) {
         var _e = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-        var labelText = (opts && opts.labelText) ? opts.labelText : '✨ AI suggestion';
-        var pill = (opts && opts.label)
-            ? '<span style="font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:20px;' +
-              'background:' + opts.bg + ';color:' + opts.color + ';border:1px solid ' + opts.border + ';' +
-              'letter-spacing:0.3px;white-space:nowrap;">' + _e(opts.label) + '</span>'
+        var labelText = (opts && opts.labelText) ? opts.labelText : '💭 Alternative version';
+        var contextLine = (opts && opts.aiKey && AI_CARD_CONTEXT[opts.aiKey])
+            ? '<div class="pi-ai-card-context">' + _e(AI_CARD_CONTEXT[opts.aiKey]) + '</div>'
             : '';
         return '<div class="pi-ai-card">' +
             '<div class="pi-ai-card-header">' +
-            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-            '<span class="pi-ai-label">' + labelText + '</span>' + pill +
-            '</div>' +
+            '<span class="pi-ai-label">' + labelText + '</span>' +
             '<button class="pi-copy-btn">Copy</button>' +
             '</div>' +
             (extra || '') +
             '<div class="pi-ai-card-body">' + _e(text) + '</div>' +
+            contextLine +
             '</div>';
     }
 
@@ -2327,7 +2391,7 @@
 
         const btn = document.createElement('button');
         btn.className   = 'pi-ai-btn';
-        btn.textContent = '✨ Rewrite with AI';
+        btn.textContent = 'Try alternatives';
 
         mount.appendChild(btn);
         mount.appendChild(thinking);
@@ -2407,7 +2471,7 @@
                     errTarget.style.display = '';
                     errTarget.innerHTML = `<div class="pi-ai-error">❌ ${esc(err && err.message ? err.message : 'Something went wrong.')}</div>`;
                     btn.disabled    = false;
-                    btn.textContent = '✨ Rewrite with AI';
+                    btn.textContent = 'Try alternatives';
                 },
                 { max_tokens: 1024, temperature: 0.4 }
             );
@@ -2443,7 +2507,7 @@
             if (!mount) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Rewrite meta description';
+            btn.textContent = 'Suggest alternatives';
             const output = document.createElement('div');
             output.className = 'pi-ai-output';
             output.style.display = 'none';
@@ -2470,7 +2534,7 @@
                     if (err && err.name === 'AbortError') return;
                     output.style.display = '';
                     output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
-                    btn.disabled = false; btn.textContent = '✨ Rewrite meta description';
+                    btn.disabled = false; btn.textContent = 'Suggest alternatives';
                 }
             });
         })();
@@ -2481,7 +2545,7 @@
             if (!mount || !data.titleText) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Suggest title tags';
+            btn.textContent = 'Suggest alternatives';
             const output = document.createElement('div');
             output.className = 'pi-ai-output';
             output.style.cssText = 'display:none;white-space:pre-wrap;';
@@ -2506,7 +2570,7 @@
                         const items = _parseListItems(buffer);
                         if (items.length > 0) {
                             output.innerHTML = items.map((text, i) => {
-                                return _buildCardHTML(text, Object.assign({}, AI_ISSUE_OPTS['title-tag'], { labelText: '✨ Option ' + (i + 1) }));
+                                return _buildCardHTML(text, Object.assign({}, AI_ISSUE_OPTS['title-tag'], { labelText: 'Option ' + (i + 1) }));
                             }).join('');
                             output.querySelectorAll('.pi-copy-btn').forEach(function(copyBtn, idx) {
                                 copyBtn.addEventListener('click', function() {
@@ -2523,7 +2587,7 @@
                         if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['title-tag'])) {
                             output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '✨ Suggest title tags';
+                        btn.disabled = false; btn.textContent = 'Suggest alternatives';
                     },
                     { signal: _abortCtrl.signal, max_tokens: 200, temperature: 0.6 }
                 );
@@ -2541,7 +2605,7 @@
             if (weakLinks.length === 0) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Suggest anchor text';
+            btn.textContent = 'Suggest alternatives';
             const output = document.createElement('div');
             output.className = 'pi-ai-output';
             output.style.display = 'none';
@@ -2585,7 +2649,7 @@
                         if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['weak-anchors'])) {
                             output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '✨ Suggest anchor text';
+                        btn.disabled = false; btn.textContent = 'Suggest alternatives';
                     },
                     { signal: _abortCtrl.signal, max_tokens: 300, temperature: 0.4 }
                 );
@@ -2600,7 +2664,7 @@
             if (hedgeAll.length === 0) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Suggest direct alternatives';
+            btn.textContent = 'Suggest alternatives';
             const output = document.createElement('div');
             output.id = 'pi-hedge-ai-output';
             output.style.cssText = 'margin-top:6px;';
@@ -2634,7 +2698,7 @@
                         if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['hedge-words'])) {
                             output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '✨ Suggest direct alternatives';
+                        btn.disabled = false; btn.textContent = 'Suggest alternatives';
                     },
                     { signal: _abortCtrl.signal, max_tokens: 600, temperature: 0.4 }
                 );
@@ -2649,7 +2713,7 @@
             if (nomAll.length === 0) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Rewrite sentences';
+            btn.textContent = 'Try alternatives';
             const output = document.createElement('div');
             output.id = 'pi-nom-ai-output';
             output.style.cssText = 'margin-top:6px;';
@@ -2683,7 +2747,7 @@
                         if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['nominalisations'])) {
                             output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '✨ Rewrite sentences';
+                        btn.disabled = false; btn.textContent = 'Try alternatives';
                     },
                     { signal: _abortCtrl.signal, max_tokens: 600, temperature: 0.4 }
                 );
@@ -2698,7 +2762,7 @@
             if (h2s.length === 0) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Rewrite headings';
+            btn.textContent = 'Suggest alternatives';
             const output = document.createElement('div');
             output.style.cssText = 'margin-top:6px;';
             mount.appendChild(btn);
@@ -2737,7 +2801,7 @@
                         if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['h2-headings'])) {
                             output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '✨ Rewrite headings';
+                        btn.disabled = false; btn.textContent = 'Suggest alternatives';
                     },
                     { signal: _abortCtrl.signal, max_tokens: 400, temperature: 0.5 }
                 );
@@ -2750,7 +2814,7 @@
             if (!mount || !data._gsc || !(data._gsc.topQueries || []).length) return;
             const btn = document.createElement('button');
             btn.className = 'pi-ai-btn';
-            btn.textContent = '✨ Analyse content gaps';
+            btn.textContent = 'Explore search queries';
             const output = document.createElement('div');
             output.style.cssText = 'margin-top:8px;';
             mount.appendChild(btn);
@@ -2795,17 +2859,17 @@
                                     });
                                 });
                             } else {
-                                output.innerHTML = '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No content gaps identified — the page appears to address its top queries well.</div>';
+                                output.innerHTML = '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No additional topics identified — the page appears to address its top queries well.</div>';
                             }
                         }
-                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Re-analyse';
+                        _abortCtrl = null; btn.disabled = false; btn.textContent = '↺ Re-explore';
                     },
                     function(err) {
                         _abortCtrl = null;
                         if (!_recoverPartial(output, buffer, AI_ISSUE_OPTS['search-intent'])) {
                             output.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         }
-                        btn.disabled = false; btn.textContent = '✨ Analyse content gaps';
+                        btn.disabled = false; btn.textContent = 'Explore search queries';
                     },
                     { signal: _abortCtrl.signal, max_tokens: 800, temperature: 0.4 }
                 );
@@ -2942,7 +3006,8 @@
         const transitionCount = ws.transitionHits || 0;
         const directAddrCount = ws.youYourCount || 0;
         const adverbCount     = ws.adverbCount || 0;
-        const zoneColor    = len => len < 10 ? '#16a34a' : len <= 20 ? '#d97706' : len < 30 ? '#dc2626' : len < 40 ? '#b91c1c' : '#7f1d1d';
+        // Muted amber for all long-sentence borders (no red traffic-light urgency)
+        const zoneColor    = len => len < 10 ? 'var(--color-border-primary)' : len <= 20 ? 'var(--color-border-primary)' : 'rgba(245,158,11,0.45)';
         const zoneClass    = len => len < 10 ? 'short'   : len <= 20 ? 'medium'  : len < 30 ? 'long'    : len < 40 ? 'long30'  : 'long40';
 
         function renderSentences(text) {
@@ -2954,8 +3019,9 @@
                 const len = t.split(/\s+/).filter(w => w.length > 0).length;
                 if (!len) continue;
                 const isPassive = passiveSet.has(t) ? '1' : '0';
+                const idx = _sentIdx++;
                 buf.push(
-                    `<div class="pi-sent" data-len="${len}" data-len-zone="${zoneClass(len)}" data-passive="${isPassive}"` +
+                    `<div class="pi-sent" data-len="${len}" data-len-zone="${zoneClass(len)}" data-passive="${isPassive}" data-sent-index="${idx}"` +
                     ` style="position:relative;display:flex;align-items:baseline;gap:8px;padding:4px 8px;margin-bottom:2px;border-left:3px solid ${zoneColor(len)};">` +
                     `<span class="pi-sent-text" style="flex:1;font-size:0.88rem;line-height:1.7;color:var(--color-text-secondary);">${annotateText(t)}</span>` +
                     `<span class="pi-sent-wc" style="opacity:0;transition:opacity 0.15s;font-size:0.65rem;color:var(--color-text-muted);white-space:nowrap;flex-shrink:0;font-weight:600;">${len}w</span>` +
@@ -2967,6 +3033,7 @@
 
         const _docTheme = data.theme || _THEME_FALLBACK;
         const h2Seen = {};
+        let _sentIdx = 0; // global sentence index for data-sent-index (cross-tab navigation)
 
         function renderBlock(block) {
             switch (block.type) {
@@ -3044,8 +3111,9 @@
                 }
                 if (len === 0) continue;
                 const isPassive = passiveSet.has(text) ? '1' : '0';
+                const fbIdx = _sentIdx++;
                 paraBuf.push(
-                    `<div class="pi-sent" data-len="${len}" data-len-zone="${zoneClass(len)}" data-passive="${isPassive}"` +
+                    `<div class="pi-sent" data-len="${len}" data-len-zone="${zoneClass(len)}" data-passive="${isPassive}" data-sent-index="${fbIdx}"` +
                     ` style="position:relative;display:flex;align-items:baseline;gap:8px;padding:4px 8px;margin-bottom:2px;border-left:3px solid ${zoneColor(len)};">` +
                     `<span class="pi-sent-text" style="flex:1;font-size:0.88rem;line-height:1.7;color:var(--color-text-secondary);">${annotateText(text)}</span>` +
                     `<span class="pi-sent-wc" style="opacity:0;transition:opacity 0.15s;font-size:0.65rem;color:var(--color-text-muted);white-space:nowrap;flex-shrink:0;font-weight:600;">${len}w</span>` +
@@ -3058,10 +3126,11 @@
         }
 
         const css = `<style>
-.pi-doc-wrap mark[data-overlay="complex"]{text-decoration:underline 2px #6366f1;background:transparent;cursor:help;border-radius:2px;}
-.pi-doc-wrap mark[data-overlay="hedge"]{background:rgba(234,179,8,0.18);border-radius:2px;}
-.pi-doc-wrap mark[data-overlay="nominalisation"]{background:rgba(234,88,12,0.15);border-radius:2px;}
-.pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(251,146,60,0.07);}
+/* ── Annotation colours — muted, low-opacity ── */
+.pi-doc-wrap mark[data-overlay="complex"]{text-decoration:underline 1px dotted var(--color-text-muted);background:transparent;cursor:help;border-radius:0;}
+.pi-doc-wrap mark[data-overlay="hedge"]{background:rgba(254,243,199,0.6);border-radius:2px;}
+.pi-doc-wrap mark[data-overlay="nominalisation"]{background:rgba(243,232,255,0.5);border-radius:2px;}
+.pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(219,234,254,0.4);}
 .pi-doc-wrap:not(.show-complex) mark[data-overlay="complex"]{text-decoration:none;}
 .pi-doc-wrap:not(.show-hedge) mark[data-overlay="hedge"]{background:transparent;}
 .pi-doc-wrap:not(.show-nominalisation) mark[data-overlay="nominalisation"]{background:transparent;}
@@ -3069,23 +3138,18 @@
 .pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long"],
 .pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long30"],
 .pi-doc-wrap:not(.show-long) .pi-sent[data-len-zone="long40"]{border-left-color:var(--color-border-primary)!important;}
+/* Adverb — grey dotted underline */
+.pi-doc-wrap mark[data-overlay="adverb"]{text-decoration:underline 1px dotted var(--color-text-muted);background:transparent;border-radius:0;}
+.pi-doc-wrap:not(.show-adverb) mark[data-overlay="adverb"]{text-decoration:none;}
+/* Transition & direct address — no document highlight (count-only) */
+.pi-doc-wrap mark[data-overlay="transition"]{background:transparent;}
+.pi-doc-wrap mark[data-overlay="directaddress"]{background:transparent;}
 .pi-sent:hover .pi-sent-wc{opacity:1!important;}
-.pi-overlay-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1.5px solid var(--color-border-primary);background:var(--color-bg-secondary);color:var(--color-text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;}
-.pi-overlay-btn.active[data-overlay="long"]{color:#dc2626;border-color:#dc2626;background:rgba(220,38,38,0.07);}
-.pi-overlay-btn.active[data-overlay="passive"]{color:#f97316;border-color:#f97316;background:rgba(249,115,22,0.07);}
-.pi-overlay-btn.active[data-overlay="complex"]{color:#6366f1;border-color:#6366f1;background:rgba(99,102,241,0.07);}
-.pi-overlay-btn.active[data-overlay="hedge"]{color:#ca8a04;border-color:#ca8a04;background:rgba(202,138,4,0.07);}
-.pi-overlay-btn.active[data-overlay="nominalisation"]{color:#ea580c;border-color:#ea580c;background:rgba(234,88,12,0.07);}
-.pi-overlay-btn.active[data-overlay="transition"]{color:#16a34a;border-color:#16a34a;background:rgba(22,163,74,0.07);}
-.pi-overlay-btn.active[data-overlay="directaddress"]{color:#0891b2;border-color:#0891b2;background:rgba(8,145,178,0.07);}
-.pi-overlay-btn.active[data-overlay="adverb"]{color:#7c3aed;border-color:#7c3aed;background:rgba(124,58,237,0.07);}
-.pi-doc-wrap mark[data-overlay="transition"]{background:rgba(22,163,74,0.18);border-radius:2px;}
-.pi-doc-wrap mark[data-overlay="directaddress"]{background:rgba(6,182,212,0.15);border-radius:2px;}
-.pi-doc-wrap mark[data-overlay="adverb"]{background:rgba(168,85,247,0.15);border-radius:2px;}
-.pi-doc-wrap:not(.show-transition) mark[data-overlay="transition"]{background:transparent;}
-.pi-doc-wrap:not(.show-directaddress) mark[data-overlay="directaddress"]{background:transparent;}
-.pi-doc-wrap:not(.show-adverb) mark[data-overlay="adverb"]{background:transparent;}
-.pi-badge{display:inline-block;padding:0 5px;font-size:0.62rem;font-weight:700;line-height:1.4;min-width:16px;text-align:center;border-radius:10px;color:white;}
+/* ── Pattern toggle buttons ── */
+.pi-overlay-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-muted);font-size:0.72rem;font-weight:500;cursor:pointer;transition:all 0.15s;font-family:inherit;}
+.pi-overlay-btn:hover{background:var(--color-bg-secondary);color:var(--color-text-secondary);border-color:var(--color-text-muted);}
+.pi-overlay-btn.active{background:var(--color-bg-secondary);color:var(--color-text-primary);border-color:var(--color-text-muted);font-weight:600;}
+.pi-badge{font-size:0.68rem;color:var(--color-text-muted);font-weight:400;}
 .pi-list { margin: 0 0 18px 0; padding-left: 28px; }
 .pi-list-item { font-size: 0.88rem; line-height: 1.7; color: var(--color-text-secondary); margin-bottom: 5px; padding: 1px 4px; }
 .pi-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
@@ -3099,19 +3163,19 @@
 </style>`;
 
         const toolbar =
-            `<div class="pi-doc-toolbar" style="display:flex;align-items:flex-start;gap:0;padding:8px 0 14px 0;border-bottom:1px solid var(--color-border-primary);margin-bottom:14px;position:sticky;top:0;background:var(--color-bg-primary);z-index:5;">` +
+            `<div class="pi-doc-toolbar" style="display:flex;flex-direction:column;gap:0;padding:8px 0 12px 0;border-bottom:1px solid var(--color-border-primary);margin-bottom:14px;position:sticky;top:0;background:var(--color-bg-primary);z-index:5;">` +
             `<div class="pi-reading-progress" style="position:absolute;bottom:0;left:0;height:2px;width:0%;background:${_docTheme.accent};border-radius:0 1px 1px 0;transition:width 0.12s linear;"></div>` +
-            `<div class="pi-doc-toolbar-filters" style="display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;">` +
-            `<button class="pi-overlay-btn active" data-overlay="long" title="Sentences over 20 words. Aim for under 20 words each.">Long sentences <span class="pi-badge" style="background:#dc2626;">${longCount}</span>${long30Count > 0 ? `<span style="font-size:0.65rem;color:var(--color-text-muted);margin-left:1px;">30+&thinsp;<span style="color:#b91c1c;font-weight:700;">${long30Count}</span>${long40Count > 0 ? `&ensp;40+&thinsp;<span style="color:#7f1d1d;font-weight:700;">${long40Count}</span>` : ''}</span>` : ''}</button>` +
-            `<button class="pi-overlay-btn active" data-overlay="passive" title="Passive constructions. Rewrite as active: \u2018The team fixed it\u2019 not \u2018It was fixed by the team\u2019.">Passive voice <span class="pi-badge" style="background:#f97316;">${passiveCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="complex" title="Uncommon or long words. Hover a highlighted word for simpler alternatives.">Complex words <span class="pi-badge" style="background:#6366f1;">${complexCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="hedge" title="Vague, non-committal language (might, possibly, could). Be more direct and specific.">Hedge words <span class="pi-badge" style="background:#ca8a04;">${hedgeCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="nominalisation" title="Bureaucratic phrases: verb ideas turned into nouns (discussion of \u2192 discuss). Use the verb form.">Bureaucratic phrases <span class="pi-badge" style="background:#ea580c;">${nomCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="transition" title="Words that connect ideas (however, therefore, also). Good: target >15% of sentences.">Transitions <span class="pi-badge" style="background:#16a34a;">${transitionCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="directaddress" title="Words that speak to the reader (you, your). Good: target \u22652% of words.">Direct address <span class="pi-badge" style="background:#0891b2;">${directAddrCount}</span></button>` +
-            `<button class="pi-overlay-btn active" data-overlay="adverb" title="Words ending in -ly. Replace with stronger verbs where possible. Target: <5% of words.">Adverbs (-ly) <span class="pi-badge" style="background:#7c3aed;">${adverbCount}</span></button>` +
-            `<button class="pi-doc-clear-filters" title="Reset all overlays to visible">\u2715 Clear all</button>` +
+            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:7px;">Explore patterns</div>` +
+            `<div class="pi-doc-toolbar-filters" style="display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0;">` +
+            `<button class="pi-overlay-btn" data-overlay="long" aria-pressed="false" title="${SECTION_TOOLTIP['long-sentences']}">Sentence length <span class="pi-badge">${longCount}</span></button>` +
+            `<button class="pi-overlay-btn" data-overlay="passive" aria-pressed="false" title="${SECTION_TOOLTIP['passive-voice']}">Passive voice <span class="pi-badge">${passiveCount}</span></button>` +
+            `<button class="pi-overlay-btn" data-overlay="complex" aria-pressed="false" title="${SECTION_TOOLTIP['complex-words']}">Complex words <span class="pi-badge">${complexCount}</span></button>` +
+            `<button class="pi-overlay-btn" data-overlay="hedge" aria-pressed="false" title="${SECTION_TOOLTIP['hedge-words']}">Hedge words <span class="pi-badge">${hedgeCount}</span></button>` +
+            `<button class="pi-overlay-btn" data-overlay="nominalisation" aria-pressed="false" title="${SECTION_TOOLTIP['nominalisations']}">Bureaucratic phrases <span class="pi-badge">${nomCount}</span></button>` +
+            `<button class="pi-overlay-btn" data-overlay="adverb" aria-pressed="false" title="${SECTION_TOOLTIP['adverbs']}">Adverbs (-ly) <span class="pi-badge">${adverbCount}</span></button>` +
+            `<button class="pi-doc-clear-filters" style="display:none;" title="Remove all pattern highlights">\u2715 Clear</button>` +
             `</div>` +
+            `<div style="font-size:0.65rem;color:var(--color-text-muted);margin-top:6px;font-style:italic;">Click a pattern to highlight it. Shift+click to show multiple.</div>` +
             `<div class="pi-doc-fab-group"></div>` +
             `</div>`;
 
@@ -3127,21 +3191,19 @@
             `<summary style="cursor:pointer;color:var(--color-text-muted);font-size:0.68rem;user-select:none;list-style:none;display:inline-flex;align-items:center;gap:4px;">` +
             `<span style="font-size:0.65rem;">&#9654;</span> Show key</summary>` +
             `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 24px;margin-top:8px;padding:10px 12px;background:var(--color-bg-secondary);border-radius:6px;border:1px solid var(--color-border-primary);">` +
-            keyRow(swatchBox('rgba(220,38,38,0.25)'),   'Long sentences',  'Sentences over 20 words: aim for shorter, clearer sentences') +
-            keyRow(swatchBox('rgba(249,115,22,0.2)'),   'Passive voice',   '\u201cIt was done by\u2026\u201d: rewrite as active voice') +
-            keyRow(swatchBox('rgba(99,102,241,0.18)'),  'Complex words',   'Hover for simpler alternatives') +
-            keyRow(swatchBox('rgba(234,179,8,0.3)'),    'Hedge words',     'Vague language: be direct and specific') +
-            keyRow(swatchBox('rgba(234,88,12,0.2)'),    'Bureaucratic phrases', 'Noun form of a verb: use the verb instead (e.g. \u201cdiscussion of\u201d \u2192 \u201cdiscuss\u201d)') +
-            keyRow(swatchBox('rgba(22,163,74,0.25)'),   'Transitions',     'Connecting words: shows good logical structure (target >15% of sentences)') +
-            keyRow(swatchBox('rgba(6,182,212,0.2)'),    'Direct address',  'You/your: speaks directly to the reader (target \u22652%)') +
-            keyRow(swatchBox('rgba(168,85,247,0.2)'),   'Adverbs (-ly)',   'Replace with a stronger verb where possible (target <5%)') +
+            keyRow(swatchBox('rgba(245,158,11,0.35)'),  'Sentence length', 'Amber left border marks sentences over 20 words') +
+            keyRow(swatchBox('rgba(219,234,254,0.6)'),  'Passive voice',   'Soft blue background') +
+            `<div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;"><span style="display:inline-block;width:12px;height:12px;border-bottom:1px dotted var(--color-text-muted);vertical-align:middle;flex-shrink:0;"></span><span><strong style="color:var(--color-text-primary);font-weight:600;">Complex words</strong> <span style="color:var(--color-text-muted);">Grey dotted underline — hover for simpler alternatives</span></span></div>` +
+            keyRow(swatchBox('rgba(254,243,199,0.7)'),  'Hedge words',     'Pale yellow background') +
+            keyRow(swatchBox('rgba(243,232,255,0.6)'),  'Bureaucratic phrases', 'Pale purple background') +
+            `<div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;"><span style="display:inline-block;width:12px;height:12px;border-bottom:1px dotted var(--color-text-muted);vertical-align:middle;flex-shrink:0;"></span><span><strong style="color:var(--color-text-primary);font-weight:600;">Adverbs (-ly)</strong> <span style="color:var(--color-text-muted);">Grey dotted underline</span></span></div>` +
             `</div></details>`;
 
         const metaCharCount = data.metaDescText ? data.metaDescText.length : 0;
         const metaCharNote = metaCharCount > 155
-            ? ' <strong style="color:#dc2626;">(too long)</strong>'
+            ? ' <span style="color:var(--color-text-muted);">(over typical length)</span>'
             : metaCharCount > 0 && metaCharCount < 70
-                ? ' <span style="color:#ca8a04;">(too short)</span>'
+                ? ' <span style="color:var(--color-text-muted);">(under typical length)</span>'
                 : '';
         const metaBanner = data.metaDescText
             ? `<div class="pi-doc-meta-banner">
@@ -3165,7 +3227,7 @@
 
         return css +
             headerChrome +
-            `<div class="pi-doc-wrap show-long show-passive show-complex show-hedge show-nominalisation show-transition show-directaddress show-adverb" style="padding:0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
+            `<div class="pi-doc-wrap" style="padding:0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
             toolbar + legend + metaBanner +
             `<div id="pi-doc-hedge-ai" style="display:none;margin:0 0 14px 0;"></div>` +
             `<div id="pi-doc-nom-ai" style="display:none;margin:0 0 14px 0;"></div>` +
@@ -3173,30 +3235,90 @@
             `</div>`;
     }
 
+    // Session flag for shift+click hint (shown once per page load)
+    var _shiftHintShown = false;
+
     function wireDocumentOverlays(panel) {
         const wrap = panel.querySelector('.pi-doc-wrap');
         if (!wrap) return;
-        panel.querySelectorAll('.pi-overlay-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const cls = 'show-' + btn.dataset.overlay;
-                if (wrap.classList.contains(cls)) {
-                    wrap.classList.remove(cls);
-                    btn.classList.remove('active');
-                } else {
-                    wrap.classList.add(cls);
-                    btn.classList.add('active');
-                }
-            });
-        });
-        const clearFiltersBtn = panel.querySelector('.pi-doc-clear-filters');
-        if (clearFiltersBtn) {
-            clearFiltersBtn.addEventListener('click', function() {
-                ['long','passive','complex','hedge','nominalisation','transition','directaddress','adverb'].forEach(function(ov) {
-                    wrap.classList.remove('show-' + ov);
-                });
-                panel.querySelectorAll('.pi-overlay-btn').forEach(function(b) { b.classList.remove('active'); });
+
+        // The 6 annotation overlays (Transitions + DirectAddress removed — count-only)
+        const ALL_OVERLAYS = ['long','passive','complex','hedge','nominalisation','adverb'];
+        const clearBtn = panel.querySelector('.pi-doc-clear-filters');
+
+        function getActiveCount() {
+            return ALL_OVERLAYS.filter(ov => wrap.classList.contains('show-' + ov)).length;
+        }
+
+        function syncClearBtn() {
+            if (clearBtn) clearBtn.style.display = getActiveCount() > 0 ? '' : 'none';
+        }
+
+        function deactivateAll() {
+            ALL_OVERLAYS.forEach(ov => wrap.classList.remove('show-' + ov));
+            panel.querySelectorAll('.pi-overlay-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
             });
         }
+
+        function showShiftHint() {
+            if (_shiftHintShown) return;
+            _shiftHintShown = true;
+            var hint = document.createElement('div');
+            hint.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;font-size:0.75rem;padding:8px 16px;border-radius:6px;z-index:9999;pointer-events:none;opacity:0;transition:opacity 0.2s;white-space:nowrap;';
+            hint.textContent = 'Tip: Shift+click to show multiple patterns';
+            document.body.appendChild(hint);
+            requestAnimationFrame(function() { hint.style.opacity = '1'; });
+            setTimeout(function() {
+                hint.style.opacity = '0';
+                setTimeout(function() { hint.remove(); }, 300);
+            }, 3000);
+        }
+
+        panel.querySelectorAll('.pi-overlay-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const overlay = btn.dataset.overlay;
+                const cls = 'show-' + overlay;
+                const isActive = wrap.classList.contains(cls);
+
+                if (e.shiftKey) {
+                    // Shift+click: add/remove without touching others (max 3 active)
+                    if (isActive) {
+                        wrap.classList.remove(cls);
+                        btn.classList.remove('active');
+                        btn.setAttribute('aria-pressed', 'false');
+                    } else {
+                        if (getActiveCount() < 3) {
+                            wrap.classList.add(cls);
+                            btn.classList.add('active');
+                            btn.setAttribute('aria-pressed', 'true');
+                        }
+                    }
+                } else {
+                    // Solo click: disable all others, toggle this one
+                    if (isActive) {
+                        deactivateAll();
+                    } else {
+                        deactivateAll();
+                        wrap.classList.add(cls);
+                        btn.classList.add('active');
+                        btn.setAttribute('aria-pressed', 'true');
+                        showShiftHint();
+                    }
+                }
+                syncClearBtn();
+            });
+        });
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                deactivateAll();
+                syncClearBtn();
+            });
+        }
+
+        syncClearBtn();
         wireDatamuseBadges(panel);
 
         // TOC smooth scroll + brief H2 flash
@@ -3401,13 +3523,13 @@
         }
 
         if (totalSents === 0) {
-            reviewBtn.textContent = '✨ AI Review';
+            reviewBtn.textContent = 'Explore patterns';
             reviewBtn.disabled = true;
             reviewBtn.title = 'No long or passive sentences found';
             return;
         }
 
-        reviewBtn.textContent = '✨ AI Review';
+        reviewBtn.textContent = 'Explore patterns';
 
         clearLink.addEventListener('click', function() {
             longPairs.concat(passivePairs).forEach(function(pair) {
@@ -3420,7 +3542,7 @@
             if (nomMount)   { nomMount.style.display = 'none';   nomMount.innerHTML = '';   }
             panel.querySelectorAll('.pi-doc-nom-inline').forEach(function(el) { el.remove(); });
             clearLink.style.display = 'none';
-            reviewBtn.textContent = '✨ AI Review';
+            reviewBtn.textContent = 'Explore patterns';
         });
 
         reviewBtn.addEventListener('click', function() {
@@ -3542,7 +3664,7 @@
         if (introBlocks.length > 0) {
             var introBtn = document.createElement('button');
             introBtn.className = 'pi-doc-fab pi-doc-fab-intro';
-            introBtn.textContent = '✨ Rewrite intro';
+            introBtn.textContent = 'Rewrite intro';
             fabGroup.insertBefore(introBtn, clearLink);
 
             // Output area — inserted before the document body
@@ -3575,8 +3697,9 @@
                         var finalText = buffer;
                         introOutput.style.whiteSpace = '';
                         introOutput.innerHTML =
-                            '<div class="pi-ai-card-header" style="margin-bottom:8px;"><span class="pi-ai-label" style="color:#6366f1;">✨ Rewritten introduction</span><button class="pi-copy-btn" style="border-color:rgba(99,102,241,0.4);color:#6366f1;background:rgba(99,102,241,0.07);">Copy</button></div>' +
-                            '<div style="font-size:0.85rem;line-height:1.7;color:var(--color-text-primary);word-break:break-word;">' + esc(finalText) + '</div>';
+                            '<div class="pi-ai-card"><div class="pi-ai-card-header"><span class="pi-ai-label">💭 Alternative introduction</span><button class="pi-copy-btn">Copy</button></div>' +
+                            '<div class="pi-ai-card-body">' + esc(finalText) + '</div>' +
+                            '<div class="pi-ai-card-context">' + (AI_CARD_CONTEXT['page-intro'] || '') + '</div></div>';
                         introOutput.querySelector('.pi-copy-btn').addEventListener('click', function() {
                             navigator.clipboard.writeText(finalText).then(function() {
                                 introOutput.querySelector('.pi-copy-btn').textContent = 'Copied!';
@@ -3591,7 +3714,7 @@
                         _introAbortCtrl = null;
                         introOutput.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         introBtn.disabled = false;
-                        introBtn.textContent = '✨ Rewrite intro';
+                        introBtn.textContent = 'Rewrite intro';
                     },
                     { signal: _introAbortCtrl.signal, max_tokens: 400, temperature: 0.5 }
                 );
@@ -3607,7 +3730,7 @@
             var metaBtn = document.createElement('button');
             metaBtn.className = 'pi-ai-btn';
             metaBtn.style.cssText = 'font-size:0.65rem;padding:3px 10px;margin-top:10px;';
-            metaBtn.textContent = '✨ Rewrite meta';
+            metaBtn.textContent = 'Rewrite meta';
             metaBanner.insertBefore(metaBtn, metaMount);
 
             var _metaAbortCtrl = null;
@@ -3630,10 +3753,10 @@
                     })
                     .catch(function(err) {
                         _metaAbortCtrl = null;
-                        if (err && err.name === 'AbortError') { metaBtn.disabled = false; metaBtn.textContent = '✨ Rewrite meta'; return; }
+                        if (err && err.name === 'AbortError') { metaBtn.disabled = false; metaBtn.textContent = 'Rewrite meta'; return; }
                         metaMount.innerHTML = '<div class="pi-ai-error">❌ ' + esc(err && err.message ? err.message : 'Something went wrong.') + '</div>';
                         metaBtn.disabled = false;
-                        metaBtn.textContent = '✨ Rewrite meta';
+                        metaBtn.textContent = 'Rewrite meta';
                     });
             });
         })();
@@ -3688,12 +3811,22 @@
             `<div style="font-size:0.85rem;font-weight:700;color:var(--color-text-primary);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--color-border-primary);">${label}</div>`;
         const subHead = (icon, label, warn) =>
             `<div style="font-size:0.72rem;font-weight:700;color:${warn ? '#d97706' : 'var(--color-text-secondary)'};margin-bottom:7px;display:flex;align-items:center;gap:5px;">${icon ? `<span>${icon}</span>` : ''}<span>${esc(label)}</span></div>`;
-        const detailsSummaryStyle = 'font-size:0.78rem;font-weight:700;color:var(--color-text-secondary);cursor:pointer;list-style:none;padding:6px 0;user-select:none;display:flex;align-items:center;gap:4px;';
-        const chev = '<span class="pi-chev" style="display:inline-block;font-size:0.7em;transition:transform 0.15s;color:var(--color-text-muted);flex-shrink:0;">&#9654;</span>';
-        if (!document.getElementById('pi-details-chev-style')) {
+        const secHdStyle = 'font-size:0.78rem;font-weight:600;color:var(--color-text-secondary);cursor:pointer;padding:9px 0;user-select:none;display:flex;align-items:center;gap:5px;border-radius:4px;transition:background 0.15s;';
+        const chev = '<span class="pi-chev" style="display:inline-block;font-size:0.7em;transition:transform 0.2s ease-out;color:var(--color-text-muted);flex-shrink:0;">&#9654;</span>';
+        if (!document.getElementById('pi-sec-style')) {
             const _cs = document.createElement('style');
-            _cs.id = 'pi-details-chev-style';
-            _cs.textContent = 'details.pi-sec>summary{list-style:none;}details.pi-sec>summary::-webkit-details-marker{display:none;}details.pi-sec[open] .pi-chev{transform:rotate(90deg);}';
+            _cs.id = 'pi-sec-style';
+            _cs.textContent = [
+                '.pi-sec-wrap{margin-bottom:0;border-top:1px solid var(--color-border-primary);}',
+                '.pi-sec-hd:hover{background:var(--color-bg-secondary);}',
+                '.pi-sec-bd{overflow:hidden;max-height:0;transition:max-height 200ms ease-out;}',
+                '.pi-sec-wrap.pi-sec-open .pi-chev{transform:rotate(90deg);}',
+                /* rhythm card details still uses native <details> */
+                'details.pi-sec>summary{list-style:none;}details.pi-sec>summary::-webkit-details-marker{display:none;}details.pi-sec[open] .pi-chev{transform:rotate(90deg);}',
+                /* custom tooltip */
+                '.pi-tip{position:fixed;z-index:9999;background:#1f2937;color:#fff;font-size:0.76rem;line-height:1.5;padding:9px 13px;border-radius:6px;max-width:280px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);opacity:0;transition:opacity 0.15s;}',
+                '.pi-tip.pi-tip-show{opacity:1;}',
+            ].join('');
             document.head.appendChild(_cs);
         }
 
@@ -3733,52 +3866,69 @@
             _adverbWarn  = ws.adverbPct >= 5;
             _contrWarn   = ws.contractionCount === 0 && data.wordCount > 300;
             _transLow    = ws.transitionCoverage < 15 && data.wordCount > 300;
-            if (allLong.length > 0)             allFixes.push(`${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words: shorten them`);
-            if (_passiveWarn)                   allFixes.push(`Passive voice ${_passivePct}% (${ws.passiveSentenceCount} sentences): rewrite sentences to start with the subject`);
-            if (_transLow)                      allFixes.push(`Transitions ${ws.transitionCoverage}%: add however / therefore / also between paragraphs`);
-            if (_contrWarn)                     allFixes.push(`No contractions: try don\u2019t, can\u2019t, you\u2019ll to sound less formal`);
-            if (_complexWarn)                   allFixes.push(`Complex words ${ws.complexWordPct}%: replace 3+ syllable words with simpler alternatives`);
-            if (ws.nominalisationCount > 3)     allFixes.push(`${ws.nominalisationCount} bureaucratic phrases: see list below`);
-            if (_adverbWarn)                    allFixes.push(`Adverbs ${ws.adverbPct}%: remove or replace -ly adverbs`);
+            if (allLong.length > 0)             allFixes.push(`${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words`);
+            if (_passiveWarn)                   allFixes.push(`Passive voice in ${_passivePct}% of sentences`);
+            if (_transLow)                      allFixes.push(`Transition word coverage: ${ws.transitionCoverage}%`);
+            if (_contrWarn)                     allFixes.push('No contractions found');
+            if (_complexWarn)                   allFixes.push(`Complex word coverage: ${ws.complexWordPct}%`);
+            if (ws.nominalisationCount > 3)     allFixes.push(`${ws.nominalisationCount} bureaucratic phrases`);
+            if (_adverbWarn)                    allFixes.push(`Adverb coverage: ${ws.adverbPct}%`);
         }
 
-        // ── [1] KPI Hero Strip ──
+        // ── [1] KPI Hero Strip — flat cards, grade colour only on letter/label ──
         const kpiHeroStrip =
             `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">` +
             // Card 1: Readability (FK)
-            `<div style="background:var(--color-bg-secondary);border-radius:12px;padding:16px 10px;text-align:center;border:2px solid ${scoreColor};">` +
-            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-secondary);margin-bottom:4px;">Flesch-Kincaid</div>` +
-            `<div style="font-size:2.2rem;font-weight:800;color:${scoreColor};line-height:1;">${data.readabilityScore !== null ? data.readabilityScore : '\u2014'}</div>` +
-            `<div style="font-size:0.66rem;color:${scoreColor};font-weight:700;margin-top:3px;">${grade ? grade.label : 'N/A'}</div>` +
+            `<div style="background:var(--color-bg-secondary);border-radius:8px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
+            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:4px;">Readability</div>` +
+            `<div style="font-size:2.2rem;font-weight:700;color:var(--color-text-primary);line-height:1;">${data.readabilityScore !== null ? data.readabilityScore : '\u2014'}</div>` +
+            `<div style="font-size:0.66rem;color:${scoreColor};font-weight:600;margin-top:3px;">${grade ? grade.label : 'N/A'}</div>` +
             (data.avgSentenceLength !== null ? `<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:4px;">Avg sentence: ${data.avgSentenceLength}w</div>` : '') +
             (data.avgSyllablesPerWord !== null ? `<div style="font-size:0.68rem;color:var(--color-text-muted);">Avg syllables: ${data.avgSyllablesPerWord}/w</div>` : '') +
             `</div>` +
-            // Card 3: Content (words + read time)
-            `<div style="background:var(--color-bg-secondary);border-radius:12px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
-            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-secondary);margin-bottom:4px;">Content</div>` +
-            `<div style="font-size:2.2rem;font-weight:800;color:var(--color-text-primary);line-height:1;">${data.wordCount >= 1000 ? (data.wordCount / 1000).toFixed(1) + 'k' : data.wordCount}</div>` +
+            // Card 2: Content (words + read time)
+            `<div style="background:var(--color-bg-secondary);border-radius:8px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
+            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:4px;">Content</div>` +
+            `<div style="font-size:2.2rem;font-weight:700;color:var(--color-text-primary);line-height:1;">${data.wordCount >= 1000 ? (data.wordCount / 1000).toFixed(1) + 'k' : data.wordCount}</div>` +
             `<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:3px;">words</div>` +
-            `<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-top:5px;font-weight:600;">${data.readingTime} min read</div>` +
+            `<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-top:5px;">${data.readingTime} min read</div>` +
             (data.avgSentenceLength !== null ? `<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:2px;">Avg sentence: ${data.avgSentenceLength}w</div>` : '') +
             `</div>` +
-            // Card 4: SEO Health
-            `<div style="background:var(--color-bg-secondary);border-radius:12px;padding:16px 10px;text-align:center;border:2px solid ${seoGradeColor};">` +
-            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-secondary);margin-bottom:4px;">SEO Health</div>` +
-            `<div style="font-size:2.2rem;font-weight:800;color:${seoGradeColor};line-height:1;">${seoGrade}</div>` +
-            `<div style="font-size:0.66rem;color:${seoGradeColor};font-weight:700;margin-top:3px;">${seoScore}/6 points</div>` +
+            // Card 3: SEO Health
+            `<div style="background:var(--color-bg-secondary);border-radius:8px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
+            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:4px;">SEO Health</div>` +
+            `<div style="font-size:2.2rem;font-weight:700;color:var(--color-text-primary);line-height:1;">${seoGrade}</div>` +
+            `<div style="font-size:0.66rem;color:${seoGradeColor};font-weight:600;margin-top:3px;">${seoScore}/6 checks</div>` +
             `<div style="font-size:0.64rem;color:var(--color-text-muted);margin-top:5px;line-height:1.6;">Title ${titleStatus.icon} &middot; Meta ${metaStatus.icon}<br>Canon ${canonicalStatus.icon} &middot; Schema ${data.schemaTypes.length > 0 ? '✅' : '❌'}</div>` +
             `</div>` +
             `</div>`;
 
-        // ── [2] Top Priority Actions ──
-        const topPriorityActions = allFixes.length > 0
-            ? card(null,
-                `<div style="border-left:4px solid #4f46e5;padding-left:14px;">` +
-                `<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#4f46e5;margin-bottom:10px;">&#127919; Top things to fix</div>` +
-                `<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;">` +
-                    allFixes.map(f => `<li style="font-size:0.82rem;color:var(--color-text-secondary);line-height:1.5;">${esc(f)}</li>`).join('') +
-                `</ol></div>`)
-            : '';
+        // ── [2] Page Overview (neutral observations) ──
+        const topPriorityActions = (function() {
+            const primary = [];
+            const secondary = [];
+            if (allLong.length > 0)   primary.push(`${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words`);
+            if (data.metaDescLength === 0) primary.push('Meta description is missing');
+            else if (data.metaDescLength > 160) primary.push(`Meta description is ${data.metaDescLength} chars (over typical length)`);
+            if (_passiveWarn && primary.length < 3) primary.push(`Passive voice in ${_passivePct}% of sentences`);
+            if (_complexWarn)   secondary.push(`Complex word coverage: ${data.writingStyle ? data.writingStyle.complexWordPct : ''}%`);
+            if (_transLow)      secondary.push(`Transition word coverage: ${data.writingStyle ? data.writingStyle.transitionCoverage : ''}%`);
+            if (data.writingStyle && data.writingStyle.nominalisationCount > 3) secondary.push(`${data.writingStyle.nominalisationCount} bureaucratic phrases`);
+            if (_contrWarn)     secondary.push('No contractions found');
+            if (_adverbWarn)    secondary.push(`Adverb coverage: ${data.writingStyle ? data.writingStyle.adverbPct : ''}%`);
+            if (data.titleLength > 60) secondary.push(`Title tag is ${data.titleLength} chars`);
+            if (data.imagesWithoutAlt > 0) secondary.push(`${data.imagesWithoutAlt} image${data.imagesWithoutAlt > 1 ? 's' : ''} missing alt text`);
+            while (primary.length > 3) secondary.unshift(primary.pop());
+            if (!primary.length && !secondary.length) return '';
+            const item = obs => `<div style="font-size:0.8rem;color:var(--color-text-secondary);padding:4px 0 4px 12px;line-height:1.5;border-left:2px solid var(--color-border-primary);">${esc(obs)}</div>`;
+            const sublabel = txt => `<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:12px 0 6px;">${txt}</div>`;
+            return card(null,
+                `<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-secondary);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-primary);">What we noticed</div>` +
+                (primary.length > 0 ? sublabel('You might start by looking at') + primary.map(item).join('') : '') +
+                (secondary.length > 0 ? sublabel('Also noticed') + secondary.map(item).join('') : '') +
+                `<div style="font-size:0.73rem;color:var(--color-text-muted);margin-top:12px;font-style:italic;">These are observations, not rules. Context matters.</div>`
+            );
+        })();
 
         // ── Technical SEO (schema on own row) ──
         const technicalSEO = card(null, `
@@ -3957,21 +4107,29 @@
             </div>
         `);
 
-        // ── Reading Rhythm (full-width standalone card) ──
+        // ── Reading Rhythm (collapsible card) ──
         const rhythmCard = (() => {
             const sentLens = data.sentenceLengths || [];
             if (sentLens.length < 2) return '';
             const shortN = sentLens.filter(l => l < 10).length;
             const medN   = sentLens.filter(l => l >= 10 && l <= 20).length;
             const longN  = sentLens.filter(l => l > 20).length;
+            const avgLen = Math.round(sentLens.reduce((a, b) => a + b, 0) / sentLens.length);
             return card(null,
-                `<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--color-text-secondary);margin-bottom:8px;">Reading Rhythm</div>` +
+                `<div class="pi-sec-wrap" style="border-top:none;">` +
+                `<div class="pi-sec-hd" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0;border-radius:4px;transition:background 0.15s;user-select:none;">` +
+                `<span class="pi-chev" style="display:inline-block;font-size:0.7em;transition:transform 0.2s ease-out;color:var(--color-text-muted);">&#9654;</span>` +
+                `Reading Rhythm` +
+                `<span style="font-weight:400;color:var(--color-text-muted);text-transform:none;letter-spacing:0;margin-left:6px;">avg ${avgLen} words/sentence</span>` +
+                `</div>` +
+                `<div class="pi-sec-bd">` +
+                `<div style="margin-top:8px;">` +
                 renderRhythmChartFull(sentLens, data.sentenceTexts || []) +
                 `<div style="display:flex;gap:14px;font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;">` +
                     `<span style="color:#16a34a;">&#9679; Short &lt;10w (${shortN})</span>` +
                     `<span style="color:#d97706;">&#9679; Medium 10\u201320w (${medN})</span>` +
                     `<span style="color:#dc2626;">&#9679; Long &gt;20w (${longN})</span>` +
-                `</div>`
+                `</div></div></div></div>`
             );
         })();
 
@@ -4016,116 +4174,171 @@
                     (contrWarn ? `<div style="font-size:0.72rem;color:#d97706;margin-top:6px;">Try: don't, can't, you'll, it's, we're</div>` : '') +
                 `</div>`;
 
-            // Long sentences <details>
+            // Helper: neutral context line shown when section expands
+            const _secCtx = (key) => SECTION_CONTEXT[key]
+                ? `<div style="font-size:0.73rem;color:var(--color-text-muted);font-style:italic;line-height:1.5;padding:4px 0 8px;">${SECTION_CONTEXT[key]}</div>`
+                : '';
+            // [?] icon — uses data-tip for custom tooltip, not native title
+            const _secTip = (key) => SECTION_TOOLTIP[key]
+                ? `<span class="pi-tip-trigger" data-tip="${SECTION_TOOLTIP[key].replace(/"/g,'&quot;')}" style="font-size:0.68rem;color:var(--color-text-muted);cursor:help;margin-left:auto;padding:0 2px;">[?]</span>`
+                : '';
+            const SHOW_MAX = 3;
+            // Show first SHOW_MAX items, hide rest behind "Show all" + optional "See alternatives →" link
+            const _showMore = (items, renderFn, listId, aiMountId) => {
+                if (!items || items.length === 0) return '';
+                const shown = items.slice(0, SHOW_MAX).map((item, i) => renderFn(item, i)).join('');
+                const footer = items.length > SHOW_MAX || aiMountId
+                    ? `<div style="display:flex;align-items:center;gap:12px;padding-top:4px;flex-wrap:wrap;">` +
+                      (items.length > SHOW_MAX
+                          ? `<button class="pi-show-more-btn" data-list="${listId}" style="font-size:0.72rem;color:var(--color-link);background:none;border:none;cursor:pointer;padding:0;">Show all (${items.length - SHOW_MAX} more) ▾</button>`
+                          : '') +
+                      (aiMountId
+                          ? `<button class="pi-see-alts-btn" data-ai-mount="${aiMountId}" style="font-size:0.72rem;color:var(--color-link);background:none;border:none;cursor:pointer;padding:0;">See alternatives →</button>`
+                          : '') +
+                      `</div>`
+                    : '';
+                const overflow = items.length > SHOW_MAX
+                    ? `<div class="pi-overflow-items" data-list="${listId}" style="display:none;">${items.slice(SHOW_MAX).map((item, i) => renderFn(item, SHOW_MAX + i)).join('')}</div>`
+                    : '';
+                return shown + overflow + footer;
+            };
+
+            // Builds an animated collapsible section row (replaces <details>)
+            const _secWrap = (label, tipKey, bodyHtml, aiMountHtml) =>
+                `<div class="pi-sec-wrap">` +
+                    `<div class="pi-sec-hd" style="${secHdStyle}">${chev}${label}${tipKey ? _secTip(tipKey) : ''}</div>` +
+                    `<div class="pi-sec-bd">` +
+                        `<div style="padding:2px 0 10px;">` +
+                            (aiMountHtml || '') +
+                            bodyHtml +
+                        `</div>` +
+                    `</div>` +
+                `</div>`;
+
+            // Long sentences
             const longSentencesDetails = allLong.length > 0
-                ? `<div id="pi-long-sentences-ai" style="margin-bottom:6px;"></div>` +
-                  `<details${allLong.length <= 3 ? ' open' : ''} class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${chev}\u26a0\ufe0f ${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:10px;">` +
-                      `<div id="pi-long-sentences-list">` +
-                      allLong.map((s, i) => {
-                          const wc = s.split(/\s+/).filter(w => w.length > 0).length;
-                          return `<div id="pi-sent-long-${i}" style="font-size:0.8rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid ${_rptWcColor(wc)};padding:6px 12px;">&ldquo;${esc(s)}&rdquo; <span style="color:${_rptWcColor(wc)};font-size:0.72rem;white-space:nowrap;font-weight:600;">(${wc}w)</span></div>`;
-                      }).join('') +
-                      `</div>` +
-                  `</div>` +
-                  `</details>`
+                ? _secWrap(
+                    `${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words${_rptBreakdown}`,
+                    'long-sentences',
+                    _secCtx('long-sentences') +
+                    `<div id="pi-long-sentences-list" style="display:flex;flex-direction:column;gap:6px;">` +
+                    _showMore(allLong, (s, i) => {
+                        const wc = s.split(/\s+/).filter(w => w.length > 0).length;
+                        return `<div id="pi-sent-long-${i}" style="font-size:0.8rem;color:var(--color-text-secondary);line-height:1.6;border-left:2px solid var(--color-border-primary);padding:6px 12px;">&ldquo;${esc(s)}&rdquo; <span style="font-size:0.72rem;color:var(--color-text-muted);">(${wc}w)</span> <button class="pi-see-in-doc" data-overlay="long" data-see-text="${esc(s.slice(0,80))}" style="font-size:0.65rem;color:var(--color-link);background:none;border:none;cursor:pointer;padding:0;margin-left:4px;">See in doc</button></div>`;
+                    }, 'long', 'pi-long-sentences-ai') +
+                    `</div>`,
+                    `<div id="pi-long-sentences-ai" style="margin-bottom:6px;"></div>`
+                  )
                 : '';
 
-            // Passive voice <details>
+            // Passive voice
             const passiveAll = ws.passiveSentenceExamplesAll || ws.passiveSentenceExamples || [];
-            const passiveDetails =
-                (passiveAll.length > 0 ? `<div id="pi-passive-ai" style="margin-bottom:6px;"></div>` : '') +
-                `<details${passiveAll.length <= 5 ? ' open' : ''} class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                `<summary style="${detailsSummaryStyle}">${chev}${passiveWarn ? '\u26a0\ufe0f' : '\u2705'} Passive voice (${ws.passiveSentenceCount} of ${ws.totalSentences} sentences, ${passivePct}%)</summary>` +
-                `<div style="padding:8px 0 4px;">` +
-                    (passiveAll.length > 0
-                        ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">${passiveAll.map((s, i) =>
-                            `<div id="pi-sent-pass-${i}" style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid var(--color-border-primary);padding:5px 12px;">&ldquo;${esc(s.length > 250 ? s.slice(0,250) + '\u2026' : s)}&rdquo;</div>`
-                        ).join('')}</div>`
-                        : `<div style="font-size:0.76rem;color:var(--color-text-muted);">No passive voice detected.</div>`) +
-                    `<div style="margin-top:8px;font-size:0.72rem;color:var(--color-text-muted);line-height:1.5;font-style:italic;">Passive voice is sometimes appropriate when the actor is unknown, the focus is on the person affected, or legal wording requires it.</div>` +
-                    (passiveWarn
-                        ? `<div style="margin-top:10px;padding:8px 12px;background:var(--color-bg-secondary);border-radius:6px;font-size:0.72rem;line-height:1.6;color:var(--color-text-secondary);"><span style="font-weight:600;">Tip: name the actor</span><br>Passive: <em>&ldquo;The complaint will be investigated.&rdquo;</em><br>Active: <em>&ldquo;The organisation will investigate the complaint.&rdquo;</em></div>`
-                        : '') +
-                `</div></details>`;
+            const passiveDetails = _secWrap(
+                `Passive voice (${ws.passiveSentenceCount} of ${ws.totalSentences} sentences, ${passivePct}%)`,
+                'passive-voice',
+                _secCtx('passive-voice') +
+                (passiveAll.length > 0
+                    ? `<div id="pi-passive-list" style="display:flex;flex-direction:column;gap:6px;">` +
+                      _showMore(passiveAll, (s, i) => {
+                          const trimmed = s.length > 250 ? s.slice(0,250) + '\u2026' : s;
+                          return `<div id="pi-sent-pass-${i}" style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.6;border-left:3px solid var(--color-border-primary);padding:5px 12px;">&ldquo;${esc(trimmed)}&rdquo; <button class="pi-see-in-doc" data-overlay="passive" data-see-text="${esc(s.slice(0,80))}" style="font-size:0.65rem;color:var(--color-link);background:none;border:none;cursor:pointer;padding:0;margin-left:4px;">See in doc</button></div>`;
+                      }, 'passive', 'pi-passive-ai') +
+                      `</div>`
+                    : `<div style="font-size:0.76rem;color:var(--color-text-muted);">No passive voice detected.</div>`) +
+                (passiveWarn
+                    ? `<div style="margin-top:10px;padding:8px 12px;background:var(--color-bg-secondary);border-radius:6px;font-size:0.72rem;line-height:1.6;color:var(--color-text-secondary);"><span style="font-weight:600;">Tip: name the actor</span><br>Passive: <em>&ldquo;The complaint will be investigated.&rdquo;</em><br>Active: <em>&ldquo;The organisation will investigate the complaint.&rdquo;</em></div>`
+                    : ''),
+                passiveAll.length > 0 ? `<div id="pi-passive-ai" style="margin-bottom:6px;"></div>` : ''
+            );
 
-            // Complex words <details>
+            // Complex words
             const complexAll = ws.complexWordListAll || ws.complexWordList;
             const complexDetails = complexAll.length > 0
-                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${chev}${complexWarn ? '\u26a0\ufe0f' : '\u2705'} Complex words, 3+ syllables (${ws.complexWordCount} uses, ${ws.complexWordPct}%)</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:5px;">` +
-                  complexAll.map(w => {
-                      const alts = PLAIN_ALTS[w.toLowerCase()];
-                      if (alts && alts.length > 0) {
-                          return `<span title="Try: ${alts.join(', ')}" style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid #059669;border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);cursor:help;border-bottom:2px dashed #059669;">${esc(w)}<span style="color:#059669;font-size:0.65rem;margin-left:3px;">\u2192</span></span>`;
-                      }
-                      return `<span data-datamuse-word="${esc(w.toLowerCase())}" title="" style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);cursor:help;">${esc(w)}</span>`;
-                  }).join('') +
-                  `</div></details>`
+                ? _secWrap(
+                    `Complex words, 3+ syllables (${ws.complexWordCount} uses, ${ws.complexWordPct}%)`,
+                    'complex-words',
+                    _secCtx('complex-words') +
+                    `<div style="display:flex;flex-wrap:wrap;gap:5px;">` +
+                    complexAll.map(w => {
+                        const alts = PLAIN_ALTS[w.toLowerCase()];
+                        if (alts && alts.length > 0) {
+                            return `<span title="Try: ${alts.join(', ')}" style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid #059669;border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);cursor:help;border-bottom:2px dashed #059669;">${esc(w)}<span style="color:#059669;font-size:0.65rem;margin-left:3px;">\u2192</span></span>`;
+                        }
+                        return `<span data-datamuse-word="${esc(w.toLowerCase())}" title="" style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);cursor:help;">${esc(w)}</span>`;
+                    }).join('') +
+                    `</div>`
+                  )
                 : '';
 
-            // Nominalisations <details>
+            // Nominalisations
             const nomAll = ws.nominalisationMatchesAll || ws.nominalisationMatches;
             const nomDetails = nomAll.length > 0
-                ? `<div id="pi-nom-ai" style="margin-bottom:6px;"></div>` +
-                  `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${chev}\u26a0\ufe0f Bureaucratic phrases (${ws.nominalisationCount} occurrence${ws.nominalisationCount !== 1 ? 's' : ''})</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:6px;">` +
-                  nomAll.map(m =>
-                      `<div style="font-size:0.77rem;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-left:3px solid #d97706;padding:5px 12px;">` +
-                          `<span style="color:#d97706;font-weight:600;">&ldquo;${esc(m.found)}&rdquo;${m.count > 1 ? ` <span style="color:var(--color-text-muted);">\xd7${m.count}</span>` : ''}</span>` +
-                          `<span style="color:var(--color-text-muted);">&rarr;</span>` +
-                          `<span style="color:#059669;font-weight:600;">${esc(m.suggest)}</span>` +
-                      `</div>`
-                  ).join('') +
-                  `</div></details>`
+                ? _secWrap(
+                    `Bureaucratic phrases (${ws.nominalisationCount} occurrence${ws.nominalisationCount !== 1 ? 's' : ''})`,
+                    'nominalisations',
+                    _secCtx('nominalisations') +
+                    `<div style="display:flex;flex-direction:column;gap:6px;">` +
+                    _showMore(nomAll, m =>
+                        `<div style="font-size:0.77rem;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-left:3px solid var(--color-border-primary);padding:5px 12px;">` +
+                            `<span style="color:var(--color-text-secondary);font-weight:600;">&ldquo;${esc(m.found)}&rdquo;${m.count > 1 ? ` <span style="color:var(--color-text-muted);">\xd7${m.count}</span>` : ''}</span>` +
+                            `<span style="color:var(--color-text-muted);">&rarr;</span>` +
+                            `<span style="color:var(--color-text-secondary);">${esc(m.suggest)}</span>` +
+                        `</div>`,
+                    'nom', 'pi-nom-ai') +
+                    `</div>`,
+                    `<div id="pi-nom-ai" style="margin-bottom:6px;"></div>`
+                  )
                 : '';
 
-            // Adverbs <details>
+            // Adverbs
             const advAll = ws.adverbsAll || ws.topAdverbs;
             const adverbDetails = ws.adverbCount > 0
-                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${chev}${adverbWarn ? '\u26a0\ufe0f' : '\u2705'} Adverbs (${ws.adverbCount}, ${ws.adverbPct}% of words)</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:5px;">` +
-                  advAll.map(w =>
-                      `<span style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);">${esc(w)}</span>`
-                  ).join('') +
-                  `</div></details>`
+                ? _secWrap(
+                    `Adverbs (${ws.adverbCount}, ${ws.adverbPct}% of words)`,
+                    'adverbs',
+                    _secCtx('adverbs') +
+                    `<div style="display:flex;flex-wrap:wrap;gap:5px;">` +
+                    advAll.map(w =>
+                        `<span style="display:inline-block;background:var(--color-bg-tertiary);border:1px solid var(--color-border-primary);border-radius:4px;padding:2px 8px;font-size:0.72rem;color:var(--color-text-secondary);">${esc(w)}</span>`
+                    ).join('') +
+                    `</div>`
+                  )
                 : '';
 
-            // Hedge words <details>
+            // Hedge words
             const hedgeAll = ws.hedgeMatchesAll || [];
             const _sentTexts = data.sentenceTexts || [];
             const hedgeDetails = ws.hedgeCount > 0
-                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${chev}\ud83d\udcac Hedge words (${ws.hedgeCount} occurrence${ws.hedgeCount !== 1 ? 's' : ''})</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:5px;">` +
-                  hedgeAll.map(m => {
-                      const ex = _sentTexts.find(s => s.toLowerCase().includes(m.phrase.toLowerCase())) || '';
-                      return `<div style="border-left:3px solid var(--color-border-primary);padding:5px 12px;">` +
-                          `<div style="font-size:0.77rem;font-weight:600;color:var(--color-text-secondary);">\u201c${esc(m.phrase)}\u201d${m.count > 1 ? ` <span style="color:var(--color-text-muted);">\xd7${m.count}</span>` : ''}</div>` +
-                          (ex ? `<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:3px;font-style:italic;line-height:1.5;">${esc(ex.length > 160 ? ex.slice(0, 157) + '\u2026' : ex)}</div>` : '') +
-                      `</div>`;
-                  }).join('') +
-                  `</div>` +
-                  `<div id="pi-hedge-ai" style="margin-top:6px;"></div>` +
-                  `</details>`
+                ? _secWrap(
+                    `Hedge words (${ws.hedgeCount} occurrence${ws.hedgeCount !== 1 ? 's' : ''})`,
+                    'hedge-words',
+                    _secCtx('hedge-words') +
+                    `<div style="display:flex;flex-direction:column;gap:5px;">` +
+                    _showMore(hedgeAll, m => {
+                        const ex = _sentTexts.find(s => s.toLowerCase().includes(m.phrase.toLowerCase())) || '';
+                        return `<div style="border-left:3px solid var(--color-border-primary);padding:5px 12px;">` +
+                            `<div style="font-size:0.77rem;font-weight:600;color:var(--color-text-secondary);">\u201c${esc(m.phrase)}\u201d${m.count > 1 ? ` <span style="color:var(--color-text-muted);">\xd7${m.count}</span>` : ''}</div>` +
+                            (ex ? `<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:3px;font-style:italic;line-height:1.5;">${esc(ex.length > 160 ? ex.slice(0, 157) + '\u2026' : ex)}</div>` : '') +
+                        `</div>`;
+                    }, 'hedge', 'pi-hedge-ai') +
+                    `</div>`,
+                    `<div id="pi-hedge-ai" style="margin-bottom:6px;"></div>`
+                  )
                 : '';
 
-            // H2 headings <details>
+            // H2 headings
             const h2sForCard = data.h2Texts || [];
             const headingStructureDetails = h2sForCard.length > 0
-                ? `<details class="pi-sec" style="margin-bottom:10px;border-top:1px solid var(--color-border-primary);">` +
-                  `<summary style="${detailsSummaryStyle}">${chev}\ud83d\udccb H2 Headings (${h2sForCard.length} heading${h2sForCard.length !== 1 ? 's' : ''})</summary>` +
-                  `<div style="padding:8px 0 4px;display:flex;flex-direction:column;gap:4px;">` +
-                  h2sForCard.slice(0, 10).map(h =>
-                      `<div style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.5;border-left:2px solid var(--color-border-primary);padding:3px 10px;">${esc(h)}</div>`
-                  ).join('') +
-                  `</div>` +
-                  `<div id="pi-h2-ai" style="margin-top:6px;"></div>` +
-                  `</details>`
+                ? _secWrap(
+                    `H2 Headings (${h2sForCard.length} heading${h2sForCard.length !== 1 ? 's' : ''})`,
+                    null,
+                    `<div style="display:flex;flex-direction:column;gap:4px;">` +
+                    h2sForCard.slice(0, 10).map(h =>
+                        `<div style="font-size:0.78rem;color:var(--color-text-secondary);line-height:1.5;border-left:2px solid var(--color-border-primary);padding:3px 10px;">${esc(h)}</div>`
+                    ).join('') +
+                    `</div>`,
+                    `<div id="pi-h2-ai" style="margin-bottom:6px;"></div>`
+                  )
                 : '';
 
             writingQualityHtml = card(null, `
@@ -4147,10 +4360,10 @@
             const gsc = data._gsc;
             if (!gsc || !gsc.topQueries || !gsc.topQueries.length) {
                 return card(null,
-                    sectionHead('Search Intent') +
+                    sectionHead('How people find this page') +
                     `<div style="font-size:0.8rem;color:var(--color-text-muted);padding:4px 0;">` +
                     ((!window.GSCIntegration || !window.GSCIntegration.isConnected())
-                        ? 'Connect Google Search Console to analyse which search queries this page serves and identify content gaps.'
+                        ? 'Connect Google Search Console to see which search queries this page serves and explore related topics.'
                         : 'No search data available for this URL yet.') +
                     `</div>`
                 );
@@ -4171,7 +4384,7 @@
                     `</div>`;
             }).join('');
             return card(null,
-                sectionHead('Search Intent') +
+                sectionHead('How people find this page') +
                 `<div style="margin-bottom:12px;">${queryRows}</div>` +
                 `<div id="pi-search-intent-ai"></div>`
             );
@@ -4183,10 +4396,10 @@
         container.innerHTML =
             `<div style="padding:4px 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
             `<div style="display:flex;gap:0;border-bottom:2px solid var(--color-border-primary);margin-bottom:16px;">` +
-                `<button id="pi-tab-analysis" style="${tabBtnActive}">Analysis</button>` +
+                `<button id="pi-tab-insights" style="${tabBtnActive}">Insights</button>` +
                 `<button id="pi-tab-document" style="${tabBtnBase}">Document</button>` +
             `</div>` +
-            `<div id="pi-panel-analysis">` +
+            `<div id="pi-panel-insights">` +
                 noindexBanner + kpiHeroStrip + topPriorityActions + rhythmCard + technicalSEO + searchIntentCard + writingQualityHtml + linksImages +
             `</div>` +
             `<div id="pi-panel-document" style="display:none;"></div>` +
@@ -4197,9 +4410,9 @@
         wireLinkChecker(container, data, _urlOrigin);
         wireAIRewrites(container, data);
 
-        const analysisBtn   = container.querySelector('#pi-tab-analysis');
+        const analysisBtn   = container.querySelector('#pi-tab-insights');
         const docBtn        = container.querySelector('#pi-tab-document');
-        const analysisPanel = container.querySelector('#pi-panel-analysis');
+        const analysisPanel = container.querySelector('#pi-panel-insights');
         const docPanel      = container.querySelector('#pi-panel-document');
 
         analysisBtn.addEventListener('click', () => {
@@ -4220,6 +4433,151 @@
             docPanel.style.display = '';
             analysisBtn.style.cssText = tabBtnBase;
             docBtn.style.cssText = tabBtnActive;
+        });
+
+        // Wire animated expand/collapse for pi-sec-wrap rows
+        (function wireWritingSections() {
+            container.querySelectorAll('.pi-sec-wrap').forEach(function(wrap) {
+                var hd = wrap.querySelector(':scope > .pi-sec-hd');
+                var bd = wrap.querySelector(':scope > .pi-sec-bd');
+                if (!hd || !bd) return;
+                hd.addEventListener('click', function() {
+                    var isOpen = wrap.classList.contains('pi-sec-open');
+                    if (isOpen) {
+                        bd.style.maxHeight = bd.scrollHeight + 'px';
+                        requestAnimationFrame(function() {
+                            requestAnimationFrame(function() { bd.style.maxHeight = '0'; });
+                        });
+                        wrap.classList.remove('pi-sec-open');
+                    } else {
+                        bd.style.maxHeight = bd.scrollHeight + 'px';
+                        // After transition completes, remove explicit max-height so content can grow (e.g. AI results)
+                        bd.addEventListener('transitionend', function onEnd() {
+                            if (wrap.classList.contains('pi-sec-open')) bd.style.maxHeight = 'none';
+                            bd.removeEventListener('transitionend', onEnd);
+                        });
+                        wrap.classList.add('pi-sec-open');
+                    }
+                });
+            });
+        })();
+
+        // Custom [?] tooltip
+        (function wireSecTooltips() {
+            var tip = document.getElementById('pi-global-tip');
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.id = 'pi-global-tip';
+                tip.className = 'pi-tip';
+                document.body.appendChild(tip);
+            }
+            // Show on mouseenter via event delegation
+            container.addEventListener('mouseover', function(e) {
+                var trigger = e.target.closest('.pi-tip-trigger');
+                if (!trigger) return;
+                var text = trigger.dataset.tip || '';
+                if (!text) return;
+                tip.textContent = text;
+                var rect = trigger.getBoundingClientRect();
+                var left = Math.min(rect.left, window.innerWidth - 295);
+                var top = rect.bottom + 6;
+                tip.style.left = Math.max(8, left) + 'px';
+                tip.style.top = top + 'px';
+                tip.classList.add('pi-tip-show');
+            });
+            container.addEventListener('mouseout', function(e) {
+                var trigger = e.target.closest('.pi-tip-trigger');
+                if (trigger && !trigger.contains(e.relatedTarget)) {
+                    tip.classList.remove('pi-tip-show');
+                }
+            });
+        })();
+
+        // "Show more" for writing quality sections
+        container.addEventListener('click', function(e) {
+            const smBtn = e.target.closest('.pi-show-more-btn');
+            if (smBtn) {
+                const listId = smBtn.dataset.list;
+                const overflow = container.querySelector('.pi-overflow-items[data-list="' + listId + '"]');
+                if (overflow) {
+                    overflow.style.display = '';
+                    smBtn.style.display = 'none';
+                    // Refresh max-height so animated section grows to fit
+                    var bd = smBtn.closest('.pi-sec-bd');
+                    if (bd) { bd.style.maxHeight = 'none'; }
+                }
+            }
+        });
+
+        // "See alternatives →" — scroll to AI mount and click its button
+        container.addEventListener('click', function(e) {
+            const altsBtn = e.target.closest('.pi-see-alts-btn');
+            if (!altsBtn) return;
+            const mountId = altsBtn.dataset.aiMount;
+            const mount = container.querySelector('#' + mountId);
+            if (!mount) return;
+            mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const aiBtn = mount.querySelector('.pi-ai-btn');
+            if (aiBtn && !aiBtn.disabled) aiBtn.click();
+        });
+
+        // "See in doc" cross-tab navigation
+        container.addEventListener('click', function(e) {
+            const btn = e.target.closest('.pi-see-in-doc');
+            if (!btn) return;
+            const overlay = btn.dataset.overlay;
+            const seeText = btn.dataset.seeText || '';
+
+            // Switch to Document tab, render if needed
+            if (!docPanel._rendered) {
+                docPanel.innerHTML = renderAnnotatedView(data);
+                wireDocumentOverlays(docPanel);
+                wireDocumentAIReview(docPanel, data);
+                docPanel._rendered = true;
+            }
+            analysisPanel.style.display = 'none';
+            docPanel.style.display = '';
+            analysisBtn.style.cssText = tabBtnBase;
+            docBtn.style.cssText = tabBtnActive;
+
+            // Enable the relevant overlay (solo mode)
+            const wrap = docPanel.querySelector('.pi-doc-wrap');
+            if (wrap) {
+                ['long','passive','complex','hedge','nominalisation','adverb'].forEach(function(ov) {
+                    wrap.classList.toggle('show-' + ov, ov === overlay);
+                });
+                docPanel.querySelectorAll('.pi-overlay-btn').forEach(function(b) {
+                    const active = b.dataset.overlay === overlay;
+                    b.classList.toggle('active', active);
+                    b.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+                const clearBtn = docPanel.querySelector('.pi-doc-clear-filters');
+                if (clearBtn) clearBtn.style.display = '';
+            }
+
+            // Scroll to matching sentence
+            setTimeout(function() {
+                let target = null;
+                if (seeText) {
+                    const candidates = docPanel.querySelectorAll('.pi-sent');
+                    for (let i = 0; i < candidates.length; i++) {
+                        if ((candidates[i].textContent || '').includes(seeText.slice(0, 40))) {
+                            target = candidates[i];
+                            break;
+                        }
+                    }
+                }
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    target.style.transition = 'background 0s';
+                    target.style.background = 'rgba(128,128,128,0.18)';
+                    setTimeout(function() {
+                        target.style.transition = 'background 0.8s ease';
+                        target.style.background = 'transparent';
+                    }, 60);
+                    setTimeout(function() { target.style.transition = ''; target.style.background = ''; }, 900);
+                }
+            }, 80);
         });
     }
 
