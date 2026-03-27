@@ -1548,9 +1548,10 @@ onmouseout="
             }
             
             // Remove all existing tooltips immediately
-            const existingTooltips = document.querySelectorAll('.enhanced-tooltip');
+            const existingTooltips = document.querySelectorAll('.enhanced-tabbed-tooltip, .enhanced-tooltip');
             existingTooltips.forEach(tip => {
                 console.log('🗑️ Removing existing tooltip');
+                if (tip._backdrop) tip._backdrop.remove();
                 tip.remove();
             });
             
