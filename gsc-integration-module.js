@@ -46,7 +46,6 @@
         ];
         
         if (importantEvents.some(event => message.includes(event))) {
-            console.log(`[GSC Integration] ${message}`, data || '');
         }
     }
 
@@ -2313,7 +2312,7 @@ function addMobileGSCButton() {
                             onmouseout="this.style.background='#4caf50'">
                         🔗 Visit Page
                     </button>
-                    <button onclick="window.showDetailedGSCAnalysis && window.showDetailedGSCAnalysis('${gscData.url}')" 
+                    <button onclick="window.showUnifiedDashboardReport && window.showUnifiedDashboardReport('${gscData.url}')" 
                             style="background: var(--color-text-heading); color: white; border: none; padding: 6px 12px; border-radius: 4px;
                                    font-size: 0.8rem; cursor: pointer; flex: 1; transition: background 0.2s;"
                             onmouseover="this.style.background='#1557b0'"
@@ -3410,483 +3409,8 @@ function createEnhancedDashboardHTML(url, gscData, ga4Data, gscTrends, ga4Trends
 
     
 
-    // Show detailed GSC analysis for content writers
-    // REPLACE your entire showDetailedGSCAnalysis function with this beautiful version
-// This builds on your working enhanced data to create a stunning professional dashboard
-
-// REPLACE the entire window.showDetailedGSCAnalysis function with this complete version:
-
-// REPLACE your existing window.showDetailedGSCAnalysis with this enhanced version
-window.showDetailedGSCAnalysis = async function(url) {
-    console.log('🚀 Loading Enhanced Citizens Dashboard for:', url);
-    
-    // Get all your existing data (keep this part the same)
-    const gscData = window.GSCIntegration?.getData?.(url) || {clicks: 0, impressions: 0, ctr: 0, position: 0, topQueries: []};
-    
-    // Get trends
-    let gscTrends = null;
-    if (window.GSCIntegration?.fetchTrendComparison) {
-        try {
-            gscTrends = await window.GSCIntegration.fetchTrendComparison({url: url, name: 'Page'});
-        } catch (error) {
-            console.warn('Failed to fetch GSC trends:', error);
-        }
-    }
-    
-    // Get GA4 data
-    let ga4Data = null;
-    if (window.GA4Integration?.fetchData) {
-        try {
-            ga4Data = await window.GA4Integration.fetchData(url);
-        } catch (error) {
-            console.warn('Failed to fetch GA4 data:', error);
-        }
-    }
-    
-    // Get GA4 trends
-    let ga4Trends = null;
-    if (window.GA4Integration?.fetchTrendComparison) {
-        try {
-            ga4Trends = await window.GA4Integration.fetchTrendComparison(url);
-        } catch (error) {
-            console.warn('Failed to fetch GA4 trends:', error);
-        }
-    }
-
-    // Get enhanced GA4 data (if available)
-    let trafficSources = null;
-    let deviceData = null;
-    // Add your existing enhanced data fetching here if you have it
-
-    // Create modal with enhanced dashboard
-    const modal = document.createElement('div');
-    modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px);`;
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    };
-
-    const dashboard = document.createElement('div');
-    dashboard.style.cssText = `background: var(--color-bg-primary); border-radius: 24px; max-width: 1400px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);`;
-    dashboard.onclick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-    };
-
-    // Use the enhanced dashboard function
-    dashboard.innerHTML = window.createEnhancedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends, trafficSources, deviceData);
-
-    modal.appendChild(dashboard);
-    document.body.appendChild(modal);
-};
-
-// Keep this reference for compatibility
-window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
-
-    
-
-    // Enhanced analysis HTML generation with modern design
-    function generateEnhancedDetailedAnalysisHTML(url, gscData) {
-        const performanceScore = calculateSimplePerformanceScore(gscData);
-        const scoreColor = getScoreColor(performanceScore);
-        const shortUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
-        
-        // Calculate additional metrics
-        const avgPosition = gscData.position;
-        const positionStatus = avgPosition <= 3 ? 'excellent' : avgPosition <= 10 ? 'good' : avgPosition <= 20 ? 'fair' : 'poor';
-        const ctrBenchmark = getCTRBenchmark(avgPosition);
-        const ctrPerformance = gscData.ctr >= ctrBenchmark * 1.2 ? 'excellent' : 
-                              gscData.ctr >= ctrBenchmark ? 'good' : 
-                              gscData.ctr >= ctrBenchmark * 0.8 ? 'fair' : 'poor';
-
-        return `
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0; border-radius: 20px; overflow: hidden;">
-                
-                <!-- Header Section -->
-                <div style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 30px; border-bottom: 1px solid rgba(0,0,0,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <div>
-                            <h1 style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                                📊 Performance Deep Dive
-                            </h1>
-                            <p style="margin: 5px 0 0 0; color: var(--color-text-secondary); font-size: 0.9rem;">Advanced SEO & Content Analysis</p>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="background: ${scoreColor}; color: white; padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 1.1rem; margin-bottom: 5px;">
-                                ${performanceScore}/100
-                            </div>
-                            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">Performance Score</div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #f8f9ff; padding: 15px; border-radius: 12px; border-left: 4px solid #667eea;">
-                        <div style="font-weight: 600; color: #333; margin-bottom: 5px;">📄 Analyzing Page:</div>
-                        <div style="font-family: monospace; font-size: 0.9rem; color: #667eea; word-break: break-all;">${url}</div>
-                    </div>
-                </div>
-
-                <!-- Main Content -->
-                <div style="background: var(--color-bg-primary); padding: 30px;">
-                    
-                    <!-- Key Metrics Dashboard -->
-                    <div style="margin-bottom: 40px;">
-                        <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">📈 Key Performance Metrics</h2>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                            
-                            <!-- Clicks Card -->
-                            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 16px; position: relative; overflow: hidden;">
-                                <div style="position: absolute; top: -10px; right: -10px; font-size: 4rem; opacity: 0.2;">🎯</div>
-                                <div style="position: relative; z-index: 2;">
-                                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px;">Total Clicks</div>
-                                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 10px;">${formatNumber(gscData.clicks)}</div>
-                                    ${gscData.trend && gscData.trend.clicksChange ? `
-                                        <div style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
-                                            <span>${parseFloat(gscData.trend.clicksChange) >= 0 ? '📈' : '📉'}</span>
-                                            <span style="font-weight: 600;">${parseFloat(gscData.trend.clicksChange) > 0 ? '+' : ''}${gscData.trend.clicksChange}%</span>
-                                            <span style="opacity: 0.8;">vs last period</span>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-
-                            <!-- Impressions Card -->
-                            <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; padding: 25px; border-radius: 16px; position: relative; overflow: hidden;">
-                                <div style="position: absolute; top: -10px; right: -10px; font-size: 4rem; opacity: 0.2;">👁️</div>
-                                <div style="position: relative; z-index: 2;">
-                                    <div style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 5px;">Impressions</div>
-                                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 10px;">${formatNumber(gscData.impressions)}</div>
-                                    ${gscData.trend && gscData.trend.impressionsChange ? `
-                                        <div style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
-                                            <span>${parseFloat(gscData.trend.impressionsChange) >= 0 ? '📈' : '📉'}</span>
-                                            <span style="font-weight: 600;">${parseFloat(gscData.trend.impressionsChange) > 0 ? '+' : ''}${gscData.trend.impressionsChange}%</span>
-                                            <span style="opacity: 0.7;">vs last period</span>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-
-                            <!-- CTR Card -->
-                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 16px; position: relative; overflow: hidden;">
-                                <div style="position: absolute; top: -10px; right: -10px; font-size: 4rem; opacity: 0.2;">⚡</div>
-                                <div style="position: relative; z-index: 2;">
-                                    <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px;">Click-through Rate</div>
-                                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 10px;">${(gscData.ctr * 100).toFixed(1)}%</div>
-                                    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
-                                        <span>${getCTRStatusIcon(ctrPerformance)}</span>
-                                        <span style="font-weight: 600; text-transform: capitalize;">${ctrPerformance}</span>
-                                        <span style="opacity: 0.8;">vs benchmark</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Position Card -->
-                            <div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; padding: 25px; border-radius: 16px; position: relative; overflow: hidden;">
-                                <div style="position: absolute; top: -10px; right: -10px; font-size: 4rem; opacity: 0.2;">🏆</div>
-                                <div style="position: relative; z-index: 2;">
-                                    <div style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 5px;">Average Position</div>
-                                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 10px;">#${gscData.position.toFixed(0)}</div>
-                                    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
-                                        <span>${getPositionStatusIcon(positionStatus)}</span>
-                                        <span style="font-weight: 600; text-transform: capitalize;">${positionStatus}</span>
-                                        <span style="opacity: 0.7;">ranking</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Performance Insights -->
-                    <div style="margin-bottom: 40px;">
-                        <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">🎯 Performance Insights</h2>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                            
-                            <!-- SEO Health Check -->
-                            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 16px;">
-                                <h3 style="margin: 0 0 15px 0; font-size: 1.2rem; font-weight: 600;">🏥 SEO Health Check</h3>
-                                
-                                <div style="space-y: 10px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <span>Ranking Performance</span>
-                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
-                                            ${getPositionGrade(avgPosition)}
-                                        </span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <span>CTR Optimization</span>
-                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
-                                            ${getCTRGrade(gscData.ctr, ctrBenchmark)}
-                                        </span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <span>Traffic Volume</span>
-                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
-                                            ${getTrafficGrade(gscData.clicks)}
-                                        </span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>Growth Trend</span>
-                                        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
-                                            ${getTrendGrade(gscData.trend)}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Quick Wins -->
-                            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 16px;">
-                                <h3 style="margin: 0 0 15px 0; font-size: 1.2rem; font-weight: 600;">⚡ Quick Wins</h3>
-                                
-                                <div style="space-y: 12px;">
-                                    ${generateQuickWins(gscData, avgPosition, ctrPerformance).map(win => `
-                                        <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-                                            <div style="font-weight: 600; margin-bottom: 4px;">${win.title}</div>
-                                            <div style="font-size: 0.9rem; opacity: 0.9;">${win.description}</div>
-                                            <div style="margin-top: 6px;">
-                                                <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                                                    ${win.impact} IMPACT
-                                                </span>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Top Keywords Analysis -->
-                    ${gscData.topQueries && gscData.topQueries.length > 0 ? `
-                    <div style="margin-bottom: 40px;">
-                        <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">🔍 Keyword Performance Analysis</h2>
-                        
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2px; border-radius: 16px;">
-                            <div style="background: var(--color-bg-primary); border-radius: 14px; overflow: hidden;">
-                                
-                                <!-- Table Header -->
-                                <div style="background: linear-gradient(135deg, #f8f9ff 0%, #e8f1fe 100%); padding: 20px; border-bottom: 1px solid #e0e0e0;">
-                                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr; gap: 15px; font-weight: 600; color: #333; font-size: 0.9rem;">
-                                        <div>🎯 Search Query</div>
-                                        <div style="text-align: center;">Clicks</div>
-                                        <div style="text-align: center;">Impressions</div>
-                                        <div style="text-align: center;">CTR</div>
-                                        <div style="text-align: center;">Position</div>
-                                        <div style="text-align: center;">Opportunity</div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Table Rows -->
-                                ${gscData.topQueries.map((query, i) => {
-                                    const queryOpportunity = getQueryOpportunity(query);
-                                    return `
-                                        <div style="padding: 18px 20px; background: ${i % 2 === 0 ? '#fafbff' : 'white'}; border-bottom: ${i < gscData.topQueries.length - 1 ? '1px solid #f0f0f0' : 'none'};">
-                                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr; gap: 15px; align-items: center; font-size: 0.9rem;">
-                                                
-                                                <!-- Query -->
-                                                <div>
-                                                    <div style="font-weight: 600; color: #333; margin-bottom: 3px; word-break: break-word;">
-                                                        "${escapeHtml(query.query)}"
-                                                    </div>
-                                                    <div style="font-size: 0.75rem; color: var(--color-text-secondary);">
-                                                        ${query.query.length} characters • ${query.query.split(' ').length} words
-                                                    </div>
-                                                </div>
-                                                
-                                                <!-- Clicks -->
-                                                <div style="text-align: center;">
-                                                    <div style="font-weight: 600; color: #4facfe;">${query.clicks}</div>
-                                                </div>
-                                                
-                                                <!-- Impressions -->
-                                                <div style="text-align: center;">
-                                                    <div style="font-weight: 600; color: #667eea;">${formatNumber(query.impressions)}</div>
-                                                </div>
-                                                
-                                                <!-- CTR -->
-                                                <div style="text-align: center;">
-                                                    <div style="font-weight: 600; color: ${query.ctr > 0.05 ? '#4caf50' : query.ctr > 0.02 ? '#ff9800' : '#f44336'};">
-                                                        ${(query.ctr * 100).toFixed(1)}%
-                                                    </div>
-                                                </div>
-                                                
-                                                <!-- Position -->
-                                                <div style="text-align: center;">
-                                                    <div style="background: ${query.position <= 3 ? '#4caf50' : query.position <= 10 ? '#ff9800' : '#f44336'}; 
-                                                                color: white; padding: 4px 8px; border-radius: 20px; font-weight: 600; font-size: 0.8rem;">
-                                                        #${query.position.toFixed(0)}
-                                                    </div>
-                                                </div>
-                                                
-                                                <!-- Opportunity -->
-                                                <div style="text-align: center;">
-                                                    <span style="background: ${queryOpportunity.color}20; color: ${queryOpportunity.color}; 
-                                                                 padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
-                                                        ${queryOpportunity.label}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    <!-- Optimization Opportunities -->
-                    ${gscData.opportunities && gscData.opportunities.length > 0 ? `
-                    <div style="margin-bottom: 40px;">
-                        <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">🚀 Content Optimization Opportunities</h2>
-                        
-                        <div style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%); padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <div style="font-size: 3rem;">⚡</div>
-                                <div>
-                                    <h3 style="margin: 0; color: #2d3436; font-size: 1.3rem;">High-Impact Optimization Potential</h3>
-                                    <p style="margin: 5px 0 0 0; color: #636e72;">
-                                        Found ${gscData.opportunities.length} keywords with significant improvement potential. 
-                                        Optimizing these could boost your traffic significantly.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
-                            ${gscData.opportunities.map((opp, index) => `
-                                <div style="background: var(--color-bg-primary); border: 2px solid #ff9800; border-radius: 16px; padding: 20px; position: relative; overflow: hidden;">
-                                    
-                                    <!-- Priority Badge -->
-                                    <div style="position: absolute; top: 15px; right: 15px;">
-                                        <span style="background: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
-                                            #${index + 1} PRIORITY
-                                        </span>
-                                    </div>
-                                    
-                                    <!-- Keyword -->
-                                    <div style="margin-bottom: 15px; padding-right: 80px;">
-                                        <h4 style="margin: 0 0 5px 0; color: #e65100; font-size: 1.1rem; font-weight: 600;">
-                                            "${escapeHtml(opp.query)}"
-                                        </h4>
-                                        <div style="font-size: 0.8rem; color: var(--color-text-secondary);">
-                                            ${opp.query.length} chars • ${opp.query.split(' ').length} words
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Metrics Grid -->
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                                        <div style="text-align: center; background: #fff3e0; padding: 12px; border-radius: 8px;">
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: #e65100;">${formatNumber(opp.impressions)}</div>
-                                            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">Impressions</div>
-                                        </div>
-                                        <div style="text-align: center; background: #fff3e0; padding: 12px; border-radius: 8px;">
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: #e65100;">#${opp.position.toFixed(0)}</div>
-                                            <div style="font-size: 0.8rem; color: var(--color-text-secondary);">Position</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Opportunity Metrics -->
-                                    <div style="background: #e8f5e8; padding: 15px; border-radius: 12px; border-left: 4px solid #4caf50;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                            <span style="font-size: 0.9rem; color: #2e7d32; font-weight: 600;">Current Performance:</span>
-                                            <span style="font-size: 0.9rem; color: var(--color-text-secondary);">${opp.clicks} clicks (${(opp.ctr * 100).toFixed(1)}% CTR)</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <span style="font-size: 0.9rem; color: #2e7d32; font-weight: 600;">Potential Gain:</span>
-                                            <span style="font-size: 1rem; color: #2e7d32; font-weight: 700;">+${opp.potentialClicks} clicks/month</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    <!-- Action Plan -->
-                    <div style="margin-bottom: 30px;">
-                        <h2 style="color: #333; margin-bottom: 20px; font-size: 1.5rem; font-weight: 600;">📋 Recommended Action Plan</h2>
-                        
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2px; border-radius: 16px;">
-                            <div style="background: var(--color-bg-primary); border-radius: 14px; padding: 25px;">
-                                ${generateActionPlan(gscData, avgPosition, ctrPerformance).map((action, index) => `
-                                    <div style="display: flex; align-items: flex-start; gap: 20px; padding: 20px 0; border-bottom: ${index < 2 ? '1px solid #f0f0f0' : 'none'};">
-                                        
-                                        <!-- Step Number -->
-                                        <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; width: 40px; height: 40px; 
-                                                    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                                                    font-weight: 700; font-size: 1.1rem; flex-shrink: 0;">
-                                            ${index + 1}
-                                        </div>
-                                        
-                                        <!-- Action Content -->
-                                        <div style="flex: 1;">
-                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                                                <h4 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
-                                                    ${action.title}
-                                                </h4>
-                                                <span style="background: ${action.priority === 'high' ? '#f44336' : action.priority === 'medium' ? '#ff9800' : '#4caf50'}20; 
-                                                             color: ${action.priority === 'high' ? '#f44336' : action.priority === 'medium' ? '#ff9800' : '#4caf50'}; 
-                                                             padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-                                                    ${action.priority} PRIORITY
-                                                </span>
-                                            </div>
-                                            
-                                            <p style="margin: 0 0 10px 0; color: var(--color-text-secondary); line-height: 1.5;">
-                                                ${action.description}
-                                            </p>
-                                            
-                                            <div style="display: flex; align-items: center; gap: 15px; font-size: 0.85rem; color: var(--color-text-secondary);">
-                                                <span>⏱️ ${action.timeframe}</span>
-                                                <span>📈 ${action.impact}</span>
-                                                <span>🔧 ${action.difficulty}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Export & Actions -->
-                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 25px; border-radius: 16px; text-align: center;">
-                        <h3 style="margin: 0 0 15px 0; color: white; font-size: 1.3rem; font-weight: 600;">📊 Export & Share</h3>
-                        <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 0.95rem;">
-                            Download detailed reports or share insights with your team
-                        </p>
-                        
-                        <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-                            <button onclick="exportEnhancedGSCData('${escapeHtml(url)}')" 
-                                    style="background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); 
-                                           padding: 12px 24px; border-radius: 25px; font-weight: 600; cursor: pointer; 
-                                           transition: all 0.3s ease; backdrop-filter: blur(10px);"
-                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-2px)'"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
-                                📊 Export CSV Report
-                            </button>
-                            
-                            <button onclick="copyAnalysisToClipboard('${escapeHtml(url)}')" 
-                                    style="background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); 
-                                           padding: 12px 24px; border-radius: 25px; font-weight: 600; cursor: pointer; 
-                                           transition: all 0.3s ease; backdrop-filter: blur(10px);"
-                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-2px)'"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
-                                📋 Copy Summary
-                            </button>
-                            
-                            <button onclick="window.open('${escapeHtml(url)}', '_blank')" 
-                                    style="background: rgba(255,255,255,0.9); color: #f5576c; border: 2px solid transparent; 
-                                           padding: 12px 24px; border-radius: 25px; font-weight: 600; cursor: pointer; 
-                                           transition: all 0.3s ease;"
-                                    onmouseover="this.style.background='white'; this.style.transform='translateY(-2px)'"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.9)'; this.style.transform='translateY(0)'">
-                                🔗 Open Page
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
+    // The "Full Analysis" button opens the unified dashboard (showUnifiedDashboardReport).
+    // Legacy showDetailedGSCAnalysis + generateEnhancedDetailedAnalysisHTML removed (unused).
 
     // Enhanced export functions
     function exportEnhancedGSCData(url) {
@@ -4075,8 +3599,6 @@ Generated: ${new Date().toLocaleDateString()}
                             method: 'GET'
                         });
                     });
-                    console.log('✅ API Access OK');
-                    console.log('Available sites:', sites.result.siteEntry);
                 } catch (error) {
                     console.error('❌ API Access Failed:', error);
                 }
@@ -4095,13 +3617,11 @@ Generated: ${new Date().toLocaleDateString()}
                 }
                 
                 const variations = createEnhancedUrlVariations(testUrl);
-                console.log(`Generated ${variations.length} variations:`);
                 variations.forEach((v, i) => console.log(`${i + 1}. ${v}`));
                 
                 // Test each variation
                 const results = [];
                 for (const [index, variation] of variations.entries()) {
-                    console.log(`\n🧪 Testing variation ${index + 1}: ${variation}`);
                     
                     try {
                         const today = new Date();
@@ -4135,7 +3655,6 @@ Generated: ${new Date().toLocaleDateString()}
                             data: hasData ? result.result.rows[0] : null
                         });
                         
-                        console.log(hasData ? '✅ HAS DATA' : '⚪ NO DATA', hasData ? result.result.rows[0] : '');
                         
                         if (hasData) {
                             break; // Found data, no need to test more
@@ -4147,25 +3666,17 @@ Generated: ${new Date().toLocaleDateString()}
                             success: false,
                             error: error.message
                         });
-                        console.log('❌ ERROR:', error.message);
                     }
                     
                     // Small delay between tests
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
                 
-                console.log('\n📊 Summary:');
                 console.table(results);
                 
                 const successful = results.filter(r => r.success && r.hasData);
                 if (successful.length > 0) {
-                    console.log(`✅ Found ${successful.length} working variation(s)`);
                 } else {
-                    console.log('❌ No variations returned data');
-                    console.log('💡 Suggestions:');
-                    console.log('   - Check if URL exists in GSC (try searching manually)');
-                    console.log('   - Verify the site property is correct');
-                    console.log('   - Check if URL has received clicks in the last 30 days');
                 }
                 
                 console.groupEnd();
@@ -4192,11 +3703,9 @@ Generated: ${new Date().toLocaleDateString()}
                 }
                 collectUrls(window.treeData);
                 
-                console.log(`📋 Found ${allUrls.length} URLs in sitemap`);
                 
                 // Sample a few URLs for testing (to avoid rate limits)
                 const sampleUrls = allUrls.slice(0, Math.min(10, allUrls.length));
-                console.log(`🧪 Testing sample of ${sampleUrls.length} URLs`);
                 
                 const coverage = {
                     total: allUrls.length,
@@ -4208,7 +3717,6 @@ Generated: ${new Date().toLocaleDateString()}
                 
                 for (const url of sampleUrls) {
                     coverage.tested++;
-                    console.log(`\n🔍 Testing: ${url}`);
                     
                     try {
                         const variations = createEnhancedUrlVariations(url);
@@ -4240,7 +3748,6 @@ Generated: ${new Date().toLocaleDateString()}
                                 });
                                 
                                 if (result.result.rows && result.result.rows.length > 0) {
-                                    console.log(`✅ Found data for: ${variation}`);
                                     found = true;
                                     coverage.found++;
                                     break;
@@ -4255,27 +3762,19 @@ Generated: ${new Date().toLocaleDateString()}
                         }
                         
                         if (!found) {
-                            console.log('⚪ No data found');
                             coverage.notFound++;
                         }
                         
                     } catch (error) {
-                        console.log('❌ Error:', error.message);
                         coverage.errors++;
                     }
                 }
                 
-                console.log('\n📊 Coverage Summary:');
                 console.table(coverage);
                 
                 const coveragePercent = (coverage.found / coverage.tested * 100).toFixed(1);
-                console.log(`🎯 Coverage: ${coveragePercent}% of tested URLs found in GSC`);
                 
                 if (coverage.found < coverage.tested * 0.5) {
-                    console.log('\n💡 Low coverage suggestions:');
-                    console.log('   - Check if the correct GSC property is selected');
-                    console.log('   - Verify URLs in sitemap match those in GSC');
-                    console.log('   - Consider if pages have received organic clicks recently');
                 }
                 
                 console.groupEnd();
@@ -4287,30 +3786,22 @@ Generated: ${new Date().toLocaleDateString()}
                 console.group('💾 GSC Cache Status');
                 
                 const cacheSize = gscDataMap.size;
-                console.log(`Total cached entries: ${cacheSize}`);
                 
                 if (cacheSize === 0) {
-                    console.log('ℹ️ Cache is empty');
                 } else {
                     const entries = Array.from(gscDataMap.entries());
                     const withData = entries.filter(([url, data]) => !data.noDataFound);
                     const noData = entries.filter(([url, data]) => data.noDataFound);
                     
-                    console.log(`✅ With data: ${withData.length}`);
-                    console.log(`⚪ No data found: ${noData.length}`);
                     
                     // Show some examples
                     if (withData.length > 0) {
-                        console.log('\n📊 Sample entries with data:');
                         withData.slice(0, 3).forEach(([url, data]) => {
-                            console.log(`${url}: ${data.clicks} clicks, ${data.impressions} impressions`);
                         });
                     }
                     
                     if (noData.length > 0) {
-                        console.log('\n⚪ Sample entries without data:');
                         noData.slice(0, 3).forEach(([url, data]) => {
-                            console.log(`${url}: No data (tried ${data.triedVariations || 'unknown'} variations)`);
                         });
                     }
                 }
@@ -4320,9 +3811,7 @@ Generated: ${new Date().toLocaleDateString()}
 
             // Clear cache and restart
             async restart() {
-                console.log('🔄 Restarting GSC Integration...');
                 window.GSCIntegration.reset();
-                console.log('✅ Cache cleared, ready for fresh start');
             }
         };
 
@@ -4331,11 +3820,6 @@ Generated: ${new Date().toLocaleDateString()}
             // Ctrl+Shift+G for GSC debugging
             if (e.key === 'G' && e.ctrlKey && e.shiftKey) {
                 e.preventDefault();
-                console.log('🔧 GSC Debugger activated! Try:');
-                console.log('   GSCDebugger.testConnection()');
-                console.log('   GSCDebugger.testUrlMatching("your-url-here")');
-                console.log('   GSCDebugger.analyzeCoverage()');
-                console.log('   GSCDebugger.showCacheStatus()');
                 window.GSCDebugger.testConnection();
             }
         });
@@ -4962,24 +4446,20 @@ window.GSCIntegration.debug.testPeriodComparison = async function(url) {
         return;
     }
 
-    console.log('🧪 Testing period comparison for:', url);
     
     const nodeData = { url: url, name: 'Test Page' };
     const comparison = await window.GSCIntegration.fetchTrendComparison(nodeData);
     
-    console.log('📊 Trend Comparison Results:');
     console.table(comparison.current);
     if (comparison.previous) {
         console.table(comparison.previous);
     }
     if (comparison.trends) {
-        console.log('📈 Calculated Trends:', comparison.trends);
     }
     
     return comparison;
 };
 
-console.log('✅ GSC Period Comparison Functions Added!');
 
 
 
@@ -6137,7 +5617,6 @@ function generateSurgeRecommendation(query, percentIncrease) {
 }
 
 function handleSurgeAlert(url, level) {
-    console.log(`🚨 ${level.toUpperCase()} surge alert for ${url}`);
     alert(`${level.toUpperCase()} citizen information surge detected!\n\nCheck the dashboard for immediate actions needed.`);
 }
 
@@ -6416,12 +5895,10 @@ function createActionableInsightCard(insight) {
 
 // Export functions for government reports
 function exportGovernmentReport(url) {
-    console.log('Exporting government action plan for:', url);
     alert('Export feature - add your preferred export logic here');
 }
 
 function scheduleReview(url) {
-    console.log('Scheduling review for:', url);
     alert('Schedule feature - add your calendar integration here');
 }
 
@@ -6775,7 +6252,6 @@ function createEnhancedDashboardStyles() {
 
     
 
-window.showEnhancedDashboardReport = window.showDetailedGSCAnalysis;
     
 
 })();

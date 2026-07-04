@@ -2878,6 +2878,7 @@
     }
 
     async function renderContentTab(container, url) {
+        if (!container) return;
         if (!url) {
             container.innerHTML = `<div style="text-align: center; padding: 28px; color: var(--color-text-muted); font-size: 0.85rem;">No URL for this node.</div>`;
             return;
@@ -4627,6 +4628,5 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
     }
 
     window.PageIntelligence = { renderContentTab, renderFullReport, getCachedData: url => cache.get(url)?.data || null };
-    console.log('📄 Page Intelligence module loaded');
 
 })();

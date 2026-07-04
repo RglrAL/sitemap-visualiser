@@ -22,7 +22,6 @@
 <script src="unified-citizens-dashboard.js"></script>
 <script src="combined-tooltip-integration.js"></script>
 <script src="enhanced-url-matching.js"></script>
-<script src="enhanced-citizens-dashboard.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
 <script src="groq-integration-module.js"></script>
@@ -84,6 +83,38 @@
             --color-warning-bg: #fff3cd;
             --color-info-bg: #e3f2fd;
             --color-danger-bg: #fef2f2;
+
+            /* Tooltip header brand gradient (theme-aware) */
+            --tooltip-header-from: #5a8200;
+            --tooltip-header-to: #72A300;
+
+            /* Spacing scale */
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.5rem;
+            --space-6: 2rem;
+            --space-8: 3rem;
+
+            /* Radius scale */
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-full: 9999px;
+
+            /* Typography scale */
+            --font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
         }
 
         body {
@@ -1460,6 +1491,16 @@ body.dark-theme .tooltip-header > span:first-child {
             stroke-width: 2px;
             transition: var(--transition);
         }
+
+        /* Tree theme colours — CSS-driven (replaces the imperative reapplyThemeStyles).
+           Higher specificity than the base .node text / .link so no inline JS is needed. */
+        #treeContainer .node text { fill: #333333; }
+        body.dark-theme #treeContainer .node text { fill: #ffffff; }
+        #treeContainer path.link { stroke: #999999; }
+        body.dark-theme #treeContainer path.link { stroke: #4b5563; }
+        #treeContainer svg { background: var(--gray-50); }
+        body.dark-theme #treeContainer svg { background: var(--gray-900); }
+        body.dark-theme #treeContainer { background: var(--gray-900); }
         
         /* SVG Performance Optimizations */
         #treeContainer svg {
@@ -1527,6 +1568,50 @@ body.dark-theme .tooltip-header > span:first-child {
             --color-warning-bg: rgba(202, 138, 4, 0.15);
             --color-info-bg: rgba(59, 130, 246, 0.12);
             --color-danger-bg: rgba(220, 38, 38, 0.15);
+            --tooltip-header-from: #3d5800;
+            --tooltip-header-to: #557500;
+        }
+
+        /* ── Dashboard dark-theme first pass: darken light content cards ──
+           (Scoped to the modal; header controls + semantic badges deliberately
+           excluded. Text contrast on inner elements may need a follow-up pass.) */
+        body.dark-theme #unified-dashboard-modal .action-center,
+        body.dark-theme #unified-dashboard-modal .ai-recommendations-section,
+        body.dark-theme #unified-dashboard-modal .citizen-query-intelligence,
+        body.dark-theme #unified-dashboard-modal .citizens-insights-expanded,
+        body.dark-theme #unified-dashboard-modal .citizens-insights-section,
+        body.dark-theme #unified-dashboard-modal .clean-empty-state,
+        body.dark-theme #unified-dashboard-modal .country-header,
+        body.dark-theme #unified-dashboard-modal .demographic-item,
+        body.dark-theme #unified-dashboard-modal .detail-item,
+        body.dark-theme #unified-dashboard-modal .divergence-info-section,
+        body.dark-theme #unified-dashboard-modal .geo-analysis-card,
+        body.dark-theme #unified-dashboard-modal .geo-card,
+        body.dark-theme #unified-dashboard-modal .geo-kpi-card,
+        body.dark-theme #unified-dashboard-modal .geographic-intelligence,
+        body.dark-theme #unified-dashboard-modal .impact-card,
+        body.dark-theme #unified-dashboard-modal .impact-metric-card,
+        body.dark-theme #unified-dashboard-modal .insight-item,
+        body.dark-theme #unified-dashboard-modal .matrix-container,
+        body.dark-theme #unified-dashboard-modal .narrative-section,
+        body.dark-theme #unified-dashboard-modal .no-data-placeholder,
+        body.dark-theme #unified-dashboard-modal .overview-card,
+        body.dark-theme #unified-dashboard-modal .patterns-summary,
+        body.dark-theme #unified-dashboard-modal .performance-insights,
+        body.dark-theme #unified-dashboard-modal .performance-matrix,
+        body.dark-theme #unified-dashboard-modal .performance-metrics,
+        body.dark-theme #unified-dashboard-modal .primary-insight,
+        body.dark-theme #unified-dashboard-modal .quick-stat,
+        body.dark-theme #unified-dashboard-modal .recommendation-card,
+        body.dark-theme #unified-dashboard-modal .roi-calculator,
+        body.dark-theme #unified-dashboard-modal .search-insights,
+        body.dark-theme #unified-dashboard-modal .service-stat {
+            background: var(--color-bg-secondary) !important;
+            border-color: var(--color-border-primary) !important;
+            color: var(--color-text-primary);
+        }
+        body.dark-theme #unified-dashboard-modal .tab-btn:hover:not(.active) {
+            background: var(--color-bg-tertiary);
         }
 
         body.dark-theme .container {
@@ -5400,7 +5485,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             </svg>
             <span>Tree</span>
         </button>
-        <button class="nav-btn view-btn" id="3dViewBtn" onclick="show3DView()" aria-label="Switch to 3D view">
+        <button class="nav-btn view-btn" id="3dViewBtn" aria-label="Switch to 3D view">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
             </svg>
@@ -5413,7 +5498,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
     <!-- Reports Navigation -->
     <div class="nav-group reports-nav">
         <div class="nav-dropdown" id="reportsDropdown">
-            <button class="nav-btn nav-dropdown-btn" onclick="toggleReportsDropdown()" data-mobile-icon="📋" aria-label="Open reports menu">
+            <button class="nav-btn nav-dropdown-btn" id="reportsNavBtn" onclick="toggleReportsDropdown()" data-mobile-icon="📋" aria-label="Open reports menu">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14,2 14,8 20,8"></polyline>
@@ -5431,10 +5516,10 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
                     Content Freshness
                 </div>
                 <div class="nav-dropdown-item" onclick="showCategoryBreakdown(); closeReportsDropdown();">
-                    Category Breakdown
+                    Content by Category
                 </div>
                 <div class="nav-dropdown-item" onclick="showURLPatternAnalysis(); closeReportsDropdown();">
-                    URL Patterns
+                    URL Health Audit
                 </div>
             </div>
         </div>
@@ -5477,7 +5562,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             <button class="mobile-nav-item active" id="mobileTreeBtn" onclick="switchView('tree'); closeMobileMenu();">
                 Tree View
             </button>
-            <button class="mobile-nav-item" id="mobile3DBtn" onclick="show3DView(); closeMobileMenu();">
+            <button class="mobile-nav-item" id="mobile3DBtn" onclick="switchView('3d'); closeMobileMenu();">
                 3D View
             </button>
         </div>
@@ -5491,10 +5576,10 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
                 Content Freshness
             </button>
             <button class="mobile-nav-item" onclick="showCategoryBreakdown(); closeMobileMenu();">
-                Category Breakdown
+                Content by Category
             </button>
             <button class="mobile-nav-item" onclick="showURLPatternAnalysis(); closeMobileMenu();">
-                URL Patterns
+                URL Health Audit
             </button>
         </div>
         
@@ -5825,7 +5910,6 @@ function addPersistentLabels() {
                          graphData.nodes.length > 200 ? 2 : 3; // Reduced each by 1
     const nodesToLabel = graphData.nodes.filter(node => node.depth <= maxLabelDepth);
     
-    console.log(`Creating labels for ${nodesToLabel.length} nodes (max depth: ${maxLabelDepth})`);
     
     nodesToLabel.forEach(node => {
         const label = document.createElement('div');
@@ -5939,7 +6023,6 @@ function addPersistentLabels() {
     }
     
     // Start updating labels
-    console.log('Starting label update loop');
     updateLabels();
 }
 
@@ -6226,30 +6309,6 @@ window.dismissWelcome = function() {
 }
 
 // Function to dismiss welcome and trigger connection
-window.dismissWelcomeAndConnect = function(type) {
-    dismissWelcome();
-    
-    // Wait a moment for the popup to close, then trigger connection
-    setTimeout(() => {
-        if (type === 'gsc') {
-            // Trigger GSC connection
-            const gscBtn = document.querySelector('[onclick*="setupGSCConnection"], [onclick*="window.setupGSCConnection"]');
-            if (gscBtn) {
-                gscBtn.click();
-            } else if (window.setupGSCConnection) {
-                window.setupGSCConnection();
-            }
-        } else if (type === 'ga4') {
-            // Trigger GA4 connection
-            const ga4Btn = document.querySelector('[onclick*="setupGA4Connection"], [onclick*="window.setupGA4Connection"]');
-            if (ga4Btn) {
-                ga4Btn.click();
-            } else if (window.setupGA4Connection) {
-                window.setupGA4Connection();
-            }
-        }
-    }, 400);
-}
 
 // Usage guide function
 function showUsageGuide() {
@@ -6633,23 +6692,7 @@ window.toggleTheme = function() {
     // Immediate reapplication (catches already-rendered elements)
     reapplyThemeStyles();
 
-    // Delayed reapplication to catch elements that update asynchronously
-    setTimeout(() => {
-        reapplyThemeStyles();
-
-        // If we're in tree view, force a visual update via D3
-        if (currentView === 'tree' && g) {
-            const isDark = document.body.classList.contains('dark-theme');
-            g.selectAll('g.node text')
-                .style('fill', isDark ? '#ffffff' : '#333333');
-            g.selectAll('path.link')
-                .style('stroke', isDark ? '#4b5563' : '#999');
-        }
-    }, 50);
-
-    // Extra delayed call to catch visualization timers that fire after the 50ms window
-    // (createVisualization schedules its own reapplyThemeStyles at +200ms after creation)
-    setTimeout(() => { reapplyThemeStyles(); }, 350);
+    // Theme colours are CSS-driven via the body.dark-theme class — no delayed re-paint needed.
 
     // Refresh preview if no data is loaded
     if (!treeData) {
@@ -6675,19 +6718,73 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
-// Connect nav search to existing search functionality
+// Snapshot/restore the tree's expand-collapse state so clearing the search
+// returns the tree to exactly how it was before you searched.
+let _preSearchTreeState = null;
+function _snapshotTreeState() {
+    if (!root) return null;
+    const map = new Map();
+    (function walk(n) { map.set(n, !!n._children); (n.children || n._children || []).forEach(walk); })(root);
+    return map;
+}
+function _restoreTreeState(map) {
+    if (!map) return;
+    map.forEach((wasCollapsed, n) => {
+        if (wasCollapsed && n.children) { n._children = n.children; n.children = null; }
+        else if (!wasCollapsed && n._children) { n.children = n._children; n.children = null; }
+    });
+}
+function _endSearchRestore() {
+    if (_preSearchTreeState) {
+        _restoreTreeState(_preSearchTreeState);
+        _preSearchTreeState = null;
+        if (root && typeof update === 'function') update(root);
+    }
+}
+
+// Connect nav search directly to performSearch. (Robust: bypasses the old
+// hidden-#searchInput relay + clone-and-rewire dance that could silently leave
+// search unwired. Also searches the FULL tree, incl. collapsed nodes.)
 document.addEventListener('DOMContentLoaded', function() {
     const navSearchInput = document.getElementById('navSearchInput');
-    if (navSearchInput) {
-        navSearchInput.addEventListener('input', function(e) {
-            // Sync with main search input
-            const mainSearchInput = document.getElementById('searchInput');
-            if (mainSearchInput) {
-                mainSearchInput.value = e.target.value;
-                mainSearchInput.dispatchEvent(new Event('input'));
-            }
-        });
-    }
+    if (!navSearchInput) return;
+    let navSearchTimeout = null;
+    const collectAllNodes = () => {
+        if (!root) return;
+        const out = [];
+        (function walk(n) { out.push(n); (n.children || []).concat(n._children || []).forEach(walk); })(root);
+        allNodes = out; // full set (expanded + collapsed) so search finds everything
+    };
+    navSearchInput.addEventListener('input', function(e) {
+        const mainSearchInput = document.getElementById('searchInput');
+        if (mainSearchInput) mainSearchInput.value = e.target.value;
+        const query = (e.target.value || '').toLowerCase().trim();
+        if (navSearchTimeout) clearTimeout(navSearchTimeout);
+        if (query.length < 2) {
+            searchResults = [];
+            currentResultIndex = -1;
+            if (typeof clearHighlights === 'function') clearHighlights();
+            if (typeof hideSuggestions === 'function') hideSuggestions();
+            if (typeof updateSearchUI === 'function') updateSearchUI();
+            _endSearchRestore();
+            return;
+        }
+        navSearchTimeout = setTimeout(function () {
+            if (!_preSearchTreeState) _preSearchTreeState = _snapshotTreeState();
+            collectAllNodes();
+            if (typeof performSearch === 'function') performSearch(query);
+        }, 250);
+    });
+    navSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && searchResults && searchResults.length > 0) {
+            e.preventDefault();
+            if (typeof navigateToNextResult === 'function') navigateToNextResult();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            navSearchInput.value = '';
+            if (typeof clearSearch === 'function') clearSearch();
+        }
+    });
 });
 
 
@@ -6708,26 +6805,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Tree View button
     const treeViewBtn = document.getElementById('treeViewBtn');
     if (treeViewBtn) {
-        treeViewBtn.removeEventListener('click', treeViewBtn.onclick); // Remove any existing
         treeViewBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('Tree button clicked');
             switchView('tree');
-        });
-    }
-    
-    // Dashboard button
-    const dashboardViewBtn = document.getElementById('dashboardViewBtn');
-    if (dashboardViewBtn) {
-        // Remove any existing handlers first
-        dashboardViewBtn.replaceWith(dashboardViewBtn.cloneNode(true));
-        
-        // Get the fresh button reference
-        const freshDashboardBtn = document.getElementById('dashboardViewBtn');
-        freshDashboardBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Dashboard button clicked');
-            switchView('dashboard');
         });
     }
 });
@@ -6738,7 +6818,6 @@ if (threeDViewBtn) {
     threeDViewBtn.removeEventListener('click', threeDViewBtn.onclick);
     threeDViewBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        console.log('3D button clicked');
         switchView('3d');
     });
 }
@@ -6795,9 +6874,7 @@ if (threeDViewBtn) {
     // Try each proxy until one works
     for (let i = 0; i < CORS_PROXIES.length; i++) {
         try {
-            console.log(`Trying proxy ${i + 1}: ${CORS_PROXIES[i].name || 'Proxy'}...`);
             const proxyUrl = CORS_PROXIES[i](url);
-            console.log(`Proxy URL: ${proxyUrl}`);
             
             const response = await fetch(proxyUrl, {
                 method: 'GET',
@@ -6824,7 +6901,6 @@ if (threeDViewBtn) {
             }
             
             if (xmlContent && xmlContent.includes('<?xml')) {
-                console.log('Successfully loaded sitemap!');
                 parseSitemap(xmlContent, url);
                 return; // Success!
             } else {
@@ -6889,7 +6965,6 @@ window.loadQuickSite = async function(url) {
     // Try each proxy until one works
     for (let i = 0; i < CORS_PROXIES.length; i++) {
         try {
-            console.log(`Trying proxy ${i + 1}...`);
             const proxyUrl = CORS_PROXIES[i](url);
             
             const response = await fetch(proxyUrl);
@@ -6910,7 +6985,6 @@ window.loadQuickSite = async function(url) {
             }
             
             if (xmlContent && xmlContent.includes('<?xml')) {
-                console.log('Successfully loaded sitemap!');
                 parseSitemap(xmlContent, url);
                 success = true;
                 break; // Success - exit loop!
@@ -6968,6 +7042,96 @@ window.loadQuickSite = async function(url) {
             if (progressFill) progressFill.style.width = percent + '%';
         }
 
+        // ============================================================
+        // SESSION PERSISTENCE — remember the last sitemap + view so a
+        // reload picks up where you left off. Restores from cached XML
+        // (re-parses locally, no network re-fetch through CORS proxies).
+        // ============================================================
+        const SV_SITEMAP_KEY = 'sv:lastSitemap';
+        const SV_VIEW_KEY = 'sv:lastView';
+
+        function _svEsc(v) {
+            return String(v).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        }
+        function _svSiteName(source) {
+            if (!source) return 'your sitemap';
+            var t = String(source).toLowerCase();
+            if (t.indexOf('citizensinformationboard') !== -1) return 'Citizens Information Board';
+            if (t.indexOf('citizensinformation') !== -1) return 'Citizens Information';
+            if (t.indexOf('mabs.ie') !== -1) return 'MABS';
+            try { if (/^https?:\/\//.test(source)) return new URL(source).hostname.replace(/^www\./, ''); } catch (e) {}
+            return String(source).split('/').pop() || 'your sitemap';
+        }
+        function _svRelativeTime(ts) {
+            var mins = Math.round((Date.now() - ts) / 60000);
+            if (mins < 1) return 'just now';
+            if (mins < 60) return mins + ' min' + (mins === 1 ? '' : 's') + ' ago';
+            var hrs = Math.round(mins / 60);
+            if (hrs < 24) return hrs + ' hour' + (hrs === 1 ? '' : 's') + ' ago';
+            var days = Math.round(hrs / 24);
+            return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+        }
+        function saveLastSitemap(xml, source) {
+            try {
+                var b = document.getElementById('sv-restore-banner');
+                if (b) b.remove();
+                if (!xml || xml.length > 4000000) return; // skip oversized to avoid quota
+                localStorage.setItem(SV_SITEMAP_KEY, JSON.stringify({
+                    xml: xml, source: source || '', siteName: _svSiteName(source), savedAt: Date.now()
+                }));
+            } catch (e) { /* private mode / quota — persistence simply disabled */ }
+        }
+        function restoreLastSitemap() {
+            var saved;
+            try { saved = JSON.parse(localStorage.getItem(SV_SITEMAP_KEY)); } catch (e) { return; }
+            if (!saved || !saved.xml) return;
+            var b = document.getElementById('sv-restore-banner');
+            if (b) b.remove();
+            showLoading('Restoring ' + saved.siteName + '…');
+            setTimeout(function () {
+                try {
+                    parseSitemap(saved.xml, saved.source);
+                    var lastView = null;
+                    try { lastView = localStorage.getItem(SV_VIEW_KEY); } catch (e) {}
+                    if (lastView && lastView !== 'tree') {
+                        setTimeout(function () { if (window.treeData) switchView(lastView); }, 600);
+                    }
+                } catch (e) { console.warn('Restore failed:', e); hideLoading(); }
+            }, 50);
+        }
+        function initSessionRestore() {
+            if (window.treeData) return;
+            var saved;
+            try { saved = JSON.parse(localStorage.getItem(SV_SITEMAP_KEY)); } catch (e) { return; }
+            if (!saved || !saved.xml) return;
+            if (document.getElementById('sv-restore-banner')) return;
+            var bar = document.createElement('div');
+            bar.id = 'sv-restore-banner';
+            bar.style.cssText = [
+                'position:fixed', 'top:72px', 'left:50%', 'transform:translateX(-50%)',
+                'display:flex', 'align-items:center', 'gap:12px',
+                'background:var(--color-bg-elevated, #fff)',
+                'border:1px solid var(--color-border-primary, #e5e7eb)',
+                'border-left:4px solid var(--primary)',
+                'padding:10px 14px', 'border-radius:var(--radius-lg, 12px)',
+                'box-shadow:var(--shadow-lg)', 'z-index:80',
+                'font-size:var(--font-size-sm, 0.875rem)', 'color:var(--color-text-primary)',
+                'max-width:calc(100vw - 32px)'
+            ].join(';');
+            bar.innerHTML =
+                '<span>↩️ Continue where you left off — <strong>' + _svEsc(saved.siteName) + '</strong>' +
+                ' <span style="color:var(--color-text-muted)">· ' + _svRelativeTime(saved.savedAt) + '</span></span>' +
+                '<button id="sv-restore-go" style="background:var(--primary);color:#fff;border:none;padding:6px 14px;border-radius:var(--radius-md,8px);cursor:pointer;font-weight:var(--font-weight-semibold,600);font-size:var(--font-size-sm,0.875rem)">Continue</button>' +
+                '<button id="sv-restore-dismiss" title="Dismiss" style="background:none;border:none;color:var(--color-text-muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">✕</button>';
+            document.body.appendChild(bar);
+            document.getElementById('sv-restore-go').addEventListener('click', restoreLastSitemap);
+            document.getElementById('sv-restore-dismiss').addEventListener('click', function () { bar.remove(); });
+        }
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(initSessionRestore, 800); });
+
+
         // Parse sitemap
         function parseSitemap(xmlString, source) {
     try {
@@ -6996,7 +7160,6 @@ window.loadQuickSite = async function(url) {
         document.body.setAttribute('data-view', 'tree');
         
         // Debug mobile detection
-        console.log("isMobile:", isMobile, "Window width:", window.innerWidth);
         
         // Reset search when loading new sitemap
         searchInitialized = false;
@@ -7035,7 +7198,6 @@ window.loadQuickSite = async function(url) {
             
             // Store current sitemap domain globally for GA4 auto-detection
             window.currentSitemapDomain = rootDomain;
-            console.log(`[Sitemap] Stored domain for auto-detection: ${rootDomain}`);
         } catch (e) {
             console.warn('Could not extract domain');
         }
@@ -7157,6 +7319,7 @@ window.loadQuickSite = async function(url) {
         
         treeData = convertToHierarchy(tree);
 	window.treeData = treeData;
+        try { saveLastSitemap(xmlString, source); } catch (e) {}
         maxSiteDepth = maxDepth;
         
         const mainCategories = Object.keys(tree.children).length;
@@ -7208,7 +7371,7 @@ window.loadQuickSite = async function(url) {
             autoCollapseUploadSection();
             
             // Enable all nav buttons
-            const buttons = ['treeViewBtn', 'dashboardViewBtn', 'reportsDropdown'];
+            const buttons = ['treeViewBtn', '3dViewBtn', 'reportsDropdown'];
             buttons.forEach(id => {
                 const btn = document.getElementById(id);
                 if (btn) {
@@ -7907,54 +8070,9 @@ function toggleLegendHighlight(depth) {
 // Enhanced function to reapply theme styles
 function reapplyThemeStyles() {
     const isDark = document.body.classList.contains('dark-theme');
-    console.log('Reapplying theme styles. Dark mode:', isDark);
 
-    // Update tree visualization elements
-    // In dark mode: set inline (belt-and-suspenders alongside CSS class rule)
-    // In light mode: clear inline style so CSS default takes over
-    const treeContainer = document.getElementById('treeContainer');
-    if (treeContainer) {
-        treeContainer.style.background = isDark ? 'var(--gray-900)' : '';
-    }
-
-    // Update SVG background — SVG needs an explicit bg in light mode (no CSS default)
-    const svgElement = document.querySelector('#treeContainer svg');
-    if (svgElement) {
-        svgElement.style.background = isDark ? 'var(--gray-900)' : 'var(--gray-50)';
-    }
-    
-    // Update all node text elements - try multiple selectors
-    if (g && g.selectAll) {
-        const nodeTexts = g.selectAll('g.node text');
-        if (nodeTexts.size() > 0) {
-            nodeTexts.style('fill', isDark ? '#ffffff' : '#333333');
-            console.log(`Updated ${nodeTexts.size()} node text elements`);
-        }
-        
-        // Update link elements
-        const links = g.selectAll('path.link');
-        if (links.size() > 0) {
-            links.style('stroke', isDark ? '#4b5563' : '#999');
-            console.log(`Updated ${links.size()} link elements`);
-        }
-    }
-    
-    // Fallback: Direct DOM selection if d3 selection doesn't work
-    const allNodeTexts = document.querySelectorAll('#treeContainer .node text');
-    if (allNodeTexts.length > 0) {
-        allNodeTexts.forEach(text => {
-            text.style.fill = isDark ? '#ffffff' : '#333333';
-        });
-        console.log(`Fallback: Updated ${allNodeTexts.length} text elements`);
-    }
-    
-    const allLinks = document.querySelectorAll('#treeContainer .link');
-    if (allLinks.length > 0) {
-        allLinks.forEach(link => {
-            link.style.stroke = isDark ? '#4b5563' : '#999';
-        });
-        console.log(`Fallback: Updated ${allLinks.length} link elements`);
-    }
+    // Tree text/link/background colours are now CSS-driven (see the
+    // "#treeContainer .node text / path.link" rules) — no inline JS needed.
     
     // Update dashboard elements if they exist
     const dashboard = document.querySelector('.dashboard');
@@ -8250,7 +8368,8 @@ function reapplyThemeStyles() {
     
     // Use requestAnimationFrame for smooth rendering
     requestAnimationFrame(() => {
-        const duration = 750;
+        const duration = 450;
+        const ease = d3.easeCubicOut;
         const treeLayout = tree(root);
         const nodes = treeLayout.descendants();
         const links = treeLayout.descendants().slice(1);
@@ -8395,7 +8514,6 @@ nodeEnter.append('circle')
         delete this._touchCancelled;
         
         if (isValidTap) {
-            console.log('🎯 Circle touch tap detected - expanding/collapsing node:', d.data?.name);
             // Trigger expand/collapse
             click(event, d);
         }
@@ -8406,7 +8524,6 @@ nodeEnter.append('circle')
             .attr('dy', '.35em')
             .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
             .style('fill-opacity', 1e-6)
-            .style('fill', isDark ? '#ffffff' : '#333333') // Apply theme immediately
             .style('cursor', 'help'); // Help cursor indicates tooltip on hover
 
 // Add click handler to text for tooltip only (no expand/collapse)
@@ -8441,7 +8558,6 @@ textElement
     })
     // Add comprehensive touch event handlers for mobile text
     .on('touchstart.text', function(event, d) {
-        console.log('📱 Text touchstart detected:', d.data?.name, 'Mobile check:', checkIfMobile());
         if (!checkIfMobile()) return;
         
         event.preventDefault();
@@ -8454,7 +8570,6 @@ textElement
             y: event.touches[0].clientY
         };
         
-        console.log('📱 Text touchstart processed for:', d.data?.name);
         // Add visual feedback
         d3.select(this).style('opacity', 0.7);
     })
@@ -8483,7 +8598,6 @@ textElement
         }
     })
     .on('touchend.text', function(event, d) {
-        console.log('📱 Text touchend detected:', d.data?.name);
         if (!checkIfMobile()) return;
         
         event.preventDefault();
@@ -8496,13 +8610,6 @@ textElement
         const touchDuration = Date.now() - (this._touchStartTime || 0);
         const isValidTap = !this._touchCancelled && touchDuration < 500;
         
-        console.log('📱 Touch validation:', {
-            duration: touchDuration,
-            cancelled: this._touchCancelled,
-            isValidTap: isValidTap,
-            hasData: !!(d.data && (d.data.lastModified || d.data.url)),
-            data: d.data
-        });
         
         // Clean up
         delete this._touchStartTime;
@@ -8510,7 +8617,6 @@ textElement
         delete this._touchCancelled;
         
         if (isValidTap && d.data && (d.data.lastModified || d.data.url)) {
-            console.log('💬 Valid text tap - showing tooltip for:', d.data.name);
             // Create touch event object
             const touchEvent = {
                 pageX: event.changedTouches[0].pageX,
@@ -8520,13 +8626,11 @@ textElement
                 target: event.target
             };
             
-            console.log('📱 Calling showEnhancedTooltip with:', touchEvent, d);
             // Show tooltip after short delay
             setTimeout(() => {
                 showEnhancedTooltip(touchEvent, d);
             }, 100);
         } else {
-            console.log('❌ Text tap not valid or no tooltip data');
         }
     });
 
@@ -8581,288 +8685,38 @@ if (!checkIfMobile()) {
         // Transition to new positions
         nodeUpdate.transition()
             .duration(duration)
+            .ease(ease)
             .attr('transform', d => `translate(${d.y},${d.x})`);
         
-        // Update circle attributes and ensure click handlers work
+        // Update circle visual state. Event handlers are attached ONCE on enter
+        // (D3 keeps each element's datum bound across joins, so the handler's `d`
+        // is always current) — re-binding them every update was the main jank source.
         nodeUpdate.select('circle')
-            .attr('class', 'node-circle') // Ensure class is set
-            .style('pointer-events', 'all') // Ensure clicks are enabled
+            .attr('class', 'node-circle')
+            .style('pointer-events', 'all')
             .style('cursor', d => d.children || d._children ? 'pointer' : 'default')
-            // Re-attach click handlers to ensure they work after updates
-            .on('click.node', function(event, d) {  // Use namespaced events
-                event.stopPropagation();
-                
-                // Hide any tooltip on circle click
-                if (enhancedTooltip) {
-                    enhancedTooltip
-                        .classed("visible", false)
-                        .style("opacity", 0)
-                        .style("pointer-events", "none");
-                }
-                
-                // For circles, ONLY do expand/collapse, no tooltip
-                click(event, d);
-            })
-            // Re-attach hover effects for circles
-            .on('mouseenter.circle', function(event, d) {
-                if (d.children || d._children) {
-                    d3.select(this)
-                        .transition()
-                        .duration(150)
-                        .attr('r', nodeRadius * 1.3)
-                        .style('stroke-width', '3px')
-                        .style('filter', 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))');
-                }
-            })
-            .on('mouseleave.circle', function(event, d) {
-                d3.select(this)
-                    .transition()
-                    .duration(150)
-                    .attr('r', nodeRadius)
-                    .style('stroke-width', '2px')
-                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
-            })
-            // Add comprehensive touch event handlers for nodeUpdate circles
-            .on('touchstart.circle-update', function(event, d) {
-                if (!checkIfMobile()) return;
-                
-                event.preventDefault();
-                event.stopPropagation();
-                
-                // Store touch start info
-                this._touchStartTime = Date.now();
-                this._touchStartPos = {
-                    x: event.touches[0].clientX,
-                    y: event.touches[0].clientY
-                };
-                
-                // Add visual feedback for expandable nodes
-                if (d.children || d._children) {
-                    d3.select(this).style('stroke', '#4f46e5').style('stroke-width', '3px');
-                }
-            })
-            .on('touchmove.circle-update', function(event, d) {
-                if (!checkIfMobile()) return;
-                
-                event.preventDefault();
-                
-                // Check if touch moved too much (drag vs tap)
-                if (this._touchStartPos) {
-                    const currentPos = {
-                        x: event.touches[0].clientX,
-                        y: event.touches[0].clientY
-                    };
-                    
-                    const distance = Math.sqrt(
-                        Math.pow(currentPos.x - this._touchStartPos.x, 2) + 
-                        Math.pow(currentPos.y - this._touchStartPos.y, 2)
-                    );
-                    
-                    // If moved more than 15px, cancel the tap
-                    if (distance > 15) {
-                        // Reset visual feedback
-                        d3.select(this).style('stroke', '#fff').style('stroke-width', '2px');
-                        this._touchCancelled = true;
-                    }
-                }
-            })
-            .on('touchend.circle-update', function(event, d) {
-                if (!checkIfMobile()) return;
-                
-                event.preventDefault();
-                event.stopPropagation();
-                
-                // Reset visual feedback
-                d3.select(this).style('stroke', '#fff').style('stroke-width', '2px');
-                
-                // Check if this was a valid tap
-                const touchDuration = Date.now() - (this._touchStartTime || 0);
-                const isValidTap = !this._touchCancelled && touchDuration < 500;
-                
-                // Clean up
-                delete this._touchStartTime;
-                delete this._touchStartPos;
-                delete this._touchCancelled;
-                
-                if (isValidTap) {
-                    // Trigger expand/collapse
-                    click(event, d);
-                }
-            })
             .transition()
             .duration(duration)
+            .ease(ease)
             .attr('r', nodeRadius)
             .style('fill', d => getNodeColour(d));
         
-        // Update text attributes and re-attach handlers for reliability
+        // Update text visual state only — handlers are attached once on enter.
         nodeUpdate.select('text')
-            .attr('x', d => d.children || d._children ? 
+            .attr('x', d => d.children || d._children ?
                 (textOffset) : Math.abs(textOffset))
             .text(d => d.displayName)
-            .style('cursor', 'help') // Help cursor indicates tooltip on hover
-            // Re-attach click handlers for text (tooltip only, no expand/collapse)
-            .on('click.node', function(event, d) {
-                event.stopPropagation();
-                
-                // For text clicks, ONLY show tooltip, no expand/collapse
-                if (checkIfMobile()) {
-                    // Show enhanced tooltip on mobile for text clicks
-                    if (d.data && (d.data.lastModified || d.data.url)) {
-                        // Create a mobile-compatible event object
-                        const mobileEvent = {
-                            pageX: event.pageX || (event.touches ? event.touches[0].pageX : window.innerWidth / 2),
-                            pageY: event.pageY || (event.touches ? event.touches[0].pageY : 100),
-                            preventDefault: () => {},
-                            stopPropagation: () => {},
-                            target: event.target
-                        };
-                        
-                        // Small delay to ensure proper rendering
-                        setTimeout(() => {
-                            showEnhancedTooltip(mobileEvent, d);
-                        }, 50);
-                    }
-                } else {
-                    // Desktop: show tooltip on click too (hover already works)
-                    if (d.data && (d.data.lastModified || d.data.url)) {
-                        showEnhancedTooltip(event, d);
-                    }
-                }
-            })
-            // Add comprehensive touch events for nodeUpdate text elements
-            .on('touchstart.text-update', function(event, d) {
-                console.log('📱 NodeUpdate text touchstart detected:', d.data?.name);
-                if (!checkIfMobile()) return;
-                
-                event.preventDefault();
-                event.stopPropagation();
-                
-                // Store touch start info
-                this._touchStartTime = Date.now();
-                this._touchStartPos = {
-                    x: event.touches[0].clientX,
-                    y: event.touches[0].clientY
-                };
-                
-                // Add visual feedback
-                d3.select(this).style('opacity', 0.7);
-            })
-            .on('touchmove.text-update', function(event, d) {
-                if (!checkIfMobile()) return;
-                
-                event.preventDefault();
-                
-                // Check if touch moved too much (drag vs tap)
-                if (this._touchStartPos) {
-                    const currentPos = {
-                        x: event.touches[0].clientX,
-                        y: event.touches[0].clientY
-                    };
-                    
-                    const distance = Math.sqrt(
-                        Math.pow(currentPos.x - this._touchStartPos.x, 2) + 
-                        Math.pow(currentPos.y - this._touchStartPos.y, 2)
-                    );
-                    
-                    // If moved more than 10px, cancel the tap
-                    if (distance > 10) {
-                        d3.select(this).style('opacity', 1);
-                        this._touchCancelled = true;
-                    }
-                }
-            })
-            .on('touchend.text-update', function(event, d) {
-                if (!checkIfMobile()) return;
-                
-                event.preventDefault();
-                event.stopPropagation();
-                
-                // Reset visual feedback
-                d3.select(this).style('opacity', 1);
-                
-                // Check if this was a valid tap
-                const touchDuration = Date.now() - (this._touchStartTime || 0);
-                const isValidTap = !this._touchCancelled && touchDuration < 500;
-                
-                // Clean up
-                delete this._touchStartTime;
-                delete this._touchStartPos;
-                delete this._touchCancelled;
-                
-                if (isValidTap && d.data && (d.data.lastModified || d.data.url)) {
-                    console.log('💬 NodeUpdate valid text tap - showing tooltip for:', d.data.name);
-                    // Create touch event object
-                    const touchEvent = {
-                        pageX: event.changedTouches[0].pageX,
-                        pageY: event.changedTouches[0].pageY,
-                        preventDefault: () => {},
-                        stopPropagation: () => {},
-                        target: event.target
-                    };
-                    
-                    console.log('📱 NodeUpdate calling showEnhancedTooltip with:', touchEvent, d);
-                    // Show tooltip after short delay
-                    setTimeout(() => {
-                        showEnhancedTooltip(touchEvent, d);
-                    }, 100);
-                } else {
-                    console.log('❌ NodeUpdate text tap not valid or no tooltip data');
-                }
-            })
+            .style('cursor', 'help')
             .transition()
             .duration(duration)
-            .style('fill-opacity', 1)
-            .style('fill', isDark ? '#ffffff' : '#333333'); // Ensure theme is applied
+            .ease(ease)
+            .style('fill-opacity', 1);
 
-        // Re-attach hover/click handlers based on device type
-        if (!checkIfMobile()) {
-            // Desktop hover handlers
-            nodeUpdate.select('text')
-                .on('mouseenter.node', function(event, d) {
-                    // Visual feedback on hover
-                    d3.select(this)
-                        .style('text-decoration', 'underline')
-                        .style('font-weight', '600');
-                    
-                    handleEnhancedMouseOver(event, d);
-                })
-                .on('mouseleave.node', function(event, d) {
-                    // Remove visual feedback
-                    d3.select(this)
-                        .style('text-decoration', 'none')
-                        .style('font-weight', '500');
-                    
-                    handleEnhancedMouseOut(event, d);
-                });
-        } else {
-            // Mobile click handlers for tooltip
-            nodeUpdate.select('text')
-                .style('cursor', 'pointer')
-                .on('click.tooltip', function(event, d) {
-                    event.stopPropagation();
-                    
-                    // Create mobile event for tooltip
-                    const mobileEvent = {
-                        pageX: event.pageX || window.innerWidth / 2,
-                        pageY: event.pageY || 100,
-                        preventDefault: () => {},
-                        stopPropagation: () => {},
-                        target: event.target
-                    };
-                    
-                    // Show tooltip immediately on text tap
-                    if (window.showEnhancedTooltip) {
-                        window.showEnhancedTooltip(mobileEvent, d);
-                    } else {
-                        showEnhancedTooltip(mobileEvent, d);
-                    }
-                });
-        }
-        
         // EXIT - Remove old nodes
         const nodeExit = node.exit()
             .transition()
             .duration(duration)
+            .ease(ease)
             .attr('transform', d => `translate(${source.y},${source.x})`)
             .style('opacity', 0)
             .remove();
@@ -8881,6 +8735,7 @@ if (!checkIfMobile()) {
             d.x0 = d.x;
             d.y0 = d.y;
         });
+        
         
         // Apply theme to any newly created elements
         setTimeout(() => {
@@ -9033,11 +8888,13 @@ function updateLinks(links, source, duration) {
     
     linkUpdate.transition()
         .duration(duration)
+        .ease(d3.easeCubicOut)
         .attr('d', d => diagonal(d, d.parent));
     
     // Remove old links
     link.exit().transition()
         .duration(duration)
+        .ease(d3.easeCubicOut)
         .attr('d', d => {
             const o = {x: source.x, y: source.y};
             return diagonal(o, o);
@@ -9126,29 +8983,13 @@ function handleEnhancedMouseOut(event, d) {
         clearTimeout(tooltipTimeout);
         tooltipTimeout = null;
     }
-    
-    // Don't hide immediately - wait to see if mouse goes to tooltip
-    if (hideTooltipTimeout) clearTimeout(hideTooltipTimeout);
-    
-    hideTooltipTimeout = setTimeout(() => {
-        if (!tooltipMouseOver && enhancedTooltip) {
-            enhancedTooltip
-                .classed("visible", false)
-                .style("pointer-events", "none")
-                .transition()
-                .duration(200)
-                .style("opacity", 0)
-                .on("end", function() {
-                    d3.select(this).style("display", "none");
-                });
-        }
-    }, 100);
+    // Dismiss the (modern) tooltip after a short grace period. If the cursor
+    // moves INTO the tooltip, its own mouseenter cancels this (clearTooltipTimers).
+    if (window.hideEnhancedTooltip) window.hideEnhancedTooltip();
 }
 
 function showEnhancedTooltip(event, d) {
-    console.log('🎯 showEnhancedTooltip called with:', {event, d, hasTooltip: !!enhancedTooltip, hasData: !!d?.data});
     if (!enhancedTooltip || !d.data) {
-        console.log('❌ showEnhancedTooltip early return - no tooltip or data');
         return;
     }
     
@@ -9388,7 +9229,9 @@ function createOptimizedZoom() {
             if (!zoomTimeout) {
                 zoomTimeout = setTimeout(() => {
                     zoomTimeout = null;
-                    g.attr("transform", lastTransform);
+                    if (lastTransform && isFinite(lastTransform.x) && isFinite(lastTransform.y) && isFinite(lastTransform.k)) {
+                        g.attr("transform", lastTransform);
+                    }
                 }, 16);
             }
         });
@@ -9460,24 +9303,7 @@ function batchUpdateStats(updates) {
 
 // 5. Optimize search with memoization
 const searchCache = new Map();
-function memoizedSearch(query) {
-    // Check cache first
-    if (searchCache.has(query)) {
-        return searchCache.get(query);
-    }
-    
-    // Perform search
-    const results = performSearch(query);
-    
-    // Cache results (limit cache size)
-    if (searchCache.size > 100) {
-        const firstKey = searchCache.keys().next().value;
-        searchCache.delete(firstKey);
-    }
-    searchCache.set(query, results);
-    
-    return results;
-}
+// (dead memoizedSearch removed — performSearch is the single entry point)
 
 // 6. Lazy load tree expansion with visual feedback
 function lazyExpandNode(d) {
@@ -9671,8 +9497,6 @@ function cleanupVisualization() {
         }
         
         function clearNodeHighlights() {
-            const isDark = document.body.classList.contains('dark-theme');
-            
             // Reset all nodes to default styling
             g.selectAll('g.node circle')
                 .transition()
@@ -9685,7 +9509,7 @@ function cleanupVisualization() {
             g.selectAll('g.node text')
                 .transition()
                 .duration(500)
-                .style('fill', isDark ? '#ffffff' : '#333333')
+                .style('fill', null)
                 .style('font-weight', '500')
                 .style('font-size', null);
                 
@@ -9693,7 +9517,7 @@ function cleanupVisualization() {
             g.selectAll('path.link')
                 .transition()
                 .duration(500)
-                .style('stroke', isDark ? '#555' : '#ccc')
+                .style('stroke', null)
                 .style('stroke-width', '1.5px')
                 .style('filter', null);
         }
@@ -9946,19 +9770,46 @@ function calculateDynamicHeight(node) {
         
         // Reset the zoom and position
         if (!svg || !globalZoom) {
-            console.log("Missing svg or globalZoom");
             return;
         }
         
-        const scale = isMobile ? 0.6 : 0.8;
-        const translateX = 0;
-        const translateY = 0;
-        
+        // Fit the whole visible tree to the viewport using real bounds
+        // (node-local coords are (d.y horizontal, d.x vertical)).
+        const svgNode = svg.node();
+        const rect = svgNode.getBoundingClientRect();
+        const vw = svgNode.clientWidth || rect.width;
+        const vh = svgNode.clientHeight || rect.height;
+        const visible = (root && root.descendants) ? root.descendants() : [];
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        visible.forEach(d => {
+            if (d.x < minX) minX = d.x;
+            if (d.x > maxX) maxX = d.x;
+            if (d.y < minY) minY = d.y;
+            if (d.y > maxY) maxY = d.y;
+        });
+        let scale, translateX, translateY;
+        if (visible.length && isFinite(minX)) {
+            const pad = isMobile ? 50 : 80;
+            const treeW = (maxY - minY) || 1;
+            const treeH = (maxX - minX) || 1;
+            scale = Math.min((vw - pad * 2) / treeW, (vh - pad * 2) / treeH);
+            scale = Math.max(0.1, Math.min(scale, isMobile ? 1.2 : 1.5));
+            const midY = (minY + maxY) / 2;
+            const midX = (minX + maxX) / 2;
+            translateX = vw / 2 - scale * midY;
+            translateY = vh / 2 - scale * midX;
+        } else {
+            scale = isMobile ? 0.6 : 0.8;
+            translateX = 0;
+            translateY = 0;
+        }
+
         svg.transition()
-            .duration(750)
+            .duration(600)
+            .ease(d3.easeCubicOut)
             .call(
                 globalZoom.transform,
-                d3.zoomIdentity.scale(scale).translate(translateX, translateY)
+                d3.zoomIdentity.translate(translateX, translateY).scale(scale)
             );
             
         // Optional: Show a brief tooltip/notification
@@ -10010,6 +9861,8 @@ function calculateDynamicHeight(node) {
                         .scale(newScale)
                 );
         }
+
+
         
         // Auto-collapse distant siblings when expanding a node
         function autoCollapseSiblings(expandedNode) {
@@ -10509,13 +10362,14 @@ searchTimeout = setTimeout(() => {
             // Focus the fresh input
             freshInput.focus();
             
-            console.log('Search initialized successfully');
         }
 
         function performSearch(query) {
             if (!allNodes || allNodes.length === 0) {
-                if (root && root.descendants) {
-                    allNodes = root.descendants();
+                if (root) {
+                    const out = [];
+                    (function w(n){ out.push(n); (n.children||[]).concat(n._children||[]).forEach(w); })(root);
+                    allNodes = out;
                 } else {
                     return;
                 }
@@ -10571,55 +10425,49 @@ searchTimeout = setTimeout(() => {
 
         function highlightSearchResults() {
             clearHighlights();
-            
-            if (searchResults.length === 0) return;
-            
+            if (!searchResults.length) return;
+
+            // Cap decorated matches so a broad query doesn't mark thousands of nodes.
+            const MAX_HL = 200;
+            const shown = searchResults.length > MAX_HL ? searchResults.slice(0, MAX_HL) : searchResults;
+
+            // Build lookup sets once (O(R)) instead of Array.includes per node.
+            const resultSet = new Set(shown);
+            const pathSet = new Set();
+            shown.forEach(n => { let c = n.parent; while (c) { pathSet.add(c); c = c.parent; } });
+            const currentNode = (currentResultIndex >= 0 && currentResultIndex < searchResults.length)
+                ? searchResults[currentResultIndex] : null;
+
+            // Single pass over nodes and links (O(N) + O(L)).
             g.selectAll('g.node')
-                .classed('search-result', d => searchResults.includes(d))
-                .classed('search-path', false)
-                .classed('search-current', false);
-            
-            searchResults.forEach(resultNode => {
-                let current = resultNode;
-                const pathNodes = [];
-                
-                while (current) {
-                    pathNodes.push(current);
-                    current = current.parent;
-                }
-                
-                g.selectAll('g.node')
-                    .filter(d => pathNodes.includes(d) && !searchResults.includes(d))
-                    .classed('search-path', true);
-                
-                g.selectAll('path.link')
-                    .classed('search-path', d => {
-                        return pathNodes.includes(d) && pathNodes.includes(d.parent);
-                    });
-            });
-            
-            if (currentResultIndex >= 0 && currentResultIndex < searchResults.length) {
-                g.selectAll('g.node')
-                    .filter(d => d === searchResults[currentResultIndex])
-                    .classed('search-current', true);
-            }
+                .classed('search-result', d => resultSet.has(d))
+                .classed('search-path', d => pathSet.has(d) && !resultSet.has(d))
+                .classed('search-current', d => d === currentNode);
+            g.selectAll('path.link')
+                .classed('search-path', d => pathSet.has(d) && pathSet.has(d.parent));
         }
 
+        let _navTimer = null;
         function navigateToResult(index) {
             if (index < 0 || index >= searchResults.length) return;
-            
+
             currentResultIndex = index;
             const targetNode = searchResults[index];
-            
+
             expandPathToNode(targetNode);
             update(root);
-            
-            setTimeout(() => {
+
+            // Pan on the next frame (update() has already set final positions)
+            // instead of a fixed 800ms wait; cancel any pending navigate so fast
+            // typing/nav never pans to a stale target.
+            if (_navTimer) cancelAnimationFrame(_navTimer);
+            _navTimer = requestAnimationFrame(() => {
+                _navTimer = null;
                 panToNode(targetNode);
                 highlightSearchResults();
                 updateBreadcrumb(targetNode);
                 updateSearchUI();
-            }, 800);
+            });
         }
 
         function expandPathToNode(targetNode) {
@@ -10838,12 +10686,14 @@ if (node.data.lastModified) {
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {
                 searchInput.value = '';
-                // Make sure the input remains functional
                 searchInput.focus();
             }
-            
+            const navInput = document.getElementById('navSearchInput');
+            if (navInput) navInput.value = '';
+
             clearSearchResults();
-            
+            if (typeof _endSearchRestore === 'function') _endSearchRestore();
+
             const clearBtn = document.getElementById('searchClearBtn');
             if (clearBtn) {
                 clearBtn.classList.remove('active');
@@ -10856,10 +10706,6 @@ if (node.data.lastModified) {
         window.selectSuggestion = selectSuggestion;
 
         // Manual search reinitialization (for debugging)
-        window.reinitializeSearch = function() {
-            searchInitialized = false;
-            initializeSearch();
-        }
 
         // Breadcrumb Navigation Functions
         function updateBreadcrumb(node) {
@@ -10938,21 +10784,20 @@ crumb.title = item.data.name;
         }
 
         function panToNode(node) {
-            if (!svg || !node) return;
-            
-            const transform = d3.zoomTransform(svg.node());
-            
-            const x = -node.y + width / 2;
-            const y = -node.x + height / 2;
-            
+            if (!svg || !globalZoom || !node) return;
+            if (!isFinite(node.x) || !isFinite(node.y)) return; // node not laid out yet — skip pan
+            const svgNode = svg.node();
+            const vw = svgNode.clientWidth || width || 1120;
+            const vh = svgNode.clientHeight || height || 600;
+            const t = d3.zoomTransform(svgNode);
+            const k = (isFinite(t.k) && t.k > 0) ? t.k : 1;
+            const x = vw / 2 - k * node.y;   // account for scale so centring is correct when zoomed
+            const y = vh / 2 - k * node.x;
+            if (!isFinite(x) || !isFinite(y)) return;
             svg.transition()
-                .duration(750)
-                .call(
-                    d3.zoom().transform,
-                    d3.zoomIdentity
-                        .translate(x, y)
-                        .scale(transform.k)
-                );
+                .duration(600)
+                .ease(d3.easeCubicOut)
+                .call(globalZoom.transform, d3.zoomIdentity.translate(x, y).scale(k));
         }
 
         function highlightNode(node) {
@@ -11127,11 +10972,9 @@ crumb.title = item.data.name;
         // View switching
         // Update your switchView function with this approach:
 window.switchView = function(viewType) {
-    console.log('Switching from', currentView, 'to', viewType);
     
     // CRITICAL: Clean up 3D view FIRST if it's active
     if (is3DViewActive) {
-        console.log('Cleaning up 3D view...');
         is3DViewActive = false;
         
         // Clean up 3D labels specifically
@@ -11178,6 +11021,7 @@ window.switchView = function(viewType) {
     // Update current view AFTER cleanup
     currentView = viewType;
     document.body.setAttribute('data-view', viewType);
+    try { localStorage.setItem('sv:lastView', viewType); } catch (e) {}
     
     // Clear breadcrumb
     clearBreadcrumb();
@@ -11193,7 +11037,6 @@ window.switchView = function(viewType) {
     
     // Handle each view type
     if (viewType === 'tree') {
-        console.log('Setting up tree view');
         
         // Activate tree button
         const treeBtn = document.getElementById('treeViewBtn');
@@ -11247,10 +11090,9 @@ window.switchView = function(viewType) {
         }
         
     } else if (viewType === 'dashboard') {
-        console.log('Setting up dashboard view');
         
         // Activate dashboard button
-        const dashBtn = document.getElementById('dashboardViewBtn');
+        const dashBtn = document.getElementById('reportsNavBtn');
         if (dashBtn) dashBtn.classList.add('active');
         
         // Hide other elements
@@ -11286,7 +11128,6 @@ window.switchView = function(viewType) {
         }
         
     } else if (viewType === '3d') {
-        console.log('Setting up 3D view');
         
         // Activate 3D button
         const threeDBtn = document.getElementById('3dViewBtn');
@@ -11402,7 +11243,6 @@ window.switchView = function(viewType) {
         
 
        function createDashboardVisualisation() {
-    console.log('Creating dashboard visualization');
     
     // Get the container and ensure it's visible
     const treeContainer = document.getElementById('treeContainer');
@@ -11433,7 +11273,6 @@ window.switchView = function(viewType) {
         .style("padding-top", "20px"); // FIX: Add 'px' units
     
     // Add a test element to verify rendering
-    console.log('Dashboard container created:', !!container.node());
     
     // Simple dashboard header - matches other reports
     const header = container.append("div")
@@ -12177,15 +12016,6 @@ function createDepthChart(container) {
             }
         }
 
-        window.showContentStrategy = function() {
-            const modal = document.querySelector('div[style*="position: fixed"]');
-            if (modal) {
-                const content = modal.querySelector('#freshness-modal-content');
-                if (content) {
-                    content.innerHTML = generateContentStrategyGuide();
-                }
-            }
-        }
 
        
         // Content Freshness Analysis
@@ -12289,7 +12119,6 @@ closeBtn.style.cssText = `
     if (window.freshnessPageDetails && window.freshnessPageDetails.oldest) {
         window.oldestPagesData = window.freshnessPageDetails.oldest;
         window.oldestPagesCurrentPage = 1;
-        console.log('Pagination setup complete. Total pages:', window.oldestPagesData.length);
     }
 }
 
@@ -12540,7 +12369,7 @@ window.criticalCurrentPage = 1;
                     right: -20px; 
                     width: 60px; 
                     height: 60px; 
-                    background: #3b82f6;
+                    background: var(--primary);
                     border-radius: 50%;
                     opacity: 0.1;
                 "></div>
@@ -12618,7 +12447,7 @@ window.criticalCurrentPage = 1;
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                 <div style="
                     width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
                     border-radius: 10px; 
                     display: flex; align-items: center; justify-content: center;
                     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
@@ -13957,7 +13786,7 @@ content.appendChild(closeBtn);
                             <span style="font-size: 24px;">📋</span>
                         </div>
                         <div style="text-align: left;">
-                            <h2 style="color: var(--color-text-heading); margin: 0; font-size: 28px; font-weight: 700;">Detailed Category Breakdown</h2>
+                            <h2 style="color: var(--color-text-heading); margin: 0; font-size: 28px; font-weight: 700;">Content by Category</h2>
                             <p style="color: var(--color-text-secondary); margin: 5px 0 0 0; font-size: 16px;">Complete analysis of your site's content structure and organization</p>
                         </div>
                     </div>
@@ -13973,7 +13802,7 @@ content.appendChild(closeBtn);
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                             <div style="
                                 width: 40px; height: 40px; 
-                                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
                                 border-radius: 10px; 
                                 display: flex; align-items: center; justify-content: center;
                                 box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
@@ -14011,7 +13840,7 @@ content.appendChild(closeBtn);
                                         right: -10px; 
                                         width: 40px; 
                                         height: 40px; 
-                                        background: #3b82f6;
+                                        background: var(--primary);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
@@ -14035,7 +13864,7 @@ content.appendChild(closeBtn);
                                         right: -10px; 
                                         width: 40px; 
                                         height: 40px; 
-                                        background: #3b82f6;
+                                        background: var(--primary);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
@@ -14059,7 +13888,7 @@ content.appendChild(closeBtn);
                                         right: -10px; 
                                         width: 40px; 
                                         height: 40px; 
-                                        background: #3b82f6;
+                                        background: var(--primary);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
@@ -14937,7 +14766,7 @@ function generateURLPatternHTML(analysis) {
                     <span style="font-size: 24px;">🔍</span>
                 </div>
                 <div style="text-align: left;">
-                    <h2 style="color: var(--color-text-heading); margin: 0; font-size: 28px; font-weight: 700;">URL Pattern Analysis</h2>
+                    <h2 style="color: var(--color-text-heading); margin: 0; font-size: 28px; font-weight: 700;">URL Health Audit</h2>
                     <p style="color: var(--color-text-secondary); margin: 5px 0 0 0; font-size: 16px;">Comprehensive analysis of your URL structure, patterns, and SEO health</p>
                 </div>
             </div>
@@ -15034,7 +14863,7 @@ function generateURLPatternHTML(analysis) {
                         right: -20px; 
                         width: 60px; 
                         height: 60px; 
-                        background: #3b82f6;
+                        background: var(--primary);
                         border-radius: 50%;
                         opacity: 0.1;
                     "></div>
@@ -15060,7 +14889,7 @@ function generateURLPatternHTML(analysis) {
                         right: -20px; 
                         width: 60px; 
                         height: 60px; 
-                        background: #3b82f6;
+                        background: var(--primary);
                         border-radius: 50%;
                         opacity: 0.1;
                     "></div>
@@ -15716,7 +15545,7 @@ document.addEventListener('DOMContentLoaded', function() {
         navBar.style.display = 'flex';
         
         // Initially disable view/report buttons until sitemap loads
-        const buttons = ['treeViewBtn', 'dashboardViewBtn', 'reportsDropdown'];
+        const buttons = ['treeViewBtn', '3dViewBtn', 'reportsDropdown'];
         buttons.forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
@@ -15735,18 +15564,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize upload section (your existing function)
     initializeUploadSection();
     
-    // Connect nav search to main search functionality
-    const navSearchInput = document.getElementById('navSearchInput');
-    if (navSearchInput) {
-        navSearchInput.addEventListener('input', function(e) {
-            // Sync with main search input
-            const mainSearchInput = document.getElementById('searchInput');
-            if (mainSearchInput) {
-                mainSearchInput.value = e.target.value;
-                mainSearchInput.dispatchEvent(new Event('input'));
-            }
-        });
-    }
+    // (Duplicate nav-search relay removed — the direct handler near
+    //  "Connect nav search directly to performSearch" is the single source.)
     
     // Restore stats collapsed state
     const statsCollapsed = localStorage.getItem('statsCollapsed') === 'true';
@@ -15896,9 +15715,14 @@ function show3DView() {
         showToast('Please load a sitemap first', 'warning');
         return;
     }
+    // Guard against double-initialisation (e.g. duplicate click bindings)
+    if (is3DViewActive && Graph3D) {
+        return;
+    }
     
     is3DViewActive = true;
     currentView = '3d';
+    document.body.setAttribute('data-view', '3d');
     
     // Update nav buttons
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -17529,7 +17353,6 @@ function updateNodeSize3D(scale) {
 function switchLayout3D(layoutType) {
     if (!Graph3D) return;
     
-    console.log('Switching to layout:', layoutType);
     
     switch(layoutType) {
         case 'tree':
@@ -17632,7 +17455,7 @@ function showNodeDetails3D(node) {
     const isMobile = checkIfMobile();
 
     // Build breadcrumb
-    const path = getNodePath(node);
+    const path = getNodePath3D(node);
     const breadcrumbHTML = path.length > 1
         ? `<div style="font-size:0.7rem;color:var(--color-text-muted,#999);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">` +
           path.map((n, i) => {
@@ -18098,7 +17921,6 @@ function focusOnNode3D(node, duration = 1500) {
 
 
 function backTo2D() {
-    console.log('backTo2D called');
     switchView('tree');
 }
 
@@ -18160,37 +17982,6 @@ function add3DLegend() {
         'padding:8px 12px;font-size:0.72rem;min-width:130px;';
     legend.innerHTML = _build3DLegendHTML(false, false);
     container.appendChild(legend);
-    window._update3DLegend = function(mode) {
-        const el = document.getElementById('graph3d-legend');
-        if (!el) return;
-        el.dataset.freshness = mode === 'freshness' ? '1' : '0';
-        el.innerHTML = _build3DLegendHTML(mode === 'freshness', el.dataset.collapsed === '1');
-    };
-}
-
-function toggleLegend3D() {
-    const el = document.getElementById('graph3d-legend');
-    if (!el) return;
-    const wasCollapsed = el.dataset.collapsed === '1';
-    el.dataset.collapsed = wasCollapsed ? '' : '1';
-    el.innerHTML = _build3DLegendHTML(el.dataset.freshness === '1', !wasCollapsed);
-}
-
-// ── Subtree isolation ────────────────────────────────────────────────────────
-
-function isolateSubtree3D(node) {
-    if (!Graph3D || !node) return;
-    const subtreeIds = new Set();
-    const queue = [node.id];
-    while (queue.length) {
-        const id = queue.shift();
-        subtreeIds.add(id);
-        graphData.links.forEach(l => {
-            const srcId = typeof l.source === 'object' ? l.source.id : l.source;
-            const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
-            if (srcId === id && !subtreeIds.has(tgtId)) queue.push(tgtId);
-        });
-    }
     Graph3D.nodeVisibility(n => subtreeIds.has(n.id));
     Graph3D.linkVisibility(l => {
         const s = typeof l.source === 'object' ? l.source.id : l.source;
@@ -18227,7 +18018,7 @@ function clearIsolation3D() {
 
 // ── Node path helper ─────────────────────────────────────────────────────────
 
-function getNodePath(node) {
+function getNodePath3D(node) {
     const path = [node];
     let current = node;
     let safety = 0;
@@ -18358,13 +18149,11 @@ function isolateBranch3D(nodeId) {
 
 // Tree Connection Status Update Function
 function updateTreeConnectionStatus() {
-    console.log('🌲 Updating tree connection status indicators');
     
     // Check GA4 connection status
     const ga4Connected = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
     const gscConnected = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
     
-    console.log('🔍 Tree connection status:', { ga4Connected, gscConnected });
     
     // Update GA4 status indicator in tree
     const treeGa4Indicator = document.querySelector('.tree-ga4-status');
@@ -18386,7 +18175,6 @@ function updateTreeConnectionStatus() {
         }
     }
     
-    console.log('✅ Tree connection status updated');
 }
 
 // Initialize connection status updates

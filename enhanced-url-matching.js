@@ -53,7 +53,6 @@
                     }
                 });
 
-                console.log(`[URL Matcher] Generated ${variations.size} variations for: ${originalUrl}`);
                 return Array.from(variations);
                 
             } catch (error) {
@@ -135,35 +134,29 @@
             // Check cache first
             const cacheKey = `${fetchFunction.name}-${originalUrl}`;
             if (this.cache.has(cacheKey)) {
-                console.log(`[URL Matcher] Cache hit for: ${originalUrl}`);
                 return this.cache.get(cacheKey);
             }
 
             const variations = this.createAllVariations(originalUrl);
-            console.log(`[URL Matcher] Trying ${Math.min(maxAttempts, variations.length)} variations for: ${originalUrl}`);
 
             // Try variations in order of likelihood
             for (let i = 0; i < Math.min(maxAttempts, variations.length); i++) {
                 const variation = variations[i];
                 
                 try {
-                    console.log(`[URL Matcher] Attempt ${i + 1}: ${variation}`);
                     const result = await fetchFunction(variation);
                     
                     // Check if we got meaningful data
                     if (this.isValidResult(result)) {
-                        console.log(`[URL Matcher] ✅ Success with variation: ${variation}`);
                         
                         // Cache the successful variation
                         this.cache.set(cacheKey, result);
                         
                         return result;
                     } else {
-                        console.log(`[URL Matcher] ⚪ No data for: ${variation}`);
                     }
                     
                 } catch (error) {
-                    console.log(`[URL Matcher] ❌ Error with ${variation}:`, error.message);
                     
                     // Add delay for rate limiting
                     if (error.message.includes('429') || error.message.includes('rate')) {
@@ -178,7 +171,6 @@
             }
 
             // No successful variation found
-            console.log(`[URL Matcher] ❌ No data found after ${Math.min(maxAttempts, variations.length)} attempts`);
             const noDataResult = { noDataFound: true, triedVariations: Math.min(maxAttempts, variations.length) };
             
             // Cache the negative result to avoid repeated attempts
@@ -207,14 +199,11 @@
         // Clear cache (useful for debugging)
         clearCache() {
             this.cache.clear();
-            console.log('[URL Matcher] Cache cleared');
         }
 
         // Show cache contents (useful for debugging)
         showCache() {
-            console.log('[URL Matcher] Cache contents:');
             this.cache.forEach((result, key) => {
-                console.log(`${key}:`, this.isValidResult(result) ? '✅ Has data' : '⚪ No data');
             });
         }
     }
@@ -258,7 +247,6 @@
         
         // Enhanced version with smart matching
         window.fetchCombinedAnalyticsData = async function(nodeData) {
-            console.log(`[Enhanced Fetching] Starting smart fetch for: ${nodeData.url}`);
             
             const results = { gsc: null, ga4: null };
             
@@ -295,15 +283,12 @@
             return results;
         };
         
-        console.log('✅ Enhanced URL matching enabled for combined analytics');
     }
 
     // Debugging functions
     window.URLMatcher.debug = {
         testUrl: (url) => {
-            console.log('🧪 Testing URL variations for:', url);
             const variations = window.URLMatcher.createAllVariations(url);
-            console.log('Generated variations:');
             variations.forEach((v, i) => console.log(`${i + 1}. ${v}`));
             return variations;
         },
@@ -317,15 +302,11 @@
         },
         
         testMatching: async (url) => {
-            console.log('🔄 Testing smart matching for:', url);
             
             // Test both data sources
             const gscResult = await fetchGSCWithSmartMatching({ url });
             const ga4Result = await fetchGA4WithSmartMatching({ url });
             
-            console.log('Results:');
-            console.log('GSC:', gscResult);
-            console.log('GA4:', ga4Result);
             
             return { gsc: gscResult, ga4: ga4Result };
         }
@@ -337,7 +318,6 @@
         const checkReady = () => {
             if (window.GSCIntegration && window.GA4Integration) {
                 enhanceCombinedDataFetching();
-                console.log('🚀 Enhanced URL matching initialized');
             } else {
                 setTimeout(checkReady, 100);
             }

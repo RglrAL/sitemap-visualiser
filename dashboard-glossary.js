@@ -2,7 +2,6 @@
 // Comprehensive sliding panel glossary with bulletproof error handling
 // Version: 2.0 - Enhanced with fail-safe initialization
 
-console.log('📚 Loading Complete Dashboard Glossary System v2.0...');
 
 // ===========================================
 // IMMEDIATE FAIL-SAFE GLOBAL SETUP
@@ -10,7 +9,6 @@ console.log('📚 Loading Complete Dashboard Glossary System v2.0...');
 
 // Clean up any existing instance
 if (window.DashboardGlossary) {
-    console.log('⚠️ Existing DashboardGlossary found, cleaning up...');
     try {
         if (window.DashboardGlossary._instance && window.DashboardGlossary._instance.cleanup) {
             window.DashboardGlossary._instance.cleanup();
@@ -21,7 +19,6 @@ if (window.DashboardGlossary) {
 }
 
 // Create bulletproof global API - prevents "not defined" errors
-console.log('🛡️ Creating bulletproof DashboardGlossary global...');
 
 window.DashboardGlossary = {
     _initialized: false,
@@ -33,29 +30,24 @@ window.DashboardGlossary = {
     
     // Public API methods
     open: function() {
-        console.log('📖 DashboardGlossary.open() called');
         return this._executeOrQueue('open', []);
     },
     
     close: function() {
-        console.log('📕 DashboardGlossary.close() called');
         return this._executeOrQueue('close', []);
     },
     
     searchFor: function(term) {
-        console.log('🔍 DashboardGlossary.searchFor() called with:', term);
         return this._executeOrQueue('search', [term]);
     },
     
     goToCategory: function(category) {
-        console.log('🏷️ DashboardGlossary.goToCategory() called with:', category);
         return this._executeOrQueue('filterCategory', [category]);
     },
     
     isHealthy: function() {
         const healthy = this._initialized && this._instance && this._instance.isHealthy();
         if (this._debugMode) {
-            console.log('🩺 Health check:', healthy ? '✅ Healthy' : '❌ Not healthy');
         }
         return healthy;
     },
@@ -73,7 +65,6 @@ window.DashboardGlossary = {
     },
     
     forceInit: function() {
-        console.log('🔄 Force initialization requested...');
         this._initAttempts = 0;
         this._initialized = false;
         this._instance = null;
@@ -90,7 +81,6 @@ window.DashboardGlossary = {
                 return false;
             }
         } else {
-            console.log(`⏳ Glossary not ready, queuing ${methodName}...`);
             this._pendingActions.push({ method: methodName, args: args });
             this._attemptInitialization();
             return false;
@@ -98,13 +88,11 @@ window.DashboardGlossary = {
     },
     
     _markReady: function(instance) {
-        console.log('✅ Marking glossary as ready with instance');
         this._initialized = true;
         this._instance = instance;
         
         // Execute pending actions
         if (this._pendingActions.length > 0) {
-            console.log(`🔄 Executing ${this._pendingActions.length} pending actions...`);
             this._pendingActions.forEach(({ method, args }) => {
                 try {
                     instance[method](...args);
@@ -115,14 +103,12 @@ window.DashboardGlossary = {
             this._pendingActions = [];
         }
         
-        console.log('🎉 Dashboard Glossary is now fully operational!');
     },
     
     _attemptInitialization: function() {
         if (this._initialized) return true;
         
         this._initAttempts++;
-        console.log(`🔄 Initialization attempt ${this._initAttempts}/${this._maxInitAttempts}`);
         
         if (this._initAttempts > this._maxInitAttempts) {
             console.error('❌ Max initialization attempts reached');
@@ -164,7 +150,6 @@ window.DashboardGlossary = {
     }
 };
 
-console.log('✅ Bulletproof DashboardGlossary global created!');
 
 // ===========================================
 // COMPLETE GLOSSARY SYSTEM IMPLEMENTATION
@@ -173,7 +158,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
 (function() {
     'use strict';
     
-    console.log('🏗️ Loading complete glossary system...');
     
     // Enhanced configuration
     const CONFIG = {
@@ -197,7 +181,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
     function debugLog(message, data = null) {
         if (CONFIG.DEBUG) {
             const timestamp = new Date().toLocaleTimeString();
-            console.log(`🔧 [${timestamp}] ${message}`, data || '');
         }
     }
     
@@ -2275,22 +2258,6 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
                     // Success messages
                     console.log('%c📚 Dashboard Glossary System Loaded Successfully!', 
                                'color: #10b981; font-weight: bold; font-size: 16px;');
-                    console.log('%c🎉 All features operational', 'color: #3b82f6; font-weight: bold;');
-                    console.log('');
-                    console.log('📋 Available Commands:');
-                    console.log('  DashboardGlossary.open() - Open the glossary');
-                    console.log('  DashboardGlossary.searchFor("CTR") - Search for specific terms');
-                    console.log('  DashboardGlossary.goToCategory("Google Analytics") - Filter by category');
-                    console.log('  DashboardGlossary.isHealthy() - Check system status');
-                    console.log('  DashboardGlossary.getDebugInfo() - Get debug information');
-                    console.log('');
-                    console.log('🔍 Try searching for:');
-                    console.log('  • "CTR" or "Click-Through Rate"');
-                    console.log('  • "Quality Score" or "engagement"');
-                    console.log('  • "Core Web Vitals" or "accessibility"');
-                    console.log('  • "Citizens Reached" or "satisfaction"');
-                    console.log('');
-                    console.log(`📊 Loaded ${Object.keys(glossaryData).length} terms across ${Object.keys(categories).length} categories`);
                     
                 } else {
                     throw new Error('Instance initialization failed');
@@ -2319,10 +2286,8 @@ console.log('✅ Bulletproof DashboardGlossary global created!');
 // BULLETPROOF AUTO-INITIALIZATION
 // ===========================================
 
-console.log('⚡ Starting bulletproof auto-initialization...');
 
 function startInitialization() {
-    console.log('🔄 Attempting initialization...');
     
     try {
         if (typeof window.initializeGlossarySystem === 'function') {
@@ -2339,31 +2304,26 @@ function startInitialization() {
 
 // Multiple initialization strategies
 if (document.readyState === 'loading') {
-    console.log('📄 DOM loading, waiting for DOMContentLoaded...');
     document.addEventListener('DOMContentLoaded', startInitialization);
 } else {
-    console.log('📄 DOM ready, starting initialization...');
     setTimeout(startInitialization, 100);
 }
 
 // Backup attempts with increasing delays
 setTimeout(() => {
     if (!window.DashboardGlossary.isHealthy()) {
-        console.log('🔄 Backup initialization attempt 1...');
         startInitialization();
     }
 }, 1000);
 
 setTimeout(() => {
     if (!window.DashboardGlossary.isHealthy()) {
-        console.log('🔄 Backup initialization attempt 2...');
         startInitialization();
     }
 }, 3000);
 
 setTimeout(() => {
     if (!window.DashboardGlossary.isHealthy()) {
-        console.log('🔄 Final backup initialization attempt...');
         startInitialization();
     }
 }, 5000);
@@ -2371,18 +2331,9 @@ setTimeout(() => {
 // Final diagnostic and user guidance
 setTimeout(() => {
     const debugInfo = window.DashboardGlossary.getDebugInfo();
-    console.log('🩺 Final system diagnostic:', debugInfo);
     
     if (!window.DashboardGlossary.isHealthy()) {
         console.error('%c❌ Dashboard Glossary Failed to Initialize', 'color: #ef4444; font-weight: bold;');
-        console.log('%c💡 Try these troubleshooting steps:', 'color: #f59e0b; font-weight: bold;');
-        console.log('1. Check browser console for errors above this message');
-        console.log('2. Run: DashboardGlossary.forceInit()');
-        console.log('3. Run: DashboardGlossary.getDebugInfo()');
-        console.log('4. Refresh the page');
-        console.log('5. Check that no other scripts are interfering');
     } else {
-        console.log('%c✅ Dashboard Glossary System Ready!', 'color: #10b981; font-weight: bold; font-size: 14px;');
-        console.log('Click the 📚 button in the top-right corner to open the glossary!');
     }
 }, 10000);

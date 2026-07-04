@@ -1547,7 +1547,6 @@ body.dark-theme .nav-ai-btn.configured {
             }
         }
 
-        console.log('✨ Groq AI module loaded');
     }
 
     // ─── Public API ───────────────────────────────────────────────────────────

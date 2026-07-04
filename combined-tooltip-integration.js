@@ -2,10 +2,8 @@
 // Modern tooltip with sleek tabs for GSC and GA4 data
 
 (function() {
-    console.log('🚀 Loading enhanced tabbed tooltip...');
 
     const modernTooltipFunction = function(event, d) {
-        console.log('🎯 Enhanced tabbed tooltip for:', d.data?.name);
         
         if (!d.data) return;
 
@@ -47,9 +45,7 @@
                 background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 0;
-                box-shadow:
-                    0 25px 50px -12px rgba(0, 0, 0, 0.4),
-                    0 0 0 1px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-2xl);
                 z-index: 15000;
                 max-width: calc(100vw - 20px);
                 width: calc(100vw - 20px);
@@ -57,11 +53,11 @@
                 opacity: 0;
                 transform: translateY(-20px) scale(0.95);
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-family: var(--font-family);
                 overflow: hidden;
                 pointer-events: auto;
                 backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.18);
+                border: 1px solid var(--color-border-primary);
                 -webkit-overflow-scrolling: touch;
             `;
         } else {
@@ -71,20 +67,18 @@
                 background: var(--color-bg-primary);
                 border-radius: 16px;
                 padding: 0;
-                box-shadow:
-                    0 20px 40px -12px rgba(0, 0, 0, 0.25),
-                    0 0 0 1px rgba(0, 0, 0, 0.05);
+                box-shadow: var(--shadow-xl);
                 z-index: 10000;
                 max-width: 480px;
                 width: 480px;
                 opacity: 0;
                 transform: translateY(12px) scale(0.94);
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-family: var(--font-family);
                 overflow: hidden;
                 pointer-events: auto;
                 backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.18);
+                border: 1px solid var(--color-border-primary);
             `;
         }
 
@@ -105,7 +99,7 @@
             <!-- Enhanced Header with Gradient -->
             <div style="
                 padding: 16px 20px; 
-                background: linear-gradient(135deg, #5a8200 0%, #72A300 100%);
+                background: linear-gradient(135deg, var(--tooltip-header-from) 0%, var(--tooltip-header-to) 100%);
                 color: white;
                 position: relative;
                 overflow: hidden;
@@ -197,82 +191,11 @@ onmouseout="
                         ` : ''}
                     </div>
                     
-                    <!-- Page Information Grid -->
-                    <div class="page-info-grid" style="
-                        display: grid; 
-                        grid-template-columns: 1fr 1fr 1fr; 
-                        gap: 12px; 
-                        margin-top: 16px;
-                    ">
-                        <!-- Page Type & Hierarchy -->
-                        <div style="
-                            background: rgba(255,255,255,0.15);
-                            padding: 12px 14px;
-                            border-radius: 10px;
-                            backdrop-filter: blur(10px);
-                            border: 1px solid rgba(255,255,255,0.25);
-                            text-align: center;
-                        ">
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; letter-spacing: 0.5px;">Page Info</div>
-                            <div style="font-size: 0.9rem; font-weight: 700; color: white; margin-bottom: 2px; line-height: 1.2;">${pageInfo.type}</div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">Level ${pageInfo.depth}</div>
-                        </div>
-                        
-                        <!-- Site Structure -->
-                        <div style="
-                            background: rgba(255,255,255,0.15);
-                            padding: 12px 14px;
-                            border-radius: 10px;
-                            backdrop-filter: blur(10px);
-                            border: 1px solid rgba(255,255,255,0.25);
-                            text-align: center;
-                        ">
-                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px;  letter-spacing: 0.5px;">Structure</div>
-                            <div style="font-size: 0.85rem; color: white; font-weight: 600; margin-bottom: 2px;">
-                                <span style="font-size: 0.9rem; font-weight: 700;">${pageInfo.children}</span> Children
-                            </div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">
-                                <span style="font-weight: 600;">${pageInfo.siblings}</span> Siblings
-                            </div>
-                        </div>
-                        
-                        <!-- Last Updated -->
-                        ${lastEditedInfo ? `
-                            <div style="
-                                background: rgba(255,255,255,0.15);
-                                padding: 12px 14px;
-                                border-radius: 10px;
-                                backdrop-filter: blur(10px);
-                                border: 1px solid rgba(255,255,255,0.25);
-                                text-align: center;
-                            ">
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-bottom: 4px; letter-spacing: 0.5px;">Updated</div>
-                                <div style="font-size: 0.85rem; font-weight: 700; color: white; margin-bottom: 2px; line-height: 1.2;">${getFormattedDate(data.lastModified)}</div>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;">${getRelativeTime(data.lastModified)}</div>
-                            </div>
-                        ` : `
-                            <div style="
-                                background: rgba(255,255,255,0.1);
-                                padding: 12px 14px;
-                                border-radius: 10px;
-                                backdrop-filter: blur(10px);
-                                border: 1px solid rgba(255,255,255,0.15);
-                                text-align: center;
-                            ">
-                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Updated</div>
-                                <div style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 2px;">Unknown</div>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">No date</div>
-                                                   
-                            </div>
-                        `}
-                    </div>
-
-                     <!-- Freshness Badge Row -->
-                    <div style="
-                        display: flex;
-                        justify-content: center;
-                        margin-top: 12px;
-                    ">
+                    <!-- Compact meta row -->
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px;">
+                        <span style="font-size:0.7rem; font-weight:600; color:rgba(255,255,255,0.95); background:rgba(255,255,255,0.15); padding:3px 9px; border-radius:6px; white-space:nowrap;">${pageInfo.type} · Level ${pageInfo.depth}</span>
+                        <span style="font-size:0.7rem; color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.15); padding:3px 9px; border-radius:6px; white-space:nowrap;">${pageInfo.children} children · ${pageInfo.siblings} siblings</span>
+                        ${lastEditedInfo ? `<span style="font-size:0.7rem; color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.15); padding:3px 9px; border-radius:6px; white-space:nowrap;">Updated ${getRelativeTime(data.lastModified)}</span>` : ''}
                         ${freshnessInfo.badge}
                     </div>
 
@@ -547,13 +470,13 @@ onmouseout="
                 
                 .tab-btn.active {
                     color: var(--color-text-primary) !important;
-                    border-bottom-color: #3b82f6 !important;
-                    background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.05)) !important;
+                    border-bottom-color: var(--secondary) !important;
+                    background: linear-gradient(to bottom, transparent, rgba(114, 163, 0, 0.06)) !important;
                 }
                 
                 .tab-btn:hover:not(.active) {
-                    color: #475569;
-                    background: rgba(0,0,0,0.02);
+                    color: var(--color-text-primary);
+                    background: var(--color-bg-tertiary);
                 }
                 
                 .action-btn {
@@ -828,7 +751,6 @@ onmouseout="
 
     // Enhanced loading functions (keeping your existing ones but updating UI elements)
     async function loadEnhancedAnalytics(tooltip, nodeData) {
-        console.log('📈 Loading tabbed analytics for:', nodeData.name);
         
         updateConnectionStatus();
         showLoadingProgress(tooltip);
@@ -872,12 +794,13 @@ onmouseout="
                 return;
             }
             
+            if (!tooltip.isConnected) return; // tooltip closed during fetch — skip wasted work
             // Fetch previous period data
             const previousData = await window.GSCIntegration.fetchPreviousPeriodData(nodeData);
             
             // Update metrics
             metricsContainer.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3);">
                     ${createTrendCard('Clicks', currentData.clicks, previousData?.clicks || 0, '#3b82f6', '🎯')}
                     ${createTrendCard('Impressions', currentData.impressions, previousData?.impressions || 0, '#06b6d4', '👁️')}
                     ${createTrendCard('CTR', `${(currentData.ctr * 100).toFixed(1)}%`, `${((previousData?.ctr || 0) * 100).toFixed(1)}%`, '#10b981', '⚡')}
@@ -896,7 +819,7 @@ onmouseout="
             
         } catch (error) {
             console.error('Enhanced GSC trend error:', error);
-            metricsContainer.innerHTML = createNoDataMessage('Failed to load search data');
+            metricsContainer.innerHTML = '<div style="text-align:center; padding:20px; color:var(--color-text-secondary); font-size:0.85rem;">⚠️ Could not load search data. <span style="color:var(--color-text-muted);">Try again shortly.</span></div>';
             queriesContainer.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 20px;">❌ Failed to load queries</div>';
         }
     }
@@ -916,10 +839,11 @@ onmouseout="
                 return;
             }
             
+            if (!tooltip.isConnected) return; // tooltip closed during fetch — skip wasted work
             const previousData = await window.GA4Integration.fetchPreviousPeriodData(nodeData.url);
             
             metricsContainer.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3);">
                     ${createTrendCard('Users', currentData.users || 0, previousData?.users || 0, '#f59e0b', '👥')}
                     ${createTrendCard('Page Views', currentData.pageViews || 0, previousData?.pageViews || 0, '#ef4444', '📄')}
                     ${createTrendCard('Sessions', currentData.sessions || 0, previousData?.sessions || 0, '#8b5cf6', '🔄')}
@@ -935,7 +859,7 @@ onmouseout="
             
         } catch (error) {
             console.error('Enhanced GA4 trend error:', error);
-            metricsContainer.innerHTML = createNoDataMessage('Failed to load analytics data');
+            metricsContainer.innerHTML = '<div style="text-align:center; padding:20px; color:var(--color-text-secondary); font-size:0.85rem;">⚠️ Could not load analytics data. <span style="color:var(--color-text-muted);">Try again shortly.</span></div>';
             if (insightsContainer) {
                 insightsContainer.innerHTML = 'Failed to generate insights';
             }
@@ -971,38 +895,17 @@ onmouseout="
 
         return `
             <div style="
-                background: linear-gradient(135deg, ${color}15 0%, ${color}08 100%); 
-                border-radius: 10px; 
-                padding: 10px; 
+                background: var(--color-bg-secondary);
+                border: 1px solid var(--color-border-primary);
+                border-radius: var(--radius-lg);
+                padding: var(--space-3);
                 text-align: center;
-                border: 1px solid ${color}20;
-                position: relative;
-                overflow: hidden;
             ">
-                <div style="font-size: 0.7rem; color: var(--color-text-secondary); margin-bottom: 2px; font-weight: 500;">
-                    ${icon} ${label}
-                </div>
-                
-                <div style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">
-                    ${formatDisplayValue(current)}
-                </div>
-                
-                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                    <div style="
-                        font-size: 0.65rem; 
-                        color: ${changeColor}; 
-                        font-weight: 600;
-                        padding: 2px 6px;
-                        background: ${changeBg};
-                        border-radius: 16px;
-                        display: flex;
-                        align-items: center;
-                        gap: 2px;
-                    ">
-                        <span style="font-size: 0.6rem;">${changeDirection}</span>
-                        <span>${Math.abs(percentChange).toFixed(0)}%</span>
-                    </div>
-                    <span style="font-size: 0.6rem; color: #94a3b8;">vs ${formatDisplayValue(previous)}</span>
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">${label}</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.1; margin-bottom: 6px;">${formatDisplayValue(current)}</div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;">
+                    <span style="font-size: var(--font-size-xs); color: ${changeColor}; font-weight: 700; padding: 2px 8px; background: ${changeBg}; border-radius: 999px; display: inline-flex; align-items: center; gap: 3px;"><span>${changeDirection}</span><span>${Math.abs(percentChange).toFixed(0)}%</span></span>
+                    <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">vs ${formatDisplayValue(previous)}</span>
                 </div>
             </div>
         `;
@@ -1036,7 +939,7 @@ onmouseout="
                     align-items: center; 
                     justify-content: center;
                     font-weight: 700;
-                    color: #475569;
+                    color: var(--color-text-secondary);
                     font-size: 0.75rem;
                     flex-shrink: 0;
                 ">${index + 1}</div>
@@ -1062,13 +965,14 @@ onmouseout="
                 </div>
                 
                 <div style="
-                    padding: 4px 8px;
-                    background: ${oppColor};
-                    color: white;
-                    border-radius: 12px;
-                    font-size: 0.65rem;
-                    font-weight: 600;
+                    padding: 3px 8px;
+                    background: ${oppColor}1a;
+                    color: ${oppColor};
+                    border-radius: 999px;
+                    font-size: var(--font-size-xs);
+                    font-weight: 700;
                     flex-shrink: 0;
+                    white-space: nowrap;
                 ">${opportunity.label}</div>
             </div>
         `;
@@ -1091,7 +995,7 @@ onmouseout="
         const insights = [];
         
         if (previousData) {
-            const userChange = ((currentData.users - previousData.users) / previousData.users * 100);
+            const userChange = previousData.users > 0 ? ((currentData.users - previousData.users) / previousData.users * 100) : 0;
             if (userChange > 20) {
                 insights.push('📈 Strong user growth this period');
             } else if (userChange < -20) {
@@ -1114,16 +1018,14 @@ onmouseout="
 
     function createAdvancedLoadingGrid() {
         return `
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3);">
                 ${Array.from({length: 4}, () => `
                     <div style="
-                        background: var(--color-bg-secondary); 
-                        border-radius: 12px; 
-                        padding: 16px; 
-                        text-align: center;
+                        background: var(--color-bg-secondary);
                         border: 1px solid var(--color-border-primary);
-                        position: relative;
-                        overflow: hidden;
+                        border-radius: var(--radius-lg);
+                        padding: var(--space-3);
+                        text-align: center;
                     ">
                         <div style="height: 16px; width: 60%; margin: 0 auto 8px; background: var(--color-border-primary); border-radius: 4px;" class="loading-skeleton"></div>
                         <div style="height: 20px; width: 80%; margin: 0 auto 6px; background: var(--color-border-primary); border-radius: 4px;" class="loading-skeleton"></div>
@@ -1266,18 +1168,14 @@ onmouseout="
     }
 
     function hideExistingTooltip(currentData) {
-        console.log('🧹 hideExistingTooltip called');
         
         // Remove ALL existing tooltips regardless of content
         const existingTooltips = document.querySelectorAll('.enhanced-tabbed-tooltip, .enhanced-tooltip');
-        console.log(`🔍 Found ${existingTooltips.length} existing tooltips`);
         
         existingTooltips.forEach((tooltip, index) => {
-            console.log(`🗑️ Removing tooltip ${index + 1}`);
             
             // Remove backdrop immediately
             if (tooltip._backdrop) {
-                console.log(`🚪 Removing backdrop for existing tooltip ${index + 1}`);
                 tooltip._backdrop.remove();
             }
             
@@ -1289,14 +1187,12 @@ onmouseout="
         // Also clean up any orphaned backdrops
         const orphanedBackdrops = document.querySelectorAll('[style*="backdrop-filter: blur(2px)"]');
         orphanedBackdrops.forEach((backdrop, index) => {
-            console.log(`🧹 Removing orphaned backdrop from hideExistingTooltip ${index + 1}`);
             backdrop.remove();
         });
         
         // Clear global reference
         window.currentEnhancedTooltip = null;
         
-        console.log('✅ All existing tooltips cleaned up');
     }
 
     function positionTooltip(tooltip, event) {
@@ -1383,9 +1279,9 @@ onmouseout="
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.3);
+                background: rgba(0, 0, 0, 0.45);
                 z-index: 14999;
-                backdrop-filter: blur(2px);
+                backdrop-filter: blur(3px);
             `;
             
             backdrop.addEventListener('touchend', (e) => {
@@ -1422,7 +1318,6 @@ onmouseout="
             }
             
             const closeHandler = (e) => {
-                console.log('🔘 Tooltip close button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 hideEnhancedTooltip(true); // Force immediate close
@@ -1451,16 +1346,13 @@ onmouseout="
     }
 
     function hideEnhancedTooltip(immediate = false) {
-        console.log('🚪 hideEnhancedTooltip called, immediate:', immediate);
         const delay = immediate ? 0 : 200;
         
         window.enhancedHideTimer = setTimeout(() => {
             // Remove ALL tooltips, not just the tracked one
             const allTooltips = document.querySelectorAll('.enhanced-tabbed-tooltip, .enhanced-tooltip');
-            console.log(`🧹 Found ${allTooltips.length} tooltips to hide`);
             
             allTooltips.forEach((tooltip, index) => {
-                console.log(`🗑️ Hiding tooltip ${index + 1}`);
                 const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 
                 tooltip.style.opacity = '0';
@@ -1473,7 +1365,6 @@ onmouseout="
                 
                 // Remove mobile backdrop IMMEDIATELY, don't wait
                 if (tooltip._backdrop) {
-                    console.log(`🚪 Removing backdrop for tooltip ${index + 1}`);
                     tooltip._backdrop.remove();
                 }
                 
@@ -1485,18 +1376,15 @@ onmouseout="
             // ALSO remove any orphaned backdrops that might exist
             const orphanedBackdrops = document.querySelectorAll('[style*="backdrop-filter: blur(2px)"]');
             orphanedBackdrops.forEach((backdrop, index) => {
-                console.log(`🧹 Removing orphaned backdrop ${index + 1}`);
                 backdrop.remove();
             });
             
             // Clear global reference
             window.currentEnhancedTooltip = null;
-            console.log('✅ All tooltips hidden and removed');
         }, delay);
     }
 
     function handleEnhancedAction(action, url, tooltip) {
-    console.log('🎯 Enhanced action:', action);
     
     switch (action) {
         case 'visit':
@@ -1512,15 +1400,10 @@ onmouseout="
             break;
             
         case 'detailed':
-    console.log('🔍 Detailed action triggered for URL:', url);
-    console.log('🔍 createUnifiedCitizensDashboard available:', !!window.createUnifiedCitizensDashboard);
-    console.log('🔍 showUnifiedDashboardReport available:', !!window.showUnifiedDashboardReport);
     
     // Check if function is available, if not, wait a bit and try again
     if (!window.createUnifiedCitizensDashboard) {
-        console.log('⏳ Dashboard function not available, waiting for script to load...');
         setTimeout(() => {
-            console.log('🔍 Retry - createUnifiedCitizensDashboard available:', !!window.createUnifiedCitizensDashboard);
             if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
                 handleEnhancedAction('detailed', url, tooltip);
             } else {
@@ -1532,13 +1415,11 @@ onmouseout="
     }
     
     if (window.createUnifiedCitizensDashboard && url && url !== 'undefined') {
-        console.log('✅ All checks passed, proceeding with dashboard...');
         
         // Aggressively hide all tooltips on mobile
         const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         if (isMobileDevice) {
-            console.log('📱 Mobile device detected, force closing all tooltips');
             // Clear any timers
             if (window.enhancedHideTimer) {
                 clearTimeout(window.enhancedHideTimer);
@@ -1550,7 +1431,6 @@ onmouseout="
             // Remove all existing tooltips immediately
             const existingTooltips = document.querySelectorAll('.enhanced-tabbed-tooltip, .enhanced-tooltip');
             existingTooltips.forEach(tip => {
-                console.log('🗑️ Removing existing tooltip');
                 if (tip._backdrop) tip._backdrop.remove();
                 tip.remove();
             });
@@ -1560,7 +1440,6 @@ onmouseout="
             
             // Small delay to ensure tooltip is fully removed
             setTimeout(() => {
-                console.log('📱 Tooltip cleanup complete, proceeding with dashboard');
                 proceedWithDashboard();
             }, 100);
             return;
@@ -1574,10 +1453,8 @@ onmouseout="
         function proceedWithDashboard() {
             // Show loading immediately
             const loadingOverlay = showDashboardLoading();
-            console.log('⏳ Loading overlay shown');
         
             const nodeData = tooltip._nodeData;
-            console.log('📊 Opening dashboard with node data:', nodeData);
             
             // Store original tooltip data for restoration on mobile
             window.originalTooltipData = {
@@ -1586,7 +1463,6 @@ onmouseout="
             };
             
             // Call your dashboard function and hide loading when done
-            console.log('🚀 Calling showUnifiedDashboardReport...');
             window.showUnifiedDashboardReport(url, nodeData)
                 .then(() => {
                     hideDashboardLoading();
@@ -1632,7 +1508,7 @@ function showDashboardLoading() {
         justify-content: center;
         opacity: 1;
         transition: opacity 0.25s ease;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: var(--font-family);
     `;
     
     loadingOverlay.innerHTML = `
@@ -1824,9 +1700,6 @@ function hideDashboardLoading(onComplete) {
 // REPLACE your showUnifiedDashboardReport function with this corrected version:
 
 window.showUnifiedDashboardReport = async function(url, nodeData = null) {
-    console.log('🚀 Opening Unified Citizens Dashboard for:', url);
-    console.log('📄 Using node data:', nodeData);
-    console.log('📅 Current date range:', window.currentDateRange);
 
     // RESET FILTERS WHEN OPENING NEW DASHBOARD
     if (window.resetDashboardFilters) {
@@ -1891,7 +1764,6 @@ window.showUnifiedDashboardReport = async function(url, nodeData = null) {
             ga4Data = { noDataFound: true };
         }
         
-        console.log('📊 Dashboard data prepared:', { gscData, ga4Data, gscTrends, ga4Trends, nodeData });
         
         // Create the unified dashboard WITH nodeData
         console.log('🚀 About to create unified dashboard with data:', {
@@ -1912,7 +1784,6 @@ window.showUnifiedDashboardReport = async function(url, nodeData = null) {
             nodeData  // Pass the node data to the dashboard
         );
         
-        console.log('✅ Dashboard HTML created successfully, length:', dashboardHtml?.length);
         
         // Show in modal
         showDashboardModal(dashboardHtml);
@@ -1920,7 +1791,6 @@ window.showUnifiedDashboardReport = async function(url, nodeData = null) {
         // On mobile, if currentDateRange is not default, refresh to ensure correct data
         const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobileDevice && window.currentDateRange && window.currentDateRange.period !== '30d') {
-            console.log('📱 Mobile device detected with non-default date range, refreshing dashboard...');
             setTimeout(() => {
                 if (window.refreshUnifiedDashboard) {
                     window.refreshUnifiedDashboard(url);
@@ -2008,7 +1878,7 @@ function showDashboardModal(htmlContent) {
         overflow-y: auto;
         transform: translateY(100%);
         transition: transform 0.42s cubic-bezier(0.33, 1, 0.68, 1);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: var(--font-family);
     `;
 
     // Override dashboard container styles that were designed for a modal context —
@@ -2028,6 +1898,8 @@ function showDashboardModal(htmlContent) {
 
     // Dismiss: slide back down
     const closeFn = () => {
+        // Release the AI Chart.js instance/canvas (was leaked until next open).
+        try { if (window.aiDivergenceChart) { window.aiDivergenceChart.destroy(); window.aiDivergenceChart = null; } } catch (e) {}
         panel.style.transition = 'transform 0.32s cubic-bezier(0.32, 0, 0.67, 0)';
         panel.style.transform = 'translateY(100%)';
         document.removeEventListener('keydown', escHandler);
@@ -2200,12 +2072,10 @@ function showDashboardModal(htmlContent) {
 
     // Installation and initialization
     function installEnhancedTooltipSystem() {
-        console.log('✅ Installing enhanced tabbed tooltip system...');
         
         window.showEnhancedTooltip = modernTooltipFunction;
         window.hideEnhancedTooltip = hideEnhancedTooltip;
         
-        console.log('🎯 Enhanced tabbed tooltip installed!');
     }
 
     // Initialize
@@ -2231,6 +2101,5 @@ function showDashboardModal(htmlContent) {
         initEnhancedTooltips();
     }
 
-    console.log('🚀 Enhanced tabbed tooltip loaded!');
 
 })();

@@ -72,10 +72,8 @@
         const now = new Date();
         
         // Log the current date for debugging
-        console.log('📅 Current system date:', now.toISOString().split('T')[0]);
         
         now.setDate(now.getDate() - 3); // Go back 3 days to ensure data availability
-        console.log('🗓️ Using end date (3 days ago for data availability):', now.toISOString().split('T')[0]);
         
         const endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
@@ -241,7 +239,6 @@
     // Date range change handler
     window.changeDateRange = function(period) {
         // Changing date range
-        console.log('📅 Changing date range to:', period);
         
         // Hide any active tooltips on mobile to prevent overlay issues
         const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
@@ -252,7 +249,6 @@
                     tooltip.style.display = 'none';
                     tooltip.style.visibility = 'hidden';
                     tooltip.style.opacity = '0';
-                    console.log('📱 Hiding tooltip on mobile during date range change');
                 }
             });
             
@@ -323,7 +319,6 @@
         const dashboardUrl = window.currentDashboardUrl;
         
         if (dashboardUrl) {
-            console.log('📅 Refreshing dashboard for URL:', dashboardUrl, 'with period:', period);
             // Small delay to ensure loading indicator is visible
             setTimeout(() => {
                 // Remove quick loader as full refresh will show its own
@@ -759,7 +754,7 @@ function detectCitizenNeedSurgesEnhanced(gscData, gscTrends, currentDate = new D
     analysis.trendingTopics = identifyTrendingTopics(analysis);
     
     // SEASONAL PATTERN ANALYSIS
-    analysis.seasonalPatterns = analyseSeasonalPatterns(analysis, currentDate);
+    analysis.seasonalPatterns = analyseSeasonalPatternsForSurge(analysis, currentDate);
 
     return analysis;
 }
@@ -1500,7 +1495,7 @@ function identifyTrendingTopics(analysis) {
 }
 
 // ANALYZE SEASONAL PATTERNS
-function analyseSeasonalPatterns(analysis, currentDate) {
+function analyseSeasonalPatternsForSurge(analysis, currentDate) {
     const month = currentDate.getMonth();
     const patterns = [];
     
@@ -1738,8 +1733,8 @@ window.safeGetMetric = safeGetMetric;
     function calculateSearchScore(gscData) {
         if (!gscData || gscData.noDataFound) return 25;
         
-        const positionScore = Math.max(0, 100 - (gscData.position * 5));
-        const ctrScore = Math.min(100, (gscData.ctr * 100) * 10);
+        const positionScore = Math.max(0, 100 - ((gscData.position || 0) * 5));
+        const ctrScore = Math.min(100, ((gscData.ctr || 0) * 100) * 10);
         
         return Math.round((positionScore + ctrScore) / 2);
     }
@@ -1747,8 +1742,8 @@ window.safeGetMetric = safeGetMetric;
     function calculateEngagementScore(ga4Data) {
         if (!ga4Data || ga4Data.noDataFound) return 25;
         
-        const durationScore = Math.min(100, (ga4Data.avgSessionDuration / 300) * 100);
-        const bounceScore = Math.max(0, (1 - ga4Data.bounceRate) * 100);
+        const durationScore = Math.min(100, ((ga4Data.avgSessionDuration || 0) / 300) * 100);
+        const bounceScore = Math.max(0, (1 - (ga4Data.bounceRate || 0)) * 100);
         
         return Math.round((durationScore + bounceScore) / 2);
     }
@@ -1756,8 +1751,8 @@ window.safeGetMetric = safeGetMetric;
     function calculateRelevanceScore(gscData) {
         if (!gscData || gscData.noDataFound) return 50;
         
-        const expectedCTR = getCTRBenchmark(gscData.position);
-        const ctrPerformance = (gscData.ctr / expectedCTR);
+        const expectedCTR = getCTRBenchmark(gscData.position || 0);
+        const ctrPerformance = ((gscData.ctr || 0) / expectedCTR);
         
         return Math.min(100, Math.round(ctrPerformance * 100));
     }
@@ -4796,7 +4791,7 @@ function analyseGeographicSearchPatternsEnhanced(gscData, geoData, pageContext) 
             urgencyPatterns.push({
                 query: query.query,
                 impressions: query.impressions,
-                urgencyLevel: determineUrgencyLevel(queryText)
+                urgencyLevel: determineQueryUrgency(queryText)
             });
         }
         
@@ -5188,12 +5183,10 @@ function initializeEnhancedGeographicIntelligence() {
 
 // Global functions
 window.exportGeographicReport = function() {
-    console.log('Exporting geographic intelligence report...');
     // Implementation would generate PDF/Excel report
 };
 
 window.implementOpportunity = function(opportunityTitle) {
-    console.log('Implementing opportunity:', opportunityTitle);
     // Implementation would show detailed action plan
 };
 
@@ -10711,7 +10704,7 @@ function formatDuration(seconds) {
                 /* Complete Unified Citizens Dashboard Styles */
                 
                 .unified-dashboard-container {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-family: var(--font-family);
                     background: var(--color-bg-secondary);
                     border-radius: 20px;
                     overflow: hidden;
@@ -11429,7 +11422,7 @@ function formatDuration(seconds) {
 
                 .tab-btn.active {
                     color: var(--color-text-primary);
-                    border-bottom-color: #3b82f6;
+                    border-bottom-color: var(--secondary);
                     background: var(--color-bg-primary);
                     position: relative;
                 }
@@ -15387,21 +15380,17 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
     setTimeout(() => {
         const dashboard = document.getElementById(dashboardId);
         if (dashboard) {
-            console.log('🚀 Auto-initializing unified dashboard:', dashboardId);
             try {
                 initializeUnifiedDashboard(dashboardId);
-                console.log('✅ Dashboard initialization completed successfully');
             } catch (error) {
                 console.error('❌ Error during dashboard initialization:', error);
                 console.error('Error stack:', error.stack);
             }
         } else {
-            console.log('⏳ Dashboard not ready, trying again...');
             setTimeout(() => {
                 if (document.getElementById(dashboardId)) {
                     try {
                         initializeUnifiedDashboard(dashboardId);
-                        console.log('✅ Dashboard initialization completed successfully (retry)');
                     } catch (error) {
                         console.error('❌ Error during dashboard initialization (retry):', error);
                         console.error('Error stack:', error.stack);
@@ -15444,6 +15433,20 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                             <span class="tab-label">Search Performance</span>
                         </div>
                         <div class="tab-description">GSC clicks, impressions, and rankings</div>
+                    </button>
+                    <button class="tab-btn" data-tab="users">
+                        <div class="tab-header">
+                            <span class="tab-icon">👥</span>
+                            <span class="tab-label">User Behaviour</span>
+                        </div>
+                        <div class="tab-description">GA4 engagement and UX patterns</div>
+                    </button>
+                    <button class="tab-btn" data-tab="trends">
+                        <div class="tab-header">
+                            <span class="tab-icon">📈</span>
+                            <span class="tab-label">Trends</span>
+                        </div>
+                        <div class="tab-description">Performance and geographic trends</div>
                     </button>
                     <button class="tab-btn" data-tab="geographic">
                         <div class="tab-header">
@@ -15511,7 +15514,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
 // ===========================================
 
 function initializeUnifiedDashboard(dashboardId) {
-    console.log('🎯 Initializing Unified Dashboard:', dashboardId);
     
     const dashboard = document.getElementById(dashboardId);
     if (!dashboard) {
@@ -15527,7 +15529,6 @@ function initializeUnifiedDashboard(dashboardId) {
         return;
     }
     
-    console.log('✅ Found', tabButtons.length, 'buttons and', tabPanels.length, 'panels');
     
     // Initialize AI divergence chart if present
     setTimeout(() => {
@@ -15539,7 +15540,6 @@ function initializeUnifiedDashboard(dashboardId) {
             // Use the dashboard ID directly since HTML template now matches
             const dashboardIdPart = dashboardId.replace('unified-dashboard-', '');
             createAIDivergenceChart(timelineData, dashboardIdPart);
-            console.log('🎯 Chart initialization called with ID:', dashboardIdPart);
         }
     }, 500);
     
@@ -15552,7 +15552,6 @@ function initializeUnifiedDashboard(dashboardId) {
         
         newButton.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('🎯 Tab clicked:', this.dataset.tab);
             
             const targetTab = this.dataset.tab;
             
@@ -15569,7 +15568,6 @@ function initializeUnifiedDashboard(dashboardId) {
             const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
             if (targetPanel) {
                 targetPanel.classList.add('active');
-                console.log('✅ Activated panel:', targetTab);
 
                 // Lazy-load Content Intelligence on first visit
                 if (targetTab === 'content') {
@@ -15594,7 +15592,6 @@ function initializeUnifiedDashboard(dashboardId) {
         
         if (indicator) {
             indicator.classList.toggle('minimized');
-            console.log('📅 Toggled date indicator:', indicator.classList.contains('minimized') ? 'minimized' : 'expanded');
         }
     };
 
@@ -15679,7 +15676,6 @@ function initializeUnifiedDashboard(dashboardId) {
         const qualityToggleBtn = e.target.closest('[data-action="toggle-quality-breakdown"]');
         if (qualityToggleBtn) {
             e.preventDefault();
-            console.log('🎯 Quality breakdown toggle clicked');
             
             const breakdown = dashboard.querySelector('#qualityBreakdown');
             const btn = dashboard.querySelector('#qualityBreakdownBtn');
@@ -15688,11 +15684,9 @@ function initializeUnifiedDashboard(dashboardId) {
                 if (breakdown.style.display === 'none' || !breakdown.style.display) {
                     breakdown.style.display = 'block';
                     btn.innerHTML = '<span>📊 Hide Breakdown</span>';
-                    console.log('✅ Quality breakdown shown');
                 } else {
                     breakdown.style.display = 'none';
                     btn.innerHTML = '<span>📊 Show Breakdown</span>';
-                    console.log('✅ Quality breakdown hidden');
                 }
             }
             return; // Exit early to prevent other handlers
@@ -15702,7 +15696,6 @@ function initializeUnifiedDashboard(dashboardId) {
         const impactToggleBtn = e.target.closest('[data-action="toggle-impact-breakdown"]');
         if (impactToggleBtn) {
             e.preventDefault();
-            console.log('🎯 Impact breakdown toggle clicked');
             
             const breakdown = dashboard.querySelector('#impactBreakdown');
             const btn = impactToggleBtn;
@@ -15711,11 +15704,9 @@ function initializeUnifiedDashboard(dashboardId) {
                 if (breakdown.style.display === 'none' || !breakdown.style.display) {
                     breakdown.style.display = 'block';
                     btn.innerHTML = '<span>📊 Hide Calculation Details</span>';
-                    console.log('✅ Impact breakdown shown');
                 } else {
                     breakdown.style.display = 'none';
                     btn.innerHTML = '<span>📊 Show Calculation Details</span>';
-                    console.log('✅ Impact breakdown hidden');
                 }
             }
             return; // Exit early to prevent other handlers
@@ -15738,7 +15729,6 @@ function initializeUnifiedDashboard(dashboardId) {
         firstButton.classList.add('active');
         firstPanel.classList.add('active');
         
-        console.log('✅ Unified dashboard tabs initialized successfully!');
     }
 }
 
@@ -16156,7 +16146,6 @@ function exportUnifiedReport(url) { exportAsCSV(url); }
 function copyUnifiedSummary(url) { copyAsMarkdown(url); }
 
 function scheduleUnifiedReview(url) {
-    console.log('📅 Scheduling unified review for:', url);
     showUnifiedNotification('📅 Review scheduling functionality - integrate with your calendar system');
 }
 
@@ -16867,8 +16856,6 @@ function validateIntentCounts(intentAnalysis, intentCounts) {
         }
     });
     
-    console.log('Original counts:', intentCounts);
-    console.log('Actual counts:', actualCounts);
     
     // Check for mismatches
     const mismatches = [];
@@ -16902,7 +16889,6 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     // FIX: Validate and correct intent counts
     // Validating intent counts
     const correctedIntentCounts = validateIntentCounts(intentAnalysis, intentCounts);
-    console.log('✅ Intent counts validated successfully:', correctedIntentCounts);
     
     // Create intent distribution chart using corrected counts
     // Creating intent distribution chart
@@ -16912,14 +16898,11 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
         .filter(([,count]) => count > 0);
     
     // NEW: Analyze Irish service usage
-    console.log('🇮🇪 Analyzing Irish service usage...');
     const irishServiceAnalysis = analyseIrishServiceUsage(intentAnalysis);
-    console.log('✅ Irish service analysis completed:', irishServiceAnalysis);
     const topIrishServices = Object.entries(irishServiceAnalysis.serviceBreakdown)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 5)
         .filter(([,count]) => count > 0);
-    console.log('🏆 Top Irish services:', topIrishServices);
     
     return `
         <div class="citizen-journey-panel">
@@ -17046,7 +17029,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                             <div class="query-metrics">
                                 <span class="metric">${formatNumber(item.impressions)} ${getPeriodMetricLabel('monthly searches')}</span>
                                 <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
-                                <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
+                                <span class="metric">${(item.impressions > 0 ? item.clicks / item.impressions * 100 : 0).toFixed(1)}% engagement</span>
                             </div>
                             ${item.detectedServiceTypes && item.detectedServiceTypes.length > 0 ? `
                                 <div class="detected-services">
@@ -17074,7 +17057,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
                                 <div class="query-metrics">
                                     <span class="metric">${formatNumber(item.impressions)} ${getPeriodMetricLabel('monthly searches')}</span>
                                     <span class="metric">${formatNumber(item.clicks)} citizens clicked</span>
-                                    <span class="metric">${(item.clicks / item.impressions * 100).toFixed(1)}% engagement</span>
+                                    <span class="metric">${(item.impressions > 0 ? item.clicks / item.impressions * 100 : 0).toFixed(1)}% engagement</span>
                                 </div>
                                 ${item.detectedServiceTypes && item.detectedServiceTypes.length > 0 ? `
                                     <div class="detected-services">
@@ -18652,7 +18635,6 @@ function clearServiceFilter() {
     
 
 function filterQueriesByIntent(filterIntent) {
-    console.log('filterQueriesByIntent called with:', filterIntent);
     
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
@@ -18672,7 +18654,6 @@ function filterQueriesByIntent(filterIntent) {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
-        console.log('📦 Stored fresh original query data for filtering');
     } else {
         // Reset to original data if already stored
         queriesList.innerHTML = originalQueryData.mainQueries;
@@ -18713,7 +18694,6 @@ function filterQueriesByIntent(filterIntent) {
         allQueryItems = allQueryItems.concat(hiddenItems);
     }
     
-    console.log(`🔍 Total available items to filter: ${allQueryItems.length}`);
     
     // Filter items by intent
     const filteredItems = allQueryItems.filter(item => {
@@ -18721,7 +18701,6 @@ function filterQueriesByIntent(filterIntent) {
         return itemIntent === filterIntent;
     });
     
-    console.log(`🔍 Found ${filteredItems.length} items for intent: ${filterIntent}`);
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -18780,7 +18759,6 @@ function filterQueriesByIntent(filterIntent) {
                 block: 'start',
                 inline: 'nearest'
             });
-            console.log('📍 Scrolled to filtered results');
         }
     }, 100); // Small delay to ensure DOM is updated
 }
@@ -18791,7 +18769,6 @@ function filterQueriesByIntent(filterIntent) {
     
 
 function filterQueriesByService(filterService) {
-    console.log('filterQueriesByService called with:', filterService);
     
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
@@ -18811,7 +18788,6 @@ function filterQueriesByService(filterService) {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
-        console.log('📦 Stored fresh original query data for service filtering');
     } else {
         // Reset to original data if already stored
         queriesList.innerHTML = originalQueryData.mainQueries;
@@ -18852,7 +18828,6 @@ function filterQueriesByService(filterService) {
         allQueryItems = allQueryItems.concat(hiddenItems);
     }
     
-    console.log(`🔍 Total available items to filter: ${allQueryItems.length}`);
     
     // Filter items by detected service types
     const filteredItems = allQueryItems.filter(item => {
@@ -18865,7 +18840,6 @@ function filterQueriesByService(filterService) {
         return detectedServicesText.includes(serviceDisplayName);
     });
     
-    console.log(`🔍 Found ${filteredItems.length} items for service: ${filterService}`);
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -18923,13 +18897,11 @@ function filterQueriesByService(filterService) {
                 block: 'start',
                 inline: 'nearest'
             });
-            console.log('📍 Scrolled to filtered service results');
         }
     }, 100);
 }
 
 function filterQueriesByUrgency() {
-    console.log('filterQueriesByUrgency called');
     
     const queriesList = document.getElementById('citizenQueriesList');
     const hiddenQueriesList = document.getElementById('hiddenQueriesList');
@@ -18949,7 +18921,6 @@ function filterQueriesByUrgency() {
             mainQueries: queriesList.innerHTML,
             hiddenQueries: hiddenQueriesList ? hiddenQueriesList.innerHTML : ''
         };
-        console.log('📦 Stored fresh original query data for urgency filtering');
     } else {
         // Reset to original data if already stored
         queriesList.innerHTML = originalQueryData.mainQueries;
@@ -18984,7 +18955,6 @@ function filterQueriesByUrgency() {
         allQueryItems = allQueryItems.concat(hiddenItems);
     }
     
-    console.log(`🔍 Total available items to filter: ${allQueryItems.length}`);
     
     // Filter items by urgency - look for urgency badge
     const filteredItems = allQueryItems.filter(item => {
@@ -18992,7 +18962,6 @@ function filterQueriesByUrgency() {
         return urgencyBadge !== null;
     });
     
-    console.log(`🔍 Found ${filteredItems.length} urgent items`);
     
     if (filteredItems.length === 0) {
         queriesList.innerHTML = `
@@ -19051,7 +19020,6 @@ function filterQueriesByUrgency() {
                 block: 'start',
                 inline: 'nearest'
             });
-            console.log('📍 Scrolled to filtered urgent results');
         }
     }, 100);
 }
@@ -19129,7 +19097,6 @@ function initializeCitizenQueryIntelligence() {
         
         // Handle urgent queries filtering
         if (e.target.closest('.urgent-filter-bar')) {
-            console.log('Urgent filter clicked!');
             filterQueriesByUrgency();
         }
         
@@ -19652,7 +19619,6 @@ function getCountryFlagEnhanced(country) {
     }
     
     // Debug logging
-    console.log(`🌍 Unknown country: "${country}" (searched as: "${countryLower}")`);
     
     // Return default globe with the country code/name for debugging
     return `🌍`;
@@ -19750,7 +19716,7 @@ function extractLocationContext(queryText) {
     return 'General Location';
 }
 
-function determineUrgencyLevel(queryText) {
+function determineQueryUrgency(queryText) {
     const criticalWords = ['emergency', 'urgent', 'asap'];
     const highWords = ['today', 'immediately', 'deadline'];
     const mediumWords = ['soon', 'quick', 'fast'];
@@ -20154,7 +20120,6 @@ function analyseMobilityFactors(geoData) {
 }
 
 function updatePerformanceHeatmap(metric) {
-    console.log('Updating performance heatmap for metric:', metric);
     // Implementation would update the heatmap visualization
     // based on the selected metric (users, engagement, conversions)
 }
@@ -20221,7 +20186,6 @@ function processGeographicDataEnhanced(geoData, gscData) {
     
     // If no geographic data available, create a basic structure
     if (regions.length === 0 && countries.length === 0) {
-        console.log('📍 No geographic data available from GA4');
         return {
             totalIrishUsers: '0',
             dublinPercentage: '0.0',
@@ -20581,7 +20545,6 @@ function showDashboardModal(htmlContent) {
 
 // Function to reset all filter states when loading new dashboard
 function resetDashboardFilters() {
-    console.log('🧹 Resetting dashboard filters...');
     
     // Clear the original query data
     originalQueryData = null;
@@ -20608,7 +20571,6 @@ function resetDashboardFilters() {
     if (clearJourneyBtn) clearJourneyBtn.style.display = 'none';
     if (clearServiceBtn) clearServiceBtn.style.display = 'none';
     
-    console.log('✅ Dashboard filters reset');
 }
 
 
@@ -20837,7 +20799,6 @@ function initMobileUX() {
             });
         }, 500);
         
-        console.log('📱 Mobile UX initialized');
     }
 }
 
@@ -20876,29 +20837,22 @@ function createFloatingDateIndicator(dashboardId, currentRange, compStartDate, c
     // Append directly to body for true floating behavior
     document.body.appendChild(floatingIndicator);
     
-    console.log('📅 Created floating date indicator outside modal');
 }
 
 // AI Overview Impact Chart Creation with Chart.js - Search Console Style
 function createAIDivergenceChart(timelineData, dashboardId) {
-    console.log('📊 Creating interactive AI Overview divergence chart with logarithmic scale...');
-    console.log('🆕 VERSION: 2025-08-27 15:48 - Legend text color fixed to white!');
     
     const canvasId = `ai-divergence-chart-${dashboardId || 'default'}`;
     const canvas = document.getElementById(canvasId);
     const loadingEl = document.getElementById(`chart-loading-${dashboardId || 'default'}`);
     const noDataEl = document.getElementById(`chart-no-data-${dashboardId || 'default'}`);
     
-    console.log('🎯 Looking for canvas with ID:', canvasId);
-    console.log('🔍 Canvas found:', !!canvas);
-    console.log('📋 Available canvases:', Array.from(document.querySelectorAll('canvas')).map(c => c.id));
     
     if (!canvas) {
         console.warn('❌ AI divergence chart canvas not found:', canvasId);
         // Try to find any AI chart canvas as fallback
         const fallbackCanvas = document.querySelector('[id*="ai-divergence-chart"]');
         if (fallbackCanvas) {
-            console.log('🔄 Found fallback canvas:', fallbackCanvas.id);
             // Update IDs to match
             const fallbackId = fallbackCanvas.id.replace('ai-divergence-chart-', '');
             return createAIDivergenceChart(timelineData, fallbackId);
@@ -21328,7 +21282,6 @@ function createAIDivergenceChart(timelineData, dashboardId) {
             }
         });
         
-        console.log('✅ Interactive AI divergence chart created');
         
         // Metrics overlay removed - data shown in main KPI cards
         
@@ -21427,7 +21380,6 @@ function analyseTimelineData(chartData) {
 
 // Update metrics cards with real chart data
 function updateMetricsFromChartData(chartData, dashboardId) {
-    console.log('📊 Updating metrics from chart data...');
     
     if (!chartData || !chartData.impressions || chartData.impressions.length < 7) {
         console.warn('Insufficient chart data for metrics update');
@@ -21489,7 +21441,6 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         return;
     }
     
-    console.log('✅ Found dashboard container:', dashboardContainer.className || dashboardContainer.id);
     
     // Update CTR change card
     const ctrDeclineCard = dashboardContainer.querySelector('.impact-metric-card.ctr-decline .metric-value');
@@ -21567,7 +21518,6 @@ function updateMetricsFromChartData(chartData, dashboardId) {
         severityText = 'Minimal Impact';
     }
     
-    console.log(`🎯 updateMetricsFromChartData - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     // Update severity indicator in header
     const severityIndicator = dashboardContainer.querySelector('.impact-severity');
@@ -21796,7 +21746,6 @@ function drawAxesLabels(ctx, padding, chartWidth, chartHeight, months, maxImpres
 // ===========================================
 
 function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
-    console.log('🤖 Creating AI Overview Impact section for:', url);
     console.log('📋 GSC Data passed to section:', {
         hasData: !!gscData,
         type: typeof gscData,
@@ -21815,16 +21764,13 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
     
     // Fetch real 12-month time-series data in the background and update chart
     if (window.GSCIntegration && window.GSCIntegration.fetch12MonthTimeSeriesData) {
-        console.log('🔄 Fetching real 12-month time-series data for AI impact analysis...');
         
         // Create nodeData object for GSC integration
         const nodeData = { url: url };
         
         window.GSCIntegration.fetch12MonthTimeSeriesData(nodeData).then(result => {
-            console.log('✅ Received 12-month time-series data:', result);
             
             if (result.timelineData && result.timelineData.length > 0) {
-                console.log(`📊 Processing ${result.timelineData.length} data points for AI impact analysis`);
                 
                 // Update global timeline data with real data
                 window.currentAITimelineData = result.timelineData;
@@ -21844,7 +21790,6 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
             }
         }).catch(error => {
             console.error('❌ Failed to fetch 12-month time-series data:', error);
-            console.log('📊 Continuing with estimated metrics based on aggregated data');
         });
     } else {
         console.warn('⚠️ GSC time-series integration not available, using estimated metrics');
@@ -21939,7 +21884,6 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
 }
 
 function calculateAIOverviewImpact(gscData, url) {
-    console.log('🤖 Calculating AI Overview impact for:', url);
     console.log('📊 GSC Data structure:', {
         hasGscData: !!gscData,
         hasRows: !!gscData?.rows,
@@ -21974,14 +21918,12 @@ function calculateAIOverviewImpact(gscData, url) {
     }
     
     if (gscRows && gscRows.length > 0) {
-        console.log('✅ Found time-series GSC data with', gscRows.length, 'rows');
         // Process real GSC data by date to show timeline
         const processedData = processGSCDataByDate(gscRows);
         return calculateImpactFromTimeSeriesData(processedData, gscData, url);
     }
     
     console.warn('❌ No usable GSC data found for AI impact calculation');
-    console.log('💡 Available GSC data structure:', gscData);
     return getDefaultImpactMetrics();
 }
 
@@ -22018,7 +21960,6 @@ function findPeakDivergenceMonthFromAggregated(currentClicks, currentImpressions
 }
 
 function calculateImpactFromAggregatedData(gscData, url) {
-    console.log('📊 Calculating impact from aggregated GSC data...');
     
     // Extract current metrics
     const currentClicks = gscData.clicks || 0;
@@ -22089,7 +22030,6 @@ function calculateImpactFromAggregatedData(gscData, url) {
         severityText = 'Minimal Impact';
     }
     
-    console.log(`🎯 calculateImpactFromAggregatedData - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     // Generate synthetic timeline data for chart (based on current data point)
     const timelineData = generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR);
@@ -22112,7 +22052,6 @@ function calculateImpactFromAggregatedData(gscData, url) {
 
 function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
     // This is the original time-series calculation logic
-    console.log('📊 Calculating impact from time-series GSC data...');
     
     const now = new Date();
     const aiLaunchDate = new Date('2024-05-01');
@@ -22204,7 +22143,6 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
         severityText = 'Minimal Impact';
     }
     
-    console.log(`🎯 calculateImpactFromTimeSeriesData - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     const peakDivergenceMonth = findPeakDivergenceMonth(processedData);
     const avgPositionChange = afterAvg.position && beforeAvg.position ? 
@@ -22228,7 +22166,6 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
 }
 
 function generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR) {
-    console.log('📈 Generating synthetic timeline from current data...');
     
     const timeline = [];
     const now = new Date();
@@ -22270,7 +22207,6 @@ function generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR
 }
 
 function processGSCDataByDate(gscRows) {
-    console.log('📊 Processing GSC data by date...');
     
     if (!gscRows || gscRows.length === 0) return [];
     
@@ -22309,7 +22245,6 @@ function processGSCDataByDate(gscRows) {
         position: group.count > 0 ? group.position / group.count : 0
     })).sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    console.log(`✅ Processed ${processedData.length} data points by date`);
     return processedData;
 }
 
@@ -22384,7 +22319,6 @@ function analyseAffectedQueries(gscData) {
 
 // New function to calculate impact from real 12-month time-series data
 function calculateImpactFromRealTimeSeriesData(timelineData, url) {
-    console.log('📊 Calculating AI impact from real time-series data:', timelineData.length, 'data points');
     
     if (!timelineData || timelineData.length === 0) {
         return getDefaultImpactMetrics();
@@ -22400,7 +22334,6 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
     const preAIData = sortedData.filter(d => new Date(d.date) < aiLaunchDate);
     const postAIData = sortedData.filter(d => new Date(d.date) >= aiLaunchDate);
     
-    console.log(`📈 Pre-AI data points: ${preAIData.length}, Post-AI data points: ${postAIData.length}`);
     
     if (preAIData.length === 0 || postAIData.length === 0) {
         console.warn('⚠️ Insufficient data to compare pre/post AI periods');
@@ -22457,7 +22390,6 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
         severityText = 'Minimal Impact';
     }
     
-    console.log(`🎯 calculateRealImpactMetrics - Divergence Index: ${divergenceIndex}, Severity: ${severity} (${severityText})`);
     
     // Find peak divergence month
     const peakDivergenceMonth = findPeakDivergenceMonthReal(sortedData, aiLaunchDate);
@@ -22592,7 +22524,6 @@ function calculateImpactFromCurrentData(sortedData, url) {
 }
 
 function updateAIImpactDisplay(dashboardId, updatedMetrics) {
-    console.log('🔄 Updating AI impact display with real data:', updatedMetrics);
     
     const dashboardContainer = document.querySelector(`[data-dashboard-id="${dashboardId}"]`);
     if (!dashboardContainer) {
@@ -22649,12 +22580,10 @@ function updateAIImpactDisplay(dashboardId, updatedMetrics) {
         sectionTitle.textContent = 'Real 12-month historical data analysis of clicks vs impressions divergence due to AI overviews';
     }
     
-    console.log('✅ AI impact display updated with real data');
 }
 
 // Generate dynamic narrative based on page metrics and patterns
 function generateDynamicNarrative(impactMetrics, gscData, url) {
-    console.log('📝 Generating dynamic narrative for:', url);
     
     // Extract key values for the narrative
     const ctrDecline = impactMetrics.ctrDecline || 0;
@@ -23143,7 +23072,6 @@ function calculateCriticalDate(declineRate) {
 }
 
 function processTimelineForChart(timelineData) {
-    console.log('📊 Processing real timeline data for chart...');
     
     if (!timelineData || timelineData.length === 0) return { impressions: [], clicks: [], labels: [] };
     
@@ -23220,7 +23148,6 @@ function loadChartJS() {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js';
         script.onload = () => {
-            console.log('✅ Chart.js loaded successfully');
             resolve();
         };
         script.onerror = () => {
@@ -23232,7 +23159,6 @@ function loadChartJS() {
 }
 
 function generate12MonthTimeline(timelineData) {
-    console.log('📊 Generating 12-month timeline (excluding current month)...');
     
     // Generate last 12 months labels (excluding current month)
     const months = [];
@@ -23357,10 +23283,10 @@ function showNoDataState(canvasId, loadingEl, noDataEl, customMessage) {
 // Add to the GLOBAL EXPORTS section
 // REPLACE the existing refreshUnifiedDashboard function with this fixed version:
 window.refreshUnifiedDashboard = async function(url) {
-    console.log('🔄 Refreshing Unified Citizens Dashboard for:', url);
 
     // Store/update the dashboard URL
     window.currentDashboardUrl = url;
+    const refreshGen = (window._dashRefreshGen = (window._dashRefreshGen || 0) + 1);
 
     // RESET FILTERS FIRST
     resetDashboardFilters();
@@ -23469,28 +23395,23 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 gscData = await window.GSCIntegration.fetchNodeDataForPeriod({ url }, startDateObj, endDateObj);
                 
-                console.log('🔍 GSC period data result:', { hasData: !!gscData, noDataFound: gscData?.noDataFound, url });
                 
                 // Fetch geographic data for GSC for the period
                 if (gscData && !gscData.noDataFound) {
                     const gscGeoData = await window.GSCIntegration.fetchGeographicDataForPeriod({ url }, startDateObj, endDateObj);
                     if (gscGeoData) {
                         gscData.geographic = gscGeoData;
-                        console.log('🌍 GSC Geographic data fetched for period');
                     }
                 }
                 
                 // If no period data found, try the original fetchNodeData method as fallback
                 if (!gscData || gscData.noDataFound === true) {
-                    console.log(`🔍 No GSC data found for ${period} period (${dateRange.startDate} to ${dateRange.endDate}), trying original fetchNodeData method...`);
                     
                     // Try enhanced URL matching if available
                     if (window.fetchCombinedAnalyticsData) {
-                        console.log('🔗 Using enhanced URL matching...');
                         const combinedData = await window.fetchCombinedAnalyticsData({ url });
                         if (combinedData && combinedData.gsc && !combinedData.gsc.noDataFound) {
                             gscData = combinedData.gsc;
-                            console.log('✅ Enhanced URL matching found GSC data');
                         } else {
                             gscData = await window.GSCIntegration.fetchNodeData({ url });
                         }
@@ -23501,7 +23422,6 @@ window.refreshUnifiedDashboard = async function(url) {
                     gscPrevious = await window.GSCIntegration.fetchPreviousPeriodData({ url });
                     
                     // Note: when using fallback, we lose the custom date range but get working data
-                    console.log('📅 Using default 30-day period from original method due to no period data');
                 } else {
                     // Calculate previous period for comparison
                     const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
@@ -23524,13 +23444,11 @@ window.refreshUnifiedDashboard = async function(url) {
                         }
                     };
                 }
-                console.log('✅ GSC data fetched successfully');
             } catch (error) {
                 console.error('GSC refresh error:', error);
                 gscData = { noDataFound: true };
             }
         } else {
-            console.log('⚠️ GSC not connected');
             gscData = { noDataFound: true };
         }
         
@@ -23556,28 +23474,23 @@ window.refreshUnifiedDashboard = async function(url) {
                 
                 ga4Data = await window.GA4Integration.fetchDataForPeriod(url, startDateObj, endDateObj);
                 
-                console.log('🔍 GA4 period data result:', { hasData: !!ga4Data, noDataFound: ga4Data?.noDataFound, url });
                 
                 // Fetch geographic data for the period
                 if (ga4Data && !ga4Data.noDataFound) {
                     const geoData = await window.GA4Integration.fetchGeographicDataForPeriod(url, startDateObj, endDateObj);
                     if (geoData) {
                         ga4Data.geographic = geoData;
-                        console.log('🌍 Geographic data fetched for period');
                     }
                 }
                 
                 // If no period data found, try the original fetchData method as fallback
                 if (!ga4Data || ga4Data.noDataFound === true) {
-                    console.log(`📊 No GA4 data found for ${period} period (${dateRange.startDate} to ${dateRange.endDate}), trying original fetchData method...`);
                     
                     // Try enhanced URL matching if available
                     if (window.fetchCombinedAnalyticsData) {
-                        console.log('🔗 Using enhanced URL matching...');
                         const combinedData = await window.fetchCombinedAnalyticsData({ url });
                         if (combinedData && combinedData.ga4 && !combinedData.ga4.noDataFound) {
                             ga4Data = combinedData.ga4;
-                            console.log('✅ Enhanced URL matching found GA4 data');
                         } else {
                             ga4Data = await window.GA4Integration.fetchData(url);
                         }
@@ -23588,7 +23501,6 @@ window.refreshUnifiedDashboard = async function(url) {
                     ga4Previous = await window.GA4Integration.fetchPreviousPeriodData(url);
                     
                     // Note: when using fallback, we lose the custom date range but get working data
-                    console.log('📅 Using default 30-day period from original method due to no period data');
                 } else {
                     // Calculate previous period for comparison
                     const periodDays = Math.floor((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
@@ -23612,53 +23524,39 @@ window.refreshUnifiedDashboard = async function(url) {
                         }
                     };
                 }
-                console.log('✅ GA4 data fetched successfully');
             } catch (error) {
                 console.error('GA4 refresh error:', error);
                 ga4Data = { noDataFound: true };
             }
         } else {
-            console.log('⚠️ GA4 not connected');
             ga4Data = { noDataFound: true };
         }
         
-        // Generating new dashboard
+        // Discard this refresh if a newer one started, or if the panel was closed
+        // while we were fetching — don't write to a dead node or re-open a dismissed panel.
+        if (refreshGen !== window._dashRefreshGen) return;
+        const liveModal = document.getElementById('unified-dashboard-modal');
+        if (!liveModal) return;
+
         // Generate completely new dashboard HTML
-        const newDashboardHtml = createUnifiedCitizensDashboard(
-            url, 
-            gscData, 
-            ga4Data, 
-            gscTrends, 
-            ga4Trends
-        );
-        
-        // Update the panel content in-place. The panel is a full-screen fixed element
-        // created by showDashboardModal in combined-tooltip-integration.js; it has a
-        // single child content div (no .modal-content wrapper from the old implementation).
-        const contentDiv = modal.firstElementChild;
+        const newDashboardHtml = createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Trends);
+
+        const contentDiv = liveModal.firstElementChild;
         if (contentDiv) {
-            console.log('🔄 Updating existing panel content...');
             contentDiv.innerHTML = newDashboardHtml;
 
-            // Re-initialize dashboard functionality
             const dashboardId = contentDiv.querySelector('[id^="unified-dashboard-"]')?.id;
             if (dashboardId) {
                 setTimeout(() => {
                     try {
                         initializeUnifiedDashboard(dashboardId);
-                        console.log('✅ Dashboard re-initialized after refresh');
                     } catch (error) {
                         console.error('❌ Error re-initializing dashboard:', error);
                     }
                 }, 100);
             }
-        } else {
-            // Panel exists but is empty — recreate it via the real showDashboardModal
-            console.log('⚠️ Panel content div not found, recreating panel');
-            showDashboardModal(newDashboardHtml);
         }
         
-        console.log('✅ Dashboard refreshed successfully');
         showUnifiedNotification('✅ Dashboard data refreshed successfully!');
         
     } catch (error) {
@@ -23683,37 +23581,21 @@ window.refreshUnifiedDashboard = async function(url) {
 window.debugUnifiedTabs = function(dashboardId) {
     const dashboard = document.getElementById(dashboardId || document.querySelector('.unified-dashboard-container').id);
     if (!dashboard) {
-        console.log('❌ Dashboard not found');
         return;
     }
     
     const buttons = dashboard.querySelectorAll('.tab-btn');
     const panels = dashboard.querySelectorAll('.tab-panel');
     
-    console.log('🔍 Unified Dashboard Debug Info:');
-    console.log('- Buttons found:', buttons.length);
-    console.log('- Panels found:', panels.length);
     
     buttons.forEach((btn, i) => {
-        console.log(`- Button ${i}: data-tab="${btn.dataset.tab}", active=${btn.classList.contains('active')}`);
     });
     
     panels.forEach((panel, i) => {
-        console.log(`- Panel ${i}: data-panel="${panel.dataset.panel}", active=${panel.classList.contains('active')}`);
     });
 };
 
-console.log('✅ UNIFIED Enhanced Citizens Dashboard loaded successfully!');
-console.log('📋 Complete feature set:');
 // Enhanced Overview with Geographic Intelligence
-console.log('   - 🔍 Search Performance with Problem Detection');
-console.log('   - 📝 Content Analysis with Evidence-Based Actions');
-console.log('   - 👥 User Behavior with Regional Patterns');
 // Trends with Geographic Analysis
-console.log('   - 🏛️ Government Intelligence (NEW TAB)');
-console.log('   - ⚡ Action Items with Government Context');
-console.log('   - 🌍 Geographic Service Intelligence');
-console.log('   - 🎯 Citizens Impact Summary');
-console.log('   - 📱 Full Mobile Responsive Design');
 
 })();

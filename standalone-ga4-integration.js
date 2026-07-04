@@ -28,7 +28,6 @@
         ];
         
         if (importantEvents.some(event => message.includes(event))) {
-            console.log(`[GA4 Integration] ${message}`, data || '');
         }
     }
 
@@ -101,7 +100,6 @@
     }
 
     function handleGA4AuthResponse(response) {
-        console.log('[GA4] Auth response received:', response);
         hideGA4LoadingState();
         
         if (response.error) {
@@ -119,11 +117,9 @@
         }
         
         ga4AccessToken = response.access_token;
-        console.log('[GA4] Access token received successfully');
         
         if (typeof gapi !== 'undefined' && gapi.client) {
             gapi.client.setToken({ access_token: ga4AccessToken });
-            console.log('[GA4] Token set in gapi client');
         }
         
         setupGA4Connection();
@@ -132,8 +128,6 @@
     async function setupGA4Connection() {
         try {
             hideGA4LoadingMessage();
-            console.log('[GA4] Setup connection called');
-            console.log('[GA4] Current sitemap domain for auto-selection:', window.currentSitemapDomain);
             
             const selectedPropertyId = await showManualPropertyIdDialog();
             
@@ -152,7 +146,6 @@
                     // Get the property name for the success message
                     const propertyName = getGA4PropertyName(selectedPropertyId);
                     showGA4SuccessMessage(propertyName);
-                    console.log('[GA4] Connected successfully to:', propertyName);
                 } else {
                     alert('Could not access this property. Please check:\n• Property ID is correct\n• You have access to this GA4 property');
                     updateGA4ConnectionStatus(false);
@@ -233,13 +226,11 @@
                 for (const propertyDomain of property.domains) {
                     const normalizedPropertyDomain = propertyDomain.replace(/^www\./, '').toLowerCase();
                     if (normalizedDomain === normalizedPropertyDomain) {
-                        console.log(`[GA4] Found matching property: ${property.name} for domain: ${domain}`);
                         return property;
                     }
                 }
             }
             
-            console.log(`[GA4] No matching property found for domain: ${domain}`);
             return null;
         }
         
@@ -1016,8 +1007,6 @@ function addMobileGA4Button() {
                 return;
             }
             
-            console.log('[GA4] Requesting access token...');
-            console.log('[GA4] Current sitemap domain:', window.currentSitemapDomain);
             showGA4LoadingState();
             
             try {
@@ -1027,7 +1016,6 @@ function addMobileGA4Button() {
                     error_callback: (error) => {
                         console.error('[GA4] Token request error:', error);
                         if (error.type === 'popup_blocked' || error.message?.includes('popup')) {
-                            console.log('[GA4] Popup blocked, trying with consent prompt...');
                             try {
                                 ga4TokenClient.requestAccessToken({ prompt: 'consent' });
                             } catch (e) {
@@ -1041,7 +1029,6 @@ function addMobileGA4Button() {
                         }
                     }
                 });
-                console.log('[GA4] Token request sent');
             } catch (error) {
                 console.error('[GA4] Error requesting access token:', error);
                 hideGA4LoadingState();
@@ -1364,11 +1351,8 @@ function addGA4Styles() {
             return;
         }
         
-        console.log('🔍 Checking GA4 access...');
-        console.log('✅ Access token exists (first 20 chars):', ga4AccessToken.substring(0, 20) + '...');
         
         try {
-            console.log('📡 Testing Admin API access...');
             const response = await fetch('https://analyticsadmin.googleapis.com/v1beta/accountSummaries', {
                 headers: {
                     'Authorization': `Bearer ${ga4AccessToken}`,
@@ -1376,23 +1360,18 @@ function addGA4Styles() {
                 }
             });
             
-            console.log('📊 Admin API response status:', response.status);
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ Admin API works! Response:', data);
                 
                 if (data.accountSummaries && data.accountSummaries.length > 0) {
-                    console.log('📋 Your GA4 properties:');
                     let propertyCount = 0;
                     
                     data.accountSummaries.forEach(account => {
-                        console.log(`📁 Account: ${account.displayName}`);
                         if (account.propertySummaries) {
                             account.propertySummaries.forEach(property => {
                                 if (property.propertyType === 'PROPERTY_TYPE_GA4') {
                                     const propId = property.property.replace('properties/', '');
-                                    console.log(`   📊 ${property.displayName} (ID: ${propId})`);
                                     propertyCount++;
                                 }
                             });
@@ -1400,23 +1379,15 @@ function addGA4Styles() {
                     });
                     
                     if (propertyCount === 0) {
-                        console.log('⚠️ No GA4 properties found in your accounts');
                     }
                 } else {
-                    console.log('⚠️ No account summaries found');
                 }
             } else {
                 const errorText = await response.text();
-                console.log('❌ Admin API failed:', response.status);
-                console.log('📄 Error details:', errorText);
-                console.log('💡 This is normal - we\'ll use manual property entry instead');
             }
         } catch (error) {
-            console.log('❌ Admin API error:', error);
-            console.log('💡 This is why we use manual property ID entry');
         }
         
-        console.log('\n🧪 Testing Analytics Data API...');
         try {
             const testResponse = await fetch('https://analyticsdata.googleapis.com/v1beta/properties/999999999:runReport', {
                 method: 'POST',
@@ -1430,25 +1401,15 @@ function addGA4Styles() {
                 })
             });
             
-            console.log('📊 Analytics Data API status:', testResponse.status);
             
             if (testResponse.status === 404) {
-                console.log('✅ Analytics Data API works (404 expected for invalid property)');
             } else if (testResponse.status === 403) {
-                console.log('⚠️ Analytics Data API returns 403 - might be scope or permissions issue');
                 const errorText = await testResponse.text();
-                console.log('📄 Error details:', errorText);
             } else {
-                console.log('ℹ️ Unexpected response:', testResponse.status);
             }
         } catch (error) {
-            console.log('❌ Analytics Data API error:', error);
         }
         
-        console.log('\n💡 Next steps:');
-        console.log('   • If you see your property above, try: GA4Integration.debug.testSpecificProperty("YOUR_ID")');
-        console.log('   • If no properties listed, check you\'re signed in with the correct Google account');
-        console.log('   • Ask your GA4 admin to verify you have access to the property');
     }
 
     async function testSpecificProperty(propertyId) {
@@ -1457,28 +1418,18 @@ function addGA4Styles() {
             return false;
         }
         
-        console.log(`🧪 Testing specific property: ${propertyId}`);
         
         try {
             const result = await testGA4Property(propertyId);
             
             if (result) {
-                console.log('✅ Property test successful! You can use this property.');
-                console.log('🔗 Auto-connecting to this property...');
                 
                 ga4PropertyId = propertyId;
                 ga4Connected = true;
                 updateGA4ConnectionStatus(true);
                 showGA4SuccessMessage(`Property ${propertyId}`);
                 
-                console.log('🎉 Connected! You can now test URLs with:');
-                console.log(`   GA4Integration.debug.testUrl('/your-page-path')`);
             } else {
-                console.log('❌ Property test failed. Check the error details above.');
-                console.log('💡 Make sure:');
-                console.log('   • Property ID is correct (9-10 digits)');
-                console.log('   • You have access to this GA4 property');
-                console.log('   • You\'re signed in with the correct Google account');
             }
             
             return result;
@@ -1533,15 +1484,12 @@ function addGA4Styles() {
                 ga4Log('Cache cleared');
             },
             showCache: () => {
-                console.log('GA4 Cache contents:');
                 ga4DataCache.forEach((data, path) => {
-                    console.log(`${path}:`, data);
                 });
             },
             checkAccess: checkGA4Access,
             testSpecificProperty: testSpecificProperty,
             quickConnect: (propertyId) => {
-                console.log('🚀 Quick connect to property:', propertyId);
                 return testSpecificProperty(propertyId);
             }
         }
@@ -1586,13 +1534,11 @@ if (document.readyState === 'loading') {
 window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, endDate) {
     // Use public API methods instead of private variables
     if (!window.GA4Integration.isConnected()) {
-        console.log('[GA4] Not connected, cannot fetch period data');
         return null;
     }
     
     const propertyId = window.GA4Integration.getPropertyId();
     if (!propertyId) {
-        console.log('[GA4] No property ID available');
         return null;
     }
     
@@ -1684,9 +1630,7 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
                 }
             };
             
-            console.log('[GA4] Period data found for:', pagePath, ga4Data);
         } else {
-            console.log('[GA4] No period data found for:', pagePath);
         }
         
         return ga4Data;
@@ -1712,13 +1656,11 @@ window.GA4Integration.fetchDataForPeriod = async function(pageUrl, startDate, en
 // Function to fetch geographic data for a specific period
 window.GA4Integration.fetchGeographicDataForPeriod = async function(pageUrl, startDate, endDate) {
     if (!window.GA4Integration.isConnected()) {
-        console.log('[GA4] Not connected, cannot fetch geographic data');
         return null;
     }
     
     const propertyId = window.GA4Integration.getPropertyId();
     if (!propertyId) {
-        console.log('[GA4] No property ID available');
         return null;
     }
     
@@ -1853,7 +1795,6 @@ window.GA4Integration.fetchPreviousPeriodData = async function(pageUrl) {
 
 // Enhanced function to get current vs previous comparison
 window.GA4Integration.fetchTrendComparison = async function(pageUrl) {
-    console.log('[GA4] Fetching trend comparison for:', pageUrl);
     
     try {
         // Fetch both periods in parallel
@@ -1883,7 +1824,6 @@ window.GA4Integration.fetchTrendComparison = async function(pageUrl) {
         };
 
     } catch (error) {
-        console.log('[GA4] Error fetching trend comparison:', error);
         return { 
             current: null, 
             previous: null, 
@@ -2150,12 +2090,9 @@ window.GA4Integration.fetchDeviceData = async function(pageUrl) {
         content.onclick = e => e.stopPropagation();
     }
 
-console.log('✅ Enhanced GA4 functions added!');
 
     // Test function for auto-selection logic (bypasses auth)
     window.testGA4AutoSelection = function() {
-        console.log('🧪 Testing GA4 auto-selection logic...');
-        console.log('Current sitemap domain:', window.currentSitemapDomain);
         
         // Test with known domain
         if (window.currentSitemapDomain) {
@@ -2164,15 +2101,12 @@ console.log('✅ Enhanced GA4 functions added!');
                 window.currentSitemapDomain.includes(domain) || 
                 domain.includes(window.currentSitemapDomain)
             );
-            console.log('Is known domain:', isKnown);
             
             if (isKnown) {
                 // Simulate what would happen with auto-connection
                 const mockProperty = window.currentSitemapDomain.includes('citizensinformation.ie') ? 
                     'CIO - Citizens Information website' : 
                     'CIB - Citizens Information Board website';
-                console.log('✅ Would auto-connect immediately (no modal shown)');
-                console.log('🎉 Success toast would show:', mockProperty);
                 return;
             }
         }
@@ -2182,9 +2116,6 @@ console.log('✅ Enhanced GA4 functions added!');
         
         // Call property selection dialog directly for unknown domains
         showManualPropertyIdDialog().then(propertyId => {
-            console.log('Selected property:', propertyId);
         });
     };
 
-console.log('✅ GA4 Period Comparison Functions Fixed!');
-console.log('🧪 Test function added: window.testGA4AutoSelection()');
