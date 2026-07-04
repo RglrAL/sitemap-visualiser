@@ -5428,56 +5428,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
 
    
 
-    function createUserBehaviorPanel(ga4Data, ga4Trends, gscData) {
-        if (!ga4Data || ga4Data.noDataFound) {
-            return createConnectionMessage('Google Analytics', 'Connect Google Analytics to see detailed user behaviour data');
-        }
-        
-        return `
-            <div class="panel-content">
-                <div class="section">
-                    <h2 class="section-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                            </svg>Google Analytics Metrics</h2>
-                    <div class="metrics-grid">
-                        ${createGA4Metrics(ga4Data, ga4Trends)}
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🗺️ Regional User Behavior Patterns</h2>
-                    ${createRegionalUserBehaviorPatterns(ga4Data)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">⭐ User Experience Analysis</h2>
-                    ${createUserExperienceAnalysis(ga4Data)}
-                </div>
-            </div>
-        `;
-    }
-
-    function createTrendAnalysisPanel(gscTrends, ga4Trends) {
-        return `
-            <div class="panel-content">
-                <div class="section">
-                    <h2 class="section-title">📈 Performance Trends</h2>
-                    ${createTrendImpactSection(gscTrends, ga4Trends)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🌍 Geographic Trend Analysis</h2>
-                    ${createGeographicTrendAnalysis(ga4Trends)}
-                </div>
-                
-                <div class="section">
-                    <h2 class="section-title">🔮 Performance Forecast</h2>
-                    ${createForecastingSection(gscTrends, ga4Trends)}
-                </div>
-            </div>
-        `;
-    }
+    // (createUserBehaviorPanel + createTrendAnalysisPanel removed — Users/Trends tabs dropped)
 
     function createGovernmentIntelligencePanel(gscData, ga4Data, gscTrends, ga4Trends) {
     try {
@@ -15434,20 +15385,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                         </div>
                         <div class="tab-description">GSC clicks, impressions, and rankings</div>
                     </button>
-                    <button class="tab-btn" data-tab="users">
-                        <div class="tab-header">
-                            <span class="tab-icon">👥</span>
-                            <span class="tab-label">User Behaviour</span>
-                        </div>
-                        <div class="tab-description">GA4 engagement and UX patterns</div>
-                    </button>
-                    <button class="tab-btn" data-tab="trends">
-                        <div class="tab-header">
-                            <span class="tab-icon">📈</span>
-                            <span class="tab-label">Trends</span>
-                        </div>
-                        <div class="tab-description">Performance and geographic trends</div>
-                    </button>
                     <button class="tab-btn" data-tab="geographic">
                         <div class="tab-header">
                             <span class="tab-icon">🌍</span>
@@ -15471,14 +15408,6 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                     
                     <div class="tab-panel" data-panel="search">
                         ${createSearchPerformancePanel(gscData, gscTrends, url)}
-                    </div>
-                    
-                    <div class="tab-panel" data-panel="users">
-                        ${createUserBehaviorPanel(ga4Data, ga4Trends, gscData)}
-                    </div>
-                    
-                    <div class="tab-panel" data-panel="trends">
-                        ${createTrendAnalysisPanel(gscTrends, ga4Trends)}
                     </div>
                     
                     <div class="tab-panel" data-panel="geographic">
