@@ -3312,7 +3312,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             border-radius: 24px;
             padding: 40px;
             margin-bottom: 32px;
-            color: white;
+            color: var(--color-text-primary);
             position: relative;
             overflow: hidden;
         }
@@ -3351,22 +3351,22 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             font-size: 1.375rem;
             font-weight: 700;
             margin: 0 0 16px 0;
-            color: white;
+            color: var(--color-text-primary);
             text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
         .geo-explanation {
-            background: rgba(0, 0, 0, 0.22);
+            background: var(--color-bg-secondary);
             backdrop-filter: blur(10px);
             padding: 20px 24px;
             border-radius: 12px;
-            border: 1px solid rgba(114, 163, 0, 0.14);
+            border: 1px solid var(--color-border-primary);
             margin-top: 20px;
         }
         
         .geo-explanation p {
             margin: 0;
-            color: rgba(255, 255, 255, 0.95);
+            color: var(--color-text-primary);
             font-size: 1rem;
             line-height: 1.6;
             font-weight: 400;
@@ -3386,9 +3386,9 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .geo-kpi-card {
-            background: rgba(255, 255, 255, 0.04);
+            background: var(--color-bg-secondary);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(114, 163, 0, 0.18);
+            border: 1px solid var(--color-border-primary);
             border-radius: 12px;
             padding: 28px;
             text-align: center;
@@ -3412,7 +3412,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         .geo-kpi-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 20px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(114,163,0,0.15);
-            border-color: rgba(114, 163, 0, 0.45);
+            border-color: var(--color-border-primary);
         }
         
         .geo-kpi-card:hover::before {
@@ -3435,14 +3435,14 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             font-size: 2.5rem;
             font-weight: 800;
             margin-bottom: 8px;
-            color: white;
+            color: var(--color-text-primary);
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .kpi-label {
             font-size: 0.95rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--color-text-primary);
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 4px;
@@ -3450,14 +3450,14 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         .kpi-detail {
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--color-text-secondary);
             margin-bottom: 12px;
         }
         
         .coverage-bar {
             width: 100%;
             height: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--color-bg-secondary);
             border-radius: 4px;
             overflow: hidden;
             margin-top: 16px;
@@ -14007,7 +14007,7 @@ function formatDuration(seconds) {
                =========================================== */
             
             .ai-overview-impact-section {
-                background: linear-gradient(160deg, #0e1a0a 0%, #17240f 60%, #111a0c 100%);
+                background: var(--color-bg-primary); border: 1px solid var(--color-border-primary);
                 border-radius: 12px;
                 padding: 32px;
                 margin: 24px 0;
