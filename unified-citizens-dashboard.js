@@ -14137,8 +14137,9 @@ function formatDuration(seconds) {
             }
             
             .impact-severity.low {
-                background: rgba(34, 197, 94, 0.2);
-                border-color: rgba(34, 197, 94, 0.3);
+                background: var(--color-bg-secondary);
+                border-color: var(--color-border-primary);
+                color: var(--color-text-secondary);
             }
             
             .impact-metrics-row {
@@ -21787,7 +21788,6 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                     </p>
                 </div>
                 <div class="impact-severity ${impactMetrics.severity}">
-                    <span class="severity-icon">${impactMetrics.severityIcon}</span>
                     <span class="severity-text">${impactMetrics.severityText}</span>
                 </div>
             </div>
@@ -21830,7 +21830,7 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                             <div class="loading-text">Loading chart data...</div>
                         </div>
                         <div class="chart-no-data" id="chart-no-data-${dashboardId.replace('unified-dashboard-', '')}" style="display: none;">
-                            <div class="no-data-icon">📊</div>
+                            <div class="no-data-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></div>
                             <div class="no-data-text">Insufficient data for 12-month analysis</div>
                             <div class="no-data-subtext">Try selecting a longer time period in your date range settings</div>
                         </div>
@@ -22938,21 +22938,22 @@ function getAISectionSubtitle(impactMetrics) {
 
 function getSeverityMessage(severity, divergenceIndex) {
     if (severity === 'extreme') {
-        return `💥 <strong>Extreme Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing catastrophic AI Overview impact requiring urgent strategic review.`;
+        return `<strong>Extreme impact:</strong> a divergence index of ${divergenceIndex} means AI Overviews are severely displacing this page's traffic &mdash; an urgent review is warranted.`;
     } else if (severity === 'critical') {
-        return `🚨 <strong>Critical Impact Detected:</strong> With a divergence index of ${divergenceIndex}, this page is experiencing severe AI Overview impact requiring immediate intervention.`;
+        return `<strong>Critical impact:</strong> a divergence index of ${divergenceIndex} means AI Overviews are taking a large share of this page's clicks &mdash; worth addressing soon.`;
     } else if (severity === 'high') {
-        return `🔥 <strong>High Impact:</strong> A divergence index of ${divergenceIndex} indicates significant AI Overview displacement affecting this page's traffic.`;
-    } else if (severity === 'minimal') {
-        return `✅ <strong>Minimal Impact:</strong> This page shows good resilience to AI Overviews with a divergence index of only ${divergenceIndex}.`;
-    } else if (severity === 'minor') {
-        return `📊 <strong>Minor Impact:</strong> A divergence index of ${divergenceIndex} suggests some AI Overview effects but within manageable levels.`;
+        return `<strong>High impact:</strong> a divergence index of ${divergenceIndex} points to significant AI Overview displacement affecting this page's traffic.`;
     } else if (severity === 'moderate') {
-        return `⚠️ <strong>Moderate Impact:</strong> A divergence index of ${divergenceIndex} indicates noticeable AI Overview effects requiring attention.`;
+        return `<strong>Moderate impact:</strong> a divergence index of ${divergenceIndex} shows noticeable AI Overview effects worth keeping an eye on.`;
+    } else if (severity === 'minor') {
+        return `<strong>Minor impact:</strong> a divergence index of ${divergenceIndex} suggests some AI Overview effect, but at manageable levels.`;
+    } else if (severity === 'minimal') {
+        return `<strong>Minimal impact:</strong> with a divergence index of only ${divergenceIndex}, this page is holding up well against AI Overviews.`;
+    } else if (severity === 'low' || !divergenceIndex) {
+        return `<strong>Not enough data yet:</strong> there isn't enough Search Console history to gauge AI Overview impact for this page. It will become reliable as more data builds up.`;
     }
-    
-    // Fallback for any unmatched severity
-    return `⚠️ <strong>Impact Detected:</strong> A divergence index of ${divergenceIndex} indicates AI Overview effects requiring attention.`;
+    // Fallback — stay neutral, never alarm on an unknown state
+    return `<strong>No significant impact:</strong> the current data shows little sign of AI Overview displacement for this page.`;
 }
 
 function getOutlookMessage(impactMetrics, ctrDecline, impressionGrowth) {
