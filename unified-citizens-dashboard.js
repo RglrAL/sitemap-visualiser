@@ -16887,63 +16887,10 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
     
     return `
         <div class="citizen-journey-panel">
-            <div class="journey-explanation">
-                <p><strong>Citizen Journey Analysis:</strong> Understanding what stage citizens are at when they search helps tailor content to their specific needs and urgency levels.</p>
-            </div>
-            
-            <!-- Irish Service Detection Analysis -->
-            <div class="irish-service-analysis">
-                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Irish Government Service Detection</h4>
-                <p class="filter-instruction">💡 <strong>Click on any Irish service below to filter queries by that service type</strong></p>
-                <div class="service-stats">
-                    <div class="service-stat">
-                        <span class="stat-number">${irishServiceAnalysis.totalIrishQueries}</span>
-                        <span class="stat-label">Irish Service Queries</span>
-                    </div>
-                    <div class="service-stat">
-                        <span class="stat-number">${irishServiceAnalysis.percentageIrish}%</span>
-                        <span class="stat-label">of All Queries</span>
-                    </div>
-                    <div class="service-stat">
-                        <span class="stat-number">${formatNumber(irishServiceAnalysis.totalImpressions)}</span>
-                        <span class="stat-label">${formatPeriodLabel(window.currentDateRange?.period || '30d').replace('Last ', '')} Irish Service Searches</span>
-                    </div>
-                </div>
-                
-                ${topIrishServices.length > 0 ? `
-                    <div class="irish-service-breakdown">
-                        <h5>📊 Top Irish Services Being Searched:</h5>
-                        <div class="service-bars">
-                            ${topIrishServices.map(([service, count]) => {
-                                const percentage = Math.round((count / irishServiceAnalysis.totalIrishQueries) * 100);
-                                return `
-                                    <div class="service-bar clickable" data-filter-service="${service}" role="button" tabindex="0" aria-label="Click to filter queries by ${getServiceDisplayName(service)}" title="Click to see only ${getServiceDisplayName(service)} queries">
-                                        <div class="service-bar-label">
-                                            <span class="service-name">${getServiceDisplayName(service)}</span>
-                                            <span class="service-count">${count} queries (${percentage}%)</span>
-                                        </div>
-                                        <div class="service-bar-fill">
-                                            <div class="service-bar-progress" style="width: ${percentage}%; background: ${getServiceColor(service)}"></div>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                        <div class="service-filter-controls">
-                            <button class="clear-filter-btn" id="clearServiceFilter" style="display: none;">
-                                ✕ Show All Irish Services (<span id="totalIrishQueryCount">${irishServiceAnalysis.totalIrishQueries}</span> queries)
-                            </button>
-                        </div>
-                    </div>
-                ` : ''}
-            </div>
-            
             <!-- Intent Distribution -->
             <div class="intent-distribution">
                 <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg> Where Citizens Are in Their Journey</h4>
-                <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused) 
-                   
-                </p>
+                <p class="filter-instruction">Click a stage to filter the searches below.</p>
                 
                 <!-- Urgent Queries Filter -->
                 ${intentAnalysis.filter(item => item.hasUrgency).length > 0 ? `
@@ -16985,7 +16932,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <!-- Detailed Query Analysis -->
             <div class="queries-analysis">
                 <div class="queries-analysis-header">
-                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Detailed Citizen Query Analysis</h4>
+                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Search Queries</h4>
                     <div class="filter-status" id="journeyFilterStatus" style="display: none;">
                         <span class="filter-label">Filtered by:</span>
                         <span class="filter-value" id="filterValueDisplay"></span>
@@ -17067,183 +17014,47 @@ function createCitizenOpportunitiesPanel(opportunities) {
     if (opportunities.length === 0) {
         return `
             <div class="no-opportunities-message">
-                <div class="info-icon">👍</div>
-                <div class="info-title">No Major Opportunities Detected</div>
-                <div class="info-description">Your content appears to be serving citizens well</div>
+                <div class="info-title">No major opportunities right now</div>
+                <div class="info-description">Your content appears to be serving citizens well.</div>
             </div>
         `;
     }
-    
+
     const initialDisplayCount = 8;
     const showPagination = opportunities.length > initialDisplayCount;
-    
+    const totalHelped = opportunities.reduce((sum, item) => sum + (item.estimatedCitizensHelped || 0), 0);
+
+    const oppCard = item => {
+        const prio = item.priority === 'high' ? 'High' : item.priority === 'medium' ? 'Medium' : 'Low';
+        const ctr = ((item.ctr || 0) * 100).toFixed(1);
+        return `
+            <div class="opp-card ${item.priority}">
+                <div class="opp-top">
+                    <span class="opp-priority ${item.priority}">${prio}</span>
+                    <div class="opp-query">"${escapeHtml(item.query)}"</div>
+                    ${item.hasUrgency ? '<span class="opp-urgent">Urgent</span>' : ''}
+                </div>
+                <div class="opp-context">Ranks #${item.position.toFixed(0)} &middot; seen ${formatNumber(item.impressions)}&times;/mo &middot; ${ctr}% click through</div>
+                <div class="opp-payoff">Potential: <strong>+${item.potentialClicks}</strong> more citizens clicking per month</div>
+            </div>
+        `;
+    };
+
     return `
         <div class="citizen-opportunities-panel">
-            <div class="opportunities-explanation">
-                <p><strong>Opportunities to Better Serve Citizens:</strong> These are specific ways you can improve your content to help more citizens find what they need and complete their tasks successfully.</p>
-                <div class="opportunities-stats">
-                    <span class="stat-item">Found <strong>${opportunities.length}</strong> improvement opportunities</span>
-                    <span class="stat-item">Could help <strong>${opportunities.reduce((sum, item) => sum + item.estimatedCitizensHelped, 0)}</strong> more citizens ${getPeriodMetricLabel('monthly').toLowerCase()}</span>
-                </div>
-            </div>
-            
+            <p class="opp-intro">Queries where a content tweak could help more citizens finish their task. <strong>${opportunities.length}</strong> found &mdash; could reach <strong>${formatNumber(totalHelped)}</strong> more people per month.</p>
+
             <div class="opportunities-list" data-citizen-list="opportunities">
-                ${opportunities.slice(0, initialDisplayCount).map(item => `
-                    <div class="opportunity-item ${item.priority} ${item.citizenImpact}">
-                        <div class="opportunity-header">
-                            <div class="query-text">"${escapeHtml(item.query)}"</div>
-                            <div class="opportunity-badges">
-                                <span class="priority-badge ${item.priority}">
-                                    ${item.priority === 'high' ? '🎯 High Impact' : item.priority === 'medium' ? '⭐ Medium Impact' : '💡 Low Impact'}
-                                </span>
-                                <span class="citizen-impact-badge ${item.citizenImpact}">
-                                    ${item.citizenImpact === 'high' ? '👥 High Citizen Value' : item.citizenImpact === 'medium' ? '👤 Medium Citizen Value' : '📋 Standard Service'}
-                                </span>
-                                ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent Need</span>' : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="citizen-journey-context">
-                            <div class="journey-info">
-                                <span class="journey-label">Citizen Journey Stage:</span>
-                                <span class="journey-stage">${item.plainEnglishIntent}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="current-performance">
-                            <div class="performance-metrics">
-                                <div class="metric-group">
-                                    <div class="metric-item">
-                                        <span class="metric-label">Citizens searching ${getPeriodMetricLabel('monthly').toLowerCase()}:</span>
-                                        <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">Currently clicking through:</span>
-                                        <span class="metric-value">${formatNumber(item.clicks)} (${(item.ctr * 100).toFixed(1)}%)</span>
-                                    </div>
-                                </div>
-                                <div class="metric-group">
-                                    <div class="metric-item">
-                                        <span class="metric-label">Google ranking position:</span>
-                                        <span class="metric-value">#${item.position.toFixed(0)}</span>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-label">Opportunity score:</span>
-                                        <span class="metric-value">${item.score}/10</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="opportunity-factors">
-                            <h5>🎯 Why This is an Opportunity:</h5>
-                            <ul class="factor-list">
-                                ${item.factors.map(factor => `<li>${factor}</li>`).join('')}
-                            </ul>
-                        </div>
-                        
-                        <div class="potential-results">
-                            <h5>📈 Expected Results from Improvement:</h5>
-                            <div class="results-grid">
-                                <div class="result-item">
-                                    <span class="result-icon">👆</span>
-                                    <span class="result-text">+${item.potentialClicks} more citizens clicking monthly</span>
-                                </div>
-                                <div class="result-item">
-                                    <span class="result-icon">🎯</span>
-                                    <span class="result-text">${item.estimatedCitizensHelped} total citizens better served</span>
-                                </div>
-                                <div class="result-item">
-                                    <span class="result-icon">📊</span>
-                                    <span class="result-text">CTR improvement potential: +${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100)}%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-                
-                <!-- Hidden opportunities for pagination -->
+                ${opportunities.slice(0, initialDisplayCount).map(oppCard).join('')}
                 <div class="hidden-queries" style="display: none;">
-                    ${opportunities.slice(initialDisplayCount).map(item => `
-                        <div class="opportunity-item ${item.priority} ${item.citizenImpact}">
-                            <div class="opportunity-header">
-                                <div class="query-text">"${escapeHtml(item.query)}"</div>
-                                <div class="opportunity-badges">
-                                    <span class="priority-badge ${item.priority}">
-                                        ${item.priority === 'high' ? '🎯 High Impact' : item.priority === 'medium' ? '⭐ Medium Impact' : '💡 Low Impact'}
-                                    </span>
-                                    <span class="citizen-impact-badge ${item.citizenImpact}">
-                                        ${item.citizenImpact === 'high' ? '👥 High Citizen Value' : item.citizenImpact === 'medium' ? '👤 Medium Citizen Value' : '📋 Standard Service'}
-                                    </span>
-                                    ${item.hasUrgency ? '<span class="urgency-badge">🚨 Urgent Need</span>' : ''}
-                                </div>
-                            </div>
-                            
-                            <div class="citizen-journey-context">
-                                <div class="journey-info">
-                                    <span class="journey-label">Citizen Journey Stage:</span>
-                                    <span class="journey-stage">${item.plainEnglishIntent}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="current-performance">
-                                <div class="performance-metrics">
-                                    <div class="metric-group">
-                                        <div class="metric-item">
-                                            <span class="metric-label">Citizens searching ${getPeriodMetricLabel('monthly').toLowerCase()}:</span>
-                                            <span class="metric-value">${formatNumber(item.impressions)}</span>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span class="metric-label">Currently clicking through:</span>
-                                            <span class="metric-value">${formatNumber(item.clicks)} (${(item.ctr * 100).toFixed(1)}%)</span>
-                                        </div>
-                                    </div>
-                                    <div class="metric-group">
-                                        <div class="metric-item">
-                                            <span class="metric-label">Google ranking position:</span>
-                                            <span class="metric-value">#${item.position.toFixed(0)}</span>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span class="metric-label">Opportunity score:</span>
-                                            <span class="metric-value">${item.score}/10</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="opportunity-factors">
-                                <h5>🎯 Why This is an Opportunity:</h5>
-                                <ul class="factor-list">
-                                    ${item.factors.map(factor => `<li>${factor}</li>`).join('')}
-                                </ul>
-                            </div>
-                            
-                            <div class="potential-results">
-                                <h5>📈 Expected Results from Improvement:</h5>
-                                <div class="results-grid">
-                                    <div class="result-item">
-                                        <span class="result-icon">👆</span>
-                                        <span class="result-text">+${item.potentialClicks} more citizens clicking ${getPeriodMetricLabel('monthly').toLowerCase()}</span>
-                                    </div>
-                                    <div class="result-item">
-                                        <span class="result-icon">🎯</span>
-                                        <span class="result-text">${item.estimatedCitizensHelped} total citizens better served</span>
-                                    </div>
-                                    <div class="result-item">
-                                        <span class="result-icon">📊</span>
-                                        <span class="result-text">CTR improvement potential: +${Math.round((getCTRBenchmark(item.position) - item.ctr) * 100)}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
+                    ${opportunities.slice(initialDisplayCount).map(oppCard).join('')}
                 </div>
             </div>
-            
+
             ${showPagination ? `
                 <div class="pagination-controls">
                     <button class="show-more-btn" data-target="opportunities" data-remaining="${opportunities.length - initialDisplayCount}">
-                        Show ${opportunities.length - initialDisplayCount} More Opportunities
+                        Show ${opportunities.length - initialDisplayCount} more
                     </button>
                 </div>
             ` : ''}
@@ -17251,7 +17062,6 @@ function createCitizenOpportunitiesPanel(opportunities) {
     `;
 }
 
-// UI CREATION FUNCTION
 // FIXED VERSION - Replace your existing createCitizenQueryIntelligenceSection function with this:
 
 function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
@@ -17264,26 +17074,20 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
                 <div class="section-subtitle">Understanding what citizens really need through their search behaviour</div>
             </div>
             
-            <!-- Key Metrics Overview -->
-            <div class="intelligence-overview">
-                <div class="overview-metrics">
-                    <div class="metric-card primary">
-                        <div class="metric-number">${formatNumber(analysis.summary.citizensImpacted)}</div>
-                        <div class="metric-label">Search Volume Analysed</div>
-                    </div>
-                    <div class="metric-card ${analysis.summary.urgentQueries > 0 ? 'urgent' : 'neutral'}">
-                        <div class="metric-number">${analysis.summary.urgentQueries}</div>
-                        <div class="metric-label">Urgent Needs Detected</div>
-                    </div>
-                    <div class="metric-card opportunity">
-                        <div class="metric-number">${analysis.summary.opportunities}</div>
-                        <div class="metric-label">Improvement Opportunities</div>
-                    </div>
+            <!-- Key metrics strip -->
+            <div class="cqi-strip">
+                <div class="cqi-metric">
+                    <div class="cqi-metric-label">Searches analysed</div>
+                    <div class="cqi-metric-value">${formatNumber(analysis.summary.citizensImpacted)}</div>
                 </div>
-                ${analysis.summary.urgentQueries > 0 ? 
-                    '<div class="urgent-alert">⚠️ <strong>Action Required:</strong> ' + analysis.summary.urgentQueries + ' urgent citizen needs identified</div>' : 
-                    '<div class="status-good">✅ No urgent citizen needs requiring immediate attention</div>'
-                }
+                <div class="cqi-metric">
+                    <div class="cqi-metric-label">Urgent needs</div>
+                    <div class="cqi-metric-value ${analysis.summary.urgentQueries > 0 ? 'alert' : ''}">${analysis.summary.urgentQueries}</div>
+                </div>
+                <div class="cqi-metric">
+                    <div class="cqi-metric-label">Opportunities</div>
+                    <div class="cqi-metric-value">${analysis.summary.opportunities}</div>
+                </div>
             </div>
             
             <!-- Detailed Analysis -->
@@ -17444,6 +17248,58 @@ function createCitizenQueryIntelligenceStyles() {
 }
         
             /* Citizen Query Intelligence Styles */
+            /* CQI metrics strip */
+            .cqi-strip {
+                display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+                border: 1px solid var(--color-border-primary); border-radius: 10px;
+                background: var(--color-bg-primary); overflow: hidden; margin-bottom: 20px;
+            }
+            .cqi-metric {
+                padding: 14px 18px; border-right: 1px solid var(--color-border-primary);
+                display: flex; flex-direction: column; gap: 4px;
+            }
+            .cqi-metric:last-child { border-right: none; }
+            .cqi-metric-label {
+                font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+                letter-spacing: 0.04em; color: var(--color-text-muted);
+            }
+            .cqi-metric-value { font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.1; }
+            .cqi-metric-value.alert { color: #dc2626; }
+            @media (max-width: 600px) {
+                .cqi-strip { grid-template-columns: 1fr; }
+                .cqi-metric { border-right: none; border-bottom: 1px solid var(--color-border-primary); }
+            }
+
+            /* Lean opportunity cards */
+            .citizen-opportunities-panel .opp-intro {
+                font-size: 0.9rem; color: var(--color-text-secondary);
+                margin: 0 0 16px; line-height: 1.5;
+            }
+            .opp-card {
+                border: 1px solid var(--color-border-primary);
+                border-left: 3px solid var(--color-border-secondary);
+                border-radius: 10px; background: var(--color-bg-primary);
+                padding: 14px 16px; margin-bottom: 10px;
+            }
+            .opp-card.high   { border-left-color: #dc2626; }
+            .opp-card.medium { border-left-color: #f59e0b; }
+            .opp-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+            .opp-priority {
+                font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+                padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
+                background: var(--color-bg-tertiary); color: var(--color-text-secondary);
+            }
+            .opp-priority.high   { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+            .opp-priority.medium { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+            .opp-query { font-weight: 600; color: var(--color-text-primary); font-size: 0.95rem; flex: 1; min-width: 0; }
+            .opp-urgent {
+                font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+                color: #dc2626; background: rgba(220, 38, 38, 0.12); padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
+            }
+            .opp-context { font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 4px; }
+            .opp-payoff { font-size: 0.85rem; color: var(--color-text-primary); }
+            .opp-payoff strong { color: var(--primary); }
+
             .citizen-query-intelligence {
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
                 border-left: 4px solid var(--primary);
@@ -20885,6 +20741,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
             return impressions > clicks ? impressions : null;
         });
         
+        const _chartDark = document.body.classList.contains('dark-theme');
+        const _axisText = _chartDark ? '#cbd5e1' : '#475569';
+        const _axisTextDim = _chartDark ? 'rgba(203, 213, 225, 0.4)' : 'rgba(71, 85, 105, 0.4)';
+        const _gridMajor = _chartDark ? 'rgba(148, 163, 184, 0.28)' : 'rgba(100, 116, 139, 0.22)';
+        const _gridMinor = _chartDark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(100, 116, 139, 0.12)';
+        const _axisBorder = _chartDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(100, 116, 139, 0.25)';
+
         window.aiDivergenceChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -20986,13 +20849,13 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.95)',
+                            color: _axisText,
                             font: { size: 12, weight: '500' },
                             maxRotation: 0
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.2)',
-                            borderColor: 'rgba(255, 255, 255, 0.3)',
+                            color: _gridMinor,
+                            borderColor: _axisBorder,
                             lineWidth: 1
                         }
                     },
@@ -21004,7 +20867,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                             display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.95)',
+                            color: _axisText,
                             font: { size: 12, weight: '500' },
                             callback: function(value, index, values) {
                                 return formatLogValue(value);
@@ -21018,15 +20881,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 const value = context.tick.value;
                                 // Major grid lines at powers of 10
                                 if (isPowerOf10(value)) {
-                                    return 'rgba(255, 255, 255, 0.4)';
+                                    return _gridMajor;
                                 }
                                 // Minor grid lines at 2x and 5x
                                 if (is2xOr5x(value)) {
-                                    return 'rgba(255, 255, 255, 0.2)';
+                                    return _gridMinor;
                                 }
                                 return 'transparent';
                             },
-                            borderColor: 'rgba(255, 255, 255, 0.3)',
+                            borderColor: _axisBorder,
                             lineWidth: function(context) {
                                 const value = context.tick.value;
                                 return isPowerOf10(value) ? 1.5 : 1;
@@ -21040,11 +20903,11 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         title: {
                             display: true,
                             text: 'Divergence Index',
-                            color: 'rgba(255, 255, 255, 0.9)',
+                            color: _axisText,
                             font: { size: 11 }
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.8)',
+                            color: _axisText,
                             font: { size: 10 },
                             maxTicksLimit: 6
                         },
@@ -21063,7 +20926,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                         display: true,
                         position: 'bottom',
                         labels: {
-                            color: '#ffffff',
+                            color: _axisText,
                             font: { size: 12, weight: '600' },
                             usePointStyle: true,
                             pointStyle: 'circle',
@@ -21080,22 +20943,22 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                 return labels.map(label => {
                                     if (label.text === 'Divergence Index') {
                                         label.pointStyle = 'line';
-                                        label.strokeStyle = '#ffffff';
+                                        label.strokeStyle = '#7c3aed';
                                         label.lineDash = [8, 4];
                                         label.lineWidth = 3;
                                         // Add toggle hint
                                         label.text = 'Divergence Index (click to toggle)';
                                     } else if (label.text === 'Clicks') {
                                         label.pointStyle = 'circle';
-                                        label.fillStyle = '#3b82f6';
+                                        label.fillStyle = '#007cb6';
                                         label.text = 'Clicks (click to toggle)';
                                     } else if (label.text === 'Impressions') {
                                         label.pointStyle = 'circle'; 
-                                        label.fillStyle = '#10b981';
+                                        label.fillStyle = '#94a3b8';
                                         label.text = 'Impressions (click to toggle)';
                                     }
                                     // Add hover effect indication
-                                    label.color = '#ffffff';
+                                    label.color = _axisText;
                                     label.hidden = chart.getDatasetMeta(label.datasetIndex).hidden;
                                     return label;
                                 });
@@ -21122,22 +20985,22 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                                     const meta = chart.getDatasetMeta(label.datasetIndex);
                                     
                                     // Apply proper styling based on visibility
-                                    label.color = meta.hidden ? 'rgba(255, 255, 255, 0.3)' : '#ffffff';
+                                    label.color = meta.hidden ? _axisTextDim : _axisText;
                                     label.textDecoration = meta.hidden ? 'line-through' : '';
                                     
                                     // Keep the custom text
                                     if (label.text === 'Divergence Index') {
                                         label.text = 'Divergence Index (click to toggle)';
                                         label.pointStyle = 'line';
-                                        label.strokeStyle = meta.hidden ? 'rgba(255, 255, 255, 0.3)' : '#ffffff';
+                                        label.strokeStyle = meta.hidden ? 'rgba(124, 58, 237, 0.3)' : '#7c3aed';
                                         label.lineDash = [8, 4];
                                         label.lineWidth = 3;
                                     } else if (label.text === 'Clicks') {
                                         label.text = 'Clicks (click to toggle)';
-                                        label.fillStyle = meta.hidden ? 'rgba(59, 130, 246, 0.3)' : '#3b82f6';
+                                        label.fillStyle = meta.hidden ? 'rgba(0, 124, 182, 0.3)' : '#007cb6';
                                     } else if (label.text === 'Impressions') {
                                         label.text = 'Impressions (click to toggle)';
-                                        label.fillStyle = meta.hidden ? 'rgba(16, 185, 129, 0.3)' : '#10b981';
+                                        label.fillStyle = meta.hidden ? 'rgba(148, 163, 184, 0.3)' : '#94a3b8';
                                     }
                                     
                                     return label;
