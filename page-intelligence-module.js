@@ -1525,6 +1525,8 @@
         if (status === null)     { color = '#6b7280'; text = '?'; }
         else if (status < 300)   { color = '#059669'; text = String(status); }
         else if (status < 400)   { color = '#d97706'; text = String(status); }
+        else if (status === 401 || status === 403 || status === 429 || status === 451)
+                                 { color = '#6b7280'; text = String(status); }  // denied to the checker, not necessarily broken
         else                     { color = '#dc2626'; text = String(status); }
         return `<span class="pi-status-badge" style="display:inline-block;font-size:0.6rem;font-weight:700;color:#fff;background:${color};border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle;flex-shrink:0;line-height:1.5;">${text}</span>`;
     }
@@ -1572,6 +1574,7 @@
                     if (status === null)    unknown++;
                     else if (status < 300)  ok++;
                     else if (status < 400)  redirects++;
+                    else if (status === 401 || status === 403 || status === 429 || status === 451)  unknown++;  // blocked/denied to the checker, not broken
                     else                    broken++;
                     if (progress) progress.textContent = `Checking ${done} / ${items.length} links…`;
                     try {
