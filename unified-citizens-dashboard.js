@@ -14529,7 +14529,7 @@ function formatDuration(seconds) {
             .scale-bar-detailed {
                 display: flex;
                 gap: 2px;
-                height: 30px;
+                height: 48px;
                 position: relative;
                 margin-bottom: 16px;
                 border-radius: 6px;
@@ -14560,11 +14560,12 @@ function formatDuration(seconds) {
             }
             
             .segment-label {
-                font-size: 0.7rem;
-                font-weight: 500;
+                font-size: 0.72rem;
+                font-weight: 600;
                 text-align: center;
-                line-height: 1;
+                line-height: 1.2;
             }
+            .segment-label small { display: block; font-size: 0.82em; font-weight: 400; opacity: 0.8; }
             
             .current-indicator {
                 position: absolute;
@@ -20947,7 +20948,7 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Divergence Index',
                         data: analysisData.divergenceIndices,
-                        borderColor: '#ffffff',
+                        borderColor: '#7c3aed',
                         backgroundColor: 'transparent',
                         borderWidth: 3,
                         borderDash: [8, 4],
@@ -22607,12 +22608,6 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                     <div class="scale-visual">
                         ${generateDivergenceScaleVisual(impactMetrics.divergenceIndex)}
                     </div>
-                    <div class="scale-ranges">
-                        <div class="range-item minimal">0&ndash;30 &middot; Low</div>
-                        <div class="range-item moderate">30&ndash;60 &middot; Moderate</div>
-                        <div class="range-item high">60&ndash;100 &middot; High</div>
-                        <div class="range-item critical">100+ &middot; Severe</div>
-                    </div>
                 </div>
             </div>
             
@@ -22849,39 +22844,36 @@ function getStrategicRecommendation3(url, gscData) {
 }
 
 function generateDivergenceScaleVisual(currentIndex) {
-    const ranges = [
-        { min: 0, max: 10, label: 'Minimal', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.15)' },
-        { min: 10, max: 30, label: 'Minor', color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.15)' },
-        { min: 30, max: 60, label: 'Moderate', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.15)' },
-        { min: 60, max: 100, label: 'High', color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
-        { min: 100, max: 200, label: 'Critical', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.15)' },
-        { min: 200, max: 500, label: 'Extreme', color: '#7c2d12', bgColor: 'rgba(124, 45, 18, 0.15)' }
+    const idx = Math.max(0, Number(currentIndex) || 0);
+    const SCALE_MAX = 120; // 100+ sits near the right edge
+    const bands = [
+        { min: 0,   max: 30,  label: 'Low',      color: '#16a34a', bg: 'rgba(22, 163, 74, 0.12)' },
+        { min: 30,  max: 60,  label: 'Moderate', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' },
+        { min: 60,  max: 100, label: 'High',     color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)' },
+        { min: 100, max: SCALE_MAX, label: 'Severe', color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)' }
     ];
-    
+
     let visual = '<div class="scale-bar-detailed">';
-    
-    ranges.forEach((range, index) => {
-        const isActive = currentIndex >= range.min && currentIndex < range.max;
-        const width = range.max === 100 ? '20%' : '16%'; // Critical range gets extra width
-        
+    bands.forEach(band => {
+        const isActive = idx >= band.min && (idx < band.max || band.max === SCALE_MAX && idx >= band.min);
+        const width = ((band.max - band.min) / SCALE_MAX * 100).toFixed(1) + '%';
+        const range = band.max === SCALE_MAX ? `${band.min}+` : `${band.min}\u2013${band.max}`;
         visual += `
-            <div class="scale-segment-detailed ${isActive ? 'active' : ''}" 
-                 style="width: ${width}; background: ${range.bgColor}; border-color: ${range.color};">
-                <div class="segment-bar" style="background: ${range.color};"></div>
-                <span class="segment-label" style="color: ${range.color};">${range.min}-${range.max === 100 ? '∞' : range.max}</span>
+            <div class="scale-segment-detailed ${isActive ? 'active' : ''}"
+                 style="width: ${width}; background: ${band.bg}; border-color: ${band.color};">
+                <div class="segment-bar" style="background: ${band.color};"></div>
+                <span class="segment-label" style="color: ${band.color};">${band.label}<br><small>${range}</small></span>
             </div>
         `;
     });
-    
-    // Add current position indicator
-    const position = Math.min(95, (currentIndex / 300) * 100);
+
+    const position = Math.min(97, (idx / SCALE_MAX) * 100);
     visual += `
         <div class="current-indicator" style="left: ${position}%;">
             <div class="indicator-line"></div>
-            <div class="indicator-badge">${currentIndex}</div>
+            <div class="indicator-badge">${idx}</div>
         </div>
     `;
-    
     visual += '</div>';
     return visual;
 }
