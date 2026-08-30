@@ -3851,6 +3851,12 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
                 /* custom tooltip */
                 '.pi-tip{position:fixed;z-index:9999;background:#1f2937;color:#fff;font-size:0.76rem;line-height:1.5;padding:9px 13px;border-radius:6px;max-width:280px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.18);opacity:0;transition:opacity 0.15s;}',
                 '.pi-tip.pi-tip-show{opacity:1;}',
+                '.pi-group{border-top:1px solid var(--color-border-primary);margin-top:6px;}',
+                '.pi-group-hd{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;padding:12px 0;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);}',
+                '.pi-group-hd:hover{color:var(--color-text-secondary);}',
+                '.pi-group-chev{display:inline-block;font-size:0.7em;transition:transform 0.2s ease-out;flex-shrink:0;}',
+                '.pi-group.open .pi-group-chev{transform:rotate(90deg);}',
+                '.pi-group-bd{overflow:hidden;max-height:0;transition:max-height 250ms ease-out;}',
             ].join('');
             document.head.appendChild(_cs);
         }
@@ -4141,7 +4147,7 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
             const longN  = sentLens.filter(l => l > 20).length;
             const avgLen = Math.round(sentLens.reduce((a, b) => a + b, 0) / sentLens.length);
             return card(null,
-                `<div class="pi-sec-wrap" style="border-top:none;">` +
+                `<div class="pi-sec-wrap" data-default-open="1" style="border-top:none;">` +
                 `<div class="pi-sec-hd" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0;border-radius:4px;transition:background 0.15s;user-select:none;">` +
                 `<span class="pi-chev" style="display:inline-block;font-size:0.7em;transition:transform 0.2s ease-out;color:var(--color-text-muted);">&#9654;</span>` +
                 `Reading Rhythm` +
@@ -4393,24 +4399,28 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
                     `</div>`
                 );
             }
-            const queries = gsc.topQueries.slice().sort(function(a, b) { return b.impressions - a.impressions; }).slice(0, 10);
+            const queryNeed = function(query) {
+                const q = (query || '').toLowerCase();
+                if (/\b(how (to|do)|apply|application|form|renew|register|claim)\b/.test(q)) return 'How to apply';
+                if (/\b(eligib|qualif|entitled|who can|am i|means test)\b/.test(q)) return 'Eligibility';
+                if (/\b(cost|fee|price|how much|pay|payment|rate|amount)\b/.test(q)) return 'Costs';
+                if (/\b(contact|phone|number|email|office|address|where)\b/.test(q)) return 'Contact';
+                if (/\b(deadline|when|date|closing|expire|due)\b/.test(q)) return 'Timing';
+                if (/\b(status|track|progress|check|waiting)\b/.test(q)) return 'Status';
+                return '';
+            };
+            const queries = gsc.topQueries.slice().sort(function(a, b) { return b.impressions - a.impressions; }).slice(0, 5);
             const queryRows = queries.map(function(q) {
-                const ctrPct   = (q.ctr * 100).toFixed(1) + '%';
-                const posColor = q.position <= 3 ? '#059669' : q.position <= 10 ? '#d97706' : '#dc2626';
-                const oppBadge = q.opportunity
-                    ? `<span style="font-size:0.6rem;padding:1px 6px;border-radius:10px;background:rgba(99,102,241,0.1);color:#6366f1;margin-left:4px;">${q.opportunity === 'ctr-opportunity' ? 'low CTR' : 'low rank'}</span>`
-                    : '';
-                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--color-border-primary);font-size:0.78rem;">` +
+                const need = queryNeed(q.query);
+                return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);font-size:0.82rem;">` +
                     `<span style="flex:1;color:var(--color-text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(q.query)}</span>` +
-                    `<span style="color:${posColor};font-weight:700;font-size:0.72rem;white-space:nowrap;">pos ${q.position.toFixed(1)}</span>` +
-                    `<span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${q.impressions.toLocaleString()} impr</span>` +
-                    `<span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${ctrPct} CTR</span>` +
-                    oppBadge +
+                    (need ? `<span style="font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:var(--color-text-secondary);background:var(--color-bg-secondary);padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;">${need}</span>` : '') +
                     `</div>`;
             }).join('');
             return card(null,
                 sectionHead('How people find this page') +
-                `<div style="margin-bottom:12px;">${queryRows}</div>` +
+                `<div style="font-size:0.78rem;color:var(--color-text-muted);margin-bottom:8px;">The top searches bringing people here &mdash; make sure your content answers them. See the <strong>Search Performance</strong> tab for full query data.</div>` +
+                `<div>${queryRows}</div>` +
                 `<div id="pi-search-intent-ai"></div>`
             );
         })();
@@ -4418,17 +4428,47 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
         const tabBtnBase   = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:0.83rem;font-weight:600;color:var(--color-text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;transition:all 0.15s;';
         const tabBtnActive = 'padding:9px 18px;border:none;background:none;cursor:pointer;font-size:0.83rem;font-weight:600;color:var(--color-text-primary);border-bottom:2px solid var(--color-text-primary);margin-bottom:-2px;font-family:inherit;transition:all 0.15s;';
 
+        const piGroup = (title, open, body) =>
+            `<div class="pi-group${open ? ' open' : ''}"><div class="pi-group-hd" role="button" tabindex="0"><span class="pi-group-chev">&#9654;</span>${title}</div><div class="pi-group-bd">${body}</div></div>`;
+
         container.innerHTML =
-            `<div style="padding:4px 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">` +
+            `<div style="padding:4px 2px;font-family:var(--font-family);">` +
             `<div style="display:flex;gap:0;border-bottom:2px solid var(--color-border-primary);margin-bottom:16px;">` +
                 `<button id="pi-tab-insights" style="${tabBtnActive}">Insights</button>` +
                 `<button id="pi-tab-document" style="${tabBtnBase}">Document</button>` +
             `</div>` +
             `<div id="pi-panel-insights">` +
-                noindexBanner + kpiHeroStrip + topPriorityActions + rhythmCard + technicalSEO + searchIntentCard + writingQualityHtml + linksImages +
+                noindexBanner + kpiHeroStrip + topPriorityActions +
+                piGroup('Content Quality', true, rhythmCard + writingQualityHtml) +
+                piGroup('Technical', false, technicalSEO + linksImages) +
+                piGroup('Search Context', false, searchIntentCard) +
             `</div>` +
             `<div id="pi-panel-document" style="display:none;"></div>` +
             `</div>`;
+
+        // Collapsible insight groups (set up before the rhythm chart so the open group has height)
+        container.querySelectorAll('.pi-group').forEach(function(group) {
+            var hd = group.querySelector(':scope > .pi-group-hd');
+            var bd = group.querySelector(':scope > .pi-group-bd');
+            if (!hd || !bd) return;
+            if (group.classList.contains('open')) bd.style.maxHeight = 'none';
+            var toggle = function() {
+                if (group.classList.contains('open')) {
+                    bd.style.maxHeight = bd.scrollHeight + 'px';
+                    requestAnimationFrame(function() { requestAnimationFrame(function() { bd.style.maxHeight = '0'; }); });
+                    group.classList.remove('open');
+                } else {
+                    bd.style.maxHeight = bd.scrollHeight + 'px';
+                    bd.addEventListener('transitionend', function onEnd() {
+                        if (group.classList.contains('open')) bd.style.maxHeight = 'none';
+                        bd.removeEventListener('transitionend', onEnd);
+                    });
+                    group.classList.add('open');
+                }
+            };
+            hd.addEventListener('click', toggle);
+            hd.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+        });
 
         initRhythmChartFull(container);
         wireDatamuseBadges(container);
@@ -4484,6 +4524,11 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
                         wrap.classList.add('pi-sec-open');
                     }
                 });
+                // Sections flagged data-default-open start expanded (no open animation).
+                if (wrap.hasAttribute('data-default-open')) {
+                    wrap.classList.add('pi-sec-open');
+                    bd.style.maxHeight = 'none';
+                }
             });
         })();
 
