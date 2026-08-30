@@ -1027,7 +1027,7 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
             <!-- Surge Summary Dashboard -->
             <div class="surge-summary-dashboard">
                 <div class="dashboard-header">
-                    <h3>📊 Citizen Need Surge Analysis</h3>
+                    <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg> Citizen Need Surge Analysis</h3>
                     <div class="surge-period">${formatPeriodLabel(window.currentDateRange?.period || '30d')} vs Previous period</div>
                 </div>
                 
@@ -1057,7 +1057,7 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
             
             <!-- Category Breakdown -->
             <div class="surge-categories-section">
-                <h4>📋 Surge Categories Breakdown</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> Surge Categories Breakdown</h4>
                 <div class="categories-grid">
                     ${Object.entries(surgeAnalysis.surgeCategories)
                         .filter(([category, surges]) => surges.length > 0)
@@ -1081,7 +1081,7 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
             
             <!-- Detailed Surge Analysis -->
             <div class="detailed-surges-section">
-                <h4>🔍 Detailed Surge Analysis</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Detailed Surge Analysis</h4>
                 <div class="surge-tabs">
                     <button class="surge-tab active" data-tab="volume">Volume Surges</button>
                     <button class="surge-tab" data-tab="emerging">Emerging Topics</button>
@@ -1108,7 +1108,7 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
             
             <!-- Contextual Insights -->
             <div class="contextual-insights-section">
-                <h4>🧠 Contextual Insights</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg> Contextual Insights</h4>
                 <div class="insights-list">
                     ${surgeAnalysis.contextualInsights.map(insight => `
                         <div class="insight-card ${insight.type}">
@@ -1125,7 +1125,7 @@ function createCitizenNeedSurgeDetectionEnhanced(surgeAnalysis) {
             
             <!-- Actionable Recommendations -->
             <div class="recommendations-section">
-                <h4>🚀 Recommended Actions</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Recommended Actions</h4>
                 <div class="recommendations-list">
                     ${surgeAnalysis.actionableRecommendations.slice(0, 6).map(rec => `
                         <div class="recommendation-card priority-${rec.priority}">
@@ -1983,121 +1983,66 @@ function getRelativeTime(lastModified) {
     
     return `
         <div class="dashboard-header">
-            <div class="header-content">
-                <div class="page-info">
-                    <div class="page-breadcrumb">
-                        <span class="breadcrumb-item">Citizens Information</span>
+            <div class="hdr-topbar">
+                <div class="page-breadcrumb">
+                    <span class="breadcrumb-item">Citizens Information</span>
+                    <span class="breadcrumb-separator">›</span>
+                    <span class="breadcrumb-item">${pageInfo.section}</span>
+                    ${pageInfo.subsection ? `
                         <span class="breadcrumb-separator">›</span>
-                        <span class="breadcrumb-item">${pageInfo.section}</span>
-                        ${pageInfo.subsection ? `
-                            <span class="breadcrumb-separator">›</span>
-                            <span class="breadcrumb-item">${pageInfo.subsection}</span>
-                        ` : ''}
-                    </div>
-                    
-                    <h1 class="page-title">${pageInfo.title}</h1>
-                    
-                    <div class="page-metadata">
-                        <div class="metadata-grid">
-                            <div class="metadata-item">
-                                <span class="metadata-label">Page Type:</span>
-                                <span class="metadata-value">${pageInfo.type}</span>
-                            </div>
-                            <div class="metadata-item">
-                                <span class="metadata-label">Last Updated:</span>
-                                <span class="metadata-value">${lastModified.formatted}</span>
-                                <span class="metadata-badge ${lastModified.freshnessClass}">${lastModified.freshnessLabel}</span>
-                            </div>
-                            <div class="metadata-item">
-                                <span class="metadata-label">URL:</span>
-                                <a href="${url}" target="_blank" class="url-link">${url}</a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="date-range-selector">
-                        <div class="date-range-label">Time Period:</div>
-                        <div class="date-range-options">
-                            <button class="date-range-btn ${window.currentDateRange?.period === '30d' ? 'active' : ''}" data-period="30d" onclick="changeDateRange('30d')">Last 30 Days</button>
-                            <button class="date-range-btn ${window.currentDateRange?.period === '7d' ? 'active' : ''}" data-period="7d" onclick="changeDateRange('7d')">Last 7 Days</button>
-                            <button class="date-range-btn ${window.currentDateRange?.period === '3m' ? 'active' : ''}" data-period="3m" onclick="changeDateRange('3m')">3 Months</button>
-                            <button class="date-range-btn ${window.currentDateRange?.period === '6m' ? 'active' : ''}" data-period="6m" onclick="changeDateRange('6m')">6 Months</button>
-                            <button class="date-range-btn ${window.currentDateRange?.period === '12m' ? 'active' : ''}" data-period="12m" onclick="changeDateRange('12m')">12 Months</button>
-                        </div>
-                    </div>
-                    
-                    <div class="header-actions">
-                        <button class="header-refresh-btn" onclick="refreshUnifiedDashboard('${escapeHtml(url)}')" title="Refresh all dashboard data">
-                            <span class="refresh-icon">🔄</span>
-                            <span class="refresh-text">Refresh Data</span>
-                        </button>
-                    </div>
+                        <span class="breadcrumb-item">${pageInfo.subsection}</span>
+                    ` : ''}
                 </div>
-                
-                <div class="metrics-summary">
-                    <div class="metrics-card ga4-card">
-                        <div class="card-header">
-                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                            </svg>
-                            <span class="card-label">Page views</span>
-                        </div>
-                        <div class="metric-value">${ga4Data && !ga4Data.noDataFound ? formatNumber(ga4Data.pageViews || 0) : 'No Data'}</div>
-                        <div class="metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.pageViews) : ''}</div>
+                <div class="hdr-controls">
+                    <div class="date-range-segmented" role="group" aria-label="Time period">
+                        <button class="seg-btn ${window.currentDateRange?.period === '7d' ? 'active' : ''}" data-period="7d" onclick="changeDateRange('7d')">7D</button>
+                        <button class="seg-btn ${window.currentDateRange?.period === '30d' ? 'active' : ''}" data-period="30d" onclick="changeDateRange('30d')">30D</button>
+                        <button class="seg-btn ${window.currentDateRange?.period === '3m' ? 'active' : ''}" data-period="3m" onclick="changeDateRange('3m')">3M</button>
+                        <button class="seg-btn ${window.currentDateRange?.period === '6m' ? 'active' : ''}" data-period="6m" onclick="changeDateRange('6m')">6M</button>
+                        <button class="seg-btn ${window.currentDateRange?.period === '12m' ? 'active' : ''}" data-period="12m" onclick="changeDateRange('12m')">12M</button>
                     </div>
-                    
-                    <div class="metrics-card ga4-card">
-                        <div class="card-header">
-                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                            </svg>
-                            <span class="card-label">Avg session duration</span>
-                        </div>
-                        <div class="metric-value">${ga4Data && !ga4Data.noDataFound ? formatDuration(ga4Data.avgSessionDuration || 0) : 'No Data'}</div>
-                        <div class="metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.avgSessionDuration) : ''}</div>
-                    </div>
-                    
-                    <div class="metrics-card gsc-card">
-                        <div class="card-header">
-                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            <span class="card-label">Impressions</span>
-                        </div>
-                        <div class="metric-value">${gscData && !gscData.noDataFound ? formatNumber(gscData.impressions || 0) : 'No Data'}</div>
-                        <div class="metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.impressions) : ''}</div>
-                    </div>
-                    
-                    <div class="metrics-card gsc-card">
-                        <div class="card-header">
-                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            <span class="card-label">Clicks</span>
-                        </div>
-                        <div class="metric-value">${gscData && !gscData.noDataFound ? formatNumber(gscData.clicks || 0) : 'No Data'}</div>
-                        <div class="metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.clicks) : ''}</div>
-                    </div>
-                    
-                    <div class="metrics-card gsc-card">
-                        <div class="card-header">
-                            <svg width="20" height="20" viewBox="0 0 24 24" class="card-logo">
-                                <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            <span class="card-label">CTR</span>
-                        </div>
-                        <div class="metric-value">${gscData && !gscData.noDataFound ? ((gscData.ctr || 0) * 100).toFixed(1) + '%' : 'No Data'}</div>
-                        <div class="metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.ctr) : ''}</div>
-                    </div>
+                    <button class="hdr-refresh-btn" onclick="refreshUnifiedDashboard('${escapeHtml(url)}')" title="Refresh dashboard data" aria-label="Refresh data">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="hdr-title-block">
+                <h1 class="page-title">${pageInfo.title}<span class="metadata-badge ${lastModified.freshnessClass}" style="margin-left:12px;vertical-align:middle;font-size:0.6rem;">${lastModified.freshnessLabel}</span></h1>
+                <div class="hdr-meta-line">
+                    <span>${pageInfo.type}</span>
+                    <span class="hdr-meta-sep">·</span>
+                    <span>Updated ${lastModified.formatted}</span>
+                    <span class="hdr-meta-sep">·</span>
+                    <a href="${url}" target="_blank" rel="noopener" class="hdr-meta-url">${url} ↗</a>
+                </div>
+            </div>
+
+            <div class="hdr-metrics-strip">
+                <div class="hdr-metric">
+                    <div class="hdr-metric-label"><svg width="13" height="13" viewBox="0 0 24 24" class="hdr-metric-src"><path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Page views</div>
+                    <div class="hdr-metric-value">${ga4Data && !ga4Data.noDataFound ? formatNumber(ga4Data.pageViews || 0) : 'No Data'}</div>
+                    <div class="hdr-metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.pageViews) : ''}</div>
+                </div>
+                <div class="hdr-metric">
+                    <div class="hdr-metric-label"><svg width="13" height="13" viewBox="0 0 24 24" class="hdr-metric-src"><path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Avg session</div>
+                    <div class="hdr-metric-value">${ga4Data && !ga4Data.noDataFound ? formatDuration(ga4Data.avgSessionDuration || 0) : 'No Data'}</div>
+                    <div class="hdr-metric-trend">${ga4Data && ga4Trends ? getTrendIndicator(ga4Trends?.trends?.avgSessionDuration) : ''}</div>
+                </div>
+                <div class="hdr-metric">
+                    <div class="hdr-metric-label"><svg width="13" height="13" viewBox="0 0 24 24" class="hdr-metric-src"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Impressions</div>
+                    <div class="hdr-metric-value">${gscData && !gscData.noDataFound ? formatNumber(gscData.impressions || 0) : 'No Data'}</div>
+                    <div class="hdr-metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.impressions) : ''}</div>
+                </div>
+                <div class="hdr-metric">
+                    <div class="hdr-metric-label"><svg width="13" height="13" viewBox="0 0 24 24" class="hdr-metric-src"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Clicks</div>
+                    <div class="hdr-metric-value">${gscData && !gscData.noDataFound ? formatNumber(gscData.clicks || 0) : 'No Data'}</div>
+                    <div class="hdr-metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.clicks) : ''}</div>
+                </div>
+                <div class="hdr-metric">
+                    <div class="hdr-metric-label"><svg width="13" height="13" viewBox="0 0 24 24" class="hdr-metric-src"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>CTR</div>
+                    <div class="hdr-metric-value">${gscData && !gscData.noDataFound ? ((gscData.ctr || 0) * 100).toFixed(1) + '%' : 'No Data'}</div>
+                    <div class="hdr-metric-trend">${gscData && gscTrends ? getTrendIndicator(gscTrends?.trends?.ctr) : ''}</div>
                 </div>
             </div>
         </div>
@@ -2432,7 +2377,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
             
             <!-- Citizens Information Specific Insights -->
             <div class="citizens-insights-expanded">
-                <h4>🧠 Insights</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg> Insights</h4>
                 <div class="insights-grid">
                     ${citizensScore.insights.map(insight => `
                         <div class="insight-card ${insight.type}">
@@ -2448,7 +2393,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
             
             <!-- Actionable Recommendations -->
             <div class="recommendations-expanded">
-                <h4>🚀 Actionable Recommendations</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Actionable Recommendations</h4>
                 <div class="recommendations-grid">
                     ${citizensScore.recommendations.map(rec => `
                         <div class="recommendation-card priority-${rec.priority.toLowerCase()}">
@@ -2477,7 +2422,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
             <!-- Overall Recommendation -->
             <div class="overall-recommendation-expanded">
                 <div class="recommendation-header">
-                    <h4>🎯 Overall Citizens Information Recommendation</h4>
+                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Overall Citizens Information Recommendation</h4>
                     <div class="recommendation-score">Score: ${overallScore}/100 (${grade})</div>
                 </div>
                 <div class="recommendation-content">
@@ -2579,7 +2524,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                 
                 <!-- Citizens Information Specific Insights -->
                 <div class="citizens-insights-section">
-                    <h4>💡 Citizens Information Insights</h4>
+                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg> Citizens Information Insights</h4>
                     <div class="insights-list">
                         ${citizensScore.insights.map(insight => `
                             <div class="insight-item ${insight.type}">
@@ -2595,7 +2540,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                 
                 <!-- Actionable Recommendations -->
                 <div class="citizens-recommendations-section">
-                    <h4>🚀 Actionable Recommendations</h4>
+                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Actionable Recommendations</h4>
                     <div class="recommendations-list">
                         ${citizensScore.recommendations.map(rec => `
                             <div class="recommendation-item priority-${rec.priority.toLowerCase()}">
@@ -2619,7 +2564,7 @@ function createExpandedCitizensQualitySection(gscData, ga4Data) {
                 </div>
                 
                 <div class="overall-recommendation">
-                    <h4>🎯 Overall Citizens Information Recommendation</h4>
+                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Overall Citizens Information Recommendation</h4>
                     <p>${getCitizensOverallRecommendation(overallScore, citizensScore)}</p>
                 </div>
             </div>
@@ -3414,7 +3359,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             background: rgba(0, 0, 0, 0.22);
             backdrop-filter: blur(10px);
             padding: 20px 24px;
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid rgba(114, 163, 0, 0.14);
             margin-top: 20px;
         }
@@ -3444,7 +3389,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             background: rgba(255, 255, 255, 0.04);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(114, 163, 0, 0.18);
-            border-radius: 20px;
+            border-radius: 12px;
             padding: 28px;
             text-align: center;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3558,7 +3503,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 rgba(248, 250, 252, 0.95) 100%
             );
             backdrop-filter: blur(20px);
-            border-radius: 20px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 
                 0 8px 32px rgba(0, 0, 0, 0.08),
@@ -3682,7 +3627,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 rgba(248, 250, 252, 0.8) 0%, 
                 rgba(241, 245, 249, 0.8) 100%
             );
-            border-radius: 16px;
+            border-radius: 12px;
             margin-bottom: 24px;
             border: 1px solid rgba(226, 232, 240, 0.5);
             backdrop-filter: blur(10px);
@@ -3749,7 +3694,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         .region-bar {
             width: 100px;
             height: 8px;
-            background: #e5e7eb;
+            background: var(--color-bg-tertiary);
             border-radius: 4px;
             overflow: hidden;
         }
@@ -3771,7 +3716,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         @media (max-width: 768px) {
             .enhanced-geographic-intelligence {
                 padding: 24px;
-                border-radius: 16px;
+                border-radius: 12px;
             }
             
             .geo-header .section-title {
@@ -3810,7 +3755,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             }
             
             .geo-clean-card {
-                border-radius: 16px;
+                border-radius: 12px;
             }
             
             .geo-clean-card:hover {
@@ -3926,7 +3871,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             color: var(--secondary) !important;
             padding: 4px 12px;
             background: rgba(114, 163, 0, 0.1);
-            border-radius: 16px;
+            border-radius: 12px;
             text-align: center;
             width: fit-content;
             position: absolute;
@@ -3948,7 +3893,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         .demographic-item {
             background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
             padding: 24px;
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid var(--color-border-primary);
             display: flex;
             gap: 20px;
@@ -3970,7 +3915,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             align-items: center;
             justify-content: center;
             background: var(--color-bg-primary);
-            border-radius: 16px;
+            border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             flex-shrink: 0;
         }
@@ -4034,7 +3979,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         .search-pattern-country {
             background: var(--color-bg-primary);
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid var(--color-border-primary);
             overflow: hidden;
             transition: all 0.3s ease;
@@ -4154,7 +4099,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             text-align: center;
             padding: 60px 20px;
             background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px dashed #d1d5db;
         }
         
@@ -4224,7 +4169,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         </style>
         <div class="section enhanced-geographic-intelligence">
             <div class="geo-header">
-                <h2 class="section-title">🌍 Geographic Intelligence</h2>
+                <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Geographic Intelligence</h2>
                 <div class="geo-explanation">
                     <p><strong>Geographic Analysis:</strong> Understanding where citizens access <em>${pageContext.serviceType}</em> and optimising for better regional service delivery.</p>
                 </div>
@@ -4234,7 +4179,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             <div class="geo-executive-summary">
                 <div class="geo-kpi-grid">
                     <div class="geo-kpi-card primary">
-                        <div class="kpi-icon">🇮🇪</div>
+                        <div class="kpi-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg></div>
                         <div class="kpi-content">
                             <div class="kpi-number">${geoInsights.totalIrishUsers}</div>
                             <div class="kpi-label">Irish Citizens Served</div>
@@ -4247,7 +4192,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                    
                     
                     <div class="geo-kpi-card coverage">
-                        <div class="kpi-icon">🇮🇪📍</div>
+                        <div class="kpi-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
                         <div class="kpi-content">
                             <div class="kpi-number">${geoInsights.countiesCovered}</div>
                             <div class="kpi-label">Counties Reached</div>
@@ -4260,7 +4205,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                     </div>
 
                      <div class="geo-kpi-card international">
-                        <div class="kpi-icon">🌍</div>
+                        <div class="kpi-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
                         <div class="kpi-content">
                             <div class="kpi-number">${geoInsights.internationalUsers}</div>
                             <div class="kpi-label">International Users</div>
@@ -4276,7 +4221,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             <div class="geo-regional-grid">
                 <div class="geo-clean-card">
                     <div class="clean-card-header">
-                        <h3>🇮🇪 Irish Distribution</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Irish Distribution</h3>
                         <span class="status-badge ${geoInsights.demandLevel.class}">${geoInsights.demandLevel.label}</span>
                     </div>
                     <div class="clean-card-content">
@@ -4286,7 +4231,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                 
                 <div class="geo-clean-card">
                     <div class="clean-card-header">
-                        <h3>🌍 International Reach</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> International Reach</h3>
                         <span class="status-badge ${geoInsights.diasporaIndicator.toLowerCase()}">${geoInsights.diasporaIndicator} Reach</span>
                     </div>
                     <div class="clean-card-content">
@@ -4299,7 +4244,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             <!-- Geographic Search Patterns Section -->
             <div class="geo-clean-card search-patterns-card">
                 <div class="clean-card-header">
-                    <h3>🔍 Geographic Search Patterns</h3>
+                    <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Geographic Search Patterns</h3>
                 </div>
                 <div class="clean-card-content">
                     ${createCleanSearchPatterns(gscData)}
@@ -4830,7 +4775,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                 <!-- Interactive Ireland Map -->
                 <div class="geo-card ireland-focus">
                     <div class="card-header">
-                        <h3>🇮🇪 Irish Distribution</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Irish Distribution</h3>
                         <div class="concentration-alert ${geoInsights.demandLevel.class}">
                             ${geoInsights.demandLevel.label}
                         </div>
@@ -4859,7 +4804,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                 <!-- International Reach -->
                 <div class="geo-card international-focus">
                     <div class="card-header">
-                        <h3>🌍 International Reach</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> International Reach</h3>
                         <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
                             ${geoInsights.diasporaIndicator} Diaspora Engagement
                         </div>
@@ -4885,7 +4830,7 @@ function createDetailedAnalysisContent(geoData, geoInsights, searchPatterns, pag
         <div class="detailed-content">
             <!-- County-by-County Analysis -->
             <div class="detailed-section">
-                <h3>📍 County-by-County Service Analysis</h3>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> County-by-County Service Analysis</h3>
                 <div class="county-analysis-grid">
                     ${createCountyAnalysisTable(geoData.regions, geoInsights, pageContext)}
                 </div>
@@ -4895,7 +4840,7 @@ function createDetailedAnalysisContent(geoData, geoInsights, searchPatterns, pag
             
             <!-- Demographic Insights -->
             <div class="detailed-section">
-                <h3>👥 Demographic Service Patterns</h3>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Demographic Service Patterns</h3>
                 <div class="demographic-insights">
                     ${createDemographicInsights(geoData, geoInsights)}
                 </div>
@@ -4911,7 +4856,7 @@ function createOpportunitiesContent(servicePatterns, accessibilityInsights, tren
         <div class="opportunities-content">
             <!-- Quick Wins -->
             <div class="opportunity-section">
-                <h3>🎯 Immediate Opportunities (Next ${getPeriodUnit()})</h3>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Immediate Opportunities (Next ${getPeriodUnit()})</h3>
                 <div class="opportunities-grid quick-wins">
                     ${opportunities.quickWins.map(opp => createOpportunityCard(opp, 'quick')).join('')}
                 </div>
@@ -4919,7 +4864,7 @@ function createOpportunitiesContent(servicePatterns, accessibilityInsights, tren
             
             <!-- Strategic Opportunities -->
             <div class="opportunity-section">
-                <h3>🚀 Strategic Opportunities (Next 2-3 ${getPeriodUnit()}s)</h3>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Strategic Opportunities (Next 2-3 ${getPeriodUnit()}s)</h3>
                 <div class="opportunities-grid strategic">
                     ${opportunities.strategic.map(opp => createOpportunityCard(opp, 'strategic')).join('')}
                 </div>
@@ -4927,7 +4872,7 @@ function createOpportunitiesContent(servicePatterns, accessibilityInsights, tren
             
             <!-- Long-term Vision -->
             <div class="opportunity-section">
-                <h3>🔮 Long-term Vision (90+ days)</h3>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> Long-term Vision (90+ days)</h3>
                 <div class="opportunities-grid long-term">
                     ${opportunities.longTerm.map(opp => createOpportunityCard(opp, 'long-term')).join('')}
                 </div>
@@ -4935,7 +4880,7 @@ function createOpportunitiesContent(servicePatterns, accessibilityInsights, tren
             
             <!-- ROI Calculator -->
             <div class="roi-calculator">
-                <h3>💰 Impact Calculator</h3>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Impact Calculator</h3>
                 ${createROICalculator(opportunities)}
             </div>
         </div>
@@ -4969,7 +4914,7 @@ function createInteractiveIrelandMap(regions, geoInsights) {
     
     return `
         <div class="ireland-map-visual">
-            <div class="map-background">🇮🇪</div>
+            <div class="map-background"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
             <div class="region-bubbles">${topRegions}</div>
             <div class="map-legend">
                 <div class="legend-item high">High Usage</div>
@@ -5001,7 +4946,7 @@ function createInteractiveWorldMap(countries) {
     
     return `
         <div class="world-map-visual">
-            <div class="world-background">🗺️</div>
+            <div class="world-background"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
             <div class="country-markers">${topCountries}</div>
         </div>
     `;
@@ -5399,7 +5344,7 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             </div>
             
             <div class="section">
-                <h2 class="section-title">🎯 Top Performing Queries</h2>
+                <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Top Performing Queries</h2>
                 ${createTopQueriesTable(gscData)}
             </div>
             
@@ -5416,7 +5361,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
     return `
         <div class="panel-content">
             <div class="section">
-                <h2 class="section-title">⭐ Quality Assessment</h2>
+                <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Quality Assessment</h2>
                 ${createExpandedCitizensQualitySection(gscData, ga4Data)}
             </div>
             
@@ -5441,7 +5386,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
         return `
             <div class="panel-content">
                 <div class="section">
-                    <h2 class="section-title">🏛️ Government Performance Benchmarks</h2>
+                    <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="6" y1="21" x2="6" y2="9"></line><line x1="10" y1="21" x2="10" y2="9"></line><line x1="14" y1="21" x2="14" y2="9"></line><line x1="18" y1="21" x2="18" y2="9"></line><polygon points="12 2 3 8 21 8"></polygon></svg> Government Performance Benchmarks</h2>
                     <div class="benchmark-explanation">
                         <p>Performance compared to government sector standards based on research from GOV.UK, Canada.ca, and other public sector organizations.</p>
                     </div>
@@ -5481,7 +5426,7 @@ function createContentAnalysisPanel(gscData, ga4Data, pageUrl) {
         return `
             <div class="panel-content">
                 <div class="section">
-                    <h2 class="section-title">🏛️ Government Performance Benchmarks</h2>
+                    <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="6" y1="21" x2="6" y2="9"></line><line x1="10" y1="21" x2="10" y2="9"></line><line x1="14" y1="21" x2="14" y2="9"></line><line x1="18" y1="21" x2="18" y2="9"></line><polygon points="12 2 3 8 21 8"></polygon></svg> Government Performance Benchmarks</h2>
                     <div class="error-message">
                         <p>⚠️ Unable to load government intelligence data at this time.</p>
                         <p>Please check your data connections and try refreshing the dashboard.</p>
@@ -5539,7 +5484,7 @@ function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
                 <!-- Surge Summary Dashboard -->
                 <div class="surge-summary-dashboard">
                     <div class="dashboard-header">
-                        <h3>📊 Citizen Need Surge Analysis</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg> Citizen Need Surge Analysis</h3>
                         <div class="surge-period">${formatPeriodLabel(window.currentDateRange?.period || '30d')} vs Previous period</div>
                     </div>
                     
@@ -5570,7 +5515,7 @@ function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
                 <!-- Contextual Insights -->
                 ${surgeAnalysis.contextualInsights && surgeAnalysis.contextualInsights.length > 0 ? `
                     <div class="contextual-insights-section">
-                        <h4>🧠 Contextual Insights</h4>
+                        <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg> Contextual Insights</h4>
                         <div class="insights-list">
                             ${surgeAnalysis.contextualInsights.map(insight => `
                                 <div class="insight-card ${insight.type || 'info'}">
@@ -5589,7 +5534,7 @@ function createSafeCitizenNeedSurgeDetection(surgeAnalysis) {
                 <!-- Actionable Recommendations -->
                 ${surgeAnalysis.actionableRecommendations && surgeAnalysis.actionableRecommendations.length > 0 ? `
                     <div class="recommendations-section">
-                        <h4>🚀 Recommended Actions</h4>
+                        <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Recommended Actions</h4>
                         <div class="recommendations-list">
                             ${surgeAnalysis.actionableRecommendations.slice(0, 6).map(rec => `
                                 <div class="recommendation-card priority-${rec.priority || 'medium'}">
@@ -5639,17 +5584,17 @@ window.createSafeCitizenNeedSurgeDetection = createSafeCitizenNeedSurgeDetection
         return `
             <div class="panel-content">
                 <div class="section">
-                    <h2 class="section-title">🎯 Priority Actions</h2>
+                    <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Priority Actions</h2>
                     ${createPriorityActionsSection(gscData, ga4Data, gscTrends, ga4Trends)}
                 </div>
                 
                 <div class="section">
-                    <h2 class="section-title">🌍 Government Action Recommendations</h2>
+                    <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Government Action Recommendations</h2>
                     ${createGovernmentActionRecommendations(gscData, ga4Data)}
                 </div>
                 
                 <div class="section">
-                    <h2 class="section-title">📅 Implementation Timeline</h2>
+                    <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Implementation Timeline</h2>
                     ${createImplementationTimelineSection(gscData, ga4Data)}
                 </div>
             </div>
@@ -5877,7 +5822,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             /* Enhanced Performance Matrix Styles */
             .enhanced-performance-matrix {
                 background: var(--color-bg-primary);
-                border-radius: 20px;
+                border-radius: 12px;
                 padding: 24px;
                 border: 1px solid var(--color-border-primary);
                 box-shadow: 0 4px 20px rgba(0,0,0,0.08);
@@ -5926,7 +5871,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 position: relative;
                 height: 380px;
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                border-radius: 16px;
+                border-radius: 12px;
                 border: 1px solid var(--color-border-primary);
                 margin-bottom: 24px;
                 overflow: hidden;
@@ -6284,7 +6229,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
             /* Rest of the styles remain the same... */
             .performance-insights {
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                border-radius: 16px;
+                border-radius: 12px;
                 padding: 20px;
                 border: 1px solid var(--color-border-primary);
             }
@@ -6420,7 +6365,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
                 padding: 8px 12px;
                 background: var(--color-bg-secondary);
                 border-radius: 8px;
-                border-left: 3px solid #3b82f6;
+                border-left: 3px solid var(--primary);
             }
             
             /* Responsive */
@@ -6483,7 +6428,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Main Container */
 .surge-detection-enhanced {
     background: var(--color-bg-primary);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 24px;
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
@@ -6541,7 +6486,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .critical-alerts-section {
     margin-bottom: 32px;
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.02) 100%);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
     border: 2px solid rgba(239, 68, 68, 0.1);
 }
@@ -6702,8 +6647,8 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .surge-stat-card {
     background: var(--color-bg-primary);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     text-align: center;
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -6807,7 +6752,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .category-card.policy {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, white 100%);
 }
 
@@ -6822,12 +6767,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .category-card.health {
-    border-left: 4px solid #06b6d4;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(6, 182, 212, 0.02) 0%, white 100%);
 }
 
 .category-card.housing {
-    border-left: 4px solid #8b5cf6;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.02) 0%, white 100%);
 }
 
@@ -6969,7 +6914,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .surge-item.urgency-medium {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, white 100%);
 }
 
@@ -7176,12 +7121,12 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .insight-card.category {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, white 100%);
 }
 
 .insight-card.volume {
-    border-left: 4px solid #8b5cf6;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.02) 0%, white 100%);
 }
 
@@ -7279,7 +7224,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .recommendation-card.priority-medium {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--primary);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, white 100%);
 }
 
@@ -7524,7 +7469,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Main container - keep minimal styling */
 .enhanced-geographic-intelligence {
     background: var(--color-bg-secondary);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 32px;
     margin-bottom: 32px;
     border: 1px solid var(--color-border-primary);
@@ -7539,7 +7484,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     padding: 16px 20px;
     border-radius: 12px;
     margin-top: 16px;
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid var(--primary);
 }
 
 .geo-explanation p {
@@ -7573,7 +7518,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Clean card styling */
 .geo-clean-card {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     overflow: hidden;
@@ -7745,7 +7690,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .region-bar {
     width: 80px;
     height: 6px;
-    background: #e5e7eb;
+    background: var(--color-bg-tertiary);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -7807,7 +7752,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     padding: 16px 20px;
     background: var(--color-bg-secondary);
     border-radius: 8px;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid var(--primary);
 }
 
 .analysis-summary p {
@@ -7956,7 +7901,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .opportunity-item.strategic {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--primary);
 }
 
 .opportunity-item.impact {
@@ -8078,7 +8023,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Main container - keep minimal styling */
 .enhanced-geographic-intelligence {
     background: var(--color-bg-secondary);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 32px;
     margin-bottom: 32px;
     border: 1px solid var(--color-border-primary);
@@ -8093,7 +8038,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     padding: 16px 20px;
     border-radius: 12px;
     margin-top: 16px;
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid var(--primary);
 }
 
 .geo-explanation p {
@@ -8127,7 +8072,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Clean card styling */
 .geo-clean-card {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid var(--color-border-primary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     overflow: hidden;
@@ -8325,7 +8270,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .region-bar {
     width: 80px;
     height: 6px;
-    background: #e5e7eb;
+    background: var(--color-bg-tertiary);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -8387,7 +8332,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
     padding: 16px 20px;
     background: var(--color-bg-secondary);
     border-radius: 8px;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid var(--primary);
 }
 
 .analysis-summary p {
@@ -8535,7 +8480,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .search-pattern-country {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid var(--color-border-primary);
     overflow: hidden;
     transition: all 0.3s ease;
@@ -8805,7 +8750,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .opportunity-item.strategic {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--primary);
 }
 
 .opportunity-item.impact {
@@ -8937,8 +8882,8 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .geo-kpi-card {
     background: var(--color-bg-primary);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
@@ -9101,7 +9046,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .overview-content {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
 }
 
@@ -9113,8 +9058,8 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .geo-card {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     border: 1px solid var(--color-border-primary);
     position: relative;
     overflow: hidden;
@@ -9138,7 +9083,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .concentration-alert {
     padding: 6px 12px;
-    border-radius: 20px;
+    border-radius: 12px;
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -9350,7 +9295,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Main geographic sections below the side-by-side layout */
 .geo-detailed-section {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 32px;
     margin: 32px 0;
     border: 1px solid var(--color-border-primary);
@@ -9379,7 +9324,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Enhanced layout for main analysis */
 .geo-main-analysis {
     background: var(--color-bg-primary);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 32px;
     margin: 32px 0;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
@@ -9394,8 +9339,8 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .geo-analysis-card {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     border: 1px solid var(--color-border-primary);
     position: relative;
     overflow: hidden;
@@ -9418,7 +9363,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 }
 
 .international-card::before {
-    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
 }
 
 .ireland-content,
@@ -9515,7 +9460,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 .region-bar {
     width: 80px;
     height: 8px;
-    background: #e5e7eb;
+    background: var(--color-bg-tertiary);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -9529,7 +9474,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 /* Opportunities section styling */
 .geo-opportunities-section {
     background: var(--color-warning-bg);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 32px;
     margin: 32px 0;
     border-left: 4px solid #f59e0b;
@@ -9668,7 +9613,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .opportunities-content {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
 }
 
@@ -9811,7 +9756,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .detailed-content {
     background: var(--color-bg-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
 }
 
@@ -9851,7 +9796,7 @@ function createPerformanceMatrix(gscData, ga4Data) {
 
 .roi-calculator {
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
     border: 1px solid var(--color-border-secondary);
     margin-top: 24px;
@@ -10102,12 +10047,12 @@ function formatDuration(seconds) {
         ];
 
         return metrics.map(metric => `
-            <div class="metric-card" style="border-left: 4px solid ${metric.color};">
+            <div class="metric-card" style="border-left: 4px solid var(--primary);">
                 <div class="metric-header">
                     <span class="metric-icon">${metric.icon}</span>
                     <span class="metric-label">${metric.label}</span>
                 </div>
-                <div class="metric-value" style="color: ${metric.color};">${metric.value}</div>
+                <div class="metric-value" style="color: var(--color-text-primary);">${metric.value}</div>
                 ${metric.trend ? `
                     <div class="metric-trend ${metric.trend.direction}">
                         <span class="trend-indicator">${metric.trend.direction === 'up' ? '↗' : metric.trend.direction === 'down' ? '↘' : '→'}</span>
@@ -10166,12 +10111,12 @@ function formatDuration(seconds) {
         ];
 
         return metrics.map(metric => `
-            <div class="metric-card" style="border-left: 4px solid ${metric.color};">
+            <div class="metric-card" style="border-left: 4px solid var(--primary);">
                 <div class="metric-header">
                     <span class="metric-icon">${metric.icon}</span>
                     <span class="metric-label">${metric.label}</span>
                 </div>
-                <div class="metric-value" style="color: ${metric.color};">${metric.value}</div>
+                <div class="metric-value" style="color: var(--color-text-primary);">${metric.value}</div>
                 ${metric.trend ? `
                     <div class="metric-trend ${metric.invertTrend ? 
                         (metric.trend.direction === 'up' ? 'down' : 'up') : 
@@ -10208,7 +10153,7 @@ function formatDuration(seconds) {
                     <span class="metric-icon">🔄</span>
                     <span class="metric-label">Search to User Conversion</span>
                 </div>
-                <div class="metric-value" style="color: #72A300;">${conversionRate.toFixed(1)}%</div>
+                <div class="metric-value" style="color: var(--color-text-primary);">${conversionRate.toFixed(1)}%</div>
                 <div class="metric-trend neutral">Search clicks → GA4 users</div>
             </div>
             
@@ -10657,7 +10602,7 @@ function formatDuration(seconds) {
                 .unified-dashboard-container {
                     font-family: var(--font-family);
                     background: var(--color-bg-secondary);
-                    border-radius: 20px;
+                    border-radius: 12px;
                     overflow: hidden;
                     box-shadow: 0 20px 50px rgba(0,0,0,0.1);
                     max-width: 1200px;
@@ -10666,12 +10611,93 @@ function formatDuration(seconds) {
                 
                 /* Dashboard Header */
                 .dashboard-header {
-                    background: linear-gradient(135deg, #5a8200 0%, #72A300 100%);
-                    color: white;
+                    background: var(--color-bg-secondary);
+                    color: var(--color-text-primary);
+                    border-bottom: 1px solid var(--color-border-primary);
                     padding: 0px;
                     position: relative;
                     text-align: left;
                     overflow: hidden;
+                }
+
+                /* ── 3-zone report header ── */
+                .dashboard-header { padding: 20px 24px !important; overflow: visible; }
+                .dashboard-header::before { display: none !important; }
+
+                .hdr-topbar {
+                    display: flex; align-items: center; justify-content: space-between;
+                    gap: 16px; flex-wrap: wrap; margin-bottom: 14px; position: relative; z-index: 2;
+                }
+                .hdr-controls { display: flex; align-items: center; gap: 10px; }
+
+                .date-range-segmented {
+                    display: inline-flex; border: 1px solid var(--color-border-primary);
+                    border-radius: 8px; overflow: hidden; background: var(--color-bg-primary);
+                }
+                .date-range-segmented .seg-btn {
+                    border: none; border-right: 1px solid var(--color-border-primary);
+                    background: transparent; color: var(--color-text-secondary);
+                    font-family: inherit; font-size: 0.8rem; font-weight: 600;
+                    padding: 7px 14px; cursor: pointer; transition: background .15s, color .15s;
+                }
+                .date-range-segmented .seg-btn:last-child { border-right: none; }
+                .date-range-segmented .seg-btn:hover:not(.active) { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+                .date-range-segmented .seg-btn.active { background: var(--primary); color: #fff; }
+
+                .hdr-refresh-btn {
+                    display: inline-flex; align-items: center; justify-content: center;
+                    width: 34px; height: 34px; border: 1px solid var(--color-border-primary);
+                    border-radius: 8px; background: var(--color-bg-primary);
+                    color: var(--color-text-secondary); cursor: pointer; transition: all .15s;
+                }
+                .hdr-refresh-btn:hover { background: var(--color-bg-tertiary); color: var(--primary); }
+
+                .hdr-title-block { margin-bottom: 18px; position: relative; z-index: 2; }
+                .hdr-title-block .page-title {
+                    font-size: 1.7rem; font-weight: 700; margin: 0 0 6px 0; line-height: 1.25;
+                    color: var(--color-text-primary);
+                }
+                .hdr-meta-line {
+                    font-size: 0.82rem; color: var(--color-text-secondary);
+                    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+                }
+                .hdr-meta-sep { color: var(--color-text-muted); }
+                .hdr-meta-url {
+                    color: var(--primary); text-decoration: none;
+                    max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                }
+                .hdr-meta-url:hover { text-decoration: underline; }
+
+                .hdr-metrics-strip {
+                    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+                    border: 1px solid var(--color-border-primary); border-radius: 10px;
+                    background: var(--color-bg-primary); overflow: hidden; position: relative; z-index: 2;
+                }
+                .hdr-metric {
+                    padding: 14px 16px; border-right: 1px solid var(--color-border-primary);
+                    display: flex; flex-direction: column; gap: 4px;
+                }
+                .hdr-metric:last-child { border-right: none; }
+                .hdr-metric-label {
+                    font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+                    color: var(--color-text-muted); display: flex; align-items: center; gap: 5px;
+                }
+                .hdr-metric-src { flex-shrink: 0; }
+                .hdr-metric-value { font-size: 1.45rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.1; }
+                .hdr-metric-trend { font-size: 0.75rem; min-height: 1em; }
+
+                @media (max-width: 900px) {
+                    .hdr-metrics-strip { grid-template-columns: repeat(2, 1fr); }
+                    .hdr-metric:nth-child(2n) { border-right: none; }
+                    .hdr-metric { border-bottom: 1px solid var(--color-border-primary); }
+                }
+                @media (max-width: 560px) {
+                    .hdr-topbar { flex-direction: column; align-items: flex-start; }
+                    .hdr-controls { width: 100%; }
+                    .date-range-segmented { flex: 1; }
+                    .date-range-segmented .seg-btn { flex: 1; }
+                    .hdr-metrics-strip { grid-template-columns: 1fr; }
+                    .hdr-metric { border-right: none; border-bottom: 1px solid var(--color-border-primary); }
                 }
                 
                 .dashboard-header::before {
@@ -10715,15 +10741,15 @@ function formatDuration(seconds) {
 .date-range-selector {
     margin: 16px 0;
     padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--color-bg-tertiary);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--color-border-primary);
 }
 
 .date-range-label {
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--text-primary, #ffffff);
+    color: var(--color-text-primary);
     margin-bottom: 8px;
 }
 
@@ -10735,10 +10761,10 @@ function formatDuration(seconds) {
 
 .date-range-btn {
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-primary);
     border-radius: 6px;
-    color: var(--text-secondary, #e0e0e0);
+    color: var(--color-text-secondary);
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
@@ -10749,21 +10775,21 @@ function formatDuration(seconds) {
 /* Only show hover states on devices that can hover */
 @media (hover: hover) {
     .date-range-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(255, 255, 255, 0.3);
-        color: var(--text-primary, #ffffff);
+        background: var(--color-bg-tertiary);
+        border-color: var(--color-border-secondary);
+        color: var(--color-text-primary);
     }
     
     .date-range-btn.active:hover {
-        background: rgba(34, 197, 94, 0.3);
-        border-color: rgba(34, 197, 94, 0.5);
+        background: rgba(0, 124, 182, 0.28);
+        border-color: rgba(0, 124, 182, 0.5);
     }
 }
 
 .date-range-btn.active {
-    background: rgba(34, 197, 94, 0.2);
-    border-color: rgba(34, 197, 94, 0.4);
-    color: #22c55e;
+    background: rgba(0, 124, 182, 0.16);
+    border-color: var(--primary);
+    color: var(--primary);
     font-weight: 600;
 }
 
@@ -10775,9 +10801,9 @@ function formatDuration(seconds) {
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-primary);
     border-radius: 12px;
     font-size: 0.9rem;
     font-weight: 600;
@@ -10805,8 +10831,8 @@ function formatDuration(seconds) {
 }
 
 .header-refresh-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border-secondary);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
@@ -11041,7 +11067,7 @@ function formatDuration(seconds) {
                 .impact-card {
                     background: rgba(255,255,255,0.15);
                     padding: 20px;
-                    border-radius: 16px;
+                    border-radius: 12px;
                     text-align: center;
                     backdrop-filter: blur(10px);
                     border: 1px solid rgba(255,255,255,0.25);
@@ -11071,16 +11097,16 @@ function formatDuration(seconds) {
                 .overview-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-rows: auto;
     gap: 20px;
-    max-width: 1100px; /* Prevents cards from getting too wide */
-    margin: 0 auto; /* Centers the grid */
+    max-width: none; /* span the full report width */
+    margin: 0;
 }
                 
                 .overview-card {
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     border: 1px solid var(--color-border-primary);
     transition: all 0.3s ease;
     position: relative;
@@ -11110,19 +11136,19 @@ function formatDuration(seconds) {
                     left: 0;
                     right: 0;
                     height: 4px;
-                    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+                    background: linear-gradient(90deg, var(--primary), var(--primary-light));
                 }
                 
                 .search-card::before {
-                    background: linear-gradient(90deg, #4285f4, #34a853);
+                    background: linear-gradient(90deg, var(--primary), var(--primary-light));
                 }
                 
                 .analytics-card::before {
-                    background: linear-gradient(90deg, #ff6b35, #f59e0b);
+                    background: linear-gradient(90deg, var(--primary), var(--primary-light));
                 }
                 
                 .quality-card::before {
-                    background: linear-gradient(90deg, #8b5cf6, #a855f7);
+                    background: linear-gradient(90deg, var(--primary), var(--primary-light));
                 }
                 
                 .impact-card::before {
@@ -11373,7 +11399,7 @@ function formatDuration(seconds) {
 
                 .tab-btn.active {
                     color: var(--color-text-primary);
-                    border-bottom-color: var(--secondary);
+                    border-bottom-color: var(--primary);
                     background: var(--color-bg-primary);
                     position: relative;
                 }
@@ -11602,7 +11628,7 @@ function formatDuration(seconds) {
                         min-height: 48px;
                         padding: 14px 24px;
                         font-size: 15px;
-                        border-radius: 16px;
+                        border-radius: 12px;
                         width: 100%;
                         justify-content: center;
                         margin: 12px 0;
@@ -11745,7 +11771,7 @@ function formatDuration(seconds) {
                     .panel {
                         margin: 12px 0;
                         padding: 20px 16px;
-                        border-radius: 16px;
+                        border-radius: 12px;
                         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                     }
                     
@@ -11808,7 +11834,7 @@ function formatDuration(seconds) {
                 .section {
                     margin-bottom: 30px;
                     background: var(--color-bg-primary);
-                    border-radius: 16px;
+                    border-radius: 12px;
                     padding: 24px;
                     border: 1px solid var(--color-border-primary);
                     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
@@ -12009,8 +12035,8 @@ function formatDuration(seconds) {
                 
                 .geo-card { 
                     background: var(--color-bg-primary); 
-                    border-radius: 16px; 
-                    padding: 24px; 
+                    border-radius: 12px; 
+                    padding: 20px; 
                     border: 1px solid #e0f2fe; 
                     box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
                 }
@@ -12282,7 +12308,7 @@ function formatDuration(seconds) {
                 
                 .benchmark-card {
                     background: var(--color-bg-primary);
-                    border-radius: 16px;
+                    border-radius: 12px;
                     padding: 44px;
                     border-left: 4px solid #e5e7eb;
                     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -12337,7 +12363,7 @@ function formatDuration(seconds) {
                 /* Priority Matrix */
                 .priority-matrix {
                     background: var(--color-bg-primary);
-                    border-radius: 16px;
+                    border-radius: 12px;
                     padding: 24px;
                     border: 1px solid var(--color-border-primary);
                 }
@@ -12388,7 +12414,7 @@ function formatDuration(seconds) {
                     background: var(--color-bg-secondary);
                     padding: 20px;
                     border-radius: 12px;
-                    border-left: 4px solid #3b82f6;
+                    border-left: 4px solid var(--primary);
                 }
                 
                 .priority-recommendation h3 {
@@ -12630,8 +12656,8 @@ function formatDuration(seconds) {
                 @media (max-width: 1024px) {
     .overview-grid {
         grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(2, 1fr);
-        max-width: 600px;
+        grid-template-rows: auto;
+        max-width: none;
     }
 }
 
@@ -13406,8 +13432,8 @@ function formatDuration(seconds) {
                 align-items: center;
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
                 padding: 32px;
-                border-radius: 16px;
-                border-left: 4px solid #3b82f6;
+                border-radius: 12px;
+                border-left: 4px solid var(--primary);
             }
 
             .score-display-large {
@@ -13490,8 +13516,8 @@ function formatDuration(seconds) {
 
             .quality-component-card {
                 background: var(--color-bg-primary);
-                border-radius: 16px;
-                padding: 24px;
+                border-radius: 12px;
+                padding: 20px;
                 border: 1px solid var(--color-border-primary);
                 transition: all 0.2s ease;
             }
@@ -13581,7 +13607,7 @@ function formatDuration(seconds) {
                 padding: 16px;
                 background: var(--color-bg-secondary);
                 border-radius: 8px;
-                border-left: 3px solid #3b82f6;
+                border-left: 3px solid var(--primary);
             }
 
             .improvement-icon {
@@ -13982,7 +14008,7 @@ function formatDuration(seconds) {
             
             .ai-overview-impact-section {
                 background: linear-gradient(160deg, #0e1a0a 0%, #17240f 60%, #111a0c 100%);
-                border-radius: 20px;
+                border-radius: 12px;
                 padding: 32px;
                 margin: 24px 0;
                 color: white;
@@ -14104,8 +14130,8 @@ function formatDuration(seconds) {
                 background: rgba(255, 255, 255, 0.04);
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(114, 163, 0, 0.18);
-                border-radius: 16px;
-                padding: 24px;
+                border-radius: 12px;
+                padding: 20px;
                 display: flex;
                 align-items: center;
                 gap: 16px;
@@ -14190,7 +14216,7 @@ function formatDuration(seconds) {
                 background: rgba(0, 0, 0, 0.22);
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(114, 163, 0, 0.14);
-                border-radius: 20px;
+                border-radius: 12px;
                 padding: 24px;
                 margin-bottom: 24px;
                 position: relative;
@@ -14379,7 +14405,7 @@ function formatDuration(seconds) {
             .narrative-section {
                 background: rgba(255, 255, 255, 0.95);
                 color: var(--color-text-primary);
-                border-radius: 16px;
+                border-radius: 12px;
                 padding: 32px;
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             }
@@ -14795,7 +14821,7 @@ function formatDuration(seconds) {
                 background: rgba(255, 255, 255, 0.08);
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(255, 255, 255, 0.15);
-                border-radius: 16px;
+                border-radius: 12px;
                 padding: 24px;
                 margin-bottom: 20px;
             }
@@ -14868,7 +14894,7 @@ function formatDuration(seconds) {
                 .ai-overview-impact-section {
                     padding: 20px;
                     margin: 16px 0;
-                    border-radius: 16px;
+                    border-radius: 12px;
                 }
                 
                 .ai-overview-impact-section .section-header {
@@ -14938,7 +14964,7 @@ function formatDuration(seconds) {
                 /* Chart container mobile */
                 .divergence-chart-container {
                     padding: 16px;
-                    border-radius: 16px;
+                    border-radius: 12px;
                     margin-bottom: 20px;
                 }
                 
@@ -14964,7 +14990,7 @@ function formatDuration(seconds) {
                 /* Narrative section mobile */
                 .ai-impact-narrative {
                     padding: 16px;
-                    border-radius: 16px;
+                    border-radius: 12px;
                 }
                 
                 .narrative-section {
@@ -15373,28 +15399,28 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
                 <div class="tab-nav">
                     <button class="tab-btn active" data-tab="overview">
                         <div class="tab-header">
-                            <span class="tab-icon">📊</span>
+                            <span class="tab-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg></span>
                             <span class="tab-label">Overview</span>
                         </div>
                         <div class="tab-description">Key metrics and performance summary</div>
                     </button>
                     <button class="tab-btn" data-tab="search">
                         <div class="tab-header">
-                            <span class="tab-icon">🔍</span>
+                            <span class="tab-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
                             <span class="tab-label">Search Performance</span>
                         </div>
                         <div class="tab-description">GSC clicks, impressions, and rankings</div>
                     </button>
                     <button class="tab-btn" data-tab="geographic">
                         <div class="tab-header">
-                            <span class="tab-icon">🌍</span>
+                            <span class="tab-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
                             <span class="tab-label">Geographic Intelligence</span>
                         </div>
                         <div class="tab-description">Regional performance and insights</div>
                     </button>
                     <button class="tab-btn" data-tab="content">
                         <div class="tab-header">
-                            <span class="tab-icon">📄</span>
+                            <span class="tab-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
                             <span class="tab-label">Content Intelligence</span>
                         </div>
                         <div class="tab-description">Readability, SEO audit &amp; writing style</div>
@@ -16841,7 +16867,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             
             <!-- Irish Service Detection Analysis -->
             <div class="irish-service-analysis">
-                <h4>🇮🇪 Irish Government Service Detection</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Irish Government Service Detection</h4>
                 <p class="filter-instruction">💡 <strong>Click on any Irish service below to filter queries by that service type</strong></p>
                 <div class="service-stats">
                     <div class="service-stat">
@@ -16888,7 +16914,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             
             <!-- Intent Distribution -->
             <div class="intent-distribution">
-                <h4>🗺️ Where Citizens Are in Their Journey</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg> Where Citizens Are in Their Journey</h4>
                 <p class="filter-instruction">💡 <strong>Click on any journey stage below to filter queries by that category</strong> (or use Enter/Space when focused) 
                    
                 </p>
@@ -16933,7 +16959,7 @@ function createCitizenJourneyPanel(intentAnalysis, intentCounts) {
             <!-- Detailed Query Analysis -->
             <div class="queries-analysis">
                 <div class="queries-analysis-header">
-                    <h4>🔍 Detailed Citizen Query Analysis</h4>
+                    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> Detailed Citizen Query Analysis</h4>
                     <div class="filter-status" id="journeyFilterStatus" style="display: none;">
                         <span class="filter-label">Filtered by:</span>
                         <span class="filter-value" id="filterValueDisplay"></span>
@@ -17208,7 +17234,7 @@ function createCitizenQueryIntelligenceSection(gscData, pageUrl) {
     return `
         <div class="section citizen-query-intelligence">
             <div class="section-header">
-                <h2 class="section-title">🧠 Citizen Query Intelligence</h2>
+                <h2 class="section-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg> Citizen Query Intelligence</h2>
                 <div class="section-subtitle">Understanding what citizens really need through their search behaviour</div>
             </div>
             
@@ -17394,8 +17420,8 @@ function createCitizenQueryIntelligenceStyles() {
             /* Citizen Query Intelligence Styles */
             .citizen-query-intelligence {
                 background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-                border-left: 4px solid #3b82f6;
-                border-radius: 16px;
+                border-left: 4px solid var(--primary);
+                border-radius: 12px;
                 padding: 32px;
                 margin-bottom: 32px;
             }
@@ -17420,7 +17446,7 @@ function createCitizenQueryIntelligenceStyles() {
             /* Intelligence Overview */
             .intelligence-overview {
                 background: var(--color-bg-primary);
-                border-radius: 16px;
+                border-radius: 12px;
                 padding: 24px;
                 margin-bottom: 32px;
                 border: 1px solid var(--color-border-primary);
@@ -17436,7 +17462,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .overview-metrics .metric-card {
                 background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                padding: 24px;
+                padding: 20px;
                 border-radius: 12px;
                 text-align: center;
                 border: 2px solid var(--color-border-primary);
@@ -17500,7 +17526,7 @@ function createCitizenQueryIntelligenceStyles() {
             /* Improved Tabs */
             .citizen-analysis-tabs {
                 background: var(--color-bg-primary);
-                border-radius: 16px;
+                border-radius: 12px;
                 overflow: hidden;
                 border: 1px solid var(--color-border-primary);
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -17719,7 +17745,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .service-bar-fill {
                 height: 6px;
-                background: #e5e7eb;
+                background: var(--color-bg-tertiary);
                 border-radius: 3px;
                 overflow: hidden;
             }
@@ -17852,7 +17878,7 @@ function createCitizenQueryIntelligenceStyles() {
             
             .intent-bar-fill {
                 height: 8px;
-                background: #e5e7eb;
+                background: var(--color-bg-tertiary);
                 border-radius: 4px;
                 overflow: hidden;
             }
@@ -18013,7 +18039,7 @@ function createCitizenQueryIntelligenceStyles() {
             }
             
             .opportunity-item.low {
-                border-left: 4px solid #6366f1;
+                border-left: 4px solid var(--primary);
                 background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
             }
             
@@ -18221,7 +18247,7 @@ function createCitizenQueryIntelligenceStyles() {
 
 .geo-main-analysis {
     background: var(--color-bg-primary);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 32px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
 }
@@ -18235,8 +18261,8 @@ function createCitizenQueryIntelligenceStyles() {
 
 .geo-analysis-card {
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     border: 1px solid var(--color-border-primary);
     position: relative;
     overflow: hidden;
@@ -18257,7 +18283,7 @@ function createCitizenQueryIntelligenceStyles() {
 }
 
 .international-card::before {
-    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
 }
 
 .card-header {
@@ -18308,7 +18334,7 @@ function createCitizenQueryIntelligenceStyles() {
 /* Opportunities Section */
 .geo-opportunities-section {
     background: var(--color-warning-bg);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 32px;
     border-left: 4px solid #f59e0b;
 }
@@ -18394,7 +18420,7 @@ function createCitizenQueryIntelligenceStyles() {
 .opportunity-card {
     background: var(--color-bg-primary);
     border-radius: 12px;
-    padding: 24px;
+    padding: 20px;
     border: 1px solid var(--color-border-primary);
     display: flex;
     gap: 16px;
@@ -19856,7 +19882,7 @@ function createDemographicInsights(geoData, geoInsights) {
     return `
         <div class="demographic-analysis">
             <div class="demographic-insight">
-                <h4>🏙️ Urban vs Rural Distribution</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><line x1="3" y1="21" x2="21" y2="21"></line><rect x="4" y="9" width="6" height="12"></rect><rect x="14" y="4" width="6" height="17"></rect></svg> Urban vs Rural Distribution</h4>
                 <div class="urban-rural-split">
                     <div class="split-item">
                         <span class="split-label">Dublin Metro</span>
@@ -19874,7 +19900,7 @@ function createDemographicInsights(geoData, geoInsights) {
             </div>
             
             <div class="demographic-insight">
-                <h4>🌍 Cultural Demographics</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Cultural Demographics</h4>
                 <div class="cultural-breakdown">
                     <div class="culture-item">Irish Domestic: ${geoInsights.totalIrishUsers}</div>
                     <div class="culture-item">EU Citizens: ${calculateEUCitizens(geoData)}%</div>
@@ -19907,7 +19933,7 @@ function createROICalculator(opportunities) {
             </div>
             
             <div class="roi-breakdown">
-                <h4>📊 Expected Impact Breakdown</h4>
+                <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg> Expected Impact Breakdown</h4>
                 <div class="impact-bars">
                     <div class="impact-bar">
                         <span class="impact-label">Quick Wins</span>
@@ -20226,7 +20252,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                 <!-- Interactive Ireland Map -->
                 <div class="geo-card ireland-focus">
                     <div class="card-header">
-                        <h3>🇮🇪 Irish Distribution</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> Irish Distribution</h3>
                         <div class="concentration-alert ${geoInsights.demandLevel.class}">
                             ${geoInsights.demandLevel.label}
                         </div>
@@ -20255,7 +20281,7 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
                 <!-- International Reach -->
                 <div class="geo-card international-focus">
                     <div class="card-header">
-                        <h3>🌍 International Reach</h3>
+                        <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:7px"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> International Reach</h3>
                         <div class="reach-indicator ${geoInsights.diasporaIndicator.toLowerCase()}">
                             ${geoInsights.diasporaIndicator} Diaspora Engagement
                         </div>
@@ -20299,7 +20325,7 @@ function createInteractiveIrelandMap(regions, geoInsights) {
     
     return `
         <div class="ireland-map-visual">
-            <div class="map-background">🇮🇪</div>
+            <div class="map-background"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
             <div class="region-bubbles">${topRegions}</div>
             <div class="map-legend">
                 <div class="legend-item high">High Usage</div>
@@ -20331,7 +20357,7 @@ function createInteractiveWorldMap(countries) {
     
     return `
         <div class="world-map-visual">
-            <div class="world-background">🗺️</div>
+            <div class="world-background"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
             <div class="country-markers">${topCountries}</div>
         </div>
     `;
