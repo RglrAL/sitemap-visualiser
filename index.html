@@ -6903,6 +6903,7 @@ if (threeDViewBtn) {
             
             const response = await fetch(proxyUrl, {
                 method: 'GET',
+                signal: AbortSignal.timeout(8000),
                 headers: {
                     'Accept': 'application/xml, text/xml, */*'
                 }
@@ -6958,13 +6959,18 @@ Technical details: All CORS proxy services failed to fetch the sitemap.`);
 const CORS_PROXY_WORKER = 'https://sitemap-cors.alleroc.workers.dev';
 
 const CORS_PROXIES = [
-    // Your own Worker first (if configured) — always works; the rest are flaky fallbacks.
+    // Your own Worker first (if configured) — reliable; the rest are flaky public fallbacks.
     ...(CORS_PROXY_WORKER ? [url => `${CORS_PROXY_WORKER}/?url=${encodeURIComponent(url)}`] : []),
-    // Free public CORS proxies rot often — kept as fallbacks; we fall through on failure.
+    // Free public CORS proxies rot constantly — keep many so at least one is usually alive.
+    // (More candidates = better odds for sites that block datacenter IPs, e.g. citizensinformation.)
     url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
     url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url => `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
+    url => `https://cors.eu.org/${url}`,
+    url => `https://proxy.cors.sh/${url}`,
+    url => `https://yacdn.org/proxy/${url}`,
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,   // JSON {contents} fallback
     url => `https://thingproxy.freeboard.io/fetch/${url}`
 ];
 
@@ -6996,7 +7002,7 @@ window.loadQuickSite = async function(url) {
         try {
             const proxyUrl = CORS_PROXIES[i](url);
             
-            const response = await fetch(proxyUrl);
+            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -7023,7 +7029,7 @@ window.loadQuickSite = async function(url) {
             
             // If all proxies fail
             if (i === CORS_PROXIES.length - 1) {
-                alert(`Unable to load ${siteName} sitemap. All proxy services failed. You can:\n\n1. Download the sitemap manually from ${url}\n2. Use the file upload option instead`);
+                alert(`${siteName} could not be loaded automatically - its server is blocking proxy requests (some sites, like citizensinformation.ie, sit behind a firewall that rejects proxies).\n\nQuickest fix:\n1. Open ${url} in a new tab\n2. Save the page (Cmd+S / Ctrl+S)\n3. Drag the saved .xml file onto the drop zone\n\nMost other sites load automatically.`);
                 hideLoading();
             }
         }
