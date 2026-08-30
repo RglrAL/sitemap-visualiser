@@ -141,10 +141,10 @@
         /* Improved Header Layout */
         .header {
     background: linear-gradient(135deg, 
-        #4a6b00 0%,    /* Much darker version of your green */
-        #5a8200 25%,   /* Your secondary dark green */
-        #72A300 75%,   /* Your main brand green */
-        #8abc00 100%   /* Lighter version of your green */
+        #0f172a 0%,    /* neutral dark slate (was brand green) */
+        #1e293b 25%,
+        #334155 75%,
+        #475569 100%
     );
     color: white;
     position: relative;
@@ -296,6 +296,7 @@
         }
 
         .upload-icon {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             width: 56px;
             height: 56px;
             font-size: 1.75rem;
@@ -363,8 +364,9 @@
 
         /* Quick Access */
         .quick-access-title {
-            font-size: 1.0rem;
-            font-weight: 650;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--color-text-primary);
             
             margin-bottom: 0.75rem;
             
@@ -1614,6 +1616,22 @@ body.dark-theme .tooltip-header > span:first-child {
             background: var(--color-bg-tertiary);
         }
 
+        /* Geographic tab: .geo-clean-card hardcodes a white gradient + dark !important
+           text, so titles go invisible and panels stay white on the dark shell. */
+        body.dark-theme #unified-dashboard-modal .geo-clean-card {
+            background: var(--color-bg-secondary) !important;
+            border-color: var(--color-border-primary) !important;
+        }
+        body.dark-theme #unified-dashboard-modal .clean-card-header h3,
+        body.dark-theme #unified-dashboard-modal .clean-card-content h4,
+        body.dark-theme #unified-dashboard-modal .clean-card-content h5,
+        body.dark-theme #unified-dashboard-modal .clean-card-content h6 {
+            color: var(--color-text-primary) !important;
+        }
+        body.dark-theme #unified-dashboard-modal .clean-card-content div:not(.region-fill):not(.coverage-fill) {
+            color: var(--color-text-secondary) !important;
+        }
+
         body.dark-theme .container {
             background: var(--color-bg-primary);
             box-shadow: none;
@@ -2849,8 +2867,11 @@ body.dark-theme .nav-search input {
 }
 
 .drop-zone-title {
-    color: var(--gray-800);
-    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-text-primary);
+    margin-bottom: 0.75rem;
 }
 
 body.dark-theme .drop-zone-title {
@@ -5602,6 +5623,10 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
         
 
         <div class="upload-section">
+            <div class="upload-hero-header" style="text-align:center;max-width:620px;margin:0 auto 20px;padding-top:4px;">
+                <h2 style="margin:0 0 6px;font-size:1.5rem;font-weight:700;color:var(--color-text-primary);">Visualise your sitemap</h2>
+                <p style="margin:0;font-size:0.9rem;color:var(--color-text-secondary);line-height:1.5;">Load a sitemap to explore its structure as an interactive tree &mdash; then connect Search Console &amp; GA4 to unlock analytics.</p>
+            </div>
             <div class="upload-container">
             
             
@@ -5637,7 +5662,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             
                 <div class="upload-card">
                     <div class="upload-area" id="uploadArea">
-                        <div class="upload-icon">📁</div>
+                        <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>
                        <h3 class="drop-zone-title">Drop sitemap.xml here</h3>
                         <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                             Choose File
@@ -6193,7 +6218,7 @@ function showWelcomePopup() {
     
     const content = welcomePopup
         .append('div')
-        .style('background', 'white')
+        .style('background', 'var(--color-bg-primary)')
         .style('border-radius', '16px')
         .style('max-width', '500px')
         .style('width', '100%')
@@ -6204,8 +6229,8 @@ function showWelcomePopup() {
         <div style="padding: 32px; text-align: center;">
             <!-- Header -->
             <div style="margin-bottom: 24px;">
-                <div style="font-size: 2.5rem; margin-bottom: 8px;">🌍</div>
-                <h2 style="margin: 0 0 8px 0; color: #1f2937; font-size: 1.8rem; font-weight: 700;">
+                <div style="margin-bottom: 8px; line-height: 0;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
+                <h2 style="margin: 0 0 8px 0; color: var(--color-text-heading); font-size: 1.8rem; font-weight: 700;">
                     Welcome to Site Intelligence
                 </h2>
             </div>
@@ -6213,22 +6238,22 @@ function showWelcomePopup() {
             <!-- Quick Tips -->
             <div style="background: var(--color-bg-secondary); border-radius: 8px; padding: 12px; margin-bottom: 24px; text-align: left;">
                 <div style="font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.5;">
-                    <strong style="color: #374151;">Quick Tips:</strong><br>
-                    • 🔵 Click circles to expand/collapse branches<br>
-                    • 📄 Hover page names to see details<br>
-                    • 📊 Use Reports menu for detailed analytics
+                    <strong style="color: var(--color-text-primary);">Quick Tips:</strong><br>
+                    • Click circles to expand/collapse branches<br>
+                    • Hover page names to see details<br>
+                    • Use Reports menu for detailed analytics
                 </div>
             </div>
             
             <!-- Connection Info -->
             <div style="text-align: center; margin-bottom: 24px;">
-                <p style="margin: 0 0 16px 0; color: #374151; font-size: 0.95rem;">
+                <p style="margin: 0 0 16px 0; color: var(--color-text-primary); font-size: 0.95rem;">
                     Connect your Google accounts using these buttons in the top navigation:
                 </p>
                 
                 <!-- Connection Buttons (Matching Navigation Style) -->
                 <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;">
-                    <div class="nav-btn nav-gsc-btn" style="display: flex !important; align-items: center; gap: 8px; padding: 8px 16px; background: var(--color-bg-secondary); border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; color: #374151; font-weight: 600;">
+                    <div class="nav-btn nav-gsc-btn" style="display: flex !important; align-items: center; gap: 8px; padding: 8px 16px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 8px; font-size: 0.9rem; color: var(--color-text-primary); font-weight: 600;">
                         <svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
                             <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                             <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -6237,7 +6262,7 @@ function showWelcomePopup() {
                         </svg>
                         <span>SC</span>
                     </div>
-                    <div class="nav-btn nav-ga4-btn" style="display: flex !important; align-items: center; gap: 8px; padding: 8px 16px; background: var(--color-bg-secondary); border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; color: #374151; font-weight: 600;">
+                    <div class="nav-btn nav-ga4-btn" style="display: flex !important; align-items: center; gap: 8px; padding: 8px 16px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 8px; font-size: 0.9rem; color: var(--color-text-primary); font-weight: 600;">
                         <svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink: 0;">
                             <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                         </svg>
@@ -6248,7 +6273,7 @@ function showWelcomePopup() {
             
             <!-- Dismiss Button -->
             <div style="margin-top: 24px;">
-                <button onclick="dismissWelcome()" style="background: #007cb6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                <button onclick="dismissWelcome()" style="background: var(--primary); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;">
                     Get Started
                 </button>
             </div>
@@ -6276,7 +6301,7 @@ function showWelcomePopup() {
         .text('×')
         .on('click', dismissWelcome)
         .on('mouseover', function() {
-            d3.select(this).style('background', '#f3f4f6').style('color', '#ef4444');
+            d3.select(this).style('background', 'var(--color-bg-secondary)').style('color', '#ef4444');
         })
         .on('mouseout', function() {
             d3.select(this).style('background', 'none').style('color', '#9ca3af');
@@ -6335,7 +6360,7 @@ function showUsageGuide() {
         .style('opacity', '0')
         .html(`
             <div style="margin-bottom: 15px; font-size: 18px; font-weight: 600;">
-                🌳 Tree Navigation Guide
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style='vertical-align:-3px;margin-right:8px'><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg> Tree Navigation Guide
             </div>
             <div style="margin-bottom: 10px; text-align: left;">
                 <strong>🔵 Click circles</strong> to expand/collapse branches
@@ -6891,13 +6916,11 @@ if (threeDViewBtn) {
             let xmlContent;
             
             // Handle different proxy response formats
-            if (proxyUrl.includes('allorigins')) {
-                const data = await response.json();
+            if (proxyUrl.includes('allorigins.win/get')) {
+                const data = await response.json();   // { contents, status }
                 xmlContent = data.contents;
-            } else if (proxyUrl.includes('cors.bridged.cc')) {
-                xmlContent = await response.text();
             } else {
-                xmlContent = await response.text();
+                xmlContent = await response.text();    // raw / text proxies
             }
             
             if (xmlContent && xmlContent.includes('<?xml')) {
@@ -6930,13 +6953,19 @@ Technical details: All CORS proxy services failed to fetch the sitemap.`);
 
 
 // Add list of CORS proxies to try
+// ⬇️ Set to your own Cloudflare Worker origin (see cors-proxy-worker.js) for a proxy
+//    that won't rot. Leave '' to use only the public proxies below.
+const CORS_PROXY_WORKER = 'https://sitemap-cors.alleroc.workers.dev';
+
 const CORS_PROXIES = [
-    // Remove allorigins as first option since it's failing
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    // Your own Worker first (if configured) — always works; the rest are flaky fallbacks.
+    ...(CORS_PROXY_WORKER ? [url => `${CORS_PROXY_WORKER}/?url=${encodeURIComponent(url)}`] : []),
+    // Free public CORS proxies rot often — kept as fallbacks; we fall through on failure.
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
     url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    url => `https://cors.bridged.cc/${url}`,
-    url => `https://cors-anywhere.herokuapp.com/${url}`, // Often requires activation
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}` // Move to last as fallback
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`
 ];
 
 
@@ -6975,13 +7004,11 @@ window.loadQuickSite = async function(url) {
             let xmlContent;
             
             // Handle different proxy response formats
-            if (proxyUrl.includes('allorigins')) {
-                const data = await response.json();
+            if (proxyUrl.includes('allorigins.win/get')) {
+                const data = await response.json();   // { contents, status }
                 xmlContent = data.contents;
-            } else if (proxyUrl.includes('codetabs')) {
-                xmlContent = await response.text();
             } else {
-                xmlContent = await response.text();
+                xmlContent = await response.text();    // raw / text proxies
             }
             
             if (xmlContent && xmlContent.includes('<?xml')) {
@@ -8338,6 +8365,9 @@ function reapplyThemeStyles() {
         }
     }
     
+    // Fit the tree to the viewport once rendered (clipped-root + dead-space fix).
+    setTimeout(() => { if (typeof fitTreeToView === 'function') fitTreeToView(true); }, 650);
+
     // CRITICAL: Apply theme styles after everything is created and rendered
     setTimeout(() => {
         reapplyThemeStyles();
@@ -9113,7 +9143,7 @@ if (d.parent) {
                     <span>Focus</span>
                 </button>
                 <button class="tooltip-action-btn" onclick="window.expandBranch('${d.id || data.name}')">
-                    <span>🌳</span>
+                    <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg></span>
                     <span>Expand</span>
                 </button>
             </div>
@@ -9743,6 +9773,29 @@ function calculateDynamicHeight(node) {
             }
         }
 
+        // Fit the whole rendered tree — labels included (getBBox) — to the viewport.
+        // Fixes the clipped root label and the top-left dead space.
+        function fitTreeToView(animate) {
+            if (!svg || !globalZoom || !g) return;
+            const svgNode = svg.node();
+            const vw = svgNode.clientWidth || svgNode.getBoundingClientRect().width;
+            const vh = svgNode.clientHeight || svgNode.getBoundingClientRect().height;
+            let bbox;
+            try { bbox = g.node().getBBox(); } catch (e) { return; }
+            if (!bbox || !isFinite(bbox.width) || bbox.width < 1) return;
+            const pad = isMobile ? 30 : 60;
+            let scale = Math.min((vw - pad * 2) / bbox.width, (vh - pad * 2) / bbox.height);
+            scale = Math.max(0.1, Math.min(scale, isMobile ? 1.2 : 1.5));
+            const tx = vw / 2 - scale * (bbox.x + bbox.width / 2);
+            const ty = vh / 2 - scale * (bbox.y + bbox.height / 2);
+            const target = d3.zoomIdentity.translate(tx, ty).scale(scale);
+            if (animate) {
+                svg.transition().duration(600).ease(d3.easeCubicOut).call(globalZoom.transform, target);
+            } else {
+                svg.call(globalZoom.transform, target);
+            }
+        }
+
        window.resetZoom = function() {
     try {
         // Clear search if active
@@ -9773,44 +9826,7 @@ function calculateDynamicHeight(node) {
             return;
         }
         
-        // Fit the whole visible tree to the viewport using real bounds
-        // (node-local coords are (d.y horizontal, d.x vertical)).
-        const svgNode = svg.node();
-        const rect = svgNode.getBoundingClientRect();
-        const vw = svgNode.clientWidth || rect.width;
-        const vh = svgNode.clientHeight || rect.height;
-        const visible = (root && root.descendants) ? root.descendants() : [];
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        visible.forEach(d => {
-            if (d.x < minX) minX = d.x;
-            if (d.x > maxX) maxX = d.x;
-            if (d.y < minY) minY = d.y;
-            if (d.y > maxY) maxY = d.y;
-        });
-        let scale, translateX, translateY;
-        if (visible.length && isFinite(minX)) {
-            const pad = isMobile ? 50 : 80;
-            const treeW = (maxY - minY) || 1;
-            const treeH = (maxX - minX) || 1;
-            scale = Math.min((vw - pad * 2) / treeW, (vh - pad * 2) / treeH);
-            scale = Math.max(0.1, Math.min(scale, isMobile ? 1.2 : 1.5));
-            const midY = (minY + maxY) / 2;
-            const midX = (minX + maxX) / 2;
-            translateX = vw / 2 - scale * midY;
-            translateY = vh / 2 - scale * midX;
-        } else {
-            scale = isMobile ? 0.6 : 0.8;
-            translateX = 0;
-            translateY = 0;
-        }
-
-        svg.transition()
-            .duration(600)
-            .ease(d3.easeCubicOut)
-            .call(
-                globalZoom.transform,
-                d3.zoomIdentity.translate(translateX, translateY).scale(scale)
-            );
+        fitTreeToView(true);
             
         // Optional: Show a brief tooltip/notification
         const btn = document.querySelector('.tree-control-btn[aria-label="Reset View"]');
@@ -11201,8 +11217,8 @@ window.switchView = function(viewType) {
         container.append("div")
             .attr("class", "tree-placeholder")
             .style("height", "400px")
-            .style("background", isDark ? "var(--gray-800)" : "#f8f9ff")
-            .style("border", isDark ? "2px solid var(--gray-700)" : "2px solid #4a90e2")
+            .style("background", "var(--color-bg-secondary)")
+            .style("border", "2px dashed var(--color-border-primary)")
             .style("display", "flex")
             .style("flex-direction", "column")
             .style("align-items", "center")
@@ -11213,23 +11229,13 @@ window.switchView = function(viewType) {
             .style("border-radius", "15px")
             .style("margin", "20px")
             .each(function() {
-                d3.select(this).append("div")
-                    .attr("class", "placeholder-icon")
-                    .style("font-size", "4rem")
-                    .style("margin-bottom", "20px")
-                    .text("🌳");
-                
-                d3.select(this).append("div")
-                    .attr("class", "placeholder-title")
-                    .text("Tree Visualisation");
-                
-                d3.select(this).append("div")
-                    .attr("class", "placeholder-subtitle")
-                    .style("font-size", "16px")
-                    .style("margin-top", "10px")
-                    .style("opacity", isDark ? "0.7" : "0.8")
-                    .style("color", isDark ? "var(--gray-400)" : "#666")
-                    .text("Upload sitemap to see interactive tree");
+                d3.select(this).html(`
+                    <div style="text-align: center; padding: 0 24px; opacity: 0.75;">
+                        <div style="color: var(--color-text-muted); margin-bottom: 12px; line-height: 0;"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1"></rect><rect x="3" y="17" width="6" height="5" rx="1"></rect><rect x="15" y="17" width="6" height="5" rx="1"></rect><path d="M12 7v5M6 12v5M18 12v5M6 12h12"></path></svg></div>
+                        <div style="font-size: 1rem; font-weight: 600; color: var(--color-text-secondary);">Your sitemap will appear here</div>
+                        <div style="font-size: 0.85rem; font-weight: 400; color: var(--color-text-muted); margin-top: 6px;">Load one from the panel above to begin</div>
+                    </div>
+                `);
             });
     }
 }
@@ -11326,7 +11332,7 @@ window.switchView = function(viewType) {
             label: "Total Pages",
             subtitle: `Across ${siteStats.categoryCount} main categories`,
             trend: "neutral",
-            color: "#3b82f6"
+            color: "var(--primary)"
         },
         {
             title: "🎯 Navigation Quality",
@@ -11334,7 +11340,7 @@ window.switchView = function(viewType) {
             label: "Structure Score",
             subtitle: siteAnalysis.score >= 80 ? "Excellent organization" : siteAnalysis.score >= 60 ? "Good structure" : "Needs improvement",
             trend: siteAnalysis.score >= 80 ? "positive" : siteAnalysis.score >= 60 ? "neutral" : "negative",
-            color: "#10b981"
+            color: "var(--primary)"
         },
         {
             title: "📊 Content Depth",
@@ -11342,7 +11348,7 @@ window.switchView = function(viewType) {
             label: "Maximum Depth",
             subtitle: `Average: ${siteStats.avgDepth} levels`,
             trend: siteStats.maxDepth <= 4 ? "positive" : "neutral",
-            color: "#f59e0b"
+            color: "var(--primary)"
         },
         {
             title: "🔍 Category Analysis",
@@ -11350,7 +11356,7 @@ window.switchView = function(viewType) {
             label: "Largest Category",
             subtitle: siteStats.largestCategory.name,
             trend: "neutral",
-            color: "#8b5cf6"
+            color: "var(--primary)"
         }
     ];
     
@@ -11593,16 +11599,16 @@ window.switchView = function(viewType) {
                 if (languagePairMismatches.length > 0) {
                     const mismatchCard = missingPairsSection.append("div")
                         .attr("class", "chart-card")
-                        .style("background", "#fff3cd")
+                        .style("background", "var(--color-warning-bg)")
                         .style("border-left", "4px solid #ff9800");
                     
                     mismatchCard.append("h4")
-                        .style("color", "#e65100")
+                        .style("color", "var(--color-text-primary)")
                         .style("margin-bottom", "15px")
                         .text("⚠️ Language Pair Differences Detected");
                     
                     mismatchCard.append("p")
-                        .style("color", "#666")
+                        .style("color", "var(--color-text-secondary)")
                         .style("margin-bottom", "15px")
                         .text("The following categories have different page counts between languages, indicating possible missing translations or naming differences:");
                     
@@ -11614,19 +11620,19 @@ window.switchView = function(viewType) {
                         const mismatchItem = mismatchList.append("div")
                             .style("padding", "10px")
                             .style("margin-bottom", "10px")
-                            .style("background", "rgba(255, 255, 255, 0.5)")
+                            .style("background", "var(--color-bg-secondary)")
                             .style("border-radius", "6px")
                             .style("border", "1px solid #ffcc80");
                         
                         mismatchItem.append("div")
                             .style("font-weight", "bold")
-                            .style("color", "#e65100")
+                            .style("color", "var(--color-text-primary)")
                             .style("margin-bottom", "5px")
                             .text(mismatch.category);
                         
                         mismatchItem.append("div")
                             .style("font-size", "0.9rem")
-                            .style("color", "#666")
+                            .style("color", "var(--color-text-secondary)")
                             .html(`EN: ${mismatch.enPages} pages | GA: ${mismatch.gaPages} pages | Difference: <strong>${Math.abs(mismatch.difference)} page${Math.abs(mismatch.difference) > 1 ? 's' : ''}</strong>`);
                         
                         if (mismatch.missingPages && mismatch.missingPages.length > 0) {
@@ -12662,7 +12668,7 @@ window.criticalCurrentPage = 1;
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                 <div style="
                     width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
                     border-radius: 10px; 
                     display: flex; align-items: center; justify-content: center;
                     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
@@ -14205,7 +14211,7 @@ content.appendChild(closeBtn);
                     <button onclick="window.exportCategoryBreakdown()" 
                             style="
                                 padding: 16px 32px; 
-                                background: linear-gradient(135deg, #4a90e2, #2563eb); 
+                                background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
                                 color: white; 
                                 border: none; 
                                 border-radius: 12px; 
@@ -14834,7 +14840,7 @@ function generateURLPatternHTML(analysis) {
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                 <div style="
                     width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
                     border-radius: 10px; 
                     display: flex; align-items: center; justify-content: center;
                     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
@@ -16845,7 +16851,7 @@ ${isMobile3D ? `
     <div class="control-title">📊 Layout Options</div>
     <div class="mobile-control-grid three-col">
         <button class="control-btn" onclick="switchLayout3D('tree'); closeMobileControls(); highlightLayoutButton(this);">
-            <div class="control-btn-icon">🌳</div>
+            <div class="control-btn-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg></div>
             <div class="control-btn-text">Tree</div>
         </button>
         <button class="control-btn" onclick="switchLayout3D('radial'); closeMobileControls(); highlightLayoutButton(this);">
