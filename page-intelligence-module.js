@@ -138,13 +138,19 @@
         } catch(e) { return null; }
     }
 
-    // Same proxy list as index.html sitemap fetcher
+    // Keep in sync with index.html's proxy chain: own Worker first (reliable), then public fallbacks.
+    const CORS_PROXY_WORKER = 'https://sitemap-cors.alleroc.workers.dev';
     const CORS_PROXIES = [
-        url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        url => `${CORS_PROXY_WORKER}/?url=${encodeURIComponent(url)}`,
+        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
         url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        url => `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
+        url => `https://cors.eu.org/${url}`,
+        url => `https://proxy.cors.sh/${url}`,
+        url => `https://yacdn.org/proxy/${url}`,
         url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-        url => `https://cors.bridged.cc/${url}`,
-        url => `https://cors-anywhere.herokuapp.com/${url}`
+        url => `https://thingproxy.freeboard.io/fetch/${url}`
     ];
 
     async function fetchViaProxy(url) {
@@ -178,7 +184,11 @@
     // allorigins wraps it in JSON { status: { http_code: N } }.
     const _linkCheckStrategies = [
         async (url, signal) => {
-            const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, { signal });
+            const r = await fetch(`${CORS_PROXY_WORKER}/?url=${encodeURIComponent(url)}`, { signal });
+            return r.status >= 100 ? r.status : null;
+        },
+        async (url, signal) => {
+            const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`, { signal });
             // corsproxy returns the target status as the HTTP response status
             return r.status >= 100 ? r.status : null;
         },
