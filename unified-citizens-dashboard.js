@@ -3308,7 +3308,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         
         /* Main Container */
         .enhanced-geographic-intelligence {
-            background: linear-gradient(160deg, #0e1a0a 0%, #17240f 60%, #111a0c 100%);
+            background: var(--color-bg-primary); border: 1px solid var(--color-border-primary);
             border-radius: 24px;
             padding: 40px;
             margin-bottom: 32px;
@@ -3335,7 +3335,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, transparent 0%, #72A300 30%, #8abc00 70%, transparent 100%);
+            background: linear-gradient(90deg, transparent 0%, var(--primary) 30%, var(--primary-light) 70%, transparent 100%);
             pointer-events: none;
             z-index: 2;
         }
@@ -14011,7 +14011,7 @@ function formatDuration(seconds) {
                 border-radius: 12px;
                 padding: 32px;
                 margin: 24px 0;
-                color: white;
+                color: var(--color-text-primary);
                 position: relative;
                 overflow: hidden;
             }
@@ -14059,7 +14059,7 @@ function formatDuration(seconds) {
                 left: 0;
                 right: 0;
                 height: 3px;
-                background: linear-gradient(90deg, transparent 0%, #72A300 30%, #8abc00 70%, transparent 100%);
+                background: linear-gradient(90deg, transparent 0%, var(--primary) 30%, var(--primary-light) 70%, transparent 100%);
                 pointer-events: none;
                 z-index: 2;
             }
@@ -14103,7 +14103,7 @@ function formatDuration(seconds) {
                 border-radius: 25px;
                 font-weight: 600;
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
+                border: 1px solid var(--color-border-primary);
             }
             
             .impact-severity.extreme {
@@ -14151,7 +14151,7 @@ function formatDuration(seconds) {
             }
             
             .impact-metric-card {
-                background: rgba(255, 255, 255, 0.04);
+                background: var(--color-bg-secondary);
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(114, 163, 0, 0.18);
                 border-radius: 12px;
@@ -14196,19 +14196,19 @@ function formatDuration(seconds) {
                 font-weight: 700;
                 margin-bottom: 4px;
                 text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-                color: rgba(255, 255, 255, 1);
+                color: var(--color-text-primary);
             }
             
             .impact-metric-card .metric-label {
                 font-size: 0.9rem;
                 font-weight: 600;
                 margin-bottom: 2px;
-                color: rgba(255, 255, 255, 0.95);
+                color: var(--color-text-primary);
             }
             
             .impact-metric-card .metric-period {
                 font-size: 0.75rem;
-                color: rgba(255, 255, 255, 0.8);
+                color: var(--color-text-secondary);
             }
             
             /* Info Tooltip for Divergence Index */
@@ -14216,7 +14216,7 @@ function formatDuration(seconds) {
                 display: inline-block;
                 margin-left: 4px;
                 font-size: 0.75rem;
-                color: rgba(255, 255, 255, 0.5);
+                color: var(--color-text-muted);
                 cursor: help;
                 font-style: normal;
                 vertical-align: super;
@@ -14225,7 +14225,7 @@ function formatDuration(seconds) {
             }
             
             .info-tooltip:hover {
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--color-text-primary);
             }
             
             .impact-metric-card .metric-label {
@@ -14273,13 +14273,13 @@ function formatDuration(seconds) {
                 font-size: 1.2rem;
                 font-weight: 700;
                 margin: 0;
-                color: #ffffff;
+                color: var(--color-text-primary);
                 text-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
 
             .chart-legend-hint {
                 font-size: 0.75rem;
-                color: rgba(255, 255, 255, 0.45);
+                color: var(--color-text-muted);
                 margin-top: 4px;
             }
 
@@ -14319,14 +14319,14 @@ function formatDuration(seconds) {
                 gap: 8px;
                 padding: 8px 16px;
                 border-radius: 20px;
-                background: rgba(255,255,255,0.1);
+                background: var(--color-bg-secondary);
                 transition: all 0.3s ease;
                 border: 1px solid transparent;
             }
             
             .divergence-chart-container .chartjs-legend li:hover {
-                background: rgba(255,255,255,0.2);
-                border-color: rgba(255,255,255,0.3);
+                background: var(--color-bg-secondary);
+                border-color: var(--color-border-primary);
                 transform: translateY(-2px);
             }
             
@@ -14341,7 +14341,7 @@ function formatDuration(seconds) {
                 gap: 8px;
                 font-size: 0.85rem;
                 font-weight: 500;
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--color-text-primary);
             }
             
             .legend-color {
@@ -14365,7 +14365,7 @@ function formatDuration(seconds) {
             .chart-canvas-wrapper {
                 position: relative;
                 height: 450px;
-                background: rgba(255, 255, 255, 0.02);
+                background: var(--color-bg-secondary);
                 border-radius: 12px;
                 padding: 16px;
                 display: flex;
@@ -14377,7 +14377,7 @@ function formatDuration(seconds) {
                 width: 100% !important;
                 height: 100% !important;
                 border-radius: 8px;
-                background: rgba(255, 255, 255, 0.08);
+                background: var(--color-bg-secondary);
             }
             
             .chart-loading, .chart-no-data {
@@ -14386,7 +14386,7 @@ function formatDuration(seconds) {
                 left: 50%;
                 transform: translate(-50%, -50%);
                 text-align: center;
-                color: rgba(255, 255, 255, 0.8);
+                color: var(--color-text-secondary);
             }
             
             .loading-spinner {
@@ -14403,7 +14403,7 @@ function formatDuration(seconds) {
                 font-size: 1rem;
                 font-weight: 600;
                 margin-bottom: 8px;
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--color-text-primary);
             }
             
             .no-data-icon {
@@ -14416,7 +14416,7 @@ function formatDuration(seconds) {
                 font-size: 0.85rem;
                 max-width: 250px;
                 line-height: 1.4;
-                color: rgba(255, 255, 255, 0.7);
+                color: var(--color-text-secondary);
             }
             
             /* Dynamic Narrative Styles */
@@ -14427,7 +14427,7 @@ function formatDuration(seconds) {
             }
             
             .narrative-section {
-                background: rgba(255, 255, 255, 0.95);
+                background: var(--color-bg-secondary);
                 color: var(--color-text-primary);
                 border-radius: 12px;
                 padding: 32px;
@@ -14509,9 +14509,9 @@ function formatDuration(seconds) {
             .divergence-info-section {
                 margin: 20px 0;
                 padding: 16px;
-                background: rgba(255, 255, 255, 0.03);
+                background: var(--color-bg-secondary);
                 border-radius: 8px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                border: 1px solid var(--color-border-primary);
             }
             
             .divergence-info-section h6 {
@@ -14598,7 +14598,7 @@ function formatDuration(seconds) {
                 grid-template-columns: repeat(3, 1fr);
                 gap: 8px;
                 font-size: 0.8rem;
-                color: rgba(255, 255, 255, 0.7);
+                color: var(--color-text-secondary);
             }
             
             .range-item {
@@ -14748,9 +14748,9 @@ function formatDuration(seconds) {
             }
             
             .detail-item {
-                background: rgba(255, 255, 255, 0.1);
+                background: var(--color-bg-secondary);
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                border: 1px solid var(--color-border-primary);
                 border-radius: 12px;
                 padding: 20px;
                 display: flex;
@@ -14814,7 +14814,7 @@ function formatDuration(seconds) {
                 left: 50%;
                 transform: translateX(-50%);
                 background: rgba(239, 68, 68, 0.9);
-                color: white;
+                color: var(--color-text-primary);
                 padding: 6px 12px;
                 border-radius: 8px;
                 font-size: 0.75rem;
@@ -14842,9 +14842,9 @@ function formatDuration(seconds) {
             }
             
             .primary-insight {
-                background: rgba(255, 255, 255, 0.08);
+                background: var(--color-bg-secondary);
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
+                border: 1px solid var(--color-border-primary);
                 border-radius: 12px;
                 padding: 24px;
                 margin-bottom: 20px;
@@ -14866,13 +14866,13 @@ function formatDuration(seconds) {
                 margin: 0;
                 font-size: 1.1rem;
                 font-weight: 600;
-                color: rgba(255, 255, 255, 0.95);
+                color: var(--color-text-primary);
             }
             
             .insight-text {
                 margin: 0;
                 line-height: 1.6;
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--color-text-primary);
                 font-size: 0.95rem;
             }
             
@@ -22592,59 +22592,38 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
     return `
         <div class="narrative-section">
             <div class="narrative-heading">
-                <h4>What's Happening to This Page?</h4>
+                <h4>What this means</h4>
             </div>
             
             <div class="narrative-intro">
                 <p>${generateNarrativeIntro(ctrDecline, impressionChange, impressionTrend)}</p>
-            </div>
-            
-            <div class="key-pattern">
-                <h5>The Key Pattern</h5>
-                <div class="pattern-metrics">
-                    <div class="pattern-metric">
-                        <span class="metric-icon">📊</span>
-                        <strong>Divergence Index: ${divergenceIndex}</strong>
-                    </div>
-                    <ul class="pattern-details">
-                        <li>Impressions: ${impressionTrend} ${impressionPercent}% vs 6 months ago</li>
-                        <li>Clicks: ${clickTrend} ${clickPercent}% vs 6 months ago</li>
-                        <li>Est. lost clicks (latest month): ~${lostClicks}</li>
-                    </ul>
-                </div>
                 <p class="severity-message">${severityMessage}</p>
-                
-                <!-- Divergence Index Scale -->
-                <div class="divergence-info-section">
-                    <h6>What's the Divergence Index?</h6>
-                    <p class="divergence-explainer">A single score for how much AI Overviews are affecting this page. It climbs when lots of people <strong>see</strong> your page in search but fewer actually <strong>click</strong> &mdash; the signature of Google answering the question itself. The higher the number, the bigger the impact.</p>
-                    
-                    <div class="divergence-scale-graphic">
-                        <div class="scale-visual">
-                            ${generateDivergenceScaleVisual(impactMetrics.divergenceIndex)}
-                        </div>
-                        <div class="scale-ranges">
-                            <div class="range-item minimal">0-10: Minimal Impact</div>
-                            <div class="range-item low">10-30: Minor Impact</div>
-                            <div class="range-item moderate">30-60: Moderate Impact</div>
-                            <div class="range-item high">60-100: High Impact</div>
-                            <div class="range-item critical">100-200: Critical Impact</div>
-                            <div class="range-item extreme">200+: Extreme Impact</div>
-                        </div>
+            </div>
+            
+            <div class="divergence-info-section">
+                <h6>What's the Divergence Index?</h6>
+                <p class="divergence-explainer">A single score for how much AI Overviews are affecting this page. It climbs when lots of people <strong>see</strong> your page in search but fewer actually <strong>click</strong> &mdash; the signature of Google answering the question itself. The higher the number, the bigger the impact.</p>
+                <div class="divergence-scale-graphic">
+                    <div class="scale-visual">
+                        ${generateDivergenceScaleVisual(impactMetrics.divergenceIndex)}
+                    </div>
+                    <div class="scale-ranges">
+                        <div class="range-item minimal">0&ndash;30 &middot; Low</div>
+                        <div class="range-item moderate">30&ndash;60 &middot; Moderate</div>
+                        <div class="range-item high">60&ndash;100 &middot; High</div>
+                        <div class="range-item critical">100+ &middot; Severe</div>
                     </div>
                 </div>
             </div>
-            
             
             ${publicServiceWarning ? `
             <div class="public-service-warning">
-                <span class="warning-icon">⚠️</span>
                 <p>${publicServiceWarning}</p>
             </div>
             ` : ''}
             
             <div class="narrative-footer">
-                <p class="footer-note"><em>Note: While AI Overviews reduce direct clicks, ensuring citizens can still access comprehensive, authoritative information remains critical. Focus on being the trusted source that AI systems cite.</em></p>
+                <p class="footer-note"><em>AI Overviews reduce direct clicks, but being the trusted source AI systems cite still matters &mdash; focus on comprehensive, authoritative content.</em></p>
             </div>
         </div>
     `;
