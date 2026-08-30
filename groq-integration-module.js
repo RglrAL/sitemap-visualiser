@@ -13,11 +13,13 @@
     const STORAGE_KEY_PIN    = 'groqAdminPin';
     const STORAGE_KEY_PROMPTS = 'groqPrompts';
     const SESSION_KEY_AUTH   = 'adminAuth';
-    const DEFAULT_MODEL      = 'llama-3.3-70b-versatile';
-    const FAST_MODEL         = 'llama-3.1-8b-instant';
+    const DEFAULT_MODEL      = 'openai/gpt-oss-120b';
+    const FAST_MODEL         = 'openai/gpt-oss-20b';
     const AVAILABLE_MODELS   = [
-        { id: 'llama-3.3-70b-versatile', label: 'llama-3.3-70b-versatile (Best quality)' },
-        { id: 'llama-3.1-8b-instant',    label: 'llama-3.1-8b-instant (Fastest)'        },
+        { id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B (Best quality)' },
+        { id: 'openai/gpt-oss-20b',  label: 'GPT-OSS 20B (Fast)'          },
+        { id: 'qwen/qwen3.8-27b',    label: 'Qwen 3.8 27B'                },
+        { id: 'groq/compound',       label: 'Groq Compound (agentic)'     },
     ];
 
     // Default prompt content — single source of truth
@@ -132,6 +134,7 @@
 
     function _handleHttpError(status) {
         if (status === 401) throw new Error('Invalid API key. Check your key at console.groq.com');
+        if (status === 404) throw new Error('The selected AI model is unavailable — Groq may have retired it. Pick a current model in Settings (see console.groq.com/docs/models).');
         if (status === 429) throw new Error('Rate limit reached. Please wait a moment and try again.');
         if (status === 413) throw new Error('Request too large. Reduce the amount of content being sent.');
         if (status === 503) throw new Error('Groq service temporarily unavailable. Please try again shortly.');
