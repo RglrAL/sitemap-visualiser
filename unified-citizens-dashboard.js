@@ -14016,6 +14016,30 @@ function formatDuration(seconds) {
                 overflow: hidden;
             }
             
+            .ai-metrics-strip {
+                display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+                border: 1px solid var(--color-border-primary); border-radius: 10px;
+                background: var(--color-bg-primary); overflow: hidden; margin-bottom: 20px;
+            }
+            .ai-metric {
+                padding: 16px 18px; border-right: 1px solid var(--color-border-primary);
+                display: flex; flex-direction: column; gap: 5px;
+            }
+            .ai-metric:last-child { border-right: none; }
+            .ai-metric-label {
+                font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+                letter-spacing: 0.04em; color: var(--color-text-muted);
+            }
+            .ai-metric-value { font-size: 1.6rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.1; }
+            .ai-metric-value.pos { color: #059669; }
+            .ai-metric-value.neg { color: #dc2626; }
+            .ai-metric-sub { font-size: 0.72rem; color: var(--color-text-secondary); }
+            @media (max-width: 768px) {
+                .ai-metrics-strip { grid-template-columns: repeat(2, 1fr); }
+                .ai-metric:nth-child(2n) { border-right: none; }
+                .ai-metric { border-bottom: 1px solid var(--color-border-primary); }
+            }
+
             .ai-overview-impact-section::before {
                 content: '';
                 position: absolute;
@@ -20867,15 +20891,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Clicks',
                         data: chartData.clicks,
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderColor: '#007cb6',
+                        backgroundColor: 'rgba(0, 124, 182, 0.1)',
                         borderWidth: 3,
-                        pointBackgroundColor: '#2563eb',
+                        pointBackgroundColor: '#007cb6',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
                         pointHoverRadius: 10,
-                        pointHoverBackgroundColor: '#3b82f6',
+                        pointHoverBackgroundColor: '#3399cc',
                         pointHoverBorderWidth: 4,
                         tension: 0.1,
                         fill: false,
@@ -20885,15 +20909,15 @@ function createAIDivergenceChart(timelineData, dashboardId) {
                     {
                         label: 'Impressions',
                         data: chartData.impressions,
-                        borderColor: '#059669',
+                        borderColor: '#94a3b8',
                         backgroundColor: 'transparent',
                         borderWidth: 3,
-                        pointBackgroundColor: '#059669',
+                        pointBackgroundColor: '#94a3b8',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 3,
                         pointRadius: 6,
                         pointHoverRadius: 10,
-                        pointHoverBackgroundColor: '#10b981',
+                        pointHoverBackgroundColor: '#cbd5e1',
                         pointHoverBorderWidth: 4,
                         tension: 0.1,
                         fill: false,
@@ -21755,7 +21779,7 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
             <div class="section-header">
                 <div class="section-title-group">
                     <h3 class="section-title">
-                        <span class="section-icon">🤖</span>
+                        <span class="section-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l5.8-1.9z"></path></svg></span>
                         AI Overview Impact Analysis
                     </h3>
                     <p class="section-subtitle">
@@ -21770,41 +21794,26 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
             
             <div class="ai-impact-content">
                 <!-- Key Metrics Row -->
-                <div class="impact-metrics-row">
-                    <div class="impact-metric-card ctr-decline">
-                        <div class="metric-icon">${impactMetrics.ctrDecline > 0 ? '📉' : '📈'}</div>
-                        <div class="metric-content">
-                            <div class="metric-value">${impactMetrics.ctrDecline > 0 ? '-' : '+'}${Math.abs(impactMetrics.ctrDecline)}%</div>
-                            <div class="metric-label">CTR Change</div>
-                            <div class="metric-period">vs. 6 months ago</div>
-                        </div>
+                <div class="ai-metrics-strip">
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">CTR Change</div>
+                        <div class="ai-metric-value ${impactMetrics.ctrDecline > 0 ? 'neg' : 'pos'}">${impactMetrics.ctrDecline > 0 ? '-' : '+'}${Math.abs(impactMetrics.ctrDecline)}%</div>
+                        <div class="ai-metric-sub">vs 6 months ago</div>
                     </div>
-                    
-                    <div class="impact-metric-card impression-growth">
-                        <div class="metric-icon">${impactMetrics.impressionGrowth >= 0 ? '📈' : '📉'}</div>
-                        <div class="metric-content">
-                            <div class="metric-value">${impactMetrics.impressionGrowth >= 0 ? '+' : ''}${impactMetrics.impressionGrowth}%</div>
-                            <div class="metric-label">Impression Change</div>
-                            <div class="metric-period">vs. 6 months ago</div>
-                        </div>
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">Impression Change</div>
+                        <div class="ai-metric-value ${impactMetrics.impressionGrowth >= 0 ? 'pos' : 'neg'}">${impactMetrics.impressionGrowth >= 0 ? '+' : ''}${impactMetrics.impressionGrowth}%</div>
+                        <div class="ai-metric-sub">vs 6 months ago</div>
                     </div>
-                    
-                    <div class="impact-metric-card lost-traffic">
-                        <div class="metric-icon">🚪</div>
-                        <div class="metric-content">
-                            <div class="metric-value">${impactMetrics.estimatedLostClicks}</div>
-                            <div class="metric-label">Est. Lost Clicks</div>
-                            <div class="metric-period">monthly</div>
-                        </div>
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">Est. Lost Clicks</div>
+                        <div class="ai-metric-value">${impactMetrics.estimatedLostClicks}</div>
+                        <div class="ai-metric-sub">per month</div>
                     </div>
-                    
-                    <div class="impact-metric-card divergence-index">
-                        <div class="metric-icon">📊</div>
-                        <div class="metric-content">
-                            <div class="metric-value">${impactMetrics.divergenceIndex}</div>
-                            <div class="metric-label">Divergence Index</div>
-                            <div class="metric-period">6-month impact</div>
-                        </div>
+                    <div class="ai-metric">
+                        <div class="ai-metric-label">Divergence Index</div>
+                        <div class="ai-metric-value">${impactMetrics.divergenceIndex}</div>
+                        <div class="ai-metric-sub">6-month impact</div>
                     </div>
                 </div>
                 
@@ -22607,8 +22616,8 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                 
                 <!-- Divergence Index Scale -->
                 <div class="divergence-info-section">
-                    <h6>Understanding the Divergence Index</h6>
-                    <p class="divergence-explainer">The Divergence Index combines CTR change and impression change to measure overall AI Overview impact: <strong>(CTR decline × 1.5) + (Impression growth × 0.5)</strong></p>
+                    <h6>What's the Divergence Index?</h6>
+                    <p class="divergence-explainer">A single score for how much AI Overviews are affecting this page. It climbs when lots of people <strong>see</strong> your page in search but fewer actually <strong>click</strong> &mdash; the signature of Google answering the question itself. The higher the number, the bigger the impact.</p>
                     
                     <div class="divergence-scale-graphic">
                         <div class="scale-visual">
