@@ -1373,6 +1373,68 @@
         return _trendCache[key];
     }
 
+    // Ranked action-card list for the section briefing (numbered, colour-tagged by type).
+    function _briefCard(items) {
+        const tcol = { Opportunity: '#0369a1', Cannibalisation: '#d97706', Decline: '#dc2626', Freshness: '#7c3aed' };
+        return '<div style="display:flex;flex-direction:column;gap:8px;">' + items.map(function (it, i) {
+            const col = tcol[it.type] || 'var(--primary)';
+            const clickable = it.url ? ' class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(it.url) + '" style="cursor:pointer;"' : '';
+            return '<div' + clickable + ' style="display:flex;gap:10px;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);">' +
+                '<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:' + col + ';color:#fff;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (i + 1) + '</div>' +
+                '<div style="min-width:0;flex:1;">' +
+                    '<div style="font-size:0.8rem;font-weight:700;color:var(--color-text-primary);"><span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:' + col + ';margin-right:6px;">' + esc(it.type) + '</span>' + esc(it.title) + '</div>' +
+                    '<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-top:2px;">' + esc(it.detail) + '</div>' +
+                '</div></div>';
+        }).join('') + '</div>';
+    }
+
+    // Shared briefing engine (used by the briefing intent AND the digest roll-up).
+    // Fetch once, compute per-section many times.
+    async function _briefingContext(r) {
+        let qrows = null;
+        try { qrows = await getQueryRows(_ddDays); } catch (e) {}
+        const hasQueries = !!(qrows && qrows.length);
+        let prior = null;
+        try { prior = await getPriorMaps(window.treeData, _ddDays); } catch (e) {}
+        return { qrows: qrows, hasQueries: hasQueries, qidx: hasQueries ? buildQueryIndex(qrows, r) : [], urlCat: hasQueries ? _urlToCatMap(r) : null, prior: prior };
+    }
+    function _sectionActions(c, r, ctx) {
+        const pages = c ? catPages(c) : _allPages(r);
+        const ctr = (c ? c.rollup.ctr : r.totals.ctr) || 0.02;
+        const actions = [];
+        if (ctx.hasQueries) {
+            let opps = c ? ctx.qidx.filter(function (x) { return x.category === c.name; }) : ctx.qidx;
+            opps = opps.filter(function (x) { return x.impressions >= 100 && x.potential >= 5; }).sort(function (a, b) { return b.potential - a.potential; }).slice(0, 3);
+            opps.forEach(function (o) { actions.push({ type: 'Opportunity', score: o.potential, title: 'Improve "' + o.query + '"', detail: '+' + fmt(Math.round(o.potential)) + ' clicks/mo potential - pos ' + (o.bestPos != null ? o.bestPos.toFixed(0) : '?') + ', ' + fmt(o.impressions) + ' impr', url: o.bestPage }); });
+            const cann = _cannibalisation(ctx.qrows, c ? c.name : null, ctx.urlCat).slice(0, 2);
+            cann.forEach(function (k) { actions.push({ type: 'Cannibalisation', score: k.total * ctr * 0.3, title: 'Resolve competing pages for "' + k.query + '"', detail: k.competing + ' of your pages compete - ' + fmt(k.total) + ' impr at stake', url: (k.pages[0] && k.pages[0].url) || null }); });
+        }
+        if (ctx.prior) {
+            let worst = null;
+            pages.forEach(function (p) {
+                const cur = p.s.impressions || 0;
+                const prev = (p.urls || [p.url]).reduce(function (s, u) { const pr = ctx.prior.gscBy[normUrl(u)]; return s + (pr ? (pr.impressions || 0) : 0); }, 0);
+                if (prev >= 200) { const pct = (cur - prev) / prev * 100; if (pct <= -15 && (!worst || pct < worst.pct)) worst = { p: p, pct: pct, cur: cur, prev: prev }; }
+            });
+            if (worst) actions.push({ type: 'Decline', score: (worst.prev - worst.cur) * ctr, title: 'Investigate ' + worst.p.name, detail: 'down ' + Math.round(Math.abs(worst.pct)) + '% - ' + fmt(worst.cur) + ' impr, was ' + fmt(worst.prev), url: worst.p.url });
+        }
+        const now = Date.now();
+        pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; const m = isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44); return { p: p, m: m }; })
+            .filter(function (x) { return x.m != null && x.m > 12 && (x.p.s.impressions || 0) >= 200; })
+            .sort(function (a, b) { return (b.p.s.impressions || 0) - (a.p.s.impressions || 0); }).slice(0, 2)
+            .forEach(function (x) { actions.push({ type: 'Freshness', score: (x.p.s.clicks || 0) * 0.3, title: 'Refresh ' + x.p.name, detail: Math.round(x.m) + ' months old - still ' + fmt(x.p.s.impressions || 0) + ' impr', url: x.p.url }); });
+        actions.sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+        return actions.slice(0, 8);
+    }
+    function _briefMarkdown(scope, rollup, actions) {
+        let md = '## ' + scope + '\n\n';
+        md += '- Impressions: ' + fmt(rollup.impressions) + ' | Clicks: ' + fmt(rollup.clicks) + ' | CTR: ' + (rollup.ctr * 100).toFixed(1) + '%' + (rollup.pageViews ? (' | Views: ' + fmt(rollup.pageViews)) : '') + '\n\n';
+        if (!actions.length) { return md + '_No urgent priorities - looks healthy._\n\n'; }
+        md += '**Priorities (ranked by estimated impact):**\n\n';
+        actions.forEach(function (it, i) { md += (i + 1) + '. **' + it.type + '** - ' + it.title.replace(/"/g, '') + ' (' + it.detail + ')' + (it.url ? ('\n   ' + it.url) : '') + '\n'; });
+        return md + '\n';
+    }
+
     async function runIntent(plan, r) {
         const cats = r.categories, hasGA4 = r.totals.pageViews > 0 || r.totals.users > 0;
         const metric = ['impressions', 'clicks', 'ctr', 'position', 'pageViews', 'users'].indexOf(plan.metric) >= 0 ? plan.metric : 'impressions';
@@ -1670,6 +1732,79 @@
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'competingPages', label: 'Competing pages' }, { key: 'totalImpressions', label: 'Total impressions' }, { key: 'page', label: 'Page' }, { key: 'pageImpressions', label: 'Page impressions' }, { key: 'position', label: 'Position' }], rows: items.reduce(function (acc, it) { it.pages.forEach(function (p) { acc.push({ query: it.query, competingPages: it.competing, totalImpressions: it.total, page: p.url, pageImpressions: p.impressions, position: p.position != null ? +p.position.toFixed(1) : '' }); }); return acc; }, []), chart: null }
             };
         }
+        if (intent === 'briefing') {
+            const c = _catByName(cats, plan.category);
+            const scopeName = c ? c.name : 'the site';
+            const scopeTitle = scopeName === 'the site' ? 'Whole site' : scopeName;
+            const ctx = await _briefingContext(r);
+            const top = _sectionActions(c, r, ctx);
+            const rollup = c ? c.rollup : r.totals;
+            const hasGA4b = r.totals.pageViews > 0 || r.totals.users > 0;
+            const scorecard = '<div style="font-weight:700;margin-bottom:8px;">' + esc(scopeTitle) + '</div>' + _stripCard(rollup, hasGA4b);
+            const md = '# Briefing: ' + scopeTitle + ' (' + periodLabel(_ddDays) + ')\n\n' + _briefMarkdown(scopeTitle, rollup, top);
+            if (!top.length) return { html: scorecard + '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-top:12px;">No urgent priorities right now - ' + esc(scopeName) + ' looks healthy. Try "biggest search opportunities' + (c ? ' in ' + c.name : '') + '".</div>', summary: esc(scopeName) + ' has no urgent priorities right now.', data: { columns: [], rows: [] }, markdown: md };
+            const html = scorecard + '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 8px;">Your priorities (ranked by estimated impact)</div>' + _briefCard(top);
+            return {
+                html: html,
+                summary: 'Top priorities for ' + scopeName + ' (' + periodLabel(_ddDays) + '): ' + top.slice(0, 5).map(function (it, i) { return (i + 1) + ') ' + it.type + ' - ' + it.title.replace(/"/g, '') + ' (' + it.detail + ')'; }).join('; ') + '.',
+                data: { columns: [{ key: 'priority', label: '#' }, { key: 'type', label: 'Type' }, { key: 'action', label: 'Action' }, { key: 'detail', label: 'Detail' }, { key: 'url', label: 'URL' }], rows: top.map(function (it, i) { return { priority: i + 1, type: it.type, action: it.title.replace(/"/g, ''), detail: it.detail, url: it.url || '' }; }), chart: null },
+                markdown: md
+            };
+        }
+        if (intent === 'digest') {
+            const ctx = await _briefingContext(r);
+            const sections = cats.slice().sort(function (a, b) { return b.rollup.impressions - a.rollup.impressions; });
+            let md = '# Weekly digest (' + periodLabel(_ddDays) + ')\n\n';
+            const previews = [];
+            sections.forEach(function (sc) {
+                const acts = _sectionActions(sc, r, ctx);
+                if (!acts.length) return;
+                md += _briefMarkdown(sc.name, sc.rollup, acts);
+                previews.push({ name: sc.name, rollup: sc.rollup, actions: acts });
+            });
+            if (!previews.length) return { html: '<div style="font-size:0.9rem;color:var(--color-text-secondary);">All sections look healthy - no urgent priorities across the site right now.</div>', summary: 'All sections look healthy - no urgent priorities.', data: { columns: [], rows: [] }, markdown: md };
+            const html = '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:10px;">Weekly digest - ' + previews.length + ' section' + (previews.length === 1 ? '' : 's') + ' need attention</div>' +
+                previews.map(function (p) { return '<div style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:6px;font-size:0.9rem;">' + esc(p.name) + ' <span style="font-weight:400;font-size:0.68rem;color:var(--color-text-muted);">' + fmt(p.rollup.impressions) + ' impr</span></div>' + _briefCard(p.actions.slice(0, 3)) + '</div>'; }).join('');
+            const rows = [];
+            previews.forEach(function (p) { p.actions.forEach(function (it, i) { rows.push({ section: p.name, priority: i + 1, type: it.type, action: it.title.replace(/"/g, ''), detail: it.detail, url: it.url || '' }); }); });
+            return {
+                html: html,
+                summary: 'Weekly digest (' + periodLabel(_ddDays) + '): ' + previews.slice(0, 5).map(function (p) { return p.name + ' - ' + p.actions.length + ' action' + (p.actions.length === 1 ? '' : 's') + ' (top: ' + p.actions[0].type.toLowerCase() + ')'; }).join('; ') + '.',
+                data: { columns: [{ key: 'section', label: 'Section' }, { key: 'priority', label: '#' }, { key: 'type', label: 'Type' }, { key: 'action', label: 'Action' }, { key: 'detail', label: 'Detail' }, { key: 'url', label: 'URL' }], rows: rows, chart: null },
+                markdown: md
+            };
+        }
+        if (intent === 'page_queries') {
+            const page = _findPage(_allPages(r), plan.page || plan.category || '');
+            if (!page) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap (e.g. "Airline liability").' };
+            let all;
+            try { all = await getQueryRows(_ddDays); }
+            catch (e) { return { html: '', summary: '', err: 'Could not fetch search-query data: ' + (e && e.message ? e.message : String(e)) }; }
+            if (all == null) {
+                const _g = window.GSCIntegration, _c = _g && _g.isConnected && _g.isConnected();
+                return { html: '', summary: '', err: _c ? 'Search-query data needs the updated GSC module. Redeploy gsc-integration-module.js (it must include fetchAllQueries) and hard-refresh.' : 'Search-query answers need a Search Console connection.' };
+            }
+            const set = {}; (page.urls || [page.url]).forEach(function (u) { set[normUrl(u)] = 1; });
+            const byQ = {};
+            all.forEach(function (row) {
+                if (!set[normUrl(row.page || '')]) return;
+                const q = row.query; if (!q) return;
+                if (!byQ[q]) byQ[q] = { query: q, impressions: 0, clicks: 0, _ps: 0, _pw: 0 };
+                const e = byQ[q]; e.impressions += row.impressions || 0; e.clicks += row.clicks || 0;
+                if ((row.impressions || 0) > 0 && (row.position || 0) > 0) { e._ps += row.position * row.impressions; e._pw += row.impressions; }
+            });
+            const by = metric === 'clicks' ? 'clicks' : 'impressions';
+            const qs = Object.keys(byQ).map(function (q) { const e = byQ[q]; return { query: e.query, impressions: e.impressions, clicks: e.clicks, position: e._pw > 0 ? e._ps / e._pw : null }; })
+                .filter(function (x) { return x[by] > 0; }).sort(function (a, b) { return b[by] - a[by]; }).slice(0, limit);
+            if (!qs.length) return { html: '', summary: '', err: 'No search queries found for "' + page.name + '" in ' + periodLabel(_ddDays) + '. (It may get little search traffic, or mostly GA4/referral traffic.)' };
+            const head = '<div class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(page.url) + '" style="cursor:pointer;font-weight:700;color:var(--color-text-heading);margin-bottom:8px;">' + esc(page.name) + '</div>';
+            const items = qs.map(function (x) { return { name: x.query, val: fmt(x[by]) + (x.position != null ? ' · #' + x.position.toFixed(0) : ''), bar: x[by] }; });
+            return {
+                html: head + _rankCard(items),
+                summary: 'Top search queries bringing people to "' + page.name + '" (' + periodLabel(_ddDays) + ', by ' + by + '): ' + qs.slice(0, 8).map(function (x) { return '"' + x.query + '" ' + fmt(x[by]) + (x.position != null ? ' (pos ' + x.position.toFixed(0) + ')' : ''); }).join(', ') + '.',
+                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'position', label: 'Position' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, position: x.position != null ? +x.position.toFixed(1) : '' }; }), chart: { type: 'bar', x: 'query', y: by, label: by === 'clicks' ? 'Clicks' : 'Impressions' } }
+            };
+        }
         return { html: '', summary: '', unknown: true };
     }
 
@@ -1717,7 +1852,14 @@
                 else add('Which sections get the most traffic?');
                 break;
             case 'section_summary':
-                if (cat) { add('Top pages in ' + cat); add('Biggest search opportunities in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
+                if (cat) { add('What should I focus on in ' + cat + '?'); add('Biggest search opportunities in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
+                break;
+            case 'briefing':
+                if (cat) { add('Biggest search opportunities in ' + cat); add('What is stale in ' + cat + '?'); add('How has ' + cat + ' trended?'); }
+                else { add('Generate a weekly digest'); add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?'); }
+                break;
+            case 'digest':
+                add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?'); add('Biggest movers across the site');
                 break;
             case 'rank_categories':
                 if (topRow && topRow.section) add('Where are our biggest search opportunities in ' + topRow.section + '?');
@@ -1727,7 +1869,7 @@
                 if (plan.categories && plan.categories.length === 2) { add('Top pages in ' + plan.categories[0]); add('Top pages in ' + plan.categories[1]); }
                 break;
             case 'site_summary':
-                add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?'); add('Biggest movers across the site');
+                add('What should I focus on?'); add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?');
                 break;
             case 'international_queries':
                 add('Which countries search us the most?'); add('What do people search for?'); add('Where are our biggest search opportunities?');
@@ -1743,7 +1885,12 @@
                 add('What do people search for?'); add('Where are our biggest search opportunities?'); add('Which sections get the most traffic?');
                 break;
             case 'diagnose':
-                add('What questions do people ask?'); add('Where are our biggest search opportunities?'); add('Any pages competing for the same search?');
+                if (plan.page) add('What queries bring people to ' + plan.page + '?');
+                add('Where are our biggest search opportunities?'); add('Any pages competing for the same search?');
+                break;
+            case 'page_queries':
+                if (plan.page) add('Why is ' + plan.page + ' underperforming?');
+                add('What questions do people ask?'); add('Where are our biggest search opportunities?');
                 break;
             case 'cannibalisation':
                 if (cat) { add('Biggest search opportunities in ' + cat); add('Top pages in ' + cat); }
@@ -1753,7 +1900,7 @@
         return out;
     }
 
-    const _ASK_EXAMPLES = ['Where are our biggest search opportunities?', 'What questions do people ask?', 'How has Health trended?', 'Which Housing pages lost traffic?', 'What do people abroad search us for?', 'Compare Health and Housing'];
+    const _ASK_EXAMPLES = ['What should I focus on in Health?', 'Generate a weekly digest', 'Where are our biggest search opportunities?', 'What questions do people ask?', 'Which Housing pages lost traffic?', 'What do people abroad search us for?'];
 
     // ── export helpers (CSV + AI brief) — consume the runIntent data contract ──
     function _csvCell(v) {
@@ -1803,6 +1950,7 @@
     const _ICON_DOC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
     const _ICON_EXPAND = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
     const _ICON_IMG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+    const _ICON_COPY = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 
     // Miss-log: record questions that resolve to `unknown` so the owner can see what
     // to build next. Capped ring buffer in localStorage. Inspect via SVRollup.getAskMisses().
@@ -1820,8 +1968,27 @@
     // result-aware "Why is X underperforming?"), so a long/odd page name can never be
     // mis-parsed to unknown. Returns a plan or null (null -> fall back to the LLM).
     function _quickParse(q) {
-        const m = /^why is (?:the\s+)?(.+?)(?:\s+page)?\s+(?:underperforming|not getting clicks|not ranking|down)\??$/i.exec(String(q || '').trim());
+        const s = String(q || '').trim();
+        const m = /^why is (?:the\s+)?(.+?)(?:\s+page)?\s+(?:underperforming|not getting clicks|not ranking|down)\??$/i.exec(s);
         if (m && m[1]) return { intent: 'diagnose', page: m[1].trim() };
+        // "what does <country> search (us) for" / "what do people in <country> search for"
+        // Only fires when the term resolves to a real country (so it can't hijack
+        // "what do people search for in Health").
+        const cm = /^what (?:does|do) (?:people (?:in|from) )?(.+?) search(?: us)?(?: for)?\??$/i.exec(s);
+        if (cm && cm[1] && _resolveCountry(cm[1].trim())) return { intent: 'international_queries', country: cm[1].trim() };
+        // "what should I focus on (in X)" / "my priorities" / "where do I start" / "briefing" -> section briefing
+        const bm = /^(?:what should (?:i|we) (?:focus on|work on|do|prioriti[sz]e)|what are (?:my|our) priorities|where should (?:i|we) (?:focus|start)|where do (?:i|we) start|what needs (?:my |our )?attention|(?:give me )?(?:a |my )?(?:section )?briefing)(?: (?:in|for) (.+?))?\??$/i.exec(s);
+        if (bm) return { intent: 'briefing', category: (bm[1] || '').trim() || null };
+        // "what (search) queries bring people to X" / "what do people search to find X" -> page_queries
+        // "weekly digest" / "generate a digest" / "digest for all sections" -> all-sections roll-up
+        const dm = /^(?:generate |create |show |give me |make )?(?:a |the |my )?(?:weekly |content |section )?digest(?: (?:for|of|across) (?:all(?: sections| owners| the sections)?|every section|everyone|the (?:whole )?site))?\??$/i.exec(s);
+        if (dm) return { intent: 'digest' };
+        const dm2 = /^(?:weekly |content )?digest (?:for|of) (.+?)\??$/i.exec(s);
+        if (dm2 && dm2[1]) return { intent: 'briefing', category: dm2[1].trim() };
+        const pm = /^(?:what (?:search )?queries|what searches|what search terms) (?:bring|brings|lead|leads|send|sends|drive|drives) (?:people |visitors |users |traffic )?to (?:the )?(.+?)(?:\s+page)?\??$/i.exec(s);
+        if (pm && pm[1]) return { intent: 'page_queries', page: pm[1].trim() };
+        const pm2 = /^what do people search (?:for )?to (?:find|reach|get to) (?:the )?(.+?)(?:\s+page)?\??$/i.exec(s);
+        if (pm2 && pm2[1]) return { intent: 'page_queries', page: pm2[1].trim() };
         return null;
     }
 
@@ -1897,6 +2064,10 @@
             if (ecsv) { const ex = _exports[ecsv.getAttribute('data-eid')]; if (ex) _download('ask-' + _slug(ex.q) + '-' + _todayStr() + '.csv', _toCSV(ex.data), 'text/csv'); return; }
             const ebrief = e.target.closest('.sv-ask-export-brief');
             if (ebrief) { const ex = _exports[ebrief.getAttribute('data-eid')]; if (ex) _exportBrief(ex, ebrief); return; }
+            const ecopy = e.target.closest('.sv-ask-memo-copy');
+            if (ecopy) { const ex = _exports[ecopy.getAttribute('data-eid')]; if (ex && ex.markdown) { const done = function () { const t = ecopy.innerHTML; ecopy.innerHTML = 'Copied'; setTimeout(function () { ecopy.innerHTML = t; }, 1400); }; if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ex.markdown).then(done, function () {}); } else { try { const ta = document.createElement('textarea'); ta.value = ex.markdown; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(); } catch (e2) {} } } return; }
+            const emd = e.target.closest('.sv-ask-memo-md');
+            if (emd) { const ex = _exports[emd.getAttribute('data-eid')]; if (ex && ex.markdown) _download('digest-' + _slug(ex.q) + '-' + _todayStr() + '.md', ex.markdown, 'text/markdown'); return; }
             const epng = e.target.closest('.sv-ask-chart-png');
             if (epng) { const eid = epng.getAttribute('data-eid'); const el = document.getElementById(eid); const svg = el && el.querySelector('.sv-chart svg'); const ex = _exports[eid]; if (svg) _svgToPng(svg, 'chart-' + _slug(ex ? ex.q : 'ask') + '-' + _todayStr() + '.png', 2); return; }
             const eexp = e.target.closest('.sv-ask-chart-expand');
@@ -1995,7 +2166,7 @@
                 const catNames = r.categories.map(function (c) { return c.name; });
                 const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Sections available: ' + catNames.join(', ') + '. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","unknown"], ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","unknown"], ' +
                     '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose intent (or null), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
@@ -2004,13 +2175,16 @@
                     'opportunities / quick wins / missing out / losing clicks / could win more->opportunities; ' +
                     'what do people search for / search terms / top searches / queries / keywords->top_queries (metric clicks only if they say clicks); ' +
                     'from abroad / overseas / internationally / the diaspora / emigrants / people outside Ireland->international_queries with country null; ' +
-                    'from a named place (the US / in Australia / from Britain)->international_queries with country set to that country name; ' +
+                    'from a named place / what does X search us for / what do people in X search for (the US / Australia / Britain / Mexico)->international_queries with country set to that country name; ' +
                     'which countries / where are searchers from / top countries->top_countries; ' +
                     'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); trend of X vs Y / compare X and Y over time->trend with categories [X,Y]; ' +
                     'why is X underperforming / why is X down / why is the X page underperforming / what is wrong with X / diagnose X / why is X not getting clicks->diagnose with page set to X (the page named, even a long multi-word name); ' +
                     'what questions do people ask / what are people asking / question searches / common questions->questions (category optional); ' +
                     'Irish vs English / as Gaeilge / language gap / where does the Irish version underperform / English vs Irish->language_gap; ' +
-                    'cannibalisation / cannibalization / pages competing / competing pages / self-competition / multiple pages ranking for the same search->cannibalisation (category optional).';
+                    'cannibalisation / cannibalization / pages competing / competing pages / self-competition / multiple pages ranking for the same search->cannibalisation (category optional); ' +
+                    'what should I focus on / what should I work on / my priorities / where should I focus / where do I start / what needs attention / section briefing / triage->briefing (category optional). Prefer briefing when the user asks what to DO; prefer section_summary when they ask how a section is DOING; ' +
+                    'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); ' +
+                    'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category.';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
@@ -2026,8 +2200,8 @@
                     busy = false; return;
                 }
                 if (res.err) { resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>'; busy = false; return; }
-                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation' };
-                if (res.data && res.data.rows && res.data.rows.length) _exports[eid] = { data: res.data, q: q, summary: res.summary };
+                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest' };
+                if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 if (plan.category) interpBits.push(plan.category);
                 if (plan.country) interpBits.push(plan.country);
@@ -2050,6 +2224,8 @@
                         (_isChart(res.data) ? '<button class="sv-ask-chart-png" data-eid="' + eid + '" title="Download chart as PNG" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_IMG + 'PNG</button>' : '') +
                         '<button class="sv-ask-export-csv" data-eid="' + eid + '" title="Download these rows as CSV" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DL + 'CSV</button>' +
                         '<button class="sv-ask-export-brief" data-eid="' + eid + '" title="Write a short Markdown brief with AI" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DOC + 'Brief</button>' +
+                        ((_exports[eid] && _exports[eid].markdown) ? ('<button class="sv-ask-memo-copy" data-eid="' + eid + '" title="Copy the memo (Markdown)" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_COPY + 'Copy</button>' +
+                        '<button class="sv-ask-memo-md" data-eid="' + eid + '" title="Download the memo (.md)" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DOC + '.md</button>') : '') +
                         '</div>');
                 }
                 const _fups = _followups(plan, res);
