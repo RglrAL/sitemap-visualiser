@@ -15567,7 +15567,14 @@ function initializeUnifiedDashboard(dashboardId) {
             });
             
             this.classList.add('active');
-            
+
+            // Smooth navigation: jump to the top of the new tab and centre the tapped tab
+            try {
+                const _modal = document.getElementById('unified-dashboard-modal');
+                if (_modal) _modal.scrollTo({ top: 0, behavior: 'smooth' });
+                this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            } catch (e) {}
+
             const targetPanel = dashboard.querySelector(`[data-panel="${targetTab}"]`);
             if (targetPanel) {
                 targetPanel.classList.add('active');
