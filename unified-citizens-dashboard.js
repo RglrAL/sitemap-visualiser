@@ -4267,8 +4267,19 @@ function createCleanIrelandView(regions, geoInsights) {
         `;
     }
     
+    const _mapUid = 'sv-irl-' + ((window.__svGeoUid = (window.__svGeoUid || 0) + 1));
+    (window.__svGeoData = window.__svGeoData || {})[_mapUid] = regions;
+    const _choropleth = `
+        <div class="sv-choropleth-wrap">
+            <svg id="${_mapUid}" class="sv-choropleth" viewBox="0 0 440 500" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="sv-choropleth-tip" id="${_mapUid}-tip"></div>
+            <div class="sv-choropleth-legend">Users by county &middot; <span class="sv-legend-ramp"></span> low &rarr; high</div>
+            <img alt="" aria-hidden="true" style="display:none" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" onload="window.SVGeoMap&&window.SVGeoMap.initIreland('${_mapUid}')">
+        </div>`;
+
     return `
         <div class="clean-regional-overview">
+            ${_choropleth}
             <div class="regional-stats">
                 <div class="stat-item">
                     <span class="stat-number">${geoInsights.dublinPercentage}%</span>
