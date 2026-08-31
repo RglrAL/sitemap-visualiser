@@ -1295,7 +1295,7 @@
         if (!el) { _chartTipHide(); return; }
         const text = el.getAttribute('data-tip'); if (!text) { _chartTipHide(); return; }
         let tip = document.getElementById('sv-chart-tip');
-        if (!tip) { tip = document.createElement('div'); tip.id = 'sv-chart-tip'; tip.style.cssText = 'position:fixed;z-index:100002;pointer-events:none;background:var(--color-bg-elevated,#1f2937);color:#fff;font:600 0.72rem/1.4 var(--font-family,sans-serif);padding:6px 9px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.28);white-space:nowrap;display:none;'; document.body.appendChild(tip); }
+        if (!tip) { tip = document.createElement('div'); tip.id = 'sv-chart-tip'; tip.style.cssText = 'position:fixed;z-index:100002;pointer-events:none;background:#1f2937;color:#ffffff;font:600 0.72rem/1.4 var(--font-family,sans-serif);padding:6px 9px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.28);white-space:nowrap;display:none;'; document.body.appendChild(tip); }
         tip.textContent = text; tip.style.display = 'block';
         let x = e.clientX + 13, y = e.clientY + 13;
         if (x + tip.offsetWidth + 8 > window.innerWidth) x = e.clientX - 13 - tip.offsetWidth;
