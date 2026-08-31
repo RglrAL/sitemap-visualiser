@@ -90,6 +90,52 @@
         return tooltip;
     }
 
+    function _svFmt(n) {
+        n = Number(n) || 0;
+        if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+        return String(Math.round(n));
+    }
+    // Section/branch rollup strip — shown for CATEGORY nodes (nodes with children).
+    function renderBranchStrip(data) {
+        const kids = (data.children || data._children || []);
+        if (!kids.length) return '';                         // pages get the normal tooltip
+        // Annotate the live tree once so data.rollup exists (d.data === treeData node).
+        if (!data.rollup && window.SVRollup && window.treeData) {
+            try { window.SVRollup.build(window.treeData); } catch (e) {}
+        }
+        const r = data.rollup;
+        if (!r) return '';
+        const hasSearch = r.impressions > 0;
+        const hasGA = r.pageViews > 0 || r.users > 0;
+        // First time we see a section with no analytics yet but integrations connected,
+        // kick off ONE background prefetch+rebuild so subsequent hovers light up.
+        if (!hasSearch && !hasGA && !window._svRollupTried && window.SVRollup && window.SVRollup.refresh) {
+            const gscOn = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
+            const ga4On = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
+            if (gscOn || ga4On) { window._svRollupTried = true; try { window.SVRollup.refresh(); } catch (e) {} }
+        }
+        const cell = (label, val) =>
+            '<div style="flex:1;min-width:0;padding:7px 9px;border-right:1px solid var(--color-border-primary);">' +
+                '<div style="font-size:0.54rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);white-space:nowrap;">' + label + '</div>' +
+                '<div style="font-size:0.95rem;font-weight:700;color:var(--color-text-primary);line-height:1.15;">' + val + '</div>' +
+            '</div>';
+        let cells = cell('Pages', _svFmt(r.pageCount));
+        if (hasSearch) {
+            cells += cell('Impr', _svFmt(r.impressions)) + cell('Clicks', _svFmt(r.clicks)) +
+                     cell('CTR', (r.ctr * 100).toFixed(1) + '%') + cell('Pos', r.position != null ? r.position.toFixed(1) : '—');
+        }
+        if (hasGA) cells += cell('Views', _svFmt(r.pageViews)) + cell('Users', _svFmt(r.users));
+        const note = (!hasSearch && !hasGA)
+            ? '<div style="font-size:0.66rem;color:var(--color-text-muted);padding:6px 10px 0;">Open <strong>Reports › Category Performance</strong> to load search &amp; analytics for this section.</div>'
+            : '';
+        return '<div style="padding:12px 20px 0;">' +
+            '<div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">This section — ' + _svFmt(r.pageCount) + ' pages</div>' +
+            '<div style="display:flex;border:1px solid var(--color-border-primary);border-radius:8px;overflow:hidden;background:var(--color-bg-primary);">' + cells + '</div>' +
+            note +
+        '</div>';
+    }
+
     function createTabbedContent(data) {
         const pageInfo = getPageInfoSafe(data);
         const freshnessInfo = getFreshnessInfoSafe(data);
@@ -201,6 +247,8 @@ onmouseout="
 
                 </div>
             </div>
+
+            ${renderBranchStrip(data)}
 
             <!-- Tab Navigation -->
             <div style="
@@ -470,8 +518,8 @@ onmouseout="
                 
                 .tab-btn.active {
                     color: var(--color-text-primary) !important;
-                    border-bottom-color: var(--secondary) !important;
-                    background: linear-gradient(to bottom, transparent, rgba(114, 163, 0, 0.06)) !important;
+                    border-bottom-color: var(--primary) !important;
+                    background: linear-gradient(to bottom, transparent, rgba(0, 124, 182, 0.06)) !important;
                 }
                 
                 .tab-btn:hover:not(.active) {
