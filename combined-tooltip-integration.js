@@ -1942,6 +1942,8 @@ function showDashboardModal(htmlContent) {
         '#stats{display:none!important;}' +
         '#colourLegend{display:none!important;}' +
         '#breadcrumbContainer{display:none!important;}' +
+        // Pin the tab bar so you can switch tabs without scrolling back up
+        '#unified-dashboard-modal .dashboard-tabs{position:sticky;top:0;z-index:20;background:var(--color-bg-primary);box-shadow:0 1px 0 var(--color-border-primary);}' +
         // ── Mobile responsiveness (applies only while the report panel is open) ──
         '@media (max-width: 640px){' +
             // tighter section + card padding
