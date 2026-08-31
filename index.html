@@ -25,6 +25,7 @@
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
 <script src="sitemap-rollup.js"></script>
+<script src="sitemap-geomap.js"></script>
 <script src="groq-integration-module.js"></script>
 
 	
@@ -7332,7 +7333,18 @@ window.loadQuickSite = async function(url) {
 	window.treeData = treeData;
         try { saveLastSitemap(xmlString, source); } catch (e) {}
         maxSiteDepth = maxDepth;
-        
+
+        // Align "Total Pages" with URL Health + Category Performance: count DISTINCT tree
+        // URL-nodes (deduped), not raw <loc> entries (which double-count duplicate URLs).
+        (function () {
+            let distinct = 0;
+            (function walk(n) {
+                if (n && n.url) distinct++;
+                if (n && n.children) n.children.forEach(walk);
+            })(treeData);
+            if (distinct > 0) totalPages = distinct;
+        })();
+
         const mainCategories = Object.keys(tree.children).length;
         const avgDepth = calculateAverageDepth(tree);
         
@@ -7562,6 +7574,20 @@ function updateParentLastModDates(node) {
                 percentage: Math.round((pageDepthCounts[depth] / totalPages) * 100)
             })).sort((a, b) => a.depth - b.depth);
             
+            // Largest category, computed consistently: merge same-named categories
+            // across languages, and express as % of LEAF pages (not the mixed URL total).
+            const _totalLeafPages = Object.values(languageStats).reduce((sum, l) => sum + (l.pages || 0), 0) || totalPages;
+            const _catByName = {};
+            Object.values(categoryStats).forEach(cat => {
+                const k = String(cat.name || '').toLowerCase();
+                if (!_catByName[k]) _catByName[k] = { name: cat.name, pages: 0 };
+                _catByName[k].pages += cat.pages;
+            });
+            const _largestCategory = Object.values(_catByName)
+                .reduce((max, c) => c.pages > max.pages ? c : max, { pages: 0, name: 'None' });
+            _largestCategory.percentage = _totalLeafPages > 0
+                ? Math.round((_largestCategory.pages / _totalLeafPages) * 100) : 0;
+
             siteStats = {
                 totalPages,
                 maxDepth,
@@ -7573,8 +7599,7 @@ function updateParentLastModDates(node) {
                 depthDistribution: depthDistribution,
                 categoryBreakdown: Object.values(categoryStats)
                     .sort((a, b) => b.pages - a.pages),
-                largestCategory: Object.values(categoryStats)
-                    .reduce((max, cat) => cat.pages > max.pages ? cat : max, {pages: 0, name: 'None', percentage: 0})
+                largestCategory: _largestCategory
             };
             
             siteAnalysis = generateSiteAnalysis();
