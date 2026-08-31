@@ -1001,14 +1001,16 @@ function addMobileGA4Button() {
         }
         const today = new Date();
         const days = opts.days || 30;
-        const start = new Date(today.getTime() - (days * 24 * 60 * 60 * 1000));
+        const offset = opts.offset || 0;   // days to shift the window back (for prior-period comparison)
+        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
         const result = new Map();
         try {
             const resp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${ga4AccessToken}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    dateRanges: [{ startDate: start.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] }],
+                    dateRanges: [{ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] }],
                     dimensions: [{ name: 'pagePath' }],
                     metrics: [
                         { name: 'screenPageViews' },
