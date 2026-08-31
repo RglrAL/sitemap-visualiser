@@ -128,6 +128,7 @@
             for (let i = 0; i < kids.length; i++) mergeAgg(agg, walk(kids[i]));
 
             node.rollup = finalize(agg);                       // whole subtree
+            node._agg = agg;                                   // raw accumulator (for correct merging)
             const selfAgg = emptyAgg(); addSelf(selfAgg, self, isPage);
             node.rollupSelf = finalize(selfAgg);               // this page only
             if (isPage) byUrl[normUrl(node.url)] = node.rollupSelf;
@@ -135,9 +136,18 @@
         }
 
         const rootAgg = walk(tree);
-        // Categories = top-level sections (skipping a language-code level if present)
-        const categories = pickCategories(tree).map(function (c) {
-            return { name: c.name, url: c.url || null, rollup: c.rollup, node: c };
+        // Categories = top-level sections (skipping a language-code level), MERGED by name
+        // so a section that exists in several languages (CI's /en/ + /ga/) is one card.
+        const merged = new Map();
+        pickCategories(tree).forEach(function (c) {
+            const key = String(c.name || '').trim().toLowerCase();
+            if (!merged.has(key)) merged.set(key, { name: c.name, url: c.url || null, agg: emptyAgg(), nodes: [] });
+            const m = merged.get(key);
+            mergeAgg(m.agg, c._agg);
+            m.nodes.push(c);
+        });
+        const categories = Array.from(merged.values()).map(function (m) {
+            return { name: m.name, url: m.url, rollup: finalize(m.agg), nodes: m.nodes };
         }).sort(function (a, b) {
             if (b.rollup.impressions !== a.rollup.impressions) return b.rollup.impressions - a.rollup.impressions;
             return b.rollup.pageViews - a.rollup.pageViews;   // fall back to GA4 when no GSC
@@ -252,6 +262,64 @@
         });
     }
 
+    // ── Treemap: sections sized by traffic, tinted by CTR health ──
+    function renderTreemap(categories, totals, hasGA4) {
+        if (typeof d3 === 'undefined' || !d3.treemap) return '';
+        const valueOf = function (c) { return c.rollup.impressions || c.rollup.pageViews || 0; };
+        const leaves = categories.filter(function (c) { return valueOf(c) > 0; });
+        if (leaves.length < 2) return '';
+
+        const W = 1000, H = 380;
+        const root = d3.hierarchy({ children: leaves.map(function (c) { return { name: c.name, value: valueOf(c), rollup: c.rollup }; }) })
+            .sum(function (d) { return d.value; })
+            .sort(function (a, b) { return b.value - a.value; });
+        d3.treemap().size([W, H]).paddingInner(3).round(true)(root);
+
+        const avgCtr = totals.ctr;
+        const usesCtr = avgCtr > 0;
+        function fill(c) {
+            let op = 0.5;
+            if (usesCtr) {
+                const ratio = c.ctr / avgCtr;                 // vs site average
+                const t = Math.max(0, Math.min(1, (ratio - 0.5) / 1.0)); // 0 at .5x, 1 at 1.5x
+                op = 0.16 + t * 0.74;
+            }
+            return { css: 'rgba(0,124,182,' + op.toFixed(2) + ')', light: op >= 0.45 };
+        }
+
+        const cells = root.leaves().map(function (leaf) {
+            const c = leaf.data.rollup;
+            const wPct = (leaf.x1 - leaf.x0) / W * 100, hPct = (leaf.y1 - leaf.y0) / H * 100;
+            const pxW = (leaf.x1 - leaf.x0), pxH = (leaf.y1 - leaf.y0);
+            const f = fill(c);
+            const txt = f.light ? '#ffffff' : 'var(--color-text-primary)';
+            const sub = f.light ? 'rgba(255,255,255,0.85)' : 'var(--color-text-secondary)';
+            const showName = pxW > 64 && pxH > 30;
+            const showVal = pxW > 64 && pxH > 46;
+            const title = leaf.data.name + ' — ' + fmt(c.impressions) + ' impressions · ' +
+                fmt(c.clicks) + ' clicks · ' + (c.ctr * 100).toFixed(1) + '% CTR · pos ' +
+                (c.position != null ? c.position.toFixed(1) : '—') + ' · ' + fmt(c.pageCount) + ' pages';
+            return '<div title="' + esc(title) + '" style="position:absolute;left:' + (leaf.x0 / W * 100) +
+                '%;top:' + (leaf.y0 / H * 100) + '%;width:' + wPct + '%;height:' + hPct +
+                '%;background:' + f.css + ';border-radius:4px;overflow:hidden;padding:6px 8px;box-sizing:border-box;cursor:default;" class="sv-treemap-cell">' +
+                (showName ? '<div style="font-size:0.72rem;font-weight:700;color:' + txt + ';line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(leaf.data.name) + '</div>' : '') +
+                (showVal ? '<div style="font-size:0.66rem;color:' + sub + ';margin-top:2px;">' + fmt(c.impressions) + (usesCtr ? ' · ' + (c.ctr * 100).toFixed(1) + '%' : '') + '</div>' : '') +
+            '</div>';
+        }).join('');
+
+        const legend = '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:0.68rem;color:var(--color-text-muted);">' +
+            '<span><strong style="color:var(--color-text-secondary);">Size</strong> = ' + (usesCtr ? 'search impressions' : 'page views') + '</span>' +
+            (usesCtr ? '<span style="display:flex;align-items:center;gap:6px;"><strong style="color:var(--color-text-secondary);">Colour</strong> = CTR ' +
+                '<span style="display:inline-block;width:56px;height:10px;border-radius:3px;background:linear-gradient(90deg,rgba(0,124,182,0.16),rgba(0,124,182,0.9));"></span> low → high vs site avg</span>' : '') +
+        '</div>';
+
+        const style = '<style>.sv-treemap-cell{transition:filter 0.15s,outline 0.15s;outline:1px solid transparent;}.sv-treemap-cell:hover{filter:brightness(1.1);outline:1px solid var(--primary);}</style>';
+        return style +
+            '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:8px;">Site at a glance</div>' +
+            '<div style="position:relative;width:100%;aspect-ratio:' + W + '/' + H + ';margin-bottom:6px;">' + cells + '</div>' +
+            legend;
+    }
+
     // ── Category Performance scorecard (modal) ──
     async function showPanel() {
         const tree = window.treeData;
@@ -318,6 +386,8 @@
                     (hasGA4 ? metric('Views', fmt(t.pageViews)) : '') +
                     (hasGA4 ? metric('Users', fmt(t.users)) : '') +
                 '</div>' +
+                // treemap hero
+                '<div style="margin-bottom:20px;">' + renderTreemap(r.categories, t, hasGA4) + '</div>' +
                 '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:10px;">Sections, by search impressions</div>' +
                 r.categories.map(cardFor).join('') +
                 (r.categories.length === 0 ? '<div style="color:var(--color-text-muted);font-size:0.85rem;">No category data available.</div>' : '') +
@@ -328,11 +398,26 @@
         content.querySelector('#sv-rollup-close').addEventListener('click', function () { overlay.remove(); });
     }
 
+    // One-call: prefetch whatever's connected (bulk) + build. Lights up tree drill-down.
+    let _refreshing = false;
+    async function refresh(tree) {
+        tree = tree || window.treeData;
+        if (!tree || _refreshing) return null;
+        _refreshing = true;
+        try {
+            const gscOn = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
+            const ga4On = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
+            await Promise.all([ gscOn ? prefetchGSC(tree) : null, ga4On ? prefetchGA4(tree) : null ]);
+            return build(tree);
+        } finally { _refreshing = false; }
+    }
+
     window.SVRollup = {
         build: build,
         statsForUrl: statsForUrl,
         prefetchGA4: prefetchGA4,
         prefetchGSC: prefetchGSC,
+        refresh: refresh,
         showPanel: showPanel,
         selfTest: selfTest,
         _normUrl: normUrl
