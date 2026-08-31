@@ -262,6 +262,78 @@
         });
     }
 
+    // ── Biggest movers: current period vs the prior period, by section ──
+    function statsForMaps(gscBy, ga4By) {
+        return function (url) {
+            const key = normUrl(url), out = {};
+            const g = gscBy[key]; if (g) { out.impressions = g.impressions; out.clicks = g.clicks; out.position = g.position; }
+            const a = ga4By[key]; if (a) { out.pageViews = a.pageViews; out.users = a.users; }
+            return out;
+        };
+    }
+    async function fetchPeriodMaps(tree, days, offset) {
+        const gscBy = Object.create(null), ga4By = Object.create(null);
+        const gsc = window.GSCIntegration, ga4 = window.GA4Integration;
+        const jobs = [];
+        if (gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchAllPages) {
+            jobs.push(gsc.fetchAllPages({ days: days, offset: offset }).then(function (m) {
+                m.forEach(function (rec, url) { gscBy[normUrl(url)] = rec; });
+            }));
+        }
+        if (ga4 && ga4.isConnected && ga4.isConnected() && ga4.fetchAllPages) {
+            const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
+            jobs.push(ga4.fetchAllPages({ days: days, offset: offset }).then(function (byPath) {
+                (function collect(n) {
+                    if (n.url) { const r = byPath.get(toPath(n.url)); if (r) ga4By[normUrl(n.url)] = r; }
+                    (n.children || n._children || []).forEach(collect);
+                })(tree);
+            }));
+        }
+        await Promise.all(jobs);
+        return { gscBy: gscBy, ga4By: ga4By };
+    }
+    // Returns [{name, curImp, prevImp, delta, pct}] sorted by |pct|, filtered to meaningful volume.
+    async function computeMovers(tree, currentCategories, opts) {
+        opts = opts || {};
+        const days = opts.days || 30;
+        const prev = await fetchPeriodMaps(tree, days, days);          // the 30 days BEFORE the current window
+        const prevResult = build(tree, { statsFor: statsForMaps(prev.gscBy, prev.ga4By) });
+        build(tree);                                                    // restore current-period annotations on the tree
+        const prevByName = new Map(prevResult.categories.map(function (c) { return [String(c.name).toLowerCase(), c.rollup]; }));
+        const rows = currentCategories.map(function (c) {
+            const p = prevByName.get(String(c.name).toLowerCase());
+            const curImp = c.rollup.impressions, prevImp = p ? p.impressions : 0;
+            const delta = curImp - prevImp;
+            const pct = prevImp > 0 ? (delta / prevImp * 100) : null;   // null = no prior baseline
+            return { name: c.name, curImp: curImp, prevImp: prevImp, delta: delta, pct: pct };
+        }).filter(function (r) { return (r.curImp >= 300 || r.prevImp >= 300) && r.pct != null; });
+        rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
+        return rows;
+    }
+    function renderMovers(rows) {
+        if (!rows || !rows.length) return '';
+        const maxPct = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.pct); }).concat([1]));
+        const row = function (r) {
+            const up = r.delta >= 0;
+            const col = up ? '#059669' : '#dc2626';
+            const arrow = up ? '▲' : '▼';
+            const barW = Math.min(100, Math.abs(r.pct) / maxPct * 100);
+            return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);">' +
+                '<div style="flex:1;min-width:0;font-size:0.85rem;font-weight:600;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r.name) + '</div>' +
+                '<div style="width:120px;flex-shrink:0;display:flex;align-items:center;gap:2px;justify-content:flex-end;">' +
+                    '<div style="height:6px;width:' + barW + '%;background:' + col + ';border-radius:3px;opacity:0.8;"></div>' +
+                '</div>' +
+                '<div style="width:78px;flex-shrink:0;text-align:right;font-size:0.8rem;font-weight:700;color:' + col + ';">' + arrow + ' ' + Math.abs(r.pct).toFixed(0) + '%</div>' +
+                '<div style="width:64px;flex-shrink:0;text-align:right;font-size:0.72rem;color:var(--color-text-muted);">' + fmt(r.curImp) + '</div>' +
+            '</div>';
+        };
+        const top = rows.slice(0, 8);
+        return '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:4px 0 8px;">Biggest movers · vs previous 30 days</div>' +
+            '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:4px 14px;margin-bottom:20px;">' +
+            top.map(row).join('') +
+            '</div>';
+    }
+
     // ── Treemap: sections sized by traffic, tinted by CTR health ──
     function renderTreemap(categories, totals, hasGA4) {
         if (typeof d3 === 'undefined' || !d3.treemap) return '';
@@ -388,6 +460,8 @@
                 '</div>' +
                 // treemap hero
                 '<div style="margin-bottom:20px;">' + renderTreemap(r.categories, t, hasGA4) + '</div>' +
+                // movers (filled async — needs the prior-period fetch)
+                '<div id="sv-movers-slot"><div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:16px;">Comparing with previous 30 days…</div></div>' +
                 '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:10px;">Sections, by search impressions</div>' +
                 r.categories.map(cardFor).join('') +
                 (r.categories.length === 0 ? '<div style="color:var(--color-text-muted);font-size:0.85rem;">No category data available.</div>' : '') +
@@ -396,6 +470,17 @@
         overlay.innerHTML = '';
         overlay.appendChild(content);
         content.querySelector('#sv-rollup-close').addEventListener('click', function () { overlay.remove(); });
+
+        // Fill the movers section asynchronously (prior-period fetch)
+        const moversSlot = content.querySelector('#sv-movers-slot');
+        if (moversSlot && (gscOn || ga4On)) {
+            computeMovers(tree, r.categories, {}).then(function (rows) {
+                const html = renderMovers(rows);
+                if (document.body.contains(moversSlot)) moversSlot.innerHTML = html || '';
+            }).catch(function () { if (document.body.contains(moversSlot)) moversSlot.innerHTML = ''; });
+        } else if (moversSlot) {
+            moversSlot.innerHTML = '';
+        }
     }
 
     // One-call: prefetch whatever's connected (bulk) + build. Lights up tree drill-down.
@@ -418,6 +503,7 @@
         prefetchGA4: prefetchGA4,
         prefetchGSC: prefetchGSC,
         refresh: refresh,
+        computeMovers: computeMovers,
         showPanel: showPanel,
         selfTest: selfTest,
         _normUrl: normUrl
