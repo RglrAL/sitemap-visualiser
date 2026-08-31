@@ -3410,7 +3410,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
 
         .geo-kpi-card:hover {
-            transform: translateY(-8px) scale(1.02);
+            transform: translateY(-3px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(114,163,0,0.15);
             border-color: var(--color-border-primary);
         }
@@ -3530,7 +3530,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
         }
         
         .geo-clean-card:hover {
-            transform: translateY(-6px);
+            transform: translateY(-3px);
             box-shadow: 
                 0 20px 60px rgba(0, 0, 0, 0.12),
                 0 8px 32px rgba(0, 0, 0, 0.08),
