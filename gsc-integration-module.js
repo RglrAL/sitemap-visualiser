@@ -882,14 +882,16 @@ function formatDuration(seconds) {
         if (!gscSiteUrl) return result;
         const today = new Date();
         const days = opts.days || 30;
-        const start = new Date(today.getTime() - (days * 24 * 60 * 60 * 1000));
+        const offset = opts.offset || 0;   // days to shift the window back (for prior-period comparison)
+        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
         try {
             const resp = await robustGSCApiCall(async () => gapi.client.request({
                 path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
                 method: 'POST',
                 body: {
                     startDate: start.toISOString().split('T')[0],
-                    endDate: today.toISOString().split('T')[0],
+                    endDate: end.toISOString().split('T')[0],
                     dimensions: ['page'],
                     rowLimit: opts.limit || 25000
                 }
