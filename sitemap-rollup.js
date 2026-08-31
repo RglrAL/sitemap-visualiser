@@ -534,6 +534,21 @@
         for (let i = 0; i < kids.length; i++) collectPages(kids[i], out);
     }
 
+    function showLoadingOverlay(text) {
+        let el = document.getElementById('sv-loading-overlay');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'sv-loading-overlay';
+            el.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,0.5);backdrop-filter:blur(2px);';
+            el.innerHTML = '<div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.25);border-top-color:#fff;border-radius:50%;animation:sv-spin 0.8s linear infinite;"></div>' +
+                '<div style="color:#fff;font-size:0.9rem;font-family:var(--font-family,sans-serif);">' + (text || 'Loading…') + '</div>';
+            document.body.appendChild(el);
+            if (!document.getElementById('sv-spin-style')) { const st = document.createElement('style'); st.id = 'sv-spin-style'; st.textContent = '@keyframes sv-spin{to{transform:rotate(360deg)}}'; document.head.appendChild(st); }
+        }
+        el.style.display = 'flex';
+    }
+    function hideLoadingOverlay() { const el = document.getElementById('sv-loading-overlay'); if (el) el.remove(); }
+
     let _ddDays = 30;
     const PERIODS = [ { d: 7, label: 'Last 7 days' }, { d: 30, label: 'Last 30 days' }, { d: 90, label: 'Last 3 months' }, { d: 180, label: 'Last 6 months' }, { d: 365, label: 'Last 12 months' } ];
     function periodLabel(days) { const p = PERIODS.find(function (x) { return x.d === days; }); return p ? p.label.toLowerCase() : ('last ' + days + ' days'); }
@@ -542,9 +557,11 @@
         const st = document.createElement('style'); st.id = 'sv-dd-style';
         st.textContent = [
             '.sv-dd-modal{box-sizing:border-box;max-height:calc(100vh - 80px);overflow-y:auto;overflow-x:hidden;}',
-            '.sv-dd-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}',
+            '.sv-dd-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}',
             '.sv-dd-grid>*{min-width:0;}',
-            '@media(max-width:620px){.sv-dd-grid{grid-template-columns:1fr;}}',
+            '.sv-dd-card{border:1px solid var(--color-border-primary);border-radius:12px;padding:16px 18px;background:var(--color-bg-primary);}',
+            '.sv-dd-card .sv-dd-sec-rows>*:last-child{border-bottom:none;}',
+            '@media(max-width:720px){.sv-dd-grid{grid-template-columns:1fr;}}',
             '.sv-dd-page{cursor:pointer;border-radius:5px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;}',
             '.sv-dd-page:hover{background:var(--color-bg-tertiary);}'
         ].join('');
@@ -640,7 +657,7 @@
 
         const content = document.createElement('div');
         content.className = 'sv-dd-modal';
-        content.style.cssText = 'background:var(--color-bg-secondary);border-radius:16px;max-width:900px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);position:relative;font-family:var(--font-family);';
+        content.style.cssText = 'background:var(--color-bg-secondary);border-radius:16px;max-width:1080px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);position:relative;font-family:var(--font-family);';
         content.innerHTML =
             '<div style="padding:24px 28px;">' +
                 '<button class="sv-dd-back" style="background:none;border:none;color:var(--color-link);font-size:0.82rem;cursor:pointer;padding:0;margin-bottom:12px;font-family:inherit;">‹ All categories</button>' +
@@ -652,7 +669,7 @@
                         PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label + '</option>'; }).join('') +
                     '</select>' +
                 '</div>' +
-                '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;margin-bottom:22px;background:var(--color-bg-primary);">' +
+                '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;margin-bottom:16px;background:var(--color-bg-primary);">' +
                     metric('Content pages', fmt(d.leafCount)) +
                     metric('Impressions', fmt(d.impressions)) +
                     metric('Clicks', fmt(d.clicks)) +
@@ -662,23 +679,23 @@
                     (hasGA4 ? metric('Users', fmt(d.users)) : '') +
                 '</div>' +
                 '<div class="sv-dd-grid">' +
-                    '<div>' + secHd('Most viewed pages') +
-                        (topPages.length ? topPages.map(pageRow).join('') : '<div style="color:var(--color-text-muted);font-size:0.82rem;">No page-level data.</div>') +
+                    '<div class="sv-dd-card">' + secHd('Most viewed pages') +
+                        '<div class="sv-dd-sec-rows">' + (topPages.length ? topPages.map(pageRow).join('') : emptyNote('No page-level data.')) + '</div>' +
                     '</div>' +
-                    '<div id="sv-dd-movers">' + secHd('Biggest movers') +
+                    '<div class="sv-dd-card" id="sv-dd-movers">' + secHd('Biggest movers') +
                         '<div style="font-size:0.78rem;color:var(--color-text-muted);">Comparing with previous period…</div>' +
                     '</div>' +
                 '</div>' +
-                '<div style="margin-top:22px;">' + secHd('Sub-sections') +
-                    (subs.length ? subs.map(subRow).join('') : '<div style="color:var(--color-text-muted);font-size:0.82rem;">No sub-sections.</div>') +
+                '<div class="sv-dd-card" style="margin-top:16px;">' + secHd('Sub-sections') +
+                    '<div class="sv-dd-sec-rows">' + (subs.length ? subs.map(subRow).join('') : emptyNote('No sub-sections.')) + '</div>' +
                 '</div>' +
-                '<div style="margin-top:22px;">' + secHd('Needs attention') +
+                '<div class="sv-dd-card" style="margin-top:16px;">' + secHd('Needs attention') +
                     '<div class="sv-dd-grid">' +
                         '<div><div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">High views &middot; low click-through</div>' +
-                            (lowCtr.length ? lowCtr.map(function (p) { return naRow(p.name, fmt(p.s.impressions) + ' impr', (p.s.ctr * 100).toFixed(1) + '% CTR', p.url); }).join('') : emptyNote('Nothing flagged \u2014 CTR looks healthy.')) +
+                            '<div class="sv-dd-sec-rows">' + (lowCtr.length ? lowCtr.map(function (p) { return naRow(p.name, fmt(p.s.impressions) + ' impr', (p.s.ctr * 100).toFixed(1) + '% CTR', p.url); }).join('') : emptyNote('Nothing flagged \u2014 CTR looks healthy.')) + '</div>' +
                         '</div>' +
                         '<div><div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">Stale content &middot; ' + staleAll.length + ' page' + (staleAll.length === 1 ? '' : 's') + ' &gt;12mo</div>' +
-                            (stale.length ? stale.map(function (x) { return naRow(x.p.name, '', Math.round(x.m) + 'mo old', x.p.url); }).join('') : emptyNote('No stale pages detected.')) +
+                            '<div class="sv-dd-sec-rows">' + (stale.length ? stale.map(function (x) { return naRow(x.p.name, '', Math.round(x.m) + 'mo old', x.p.url); }).join('') : emptyNote('No stale pages detected.')) + '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -693,7 +710,13 @@
             const row = e.target.closest('.sv-dd-page[data-url]');
             if (!row) return;
             const u = row.getAttribute('data-url');
-            if (u && window.showUnifiedDashboardReport) { overlay.remove(); window.showUnifiedDashboardReport(u); }
+            if (!u || !window.showUnifiedDashboardReport) return;
+            showLoadingOverlay('Loading page report…');   // covers the tree while the report fetches
+            overlay.remove();
+            const safety = setTimeout(hideLoadingOverlay, 20000);
+            Promise.resolve(window.showUnifiedDashboardReport(u))
+                .catch(function () {})
+                .finally(function () { clearTimeout(safety); hideLoadingOverlay(); });
         });
 
         // Fill page-level movers within this section (prior-period fetch, cached)
@@ -729,7 +752,7 @@
                         '<div style="width:48px;text-align:right;font-size:0.72rem;color:var(--color-text-muted);flex-shrink:0;">' + fmt(r.cur) + '</div>' +
                     '</div>';
                 };
-                moversSlot.innerHTML = secHd('Biggest movers · vs previous ' + _ddDays + ' days') + rows.map(mrow).join('');
+                moversSlot.innerHTML = secHd('Biggest movers · vs previous ' + _ddDays + ' days') + '<div class="sv-dd-sec-rows">' + rows.map(mrow).join('') + '</div>';
             }).catch(function () { if (document.body.contains(moversSlot)) moversSlot.innerHTML = secHd('Biggest movers') + '<div style="font-size:0.8rem;color:var(--color-text-muted);">Comparison unavailable.</div>'; });
         } else if (moversSlot) {
             moversSlot.innerHTML = secHd('Biggest movers') + '<div style="font-size:0.8rem;color:var(--color-text-muted);">Connect GSC/GA4 to compare periods.</div>';
