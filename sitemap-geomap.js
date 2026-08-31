@@ -40,7 +40,7 @@
             // line up and the content below both cards aligns. SVGs letterbox inside.
             '.sv-choropleth-wrap{position:relative;width:100%;margin:0 auto;height:400px;}',
             '.sv-choropleth{width:100%;height:100%;display:block;}',
-            '.sv-choropleth-tip{position:absolute;pointer-events:none;display:none;z-index:50;background:var(--color-bg-elevated,#1f2937);color:#fff;font-size:0.74rem;line-height:1.5;padding:8px 11px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,0.28);white-space:nowrap;font-weight:500;}',
+            '.sv-choropleth-tip{position:absolute;pointer-events:none;display:none;z-index:50;background:#1f2937;color:#ffffff;font-size:0.74rem;line-height:1.5;padding:8px 11px;border-radius:7px;box-shadow:0 6px 18px rgba(0,0,0,0.28);white-space:nowrap;font-weight:500;}',
             '.sv-choropleth-legend{display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.68rem;color:var(--color-text-muted);margin-top:6px;}',
             '.sv-legend-ramp{display:inline-block;width:64px;height:9px;border-radius:3px;background:linear-gradient(90deg,rgba(0,124,182,0.18),rgba(0,124,182,0.92));}'
         ].join('');
