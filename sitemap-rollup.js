@@ -1031,6 +1031,21 @@
             '<img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" style="display:none" onload="window.SVGeoMap &amp;&amp; window.SVGeoMap.initWorld(\'' + uid + '\', {valueLabel:\'searches\'})">' +
             '</div>';
     }
+    // Build the world map from already-aggregated rows ({country: NAME, impressions}) —
+    // used by the expand modal (which only has the answer's data, not the raw query rows).
+    function _worldMapFromRows(rows, opts) {
+        if (typeof d3 === 'undefined' || !d3.geoNaturalEarth1 || !window.SVGeoMap || typeof window.SVGeoMap.initWorld !== 'function') return '';
+        const cs = (rows || []).filter(function (x) { return (x.impressions || 0) > 0 && x.country; });
+        if (!cs.length) return '';
+        const total = cs.reduce(function (s, x) { return s + (x.impressions || 0); }, 0) || 1;
+        const mapData = cs.map(function (x) { return { country: x.country, value: x.impressions || 0, percentage: (x.impressions || 0) / total * 100 }; });
+        const uid = 'sv-qgeo-' + (++_geoUid);
+        window.__svGeoData = window.__svGeoData || {};
+        window.__svGeoData[uid] = mapData;
+        const h = (opts && opts.big) ? 460 : 400;
+        return '<div style="margin:0 0 10px;"><div class="sv-choropleth-wrap" style="height:' + h + 'px;"><svg id="' + uid + '" class="sv-choropleth"></svg><div id="' + uid + '-tip" class="sv-choropleth-tip"></div></div>' +
+            '<img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="" style="display:none" onload="window.SVGeoMap &amp;&amp; window.SVGeoMap.initWorld(\'' + uid + '\', {valueLabel:\'searches\'})"></div>';
+    }
 
     // ══════════════════ "Ask your data" ══════════════════
     function _catByName(cats, name) {
@@ -1229,6 +1244,8 @@
     // View a chart larger in a modal (re-rendered at big size); has its own PNG button.
     function _expandChart(data, title) {
         const hasChart = _isChart(data);
+        const isMap = !!(data && data.chart && data.chart.type === 'map');
+        const hasVisual = hasChart || isMap;
         const ov = document.createElement('div');
         ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.6);display:flex;align-items:flex-start;justify-content:center;padding:28px;overflow:auto;backdrop-filter:blur(2px);';
         function close() { document.removeEventListener('keydown', onKey); ov.remove(); }
@@ -1237,24 +1254,25 @@
         document.addEventListener('keydown', onKey);
         const box = document.createElement('div');
         box.style.cssText = 'background:var(--color-bg-secondary);border-radius:14px;max-width:960px;width:100%;margin:auto;padding:22px 24px;position:relative;font-family:var(--font-family);box-shadow:0 20px 60px rgba(0,0,0,0.3);';
-        const tog = hasChart ? ('<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;margin-bottom:14px;">' +
-            '<button class="sv-xc-view" data-mode="chart" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">Chart</button>' +
+        const tog = hasVisual ? ('<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;margin-bottom:14px;">' +
+            '<button class="sv-xc-view" data-mode="chart" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">' + (isMap ? 'Map' : 'Chart') + '</button>' +
             '<button class="sv-xc-view" data-mode="table" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:transparent;color:var(--color-text-secondary);">Table</button></div>') : '';
+        const visualHtml = isMap ? _worldMapFromRows(data.rows, { big: true }) : (hasChart ? _renderChart(data, { w: 900, h: 460, big: true }) : '');
         box.innerHTML =
             '<button class="sv-xc-close" aria-label="Close" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">&times;</button>' +
             (title ? '<div style="font-weight:700;font-size:0.98rem;margin-bottom:12px;color:var(--color-text-heading);padding-right:24px;">' + esc(title) + '</div>' : '') +
             tog +
-            (hasChart ? ('<div class="sv-xc-chart">' + _renderChart(data, { w: 900, h: 460, big: true }) + '</div>') : '') +
-            '<div class="sv-xc-tbl"' + (hasChart ? ' style="display:none;"' : '') + '>' + _dataTable(data, { big: true }) + '</div>' +
+            (hasVisual ? ('<div class="sv-xc-chart">' + visualHtml + '</div>') : '') +
+            '<div class="sv-xc-tbl"' + (hasVisual ? ' style="display:none;"' : '') + '>' + _dataTable(data, { big: true }) + '</div>' +
             '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">' +
-                (hasChart ? '<button class="sv-xc-png" style="display:inline-flex;align-items:center;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Download PNG</button>' : '') +
+                (hasVisual ? '<button class="sv-xc-png" style="display:inline-flex;align-items:center;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Download PNG</button>' : '') +
                 '<button class="sv-xc-csv" style="display:inline-flex;align-items:center;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Download CSV</button>' +
             '</div>';
         ov.appendChild(box); document.body.appendChild(ov);
         box.querySelector('.sv-xc-close').addEventListener('click', close);
         box.addEventListener('mousemove', _chartTipMove);
         box.addEventListener('mouseleave', _chartTipHide);
-        const pngBtn = box.querySelector('.sv-xc-png'); if (pngBtn) pngBtn.addEventListener('click', function () { const svg = box.querySelector('.sv-chart svg'); if (svg) _svgToPng(svg, 'chart-' + _todayStr() + '.png', 2); });
+        const pngBtn = box.querySelector('.sv-xc-png'); if (pngBtn) pngBtn.addEventListener('click', function () { const svg = box.querySelector('.sv-xc-chart svg'); if (svg) _svgToPng(svg, (isMap ? 'map-' : 'chart-') + _todayStr() + '.png', 2); });
         box.querySelector('.sv-xc-csv').addEventListener('click', function () { _download('ask-' + _todayStr() + '.csv', _toCSV(data), 'text/csv'); });
         box.addEventListener('click', function (e) {
             const b = e.target.closest ? e.target.closest('.sv-xc-view') : null; if (!b) return;
@@ -1485,7 +1503,7 @@
                 const items = cs.map(function (x) { return { name: _countryName(x.country), val: fmt(x[mkey]), bar: x[mkey] }; });
                 return { html: _worldSearchMapHtml(rows) + _rankCard(items),
                     summary: 'Countries searching the site the most (excluding Ireland, ' + periodLabel(_ddDays) + ', by ' + mkey + '): ' + cs.slice(0, 6).map(function (x) { return _countryName(x.country) + ' ' + fmt(x[mkey]); }).join(', ') + '.',
-                    data: { columns: [{ key: 'country', label: 'Country' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }], rows: cs.map(function (x) { return { country: _countryName(x.country), impressions: x.impressions, clicks: x.clicks }; }), chart: { type: 'bar', x: 'country', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
+                    data: { columns: [{ key: 'country', label: 'Country' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }], rows: cs.map(function (x) { return { country: _countryName(x.country), impressions: x.impressions, clicks: x.clicks }; }), chart: { type: 'map', label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
             }
 
             // international_queries: top searches from abroad, or from a named country.
@@ -2025,7 +2043,7 @@
                         '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:14px;">' +
                         '<span style="font-size:0.68rem;color:var(--color-text-muted);margin-right:auto;">' + res.data.rows.length + ' row' + (res.data.rows.length === 1 ? '' : 's') + '</span>' +
                         '<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;">' +
-                        '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="rich" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">' + (_isChart(res.data) ? 'Chart' : 'List') + '</button>' +
+                        '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="rich" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">' + (_isChart(res.data) ? 'Chart' : ((res.data.chart && res.data.chart.type === 'map') ? 'Map' : 'List')) + '</button>' +
                         '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="table" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:transparent;color:var(--color-text-secondary);">Table</button>' +
                         '</div>' +
                         '<button class="sv-ask-chart-expand" data-eid="' + eid + '" title="View larger" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_EXPAND + 'Expand</button>' +
