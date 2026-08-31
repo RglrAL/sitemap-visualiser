@@ -97,10 +97,11 @@
     }
 
     // ── bulk GSC prefetch: ONE query for the whole property ──
-    async function prefetchGSC(tree) {
+    async function prefetchGSC(tree, days) {
         const gsc = window.GSCIntegration;
         if (!gsc || !gsc.isConnected || !gsc.isConnected() || typeof gsc.fetchAllPages !== 'function') return _gscMap;
-        const byUrl = await gsc.fetchAllPages({ days: 30 });
+        const byUrl = await gsc.fetchAllPages({ days: days || 30 });
+        _gscMap = Object.create(null);
         byUrl.forEach(function (rec, url) { _gscMap[normUrl(url)] = rec; });
         return _gscMap;
     }
@@ -299,14 +300,25 @@
         return { gscBy: gscBy, ga4By: ga4By };
     }
     // Returns [{name, curImp, prevImp, delta, pct}] sorted by |pct|, filtered to meaningful volume.
-    // Cached prior-period (previous 30 days) page maps — fetched once, reused by deep-dives.
-    let _priorMaps = null, _priorLoading = null;
-    function getPriorMaps(tree) {
-        if (_priorMaps) return Promise.resolve(_priorMaps);
-        if (_priorLoading) return _priorLoading;
-        _priorLoading = fetchPeriodMaps(tree, 30, 30).then(function (m) { _priorMaps = m; return m; });
-        return _priorLoading;
+    // Cached prior-period page maps, keyed by window length (days). Prior = the N days before now-N.
+    const _priorCache = {};
+    function getPriorMaps(tree, days) {
+        days = days || 30;
+        if (_priorCache[days]) return Promise.resolve(_priorCache[days]);
+        return fetchPeriodMaps(tree, days, days).then(function (m) { _priorCache[days] = m; return m; });
     }
+
+    // Re-fetch the shared maps for a given window (days) and rebuild. Resets GA4 map first.
+    async function refreshForPeriod(tree, days) {
+        days = days || 30;
+        const gscOn = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
+        const ga4On = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
+        _ga4Map = Object.create(null);
+        await Promise.all([ gscOn ? prefetchGSC(tree, days) : null, ga4On ? prefetchGA4(tree, { days: days }) : null ]);
+        _loadedDays = days;
+        return build(tree);
+    }
+    let _loadedDays = 30;
 
     async function computeMovers(tree, currentCategories, opts) {
         opts = opts || {};
@@ -522,9 +534,33 @@
         for (let i = 0; i < kids.length; i++) collectPages(kids[i], out);
     }
 
-    async function showDeepDive(categoryName) {
+    let _ddDays = 30;
+    const PERIODS = [ { d: 7, label: 'Last 7 days' }, { d: 30, label: 'Last 30 days' }, { d: 90, label: 'Last 3 months' }, { d: 180, label: 'Last 6 months' }, { d: 365, label: 'Last 12 months' } ];
+    function periodLabel(days) { const p = PERIODS.find(function (x) { return x.d === days; }); return p ? p.label.toLowerCase() : ('last ' + days + ' days'); }
+    function ensureDDStyle() {
+        if (document.getElementById('sv-dd-style')) return;
+        const st = document.createElement('style'); st.id = 'sv-dd-style';
+        st.textContent = [
+            '.sv-dd-modal{box-sizing:border-box;max-height:calc(100vh - 80px);overflow-y:auto;overflow-x:hidden;}',
+            '.sv-dd-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}',
+            '.sv-dd-grid>*{min-width:0;}',
+            '@media(max-width:620px){.sv-dd-grid{grid-template-columns:1fr;}}',
+            '.sv-dd-page{cursor:pointer;border-radius:5px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;}',
+            '.sv-dd-page:hover{background:var(--color-bg-tertiary);}'
+        ].join('');
+        document.head.appendChild(st);
+    }
+
+    async function showDeepDive(categoryName, days) {
         const tree = window.treeData;
         if (!tree) { alert('Load a sitemap first.'); return; }
+        ensureDDStyle();
+        if (days && days !== _loadedDays) {
+            _ddDays = days;
+            const _g = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
+            const _a = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
+            if (_g || _a) { try { await refreshForPeriod(tree, days); } catch (e) {} }
+        } else { _ddDays = days || _ddDays || 30; }
         const r = build(tree);   // annotate with current-period data
         const cat = r.categories.find(function (c) { return String(c.name).toLowerCase() === String(categoryName).toLowerCase(); });
         if (!cat) { alert('Category not found: ' + categoryName); return; }
@@ -578,7 +614,7 @@
             const sub = hasGA4
                 ? fmt(p.s.pageViews) + ' views · ' + fmt(p.s.impressions) + ' impr'
                 : fmt(p.s.impressions) + ' impr · ' + (p.s.ctr * 100).toFixed(1) + '% CTR';
-            return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--color-border-primary);">' +
+            return '<div class="sv-dd-page" data-url="' + esc(p.url) + '" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--color-border-primary);">' +
                 '<div style="width:18px;color:var(--color-text-muted);font-size:0.75rem;flex-shrink:0;">' + (i + 1) + '</div>' +
                 '<div style="flex:1;min-width:0;"><div style="font-size:0.84rem;font-weight:600;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(p.name) + '</div>' +
                     '<div style="font-size:0.7rem;color:var(--color-text-muted);">' + sub + '</div></div>' +
@@ -593,8 +629,8 @@
             '</div>';
         };
         const secHd = function (t) { return '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:2px 0 8px;">' + t + '</div>'; };
-        const naRow = function (name, mid, right) {
-            return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);font-size:0.82rem;">' +
+        const naRow = function (name, mid, right, url) {
+            return '<div' + (url ? ' class="sv-dd-page" data-url="' + esc(url) + '"' : '') + ' style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);font-size:0.82rem;">' +
                 '<span style="font-weight:600;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">' + esc(name) + '</span>' +
                 (mid ? '<span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;flex-shrink:0;">' + mid + '</span>' : '') +
                 '<span style="color:var(--color-text-secondary);font-weight:600;white-space:nowrap;flex-shrink:0;">' + right + '</span>' +
@@ -603,13 +639,19 @@
         const emptyNote = function (t) { return '<div style="font-size:0.8rem;color:var(--color-text-muted);">' + t + '</div>'; };
 
         const content = document.createElement('div');
+        content.className = 'sv-dd-modal';
         content.style.cssText = 'background:var(--color-bg-secondary);border-radius:16px;max-width:900px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);position:relative;font-family:var(--font-family);';
         content.innerHTML =
             '<div style="padding:24px 28px;">' +
                 '<button class="sv-dd-back" style="background:none;border:none;color:var(--color-link);font-size:0.82rem;cursor:pointer;padding:0;margin-bottom:12px;font-family:inherit;">‹ All categories</button>' +
                 '<button class="sv-dd-close" title="Close" style="position:absolute;top:18px;right:20px;background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button>' +
                 '<div style="font-size:1.5rem;font-weight:700;color:var(--color-text-heading);margin-bottom:2px;">' + esc(cat.name) + '</div>' +
-                '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:16px;">Section deep-dive · last 30 days</div>' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">' +
+                    '<div style="font-size:0.85rem;color:var(--color-text-secondary);">Section deep-dive · ' + periodLabel(_ddDays) + '</div>' +
+                    '<select class="sv-dd-period" style="font-family:inherit;font-size:0.8rem;padding:5px 8px;border-radius:7px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;">' +
+                        PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label + '</option>'; }).join('') +
+                    '</select>' +
+                '</div>' +
                 '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;margin-bottom:22px;background:var(--color-bg-primary);">' +
                     metric('Content pages', fmt(d.leafCount)) +
                     metric('Impressions', fmt(d.impressions)) +
@@ -619,24 +661,24 @@
                     (hasGA4 ? metric('Views', fmt(d.pageViews)) : '') +
                     (hasGA4 ? metric('Users', fmt(d.users)) : '') +
                 '</div>' +
-                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">' +
+                '<div class="sv-dd-grid">' +
                     '<div>' + secHd('Most viewed pages') +
                         (topPages.length ? topPages.map(pageRow).join('') : '<div style="color:var(--color-text-muted);font-size:0.82rem;">No page-level data.</div>') +
                     '</div>' +
                     '<div id="sv-dd-movers">' + secHd('Biggest movers') +
-                        '<div style="font-size:0.78rem;color:var(--color-text-muted);">Comparing with previous 30 days…</div>' +
+                        '<div style="font-size:0.78rem;color:var(--color-text-muted);">Comparing with previous period…</div>' +
                     '</div>' +
                 '</div>' +
                 '<div style="margin-top:22px;">' + secHd('Sub-sections') +
                     (subs.length ? subs.map(subRow).join('') : '<div style="color:var(--color-text-muted);font-size:0.82rem;">No sub-sections.</div>') +
                 '</div>' +
                 '<div style="margin-top:22px;">' + secHd('Needs attention') +
-                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">' +
+                    '<div class="sv-dd-grid">' +
                         '<div><div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">High views &middot; low click-through</div>' +
-                            (lowCtr.length ? lowCtr.map(function (p) { return naRow(p.name, fmt(p.s.impressions) + ' impr', (p.s.ctr * 100).toFixed(1) + '% CTR'); }).join('') : emptyNote('Nothing flagged \u2014 CTR looks healthy.')) +
+                            (lowCtr.length ? lowCtr.map(function (p) { return naRow(p.name, fmt(p.s.impressions) + ' impr', (p.s.ctr * 100).toFixed(1) + '% CTR', p.url); }).join('') : emptyNote('Nothing flagged \u2014 CTR looks healthy.')) +
                         '</div>' +
                         '<div><div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">Stale content &middot; ' + staleAll.length + ' page' + (staleAll.length === 1 ? '' : 's') + ' &gt;12mo</div>' +
-                            (stale.length ? stale.map(function (x) { return naRow(x.p.name, '', Math.round(x.m) + 'mo old'); }).join('') : emptyNote('No stale pages detected.')) +
+                            (stale.length ? stale.map(function (x) { return naRow(x.p.name, '', Math.round(x.m) + 'mo old', x.p.url); }).join('') : emptyNote('No stale pages detected.')) +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -645,13 +687,21 @@
         document.body.appendChild(overlay);
         content.querySelector('.sv-dd-close').addEventListener('click', function () { overlay.remove(); });
         content.querySelector('.sv-dd-back').addEventListener('click', function () { overlay.remove(); showPanel(); });
+        const _psel = content.querySelector('.sv-dd-period');
+        if (_psel) _psel.addEventListener('change', function () { overlay.remove(); showDeepDive(cat.name, parseInt(this.value, 10)); });
+        content.addEventListener('click', function (e) {
+            const row = e.target.closest('.sv-dd-page[data-url]');
+            if (!row) return;
+            const u = row.getAttribute('data-url');
+            if (u && window.showUnifiedDashboardReport) { overlay.remove(); window.showUnifiedDashboardReport(u); }
+        });
 
         // Fill page-level movers within this section (prior-period fetch, cached)
         const moversSlot = content.querySelector('#sv-dd-movers');
         const gscOn = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
         const ga4On = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
         if (moversSlot && (gscOn || ga4On)) {
-            getPriorMaps(tree).then(function (prior) {
+            getPriorMaps(tree, _ddDays).then(function (prior) {
                 if (!document.body.contains(moversSlot)) return;
                 const useImp = d.impressions > 0;
                 const metricKey = useImp ? 'impressions' : 'pageViews';
@@ -661,7 +711,7 @@
                     const cur = p.s[metricKey] || 0;
                     const prev = pr ? (pr[metricKey] || 0) : 0;
                     const pct = prev > 0 ? (cur - prev) / prev * 100 : null;
-                    return { name: p.name, cur: cur, prev: prev, pct: pct };
+                    return { name: p.name, url: p.url, cur: cur, prev: prev, pct: pct };
                 }).filter(function (r) { return r.pct != null && (r.cur >= 100 || r.prev >= 100); });
                 rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
                 rows = rows.slice(0, 10);
@@ -670,14 +720,14 @@
                 const mrow = function (r) {
                     const up = r.pct >= 0, col = up ? '#059669' : '#dc2626', arrow = up ? '▲' : '▼';
                     const bw = Math.min(100, Math.abs(r.pct) / maxPct * 100);
-                    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);">' +
+                    return '<div class="sv-dd-page" data-url="' + esc(r.url) + '" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);">' +
                         '<div style="flex:1;min-width:0;font-size:0.82rem;font-weight:600;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r.name) + '</div>' +
                         '<div style="width:60px;display:flex;justify-content:flex-end;flex-shrink:0;"><div style="height:6px;width:' + bw + '%;background:' + col + ';border-radius:3px;opacity:0.85;"></div></div>' +
                         '<div style="width:54px;text-align:right;font-size:0.8rem;font-weight:700;color:' + col + ';flex-shrink:0;">' + arrow + ' ' + Math.abs(r.pct).toFixed(0) + '%</div>' +
                         '<div style="width:48px;text-align:right;font-size:0.72rem;color:var(--color-text-muted);flex-shrink:0;">' + fmt(r.cur) + '</div>' +
                     '</div>';
                 };
-                moversSlot.innerHTML = secHd('Biggest movers · vs previous 30 days') + rows.map(mrow).join('');
+                moversSlot.innerHTML = secHd('Biggest movers · vs previous ' + _ddDays + ' days') + rows.map(mrow).join('');
             }).catch(function () { if (document.body.contains(moversSlot)) moversSlot.innerHTML = secHd('Biggest movers') + '<div style="font-size:0.8rem;color:var(--color-text-muted);">Comparison unavailable.</div>'; });
         } else if (moversSlot) {
             moversSlot.innerHTML = secHd('Biggest movers') + '<div style="font-size:0.8rem;color:var(--color-text-muted);">Connect GSC/GA4 to compare periods.</div>';
