@@ -991,6 +991,65 @@ function addMobileGA4Button() {
     ga4Log('Mobile GA4 button added');
 }
 
+    // Bulk: one runReport returns EVERY page's metrics (dimensions:[pagePath], no filter).
+    // Returns a Map keyed by pagePath. Also warms ga4DataCache so per-page reads are free.
+    async function fetchAllGA4Pages(opts) {
+        opts = opts || {};
+        if (!ga4Connected || !ga4PropertyId || !ga4AccessToken) {
+            ga4Log('GA4 not connected, cannot bulk fetch');
+            return new Map();
+        }
+        const today = new Date();
+        const days = opts.days || 30;
+        const start = new Date(today.getTime() - (days * 24 * 60 * 60 * 1000));
+        const result = new Map();
+        try {
+            const resp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${ga4AccessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dateRanges: [{ startDate: start.toISOString().split('T')[0], endDate: today.toISOString().split('T')[0] }],
+                    dimensions: [{ name: 'pagePath' }],
+                    metrics: [
+                        { name: 'screenPageViews' },
+                        { name: 'sessions' },
+                        { name: 'totalUsers' },
+                        { name: 'averageSessionDuration' },
+                        { name: 'bounceRate' }
+                    ],
+                    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+                    limit: opts.limit || 100000
+                })
+            });
+            if (!resp.ok) {
+                ga4Log('Bulk GA4 fetch failed:', resp.status);
+                return result;
+            }
+            const json = await resp.json();
+            const rows = (json && json.rows) || [];
+            rows.forEach(function (row) {
+                const path = row.dimensionValues && row.dimensionValues[0] && row.dimensionValues[0].value;
+                if (!path) return;
+                const m = row.metricValues || [];
+                const rec = {
+                    pageViews: parseInt(m[0] && m[0].value || 0),
+                    sessions: parseInt(m[1] && m[1].value || 0),
+                    users: parseInt(m[2] && m[2].value || 0),
+                    avgSessionDuration: parseFloat(m[3] && m[3].value || 0),
+                    bounceRate: parseFloat(m[4] && m[4].value || 0)
+                };
+                result.set(path, rec);
+                // warm the per-page cache too (merge, don't clobber richer cached entries)
+                if (!ga4DataCache.has(path)) ga4DataCache.set(path, rec);
+            });
+            ga4Log('Bulk GA4 fetch: ' + result.size + ' pages in one call');
+            return result;
+        } catch (e) {
+            ga4Log('Bulk GA4 fetch error:', e);
+            return result;
+        }
+    }
+
     function toggleGA4Connection() {
         ga4Log('Toggle GA4 connection called. Current state:', ga4Connected);
         
@@ -1461,6 +1520,7 @@ function addGA4Styles() {
         isConnected: () => ga4Connected,
         getPropertyId: () => ga4PropertyId,
         fetchData: fetchGA4DataForPage,
+        fetchAllPages: fetchAllGA4Pages,
         disconnect: disconnectGA4,
         
         // Utility functions
