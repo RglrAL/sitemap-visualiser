@@ -3198,6 +3198,7 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
             `<button class="pi-overlay-btn" data-overlay="hedge" aria-pressed="false" title="${SECTION_TOOLTIP['hedge-words']}">Hedge words <span class="pi-badge">${hedgeCount}</span></button>` +
             `<button class="pi-overlay-btn" data-overlay="nominalisation" aria-pressed="false" title="${SECTION_TOOLTIP['nominalisations']}">Bureaucratic phrases <span class="pi-badge">${nomCount}</span></button>` +
             `<button class="pi-overlay-btn" data-overlay="adverb" aria-pressed="false" title="${SECTION_TOOLTIP['adverbs']}">Adverbs (-ly) <span class="pi-badge">${adverbCount}</span></button>` +
+            `<button class="pi-doc-see-detail" data-sec-key="" style="display:none;" title="Open the full explanation and instances in the Insights tab">See full detail ›</button>` +
             `<button class="pi-doc-clear-filters" style="display:none;" title="Remove all pattern highlights">\u2715 Clear</button>` +
             `</div>` +
             `<div style="font-size:0.65rem;color:var(--color-text-muted);margin-top:6px;font-style:italic;">Click a pattern to highlight it. Shift+click to show multiple.</div>` +
@@ -3275,8 +3276,19 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
             return ALL_OVERLAYS.filter(ov => wrap.classList.contains('show-' + ov)).length;
         }
 
+        const OVERLAY_TO_SECKEY = { long: 'long-sentences', passive: 'passive-voice', complex: 'complex-words', hedge: 'hedge-words', nominalisation: 'nominalisations', adverb: 'adverbs' };
+        const seeDetailBtn = panel.querySelector('.pi-doc-see-detail');
         function syncClearBtn() {
             if (clearBtn) clearBtn.style.display = getActiveCount() > 0 ? '' : 'none';
+            if (seeDetailBtn) {
+                const active = ALL_OVERLAYS.filter(ov => wrap.classList.contains('show-' + ov));
+                if (active.length === 1 && OVERLAY_TO_SECKEY[active[0]]) {
+                    seeDetailBtn.dataset.secKey = OVERLAY_TO_SECKEY[active[0]];
+                    seeDetailBtn.style.display = '';
+                } else {
+                    seeDetailBtn.style.display = 'none';
+                }
+            }
         }
 
         function deactivateAll() {
@@ -3856,7 +3868,16 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
                 '.pi-group-hd:hover{color:var(--color-text-secondary);}',
                 '.pi-group-chev{display:inline-block;font-size:0.7em;transition:transform 0.2s ease-out;flex-shrink:0;}',
                 '.pi-group.open .pi-group-chev{transform:rotate(90deg);}',
+                '.pi-noticed-link:hover{border-left-color:var(--color-link);color:var(--color-text-primary);}',
                 '.pi-group-bd{overflow:hidden;max-height:0;transition:max-height 250ms ease-out;}',
+                '.pi-score-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);overflow:hidden;margin-bottom:14px;}',
+                '.pi-score{padding:14px 16px;border-right:1px solid var(--color-border-primary);display:flex;flex-direction:column;gap:3px;}',
+                '.pi-score:last-child{border-right:none;}',
+                '.pi-score-label{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);}',
+                '.pi-score-value{font-size:1.9rem;font-weight:700;color:var(--color-text-primary);line-height:1;}',
+                '.pi-score-grade{font-size:0.66rem;font-weight:600;color:var(--color-text-secondary);}',
+                '.pi-score-sub{font-size:0.66rem;color:var(--color-text-muted);line-height:1.5;margin-top:2px;}',
+                '@media (max-width:560px){.pi-score-strip{grid-template-columns:1fr;}.pi-score{border-right:none;border-bottom:1px solid var(--color-border-primary);}.pi-score:last-child{border-bottom:none;}}',
             ].join('');
             document.head.appendChild(_cs);
         }
@@ -3908,29 +3929,24 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
 
         // ── [1] KPI Hero Strip — flat cards, grade colour only on letter/label ──
         const kpiHeroStrip =
-            `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">` +
-            // Card 1: Readability (FK)
-            `<div style="background:var(--color-bg-secondary);border-radius:8px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
-            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:4px;">Readability</div>` +
-            `<div style="font-size:2.2rem;font-weight:700;color:var(--color-text-primary);line-height:1;">${data.readabilityScore !== null ? data.readabilityScore : '\u2014'}</div>` +
-            `<div style="font-size:0.66rem;color:${scoreColor};font-weight:600;margin-top:3px;">${grade ? grade.label : 'N/A'}</div>` +
-            (data.avgSentenceLength !== null ? `<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:4px;">Avg sentence: ${data.avgSentenceLength}w</div>` : '') +
-            (data.avgSyllablesPerWord !== null ? `<div style="font-size:0.68rem;color:var(--color-text-muted);">Avg syllables: ${data.avgSyllablesPerWord}/w</div>` : '') +
+            `<div class="pi-score-strip">` +
+            `<div class="pi-score">` +
+                `<div class="pi-score-label">Readability</div>` +
+                `<div class="pi-score-value">${data.readabilityScore !== null ? data.readabilityScore : '\u2014'}</div>` +
+                `<div class="pi-score-grade" style="color:${scoreColor};">${grade ? grade.label : 'N/A'}</div>` +
+                (data.avgSentenceLength !== null ? `<div class="pi-score-sub">Avg sentence: ${data.avgSentenceLength}w${data.avgSyllablesPerWord !== null ? ' &middot; Avg syllables: ' + data.avgSyllablesPerWord + '/w' : ''}</div>` : '') +
             `</div>` +
-            // Card 2: Content (words + read time)
-            `<div style="background:var(--color-bg-secondary);border-radius:8px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
-            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:4px;">Content</div>` +
-            `<div style="font-size:2.2rem;font-weight:700;color:var(--color-text-primary);line-height:1;">${data.wordCount >= 1000 ? (data.wordCount / 1000).toFixed(1) + 'k' : data.wordCount}</div>` +
-            `<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:3px;">words</div>` +
-            `<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-top:5px;">${data.readingTime} min read</div>` +
-            (data.avgSentenceLength !== null ? `<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:2px;">Avg sentence: ${data.avgSentenceLength}w</div>` : '') +
+            `<div class="pi-score">` +
+                `<div class="pi-score-label">Content</div>` +
+                `<div class="pi-score-value">${data.wordCount >= 1000 ? (data.wordCount / 1000).toFixed(1) + 'k' : data.wordCount}</div>` +
+                `<div class="pi-score-grade">words</div>` +
+                `<div class="pi-score-sub">${data.readingTime} min read</div>` +
             `</div>` +
-            // Card 3: SEO Health
-            `<div style="background:var(--color-bg-secondary);border-radius:8px;padding:16px 10px;text-align:center;border:1px solid var(--color-border-primary);">` +
-            `<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:4px;">SEO Health</div>` +
-            `<div style="font-size:2.2rem;font-weight:700;color:var(--color-text-primary);line-height:1;">${seoGrade}</div>` +
-            `<div style="font-size:0.66rem;color:${seoGradeColor};font-weight:600;margin-top:3px;">${seoScore}/6 checks</div>` +
-            `<div style="font-size:0.64rem;color:var(--color-text-muted);margin-top:5px;line-height:1.6;">Title ${titleStatus.icon} &middot; Meta ${metaStatus.icon}<br>Canon ${canonicalStatus.icon} &middot; Schema ${data.schemaTypes.length > 0 ? '✅' : '❌'}</div>` +
+            `<div class="pi-score">` +
+                `<div class="pi-score-label">SEO Health</div>` +
+                `<div class="pi-score-value">${seoGrade}</div>` +
+                `<div class="pi-score-grade" style="color:${seoGradeColor};">${seoScore}/6 checks</div>` +
+                `<div class="pi-score-sub">Title ${titleStatus.icon} &middot; Meta ${metaStatus.icon} &middot; Canon ${canonicalStatus.icon} &middot; Schema ${data.schemaTypes.length > 0 ? '✅' : '❌'}</div>` +
             `</div>` +
             `</div>`;
 
@@ -3938,20 +3954,22 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
         const topPriorityActions = (function() {
             const primary = [];
             const secondary = [];
-            if (allLong.length > 0)   primary.push(`${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words`);
-            if (data.metaDescLength === 0) primary.push('Meta description is missing');
-            else if (data.metaDescLength > 160) primary.push(`Meta description is ${data.metaDescLength} chars (over typical length)`);
-            if (_passiveWarn && primary.length < 3) primary.push(`Passive voice in ${_passivePct}% of sentences`);
-            if (_complexWarn)   secondary.push(`Complex word coverage: ${data.writingStyle ? data.writingStyle.complexWordPct : ''}%`);
-            if (_transLow)      secondary.push(`Transition word coverage: ${data.writingStyle ? data.writingStyle.transitionCoverage : ''}%`);
-            if (data.writingStyle && data.writingStyle.nominalisationCount > 3) secondary.push(`${data.writingStyle.nominalisationCount} bureaucratic phrases`);
-            if (_contrWarn)     secondary.push('No contractions found');
-            if (_adverbWarn)    secondary.push(`Adverb coverage: ${data.writingStyle ? data.writingStyle.adverbPct : ''}%`);
-            if (data.titleLength > 60) secondary.push(`Title tag is ${data.titleLength} chars`);
-            if (data.imagesWithoutAlt > 0) secondary.push(`${data.imagesWithoutAlt} image${data.imagesWithoutAlt > 1 ? 's' : ''} missing alt text`);
+            if (allLong.length > 0)   primary.push({ text: `${allLong.length} sentence${allLong.length !== 1 ? 's' : ''} over 20 words`, key: 'long-sentences' });
+            if (data.metaDescLength === 0) primary.push({ text: 'Meta description is missing' });
+            else if (data.metaDescLength > 160) primary.push({ text: `Meta description is ${data.metaDescLength} chars (over typical length)` });
+            if (_passiveWarn && primary.length < 3) primary.push({ text: `Passive voice in ${_passivePct}% of sentences`, key: 'passive-voice' });
+            if (_complexWarn)   secondary.push({ text: `Complex word coverage: ${data.writingStyle ? data.writingStyle.complexWordPct : ''}%`, key: 'complex-words' });
+            if (_transLow)      secondary.push({ text: `Transition word coverage: ${data.writingStyle ? data.writingStyle.transitionCoverage : ''}%` });
+            if (data.writingStyle && data.writingStyle.nominalisationCount > 3) secondary.push({ text: `${data.writingStyle.nominalisationCount} bureaucratic phrases`, key: 'nominalisations' });
+            if (_contrWarn)     secondary.push({ text: 'No contractions found' });
+            if (_adverbWarn)    secondary.push({ text: `Adverb coverage: ${data.writingStyle ? data.writingStyle.adverbPct : ''}%`, key: 'adverbs' });
+            if (data.titleLength > 60) secondary.push({ text: `Title tag is ${data.titleLength} chars` });
+            if (data.imagesWithoutAlt > 0) secondary.push({ text: `${data.imagesWithoutAlt} image${data.imagesWithoutAlt > 1 ? 's' : ''} missing alt text` });
             while (primary.length > 3) secondary.unshift(primary.pop());
             if (!primary.length && !secondary.length) return '';
-            const item = obs => `<div style="font-size:0.8rem;color:var(--color-text-secondary);padding:4px 0 4px 12px;line-height:1.5;border-left:2px solid var(--color-border-primary);">${esc(obs)}</div>`;
+            const item = obs => obs.key
+                ? `<button class="pi-noticed-link" data-sec-key="${obs.key}" style="display:block;width:100%;text-align:left;font-size:0.8rem;color:var(--color-text-secondary);padding:5px 0 5px 12px;line-height:1.5;border:none;border-left:2px solid var(--color-border-primary);background:none;cursor:pointer;font-family:inherit;transition:all 0.15s;">${esc(obs.text)} <span style="color:var(--color-link);font-size:0.7rem;">view&nbsp;&rsaquo;</span></button>`
+                : `<div style="font-size:0.8rem;color:var(--color-text-secondary);padding:4px 0 4px 12px;line-height:1.5;border-left:2px solid var(--color-border-primary);">${esc(obs.text)}</div>`;
             const sublabel = txt => `<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:12px 0 6px;">${txt}</div>`;
             return card(null,
                 `<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-secondary);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border-primary);">What we noticed</div>` +
@@ -4236,7 +4254,7 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
 
             // Builds an animated collapsible section row (replaces <details>)
             const _secWrap = (label, tipKey, bodyHtml, aiMountHtml) =>
-                `<div class="pi-sec-wrap">` +
+                `<div class="pi-sec-wrap"${tipKey ? ` data-sec-key="${tipKey}"` : ''}>` +
                     `<div class="pi-sec-hd" style="${secHdStyle}">${chev}${label}${tipKey ? _secTip(tipKey) : ''}</div>` +
                     `<div class="pi-sec-bd">` +
                         `<div style="padding:2px 0 10px;">` +
@@ -4589,6 +4607,68 @@ body.dark-theme .pi-doc-wrap .pi-sent[data-passive="1"]{background:rgba(96,165,2
             mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             const aiBtn = mount.querySelector('.pi-ai-btn');
             if (aiBtn && !aiBtn.disabled) aiBtn.click();
+        });
+
+        // "What we noticed" → expand the matching Writing Quality detail in place
+        container.addEventListener('click', function(e) {
+            const link = e.target.closest('.pi-noticed-link');
+            if (!link) return;
+            const key = link.dataset.secKey;
+            const wrap = container.querySelector('.pi-sec-wrap[data-sec-key="' + key + '"]');
+            if (!wrap) return;
+            // open the enclosing collapsible group
+            const group = wrap.closest('.pi-group');
+            if (group && !group.classList.contains('open')) {
+                const gbd = group.querySelector(':scope > .pi-group-bd');
+                group.classList.add('open');
+                if (gbd) gbd.style.maxHeight = 'none';
+            }
+            // expand the section itself
+            const bd = wrap.querySelector(':scope > .pi-sec-bd');
+            if (bd && !wrap.classList.contains('pi-sec-open')) {
+                wrap.classList.add('pi-sec-open');
+                bd.style.maxHeight = 'none';
+            }
+            // scroll to it + brief highlight
+            setTimeout(function() {
+                wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const hd = wrap.querySelector(':scope > .pi-sec-hd');
+                if (hd) {
+                    hd.style.transition = 'background 0.3s';
+                    hd.style.background = 'var(--color-bg-tertiary)';
+                    setTimeout(function() { hd.style.background = ''; }, 900);
+                }
+            }, 60);
+        });
+
+        // "See full detail" — Document tab back to the Insights detail section
+        container.addEventListener('click', function(e) {
+            const btn = e.target.closest('.pi-doc-see-detail');
+            if (!btn) return;
+            const key = btn.dataset.secKey;
+            if (!key) return;
+            docPanel.style.display = 'none';
+            analysisPanel.style.display = '';
+            docBtn.style.cssText = tabBtnBase;
+            analysisBtn.style.cssText = tabBtnActive;
+            const wrap = analysisPanel.querySelector('.pi-sec-wrap[data-sec-key="' + key + '"]');
+            if (!wrap) return;
+            const group = wrap.closest('.pi-group');
+            if (group && !group.classList.contains('open')) {
+                const gbd = group.querySelector(':scope > .pi-group-bd');
+                group.classList.add('open');
+                if (gbd) gbd.style.maxHeight = 'none';
+            }
+            const bd = wrap.querySelector(':scope > .pi-sec-bd');
+            if (bd && !wrap.classList.contains('pi-sec-open')) {
+                wrap.classList.add('pi-sec-open');
+                bd.style.maxHeight = 'none';
+            }
+            setTimeout(function() {
+                wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const hd = wrap.querySelector(':scope > .pi-sec-hd');
+                if (hd) { hd.style.transition = 'background 0.3s'; hd.style.background = 'var(--color-bg-tertiary)'; setTimeout(function(){ hd.style.background = ''; }, 900); }
+            }, 60);
         });
 
         // "See in doc" cross-tab navigation
