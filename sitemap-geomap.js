@@ -57,7 +57,7 @@
         try { geo = await loadGeo(); } catch (e) { return; }
         if (typeof d3 === 'undefined' || !d3.geoMercator || !d3.geoPath) return;
 
-        const byCounty = {}; let maxU = 0;
+        const byCounty = {}; let maxU = 0, matched = 0;
         regions.forEach(r => {
             const k = key(r.region);
             const u = Number(r.users) || 0;
@@ -71,18 +71,26 @@
         const proj = d3.geoMercator().fitSize([W - 12, H - 12], geo);
         const path = d3.geoPath(proj);
         const dark = document.body.classList.contains('dark-theme');
-        const noData = dark ? '#2a3340' : '#e8edf1';
-        const strokeBase = dark ? '#151b23' : '#ffffff';
+        const noData = dark ? '#2a3340' : '#e6ebf0';
+        const strokeBase = dark ? '#3b4655' : '#c2ccd6';   // always-visible county borders
         const hoverStroke = dark ? '#7dd3fc' : '#007cb6';
         const tip = document.getElementById(uid + '-tip');
         while (svg.firstChild) svg.removeChild(svg.firstChild);
 
         const NS = 'http://www.w3.org/2000/svg';
+        const unmatched = [];
         geo.features.forEach(f => {
             const cname = f.properties.county;
             const d = byCounty[key(cname)];
-            const op = (d && maxU > 0) ? (0.18 + (d.users / maxU) * 0.74) : 0;
-            const fill = d ? 'rgba(0,124,182,' + op.toFixed(2) + ')' : noData;
+            if (d) matched++;
+            // Always give data counties a visible teal (min 0.22); flat if all users are 0.
+            let fill;
+            if (d) {
+                const op = maxU > 0 ? (0.22 + (d.users / maxU) * 0.70) : 0.5;
+                fill = 'rgba(0,124,182,' + op.toFixed(2) + ')';
+            } else {
+                fill = noData;
+            }
             const dstr = path(f);
             if (!dstr) return;
             const p = document.createElementNS(NS, 'path');
@@ -109,6 +117,12 @@
             });
             svg.appendChild(p);
         });
+
+        // Diagnostic: if names didn't match, surface what GA4 actually returns so aliases can be added.
+        if (matched === 0 && regions.length) {
+            console.warn('[SVGeoMap] Ireland map: 0 counties matched. GA4 region names =',
+                regions.map(r => r.region), '· normalised =', regions.map(r => key(r.region)));
+        }
     }
 
     // ── World bubble map (international) ──
