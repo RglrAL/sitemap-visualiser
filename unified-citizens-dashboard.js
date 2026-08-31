@@ -20186,34 +20186,18 @@ function createOverviewContent(geoData, geoInsights, servicePatterns, pageContex
 
 function createInteractiveIrelandMap(regions, geoInsights) {
     if (!regions || regions.length === 0) {
-        return `<div class="no-data-placeholder">📍 Enable geographic reporting in GA4 to see regional data</div>`;
+        return `<div class="no-data-placeholder">Enable geographic reporting in GA4 to see regional data</div>`;
     }
-    
-    // Create simplified visual representation
-    const topRegions = regions.slice(0, 8).map((region, index) => {
-        const intensity = getIntensityLevel(region.percentage);
-        return `
-            <div class="region-bubble ${intensity}" 
-                 data-region="${region.region}"
-                 title="${region.region}: ${formatNumber(region.users)} users (${region.percentage.toFixed(1)}%)"
-                 style="--size: ${Math.max(20, region.percentage * 2)}px; --delay: ${index * 0.1}s">
-                <div class="bubble-content">
-                    <span class="region-name">${formatRegionNameEnhanced(region.region)}</span>
-                    <span class="region-stats">${region.percentage.toFixed(1)}%</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
+    // Interactive county choropleth (see sitemap-geomap.js). Stash the region data and
+    // let an <img onload> kick off the d3 render once the markup is in the DOM.
+    const uid = 'sv-irl-' + ((window.__svGeoUid = (window.__svGeoUid || 0) + 1));
+    (window.__svGeoData = window.__svGeoData || {})[uid] = regions;
     return `
-        <div class="ireland-map-visual">
-            <div class="map-background"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
-            <div class="region-bubbles">${topRegions}</div>
-            <div class="map-legend">
-                <div class="legend-item high">High Usage</div>
-                <div class="legend-item medium">Medium Usage</div>
-                <div class="legend-item low">Low Usage</div>
-            </div>
+        <div class="sv-choropleth-wrap">
+            <svg id="${uid}" class="sv-choropleth" viewBox="0 0 440 500" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="sv-choropleth-tip" id="${uid}-tip"></div>
+            <div class="sv-choropleth-legend">Users by county &middot; <span class="sv-legend-ramp"></span> low &rarr; high</div>
+            <img alt="" aria-hidden="true" style="display:none" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" onload="window.SVGeoMap&&window.SVGeoMap.initIreland('${uid}')">
         </div>
     `;
 }
