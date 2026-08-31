@@ -4326,9 +4326,20 @@ function createCleanInternationalView(countries, geoInsights) {
     }
     
     const international = countries.filter(c => c.country !== 'Ireland');
-    
+
+    const _wUid = 'sv-world-' + ((window.__svGeoUid = (window.__svGeoUid || 0) + 1));
+    (window.__svGeoData = window.__svGeoData || {})[_wUid] = international;
+    const _worldMap = international.length ? `
+        <div class="sv-choropleth-wrap sv-world-wrap">
+            <svg id="${_wUid}" class="sv-choropleth" viewBox="0 0 640 340" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="sv-choropleth-tip" id="${_wUid}-tip"></div>
+            <div class="sv-choropleth-legend">Users by country &middot; bubble size = users</div>
+            <img alt="" aria-hidden="true" style="display:none" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" onload="window.SVGeoMap&&window.SVGeoMap.initWorld('${_wUid}')">
+        </div>` : '';
+
     return `
         <div class="clean-international-overview">
+            ${_worldMap}
             <div class="international-stats">
                 <div class="stat-item">
                     <span class="stat-number">${geoInsights.internationalUsers}</span>
