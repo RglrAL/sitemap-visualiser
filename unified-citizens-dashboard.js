@@ -4235,7 +4235,7 @@ function createEnhancedGeographicServiceIntelligence(gscData, ga4Data, pageUrl =
                         <span class="status-badge ${geoInsights.diasporaIndicator.toLowerCase()}">${geoInsights.diasporaIndicator} Reach</span>
                     </div>
                     <div class="clean-card-content">
-                        ${createCleanInternationalView(geoData.countries, geoInsights)}
+                        ${createCleanInternationalView(geoData.countries, geoInsights, gscData && gscData.geographic && gscData.geographic.countries)}
                     </div>
                 </div>
             </div>
@@ -4315,26 +4315,67 @@ function createCleanIrelandView(regions, geoInsights) {
     `;
 }
 
-function createCleanInternationalView(countries, geoInsights) {
-    if (!countries || countries.length === 0) {
+// Toggle the per-page world map between GA4 users and GSC search demand. Re-inits
+// SVGeoMap.initWorld with the other dataset (both stashed on window.__svGeoToggle).
+window._svWorldToggle = function (uid, mode, btnEl) {
+    const store = (window.__svGeoToggle || {})[uid];
+    if (!store || !window.SVGeoMap || !window.SVGeoMap.initWorld) return;
+    const data = mode === 'searches' ? store.searches : store.users;
+    (window.__svGeoData = window.__svGeoData || {})[uid] = data;
+    const svg = document.getElementById(uid);
+    if (svg) svg._svDone = false;   // clear the once-guard so it re-renders
+    window.SVGeoMap.initWorld(uid, { valueLabel: mode === 'searches' ? 'searches' : 'users' });
+    const wrap = svg && svg.parentNode;
+    const legend = wrap && wrap.querySelector('.sv-choropleth-legend');
+    if (legend) legend.innerHTML = mode === 'searches' ? 'Searches by country &middot; bubble size = impressions' : 'Users by country &middot; bubble size = users';
+    if (btnEl && btnEl.parentNode) {
+        Array.prototype.forEach.call(btnEl.parentNode.children, function (b) { b.setAttribute('aria-pressed', 'false'); b.style.background = 'transparent'; b.style.color = 'var(--color-text-secondary,#5b6b7a)'; });
+        btnEl.setAttribute('aria-pressed', 'true'); btnEl.style.background = 'var(--primary,#007cb6)'; btnEl.style.color = '#fff';
+    }
+};
+
+function createCleanInternationalView(countries, geoInsights, gscCountries) {
+    const _ga4Has = countries && countries.length > 0;
+    const _gscHas = gscCountries && gscCountries.some(c => c.country !== 'irl' && (c.impressions || 0) > 0);
+    if (!_ga4Has && !_gscHas) {
         return `
             <div class="clean-empty-state">
                 <div class="empty-icon">🌍</div>
-                <div class="empty-text">Click the GA4 button in the toolbar see international reach</div>
+                <div class="empty-text">Connect GA4 or Search Console in the toolbar to see international reach</div>
             </div>
         `;
     }
-    
-    const international = countries.filter(c => c.country !== 'Ireland');
+
+    const international = (countries || []).filter(c => c.country !== 'Ireland');
+    const gscIntl = (gscCountries || [])
+        .filter(c => c.country !== 'irl' && (c.impressions || 0) > 0)
+        .map(c => ({ country: (window.SVRollup && window.SVRollup.countryName) ? window.SVRollup.countryName(c.country) : c.country, value: c.impressions, _imp: c.impressions }));
+    const _gscTotal = gscIntl.reduce((s, c) => s + (c._imp || 0), 0) || 1;
+    gscIntl.forEach(c => { c.percentage = c._imp / _gscTotal * 100; });
+
+    const hasUsers = international.length > 0, hasSearches = gscIntl.length > 0;
+    const _defMode = hasUsers ? 'users' : 'searches';
+    const _defData = hasUsers ? international : gscIntl;
+    const _defLegend = _defMode === 'searches' ? 'Searches by country &middot; bubble size = impressions' : 'Users by country &middot; bubble size = users';
 
     const _wUid = 'sv-world-' + ((window.__svGeoUid = (window.__svGeoUid || 0) + 1));
-    (window.__svGeoData = window.__svGeoData || {})[_wUid] = international;
-    const _worldMap = international.length ? `
+    (window.__svGeoData = window.__svGeoData || {})[_wUid] = _defData;
+    (window.__svGeoToggle = window.__svGeoToggle || {})[_wUid] = { users: international, searches: gscIntl };
+
+    const _wtOff = 'font:inherit;font-size:0.72rem;font-weight:600;padding:4px 12px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--color-text-secondary,#5b6b7a);';
+    const _wtOn = 'font:inherit;font-size:0.72rem;font-weight:600;padding:4px 12px;border:none;border-radius:6px;cursor:pointer;background:var(--primary,#007cb6);color:#fff;';
+    const _toggle = (hasUsers && hasSearches) ? `
+        <div class="sv-world-toggle" role="group" aria-label="World map metric" style="display:inline-flex;gap:2px;margin-bottom:8px;border:1px solid var(--color-border-primary,#d5dde4);border-radius:8px;padding:2px;">
+            <button type="button" class="sv-wt-btn" aria-pressed="true" style="${_wtOn}" onclick="window._svWorldToggle('${_wUid}','users',this)">Users</button>
+            <button type="button" class="sv-wt-btn" aria-pressed="false" style="${_wtOff}" onclick="window._svWorldToggle('${_wUid}','searches',this)">Searches</button>
+        </div>` : '';
+    const _worldMap = (hasUsers || hasSearches) ? `
+        ${_toggle}
         <div class="sv-choropleth-wrap sv-world-wrap">
             <svg id="${_wUid}" class="sv-choropleth" viewBox="0 0 640 340" preserveAspectRatio="xMidYMid meet"></svg>
             <div class="sv-choropleth-tip" id="${_wUid}-tip"></div>
-            <div class="sv-choropleth-legend">Users by country &middot; bubble size = users</div>
-            <img alt="" aria-hidden="true" style="display:none" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" onload="window.SVGeoMap&&window.SVGeoMap.initWorld('${_wUid}')">
+            <div class="sv-choropleth-legend">${_defLegend}</div>
+            <img alt="" aria-hidden="true" style="display:none" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=" onload="window.SVGeoMap&&window.SVGeoMap.initWorld('${_wUid}', {valueLabel:'${_defMode === 'searches' ? 'searches' : 'users'}'})">
         </div>` : '';
 
     return `
