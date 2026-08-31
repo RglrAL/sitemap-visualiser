@@ -279,6 +279,24 @@
         // labels: q1 best pos 4 -> snippet fix; q2 pos 2 -> also <=4.5 band
         results.push({ name: 'q1.label', got: q1.label, want: 'Fix title/snippet', ok: q1.label === 'Fix title/snippet' });
 
+        // ── shared scorer is the single source of truth for buildQueryIndex ──
+        const sc1 = _scoreQuery(q1.impressions, q1.clicks, q1.bestPos);
+        results.push({ name: 'scoreQuery.matches_index', got: sc1.potential, want: q1.potential, ok: Math.abs(sc1.potential - q1.potential) < 1e-9 && sc1.label === q1.label });
+
+        // ── cannibalisation: EN/GA twins (same merged name) must NOT be flagged ──
+        const _u2n = {}; _u2n[normUrl('https://x/en/fuel')] = 'fuel'; _u2n[normUrl('https://x/ga/fuel')] = 'fuel';
+        const cannEnGa = _cannibalisation([{ query: 'cq', page: 'https://x/en/fuel', impressions: 300, position: 3 }, { query: 'cq', page: 'https://x/ga/fuel', impressions: 250, position: 5 }], null, null, _u2n);
+        results.push({ name: 'cannibal.enga_not_flagged', got: cannEnGa.length, want: 0, ok: cannEnGa.length === 0 });
+        // two genuinely different pages splitting a query >=20% each, total>=100 -> flagged
+        const cannReal = _cannibalisation([{ query: 'cq2', page: 'https://x/en/carers-a', impressions: 400, position: 4 }, { query: 'cq2', page: 'https://x/en/carers-b', impressions: 300, position: 6 }], null, null, {});
+        results.push({ name: 'cannibal.real_flagged', got: cannReal.length, want: 1, ok: cannReal.length === 1 });
+
+        // ── page-name resolver: exact wins; unambiguous exact proceeds; no match -> none ──
+        const _pn = _pagesByNameScored(r, 'A1');
+        results.push({ name: 'resolve.exact_first', got: (_pn[0] && _pn[0].page.name) || null, want: 'A1', ok: !!(_pn.length && _pn[0].page.name === 'A1') });
+        results.push({ name: 'resolve.exact_proceeds', got: !!_resolvePage(r, 'A').page, want: true, ok: !!_resolvePage(r, 'A').page });
+        results.push({ name: 'resolve.none', got: !!_resolvePage(r, 'zzznomatch').none, want: true, ok: !!_resolvePage(r, 'zzznomatch').none });
+
         const passed = results.every(r => r.ok);
         return { passed, results };
     }
@@ -892,6 +910,20 @@
     //   earn the most impressions for it; opportunity score =
     //   impressions x max(0, benchmarkCTR(pos 3) - currentCTR)  ("extra clicks this
     //   period if it performed like a top-3 result" - already-great queries score ~0).
+    // Single source of truth for per-query opportunity scoring (used by buildQueryIndex
+    // AND the page_queries "quick wins" view). potential = clicks left on the table vs a
+    // top-3 benchmark; label keyed on best position. Keep both callers in sync via this.
+    function _scoreQuery(impressions, clicks, bestPos) {
+        const ctr = impressions > 0 ? clicks / impressions : 0;
+        const potential = impressions * Math.max(0, _ctrBenchmark(3) - ctr);
+        let label = null;
+        if (bestPos != null) {
+            if (bestPos <= 4.5) label = 'Fix title/snippet';
+            else if (bestPos <= 20) label = 'Striking distance';
+            else label = 'Build content';
+        }
+        return { ctr: ctr, potential: potential, label: label };
+    }
     function buildQueryIndex(rows, r) {
         const urlCat = _urlToCatMap(r);
         const byQ = new Map();
@@ -911,20 +943,11 @@
         byQ.forEach(function (e) {
             let cat = null, catBest = -1;
             for (const k in e._catImp) { if (e._catImp[k] > catBest) { catBest = e._catImp[k]; cat = k; } }
-            const ctr = e.impressions > 0 ? e.clicks / e.impressions : 0;
             const pos = e._posW > 0 ? e._posSum / e._posW : null;
-            const potential = e.impressions * Math.max(0, _ctrBenchmark(3) - ctr);
-            // Action label (used by the opportunities view; self-explanatory rows):
-            //   ranks well but under-clicked -> snippet problem; pos ~5-20 -> push it; pos >20 -> content gap.
-            let label = null;
-            if (e.bestPos != null) {
-                if (e.bestPos <= 4.5) label = 'Fix title/snippet';
-                else if (e.bestPos <= 20) label = 'Striking distance';
-                else label = 'Build content';
-            }
-            out.push({ query: e.query, impressions: e.impressions, clicks: e.clicks, ctr: ctr,
+            const sc = _scoreQuery(e.impressions, e.clicks, e.bestPos);
+            out.push({ query: e.query, impressions: e.impressions, clicks: e.clicks, ctr: sc.ctr,
                        position: pos, bestPos: e.bestPos, bestPage: e.bestPage,
-                       category: cat, potential: potential, label: label });
+                       category: cat, potential: sc.potential, label: sc.label });
         });
         return out;
     }
@@ -1134,29 +1157,88 @@
         return incl[0] || null;
     }
 
+    // Ranked page-name matches (exact > name-contains-ref > ref-contains-name > all-words-present),
+    // tie-broken by traffic. Substring/word matching only, in the spirit of _catByName - no embeddings.
+    function _pagesByNameScored(r, ref) {
+        const k = String(ref || '').toLowerCase().trim().replace(/\s+page$/, '').replace(/^the\s+/, '');
+        if (!k) return [];
+        const words = k.split(/\s+/).filter(Boolean);
+        const scored = [];
+        _allPages(r).forEach(function (p) {
+            const pn = String(p.name || '').toLowerCase();
+            let score = 0;
+            if (pn === k) score = 100;
+            else if (pn.indexOf(k) >= 0) score = 70;
+            else if (pn.length >= 4 && k.indexOf(pn) >= 0) score = 55;
+            else if (words.length && words.every(function (w) { return pn.indexOf(w) >= 0; })) score = 40;
+            if (score > 0) scored.push({ page: p, score: score + Math.min(9, (p.s.impressions || 0) / 5000) });
+        });
+        scored.sort(function (a, b) { return b.score - a.score; });
+        return scored;
+    }
+    // Resolution policy: 1 match -> proceed; strong/dominant top -> proceed; else disambiguate.
+    function _resolvePage(r, ref) {
+        const scored = _pagesByNameScored(r, ref);
+        if (!scored.length) return { none: true };
+        if (scored.length === 1) return { page: scored[0].page };
+        const top = scored[0], second = scored[1];
+        if (top.score >= 100 || (top.score - second.score) >= 25) return { page: top.page };
+        return { candidates: scored.slice(0, 6).map(function (x) { return x.page; }) };
+    }
+    // "Did you mean:" list - each candidate re-runs the SAME intent with the exact page name
+    // (via the existing .sv-ask-chip data-q handler; exact-name resolution then proceeds).
+    function _disambig(intent, candidates, ref) {
+        const cq = function (name) { return intent === 'page_queries' ? ('What queries bring people to ' + name + '?') : ('Why is ' + name + ' underperforming?'); };
+        return '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:8px;">A few pages match "' + esc(ref) + '". Did you mean:</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' + candidates.map(function (p) {
+                return '<button class="sv-ask-chip sv-ask-disambig" data-q="' + esc(cq(p.name)) + '" style="text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 11px;border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;">' +
+                    '<span style="font-weight:600;font-size:0.82rem;">' + esc(p.name) + '</span>' +
+                    '<span style="font-size:0.68rem;color:var(--color-text-muted);">' + esc(_shortUrl(p.url)) + ' &middot; ' + fmt(p.s.impressions || 0) + ' impr</span>' +
+                '</button>';
+            }).join('') + '</div>';
+    }
+
     // ── keyword cannibalisation: 2+ of your own pages competing for one query ──
     function _shortUrl(u) { return String(u || '').replace(/^https?:\/\/[^/]+/, '').replace(/\/$/, '') || '/'; }
-    function _cannibalisation(rows, keepCat, urlCat) {
+    // normUrl(url) -> merged logical page name; collapses EN/GA twins (same merged name).
+    function _urlToPageName(r) {
+        const map = Object.create(null);
+        _allPages(r).forEach(function (p) {
+            const nm = String(p.name || '').toLowerCase();
+            (p.urls || [p.url]).forEach(function (u) { if (u) map[normUrl(u)] = nm; });
+        });
+        return map;
+    }
+    // A query is cannibalised when >=2 of your DISTINCT LOGICAL pages each take a real
+    // share of it. EN/GA twins collapse to one logical page (by merged name) so language
+    // pairs aren't false positives. Named thresholds - tune against real data.
+    const CANNIBAL_MIN_TOTAL = 100;   // query needs real demand
+    const CANNIBAL_MIN_SHARE = 0.20;  // each competing page needs >=20% of the query's impressions
+    function _cannibalisation(rows, keepCat, urlCat, urlToName) {
+        urlToName = urlToName || {};
         const byQ = {};
         rows.forEach(function (row) {
             const q = row.query, p = row.page;
             if (!q || !p) return;
             if (keepCat && (urlCat[normUrl(p)] || null) !== keepCat) return;
+            const key = urlToName[normUrl(p)] || normUrl(p);   // collapse EN/GA into one logical page
             if (!byQ[q]) byQ[q] = { query: q, pages: {}, total: 0 };
             const e = byQ[q];
-            if (!e.pages[p]) e.pages[p] = { url: p, impressions: 0, clicks: 0, _ps: 0, _pw: 0 };
-            const pg = e.pages[p];
-            pg.impressions += row.impressions || 0; pg.clicks += row.clicks || 0;
-            if ((row.impressions || 0) > 0 && (row.position || 0) > 0) { pg._ps += row.position * row.impressions; pg._pw += row.impressions; }
-            e.total += row.impressions || 0;
+            if (!e.pages[key]) e.pages[key] = { url: p, _bestImp: -1, impressions: 0, clicks: 0, _ps: 0, _pw: 0 };
+            const pg = e.pages[key], imp = row.impressions || 0;
+            pg.impressions += imp; pg.clicks += row.clicks || 0;
+            if (imp > 0 && (row.position || 0) > 0) { pg._ps += row.position * imp; pg._pw += imp; }
+            if (imp > pg._bestImp) { pg._bestImp = imp; pg.url = p; }   // representative = highest-traffic variant
+            e.total += imp;
         });
         const out = [];
         Object.keys(byQ).forEach(function (q) {
             const e = byQ[q];
-            const pages = Object.keys(e.pages).map(function (u) { const pg = e.pages[u]; return { url: u, impressions: pg.impressions, clicks: pg.clicks, position: pg._pw > 0 ? pg._ps / pg._pw : null }; })
-                .filter(function (pg) { return pg.impressions >= 10; })
+            if (e.total < CANNIBAL_MIN_TOTAL) return;
+            const pages = Object.keys(e.pages).map(function (k) { const pg = e.pages[k]; return { url: pg.url, impressions: pg.impressions, clicks: pg.clicks, position: pg._pw > 0 ? pg._ps / pg._pw : null, share: e.total > 0 ? pg.impressions / e.total : 0 }; })
+                .filter(function (pg) { return pg.share >= CANNIBAL_MIN_SHARE; })
                 .sort(function (a, b) { return b.impressions - a.impressions; });
-            if (pages.length < 2 || e.total < 50) return;
+            if (pages.length < 2) return;
             out.push({ query: q, total: e.total, competing: pages.length, pages: pages });
         });
         out.sort(function (a, b) { return b.total - a.total; });
@@ -1168,7 +1250,7 @@
             const pagesHtml = it.pages.slice(0, 4).map(function (p) {
                 return '<div class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(p.url) + '" style="cursor:pointer;display:flex;gap:8px;padding:4px 0 4px 14px;font-size:0.75rem;" onmouseover="this.style.color=\'var(--primary)\'" onmouseout="this.style.color=\'\'">' +
                     '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary);">' + esc(_shortUrl(p.url)) + '</span>' +
-                    '<span style="flex-shrink:0;color:var(--color-text-muted);">' + fmt(p.impressions) + ' impr &middot; #' + (p.position != null ? p.position.toFixed(0) : '-') + '</span>' +
+                    '<span style="flex-shrink:0;color:var(--color-text-muted);">' + fmt(p.impressions) + ' impr &middot; ' + Math.round((p.share || 0) * 100) + '% &middot; #' + (p.position != null ? p.position.toFixed(0) : '-') + '</span>' +
                 '</div>';
             }).join('');
             return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:10px 12px;margin-bottom:10px;">' +
@@ -1396,7 +1478,7 @@
         const hasQueries = !!(qrows && qrows.length);
         let prior = null;
         try { prior = await getPriorMaps(window.treeData, _ddDays); } catch (e) {}
-        return { qrows: qrows, hasQueries: hasQueries, qidx: hasQueries ? buildQueryIndex(qrows, r) : [], urlCat: hasQueries ? _urlToCatMap(r) : null, prior: prior };
+        return { qrows: qrows, hasQueries: hasQueries, qidx: hasQueries ? buildQueryIndex(qrows, r) : [], urlCat: hasQueries ? _urlToCatMap(r) : null, urlToName: hasQueries ? _urlToPageName(r) : {}, prior: prior };
     }
     function _sectionActions(c, r, ctx) {
         const pages = c ? catPages(c) : _allPages(r);
@@ -1406,7 +1488,7 @@
             let opps = c ? ctx.qidx.filter(function (x) { return x.category === c.name; }) : ctx.qidx;
             opps = opps.filter(function (x) { return x.impressions >= 100 && x.potential >= 5; }).sort(function (a, b) { return b.potential - a.potential; }).slice(0, 3);
             opps.forEach(function (o) { actions.push({ type: 'Opportunity', score: o.potential, title: 'Improve "' + o.query + '"', detail: '+' + fmt(Math.round(o.potential)) + ' clicks/mo potential - pos ' + (o.bestPos != null ? o.bestPos.toFixed(0) : '?') + ', ' + fmt(o.impressions) + ' impr', url: o.bestPage }); });
-            const cann = _cannibalisation(ctx.qrows, c ? c.name : null, ctx.urlCat).slice(0, 2);
+            const cann = _cannibalisation(ctx.qrows, c ? c.name : null, ctx.urlCat, ctx.urlToName).slice(0, 2);
             cann.forEach(function (k) { actions.push({ type: 'Cannibalisation', score: k.total * ctr * 0.3, title: 'Resolve competing pages for "' + k.query + '"', detail: k.competing + ' of your pages compete - ' + fmt(k.total) + ' impr at stake', url: (k.pages[0] && k.pages[0].url) || null }); });
         }
         if (ctx.prior) {
@@ -1612,8 +1694,11 @@
             };
         }
         if (intent === 'diagnose') {
-            const page = _findPage(_allPages(r), plan.page || plan.category || '');
-            if (!page) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap (e.g. "Fuel Allowance").' };
+            const _ref = plan.page || plan.category || '';
+            const _res = _resolvePage(r, _ref);
+            if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap (e.g. "Fuel Allowance").' };
+            if (_res.candidates) return { html: _disambig('diagnose', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '" - pick one.', data: { columns: [], rows: [] } };
+            const page = _res.page;
             const s = page.s || {};
             const impressions = s.impressions || 0, ctr = s.ctr || 0, position = s.position, pv = s.pageViews || 0;
             const bench = _ctrBenchmark(position);
@@ -1724,7 +1809,7 @@
             if (!rows.length) return { html: '', summary: '', err: 'No search-query data came back for ' + periodLabel(_ddDays) + '.' };
             const c = _catByName(cats, plan.category);
             const urlCat = c ? _urlToCatMap(r) : null;
-            const items = _cannibalisation(rows, c ? c.name : null, urlCat).slice(0, limit);
+            const items = _cannibalisation(rows, c ? c.name : null, urlCat, _urlToPageName(r)).slice(0, limit);
             if (!items.length) return { html: '', summary: '', err: 'No cannibalisation found' + (c ? ' in ' + c.name : '') + ' - no queries have 2+ of your pages each drawing 10+ impressions.' };
             return {
                 html: _cannibalCard(items),
@@ -1775,8 +1860,11 @@
             };
         }
         if (intent === 'page_queries') {
-            const page = _findPage(_allPages(r), plan.page || plan.category || '');
-            if (!page) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap (e.g. "Airline liability").' };
+            const _ref = plan.page || plan.category || '';
+            const _res = _resolvePage(r, _ref);
+            if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap (e.g. "Airline liability").' };
+            if (_res.candidates) return { html: _disambig('page_queries', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '" - pick one.', data: { columns: [], rows: [] } };
+            const page = _res.page;
             let all;
             try { all = await getQueryRows(_ddDays); }
             catch (e) { return { html: '', summary: '', err: 'Could not fetch search-query data: ' + (e && e.message ? e.message : String(e)) }; }
@@ -1789,20 +1877,46 @@
             all.forEach(function (row) {
                 if (!set[normUrl(row.page || '')]) return;
                 const q = row.query; if (!q) return;
-                if (!byQ[q]) byQ[q] = { query: q, impressions: 0, clicks: 0, _ps: 0, _pw: 0 };
-                const e = byQ[q]; e.impressions += row.impressions || 0; e.clicks += row.clicks || 0;
-                if ((row.impressions || 0) > 0 && (row.position || 0) > 0) { e._ps += row.position * row.impressions; e._pw += row.impressions; }
+                if (!byQ[q]) byQ[q] = { query: q, impressions: 0, clicks: 0, _ps: 0, _pw: 0, bestPos: null };
+                const e = byQ[q], pos = row.position || 0; e.impressions += row.impressions || 0; e.clicks += row.clicks || 0;
+                if ((row.impressions || 0) > 0 && pos > 0) { e._ps += pos * row.impressions; e._pw += row.impressions; if (e.bestPos == null || pos < e.bestPos) e.bestPos = pos; }
             });
+            let qs = Object.keys(byQ).map(function (q) { const e = byQ[q]; const sc = _scoreQuery(e.impressions, e.clicks, e.bestPos); return { query: e.query, impressions: e.impressions, clicks: e.clicks, position: e._pw > 0 ? e._ps / e._pw : null, bestPos: e.bestPos, ctr: sc.ctr, potential: sc.potential, label: sc.label, bestPage: page.url, category: null }; });
             const by = metric === 'clicks' ? 'clicks' : 'impressions';
-            const qs = Object.keys(byQ).map(function (q) { const e = byQ[q]; return { query: e.query, impressions: e.impressions, clicks: e.clicks, position: e._pw > 0 ? e._ps / e._pw : null }; })
-                .filter(function (x) { return x[by] > 0; }).sort(function (a, b) { return b[by] - a[by]; }).slice(0, limit);
-            if (!qs.length) return { html: '', summary: '', err: 'No search queries found for "' + page.name + '" in ' + periodLabel(_ddDays) + '. (It may get little search traffic, or mostly GA4/referral traffic.)' };
+            const byPotential = !!plan.by_potential;
+            if (byPotential) qs = qs.filter(function (x) { return x.potential >= 1; }).sort(function (a, b) { return b.potential - a.potential; }).slice(0, limit);
+            else qs = qs.filter(function (x) { return x[by] > 0; }).sort(function (a, b) { return b[by] - a[by]; }).slice(0, limit);
+            if (!qs.length) return { html: '', summary: '', err: (byPotential ? 'No clear quick wins found for "' : 'No search queries found for "') + page.name + '" in ' + periodLabel(_ddDays) + '.' + (byPotential ? ' (Its queries already convert well, or it gets little search traffic.)' : ' (It may get little search traffic, or mostly GA4/referral traffic.)') };
             const head = '<div class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(page.url) + '" style="cursor:pointer;font-weight:700;color:var(--color-text-heading);margin-bottom:8px;">' + esc(page.name) + '</div>';
+            const footnote = '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Based on the site-wide top-25k query/page pairs - very long-tail queries for small pages may be missing; the per-page report has the completist view.</div>';
+            if (byPotential) {
+                return { html: head + _oppCard(qs) + footnote,
+                    summary: 'Quick wins for "' + page.name + '" (biggest extra-clicks potential, ' + periodLabel(_ddDays) + '): ' + qs.slice(0, 6).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' (pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.',
+                    data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '' }; }), chart: { type: 'bar', x: 'query', y: 'potentialClicks', label: 'Potential clicks' } } };
+            }
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x[by]) + (x.position != null ? ' · #' + x.position.toFixed(0) : ''), bar: x[by] }; });
             return {
-                html: head + _rankCard(items),
+                html: head + _rankCard(items) + footnote,
                 summary: 'Top search queries bringing people to "' + page.name + '" (' + periodLabel(_ddDays) + ', by ' + by + '): ' + qs.slice(0, 8).map(function (x) { return '"' + x.query + '" ' + fmt(x[by]) + (x.position != null ? ' (pos ' + x.position.toFixed(0) + ')' : ''); }).join(', ') + '.',
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'position', label: 'Position' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, position: x.position != null ? +x.position.toFixed(1) : '' }; }), chart: { type: 'bar', x: 'query', y: by, label: by === 'clicks' ? 'Clicks' : 'Impressions' } }
+            };
+        }
+        if (intent === 'dead_pages') {
+            const c = _catByName(cats, plan.category);
+            const pages = c ? catPages(c) : _allPages(r);
+            const ga4On = r.totals.pageViews > 0 || r.totals.users > 0;
+            const dead = pages.filter(function (p) { return (p.s.impressions || 0) === 0; }).sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+            const total = pages.length;
+            if (!dead.length) return { html: '<div style="font-size:0.9rem;color:var(--color-text-secondary);">Every page' + (c ? ' in ' + esc(c.name) : '') + ' got at least some search impressions in ' + periodLabel(_ddDays) + ' - nothing invisible.</div>', summary: 'No pages with zero search impressions' + (c ? ' in ' + c.name : '') + '.', data: { columns: [], rows: [] } };
+            const pctDead = Math.round(dead.length / (total || 1) * 100);
+            const shown = dead.slice(0, limit);
+            const items = shown.map(function (p) { return { name: p.name, val: ga4On ? (fmt(p.s.pageViews || 0) + ' views') : '0 impr', bar: ga4On ? (p.s.pageViews || 0) : 0, url: p.url }; });
+            const headline = '<div style="font-weight:700;font-size:0.95rem;color:var(--color-text-heading);margin-bottom:2px;">' + fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + esc(c.name) : '') + ' had zero search impressions</div>' +
+                '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:12px;">' + pctDead + '% of ' + fmt(total) + ' pages, ' + periodLabel(_ddDays) + (ga4On ? ' (views are GA4 - some may still get referral/direct visits)' : '') + '</div>';
+            return {
+                html: headline + _rankCard(items) + (dead.length > shown.length ? '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;">Showing ' + shown.length + ' of ' + fmt(dead.length) + ' - Table / CSV has all.</div>' : ''),
+                summary: fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + c.name : '') + ' had zero search impressions in ' + periodLabel(_ddDays) + ' (' + pctDead + '% of ' + fmt(total) + ')' + (ga4On ? '; GA4 views shown' : '') + '.',
+                data: { columns: [{ key: 'page', label: 'Page' }, { key: 'views', label: 'Views (GA4)' }, { key: 'url', label: 'URL' }], rows: dead.map(function (p) { return { page: p.name, views: p.s.pageViews || 0, url: p.url }; }), chart: null }
             };
         }
         return { html: '', summary: '', unknown: true };
@@ -1896,11 +2010,15 @@
                 if (cat) { add('Biggest search opportunities in ' + cat); add('Top pages in ' + cat); }
                 else { add('Where are our biggest search opportunities?'); add('What do people search for?'); }
                 break;
+            case 'dead_pages':
+                if (cat) { add('What is stale in ' + cat + '?'); add('Top pages in ' + cat); }
+                else { add('What is stale across the site?'); add('Which sections get the most traffic?'); }
+                break;
         }
         return out;
     }
 
-    const _ASK_EXAMPLES = ['What should I focus on in Health?', 'Generate a weekly digest', 'Where are our biggest search opportunities?', 'What questions do people ask?', 'Which Housing pages lost traffic?', 'What do people abroad search us for?'];
+    const _ASK_EXAMPLES = ['What should I focus on in Health?', 'Where are our biggest search opportunities?', 'What questions do people ask?', 'Which pages get no search traffic?', 'Which Housing pages lost traffic?', 'Generate a weekly digest'];
 
     // ── export helpers (CSV + AI brief) — consume the runIntent data contract ──
     function _csvCell(v) {
@@ -1981,10 +2099,19 @@
         if (bm) return { intent: 'briefing', category: (bm[1] || '').trim() || null };
         // "what (search) queries bring people to X" / "what do people search to find X" -> page_queries
         // "weekly digest" / "generate a digest" / "digest for all sections" -> all-sections roll-up
+        // "which pages get no (search) traffic" / "orphaned/dead pages" / "zero impressions"
+        // (deliberately excludes "no clicks" -> that's low_ctr). Extracts an optional "in X".
+        if (/\b(?:no|zero|0)\s+(?:search\s+)?(?:traffic|impressions|visits)\b/i.test(s) || /\b(?:orphaned|dead|invisible|unvisited)\s+pages\b/i.test(s) || /^(?:is|does)\s+anyone\s+(?:finding|find|see|seeing)\b/i.test(s)) {
+            const inM = / in (.+?)\??$/i.exec(s);
+            return { intent: 'dead_pages', category: inM ? inM[1].trim() : null };
+        }
         const dm = /^(?:generate |create |show |give me |make )?(?:a |the |my )?(?:weekly |content |section )?digest(?: (?:for|of|across) (?:all(?: sections| owners| the sections)?|every section|everyone|the (?:whole )?site))?\??$/i.exec(s);
         if (dm) return { intent: 'digest' };
         const dm2 = /^(?:weekly |content )?digest (?:for|of) (.+?)\??$/i.exec(s);
         if (dm2 && dm2[1]) return { intent: 'briefing', category: dm2[1].trim() };
+        // "quick wins for X" / "what should X target" -> page_queries by potential
+        const pmp = /^(?:quick wins for (?:the )?(.+?)(?:\s+page)?|what should (?:the )?(.+?)(?:\s+page)? target)\??$/i.exec(s);
+        if (pmp && (pmp[1] || pmp[2])) return { intent: 'page_queries', page: (pmp[1] || pmp[2]).trim(), by_potential: true };
         const pm = /^(?:what (?:search )?queries|what searches|what search terms) (?:bring|brings|lead|leads|send|sends|drive|drives) (?:people |visitors |users |traffic )?to (?:the )?(.+?)(?:\s+page)?\??$/i.exec(s);
         if (pm && pm[1]) return { intent: 'page_queries', page: pm[1].trim() };
         const pm2 = /^what do people search (?:for )?to (?:find|reach|get to) (?:the )?(.+?)(?:\s+page)?\??$/i.exec(s);
@@ -2166,8 +2293,8 @@
                 const catNames = r.categories.map(function (c) { return c.name; });
                 const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Sections available: ' + catNames.join(', ') + '. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","unknown"], ' +
-                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose intent (or null), ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","unknown"], ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
@@ -2183,8 +2310,9 @@
                     'Irish vs English / as Gaeilge / language gap / where does the Irish version underperform / English vs Irish->language_gap; ' +
                     'cannibalisation / cannibalization / pages competing / competing pages / self-competition / multiple pages ranking for the same search->cannibalisation (category optional); ' +
                     'what should I focus on / what should I work on / my priorities / where should I focus / where do I start / what needs attention / section briefing / triage->briefing (category optional). Prefer briefing when the user asks what to DO; prefer section_summary when they ask how a section is DOING; ' +
-                    'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); ' +
-                    'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category.';
+                    'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
+                    'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
+                    'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional).';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
@@ -2200,7 +2328,7 @@
                     busy = false; return;
                 }
                 if (res.err) { resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>'; busy = false; return; }
-                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest' };
+                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages' };
                 if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 if (plan.category) interpBits.push(plan.category);
