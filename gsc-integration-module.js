@@ -566,6 +566,7 @@ function formatDuration(seconds) {
         getData: (url) => gscDataMap.get(url),
         toggleConnection: toggleGSCConnection,
         fetchData: fetchGSCDataForSitemap,
+        fetchAllPages: fetchAllGSCPages,
         fetchNodeData: fetchNodeGSCData,
         events: gscEvents,
         reset: resetGSCData,
@@ -860,6 +861,60 @@ function formatDuration(seconds) {
     }
 
     // Main fetch function - sets up the connection
+    // Bulk: ONE searchAnalytics query with dimensions:['page'] returns EVERY page's
+    // metrics (up to rowLimit). Returns a Map keyed by page URL; also warms gscDataMap.
+    async function fetchAllGSCPages(opts) {
+        opts = opts || {};
+        const result = new Map();
+        if (!gscConnected || !accessToken) return result;
+        // Ensure we have a matched property
+        if (!gscSiteUrl) {
+            try {
+                const sitesResponse = await robustGSCApiCall(async () => gapi.client.request({
+                    path: 'https://www.googleapis.com/webmasters/v3/sites', method: 'GET'
+                }));
+                const sites = (sitesResponse.result && sitesResponse.result.siteEntry) || [];
+                const treeRef = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+                const matched = await findBestMatchingSite(sites, treeRef && treeRef.name);
+                if (matched) gscSiteUrl = matched.siteUrl;
+            } catch (e) { debugLog('Bulk GSC: site lookup failed', e); }
+        }
+        if (!gscSiteUrl) return result;
+        const today = new Date();
+        const days = opts.days || 30;
+        const start = new Date(today.getTime() - (days * 24 * 60 * 60 * 1000));
+        try {
+            const resp = await robustGSCApiCall(async () => gapi.client.request({
+                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                method: 'POST',
+                body: {
+                    startDate: start.toISOString().split('T')[0],
+                    endDate: today.toISOString().split('T')[0],
+                    dimensions: ['page'],
+                    rowLimit: opts.limit || 25000
+                }
+            }));
+            const rows = (resp.result && resp.result.rows) || [];
+            rows.forEach(function (row) {
+                const url = row.keys && row.keys[0];
+                if (!url) return;
+                const rec = {
+                    clicks: row.clicks || 0,
+                    impressions: row.impressions || 0,
+                    ctr: row.ctr || 0,
+                    position: row.position || 0
+                };
+                result.set(url, rec);
+                if (!gscDataMap.has(url)) gscDataMap.set(url, rec);
+            });
+            debugLog('Bulk GSC fetch: ' + result.size + ' pages in one call');
+            return result;
+        } catch (e) {
+            debugLog('Bulk GSC fetch error', e);
+            return result;
+        }
+    }
+
     async function fetchGSCDataForSitemap() {
         const treeDataRef = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
         
