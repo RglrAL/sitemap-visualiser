@@ -1969,7 +1969,7 @@
     // Deterministic "explore next" suggestions from the answered intent (stateless
     // fake multi-turn). Every suggestion is a question the pipeline can actually
     // answer, so a chip just re-enters ask(). Max 3.
-    function _followups(plan, res) {
+    function _followups(plan, res, r) {
         const cat = plan.category || (plan.categories && plan.categories[0]) || null;
         const out = [];
         const add = function (q) { if (q && out.length < 3 && out.indexOf(q) < 0) out.push(q); };
@@ -1980,15 +1980,23 @@
         const topRow = rows[0] || null;
         const addWhy = function (name) { if (name && typeof name === 'string') add('Why is ' + name + ' underperforming?'); };
         let faller = null; rows.forEach(function (x) { if (x && typeof x.changePct === 'number' && x.changePct < 0 && (!faller || x.changePct < faller.changePct)) faller = x; });
+        // For query answers, resolve the top row's ranking page (URL) back to a page name,
+        // so we can chain to that page - the thing the owner actually edits.
+        let topPageName = null;
+        if (topRow && topRow.bestPage && r) {
+            const _k = normUrl(topRow.bestPage), _pgs = _allPages(r);
+            for (let i = 0; i < _pgs.length && !topPageName; i++) { const _us = _pgs[i].urls || [_pgs[i].url]; for (let j = 0; j < _us.length; j++) { if (normUrl(_us[j]) === _k) { topPageName = _pgs[i].name; break; } } }
+        }
         switch (plan.intent) {
             case 'opportunities':
-                if (cat) { add('Top queries in ' + cat); add('Top pages in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
-                else { add('What do people search for?'); add('Which sections get the most traffic?'); add('Biggest movers across the site'); }
+                if (topPageName) addWhy(topPageName);
+                if (cat) { add('Top queries in ' + cat); add('Top pages in ' + cat); }
+                else { add('What do people search for?'); add('Which sections get the most traffic?'); }
                 break;
             case 'top_queries':
+                if (topPageName) add('How is ' + topPageName + ' performing?');
                 add('Biggest search opportunities' + inCat);
                 add('Any pages competing for the same search?');
-                if (cat) add('What is stale in ' + cat + '?'); else add('Which sections get the most traffic?');
                 break;
             case 'top_pages':
                 if (cat) { add('Which ' + cat + ' pages lost traffic?'); add('Biggest search opportunities in ' + cat); add('What is stale in ' + cat + '?'); }
@@ -2036,8 +2044,9 @@
                 add('What do people abroad search us for?'); add('What do people search for?'); add('Where are our biggest search opportunities?');
                 break;
             case 'questions':
-                if (cat) { add('Biggest search opportunities in ' + cat); add('Top pages in ' + cat); }
-                else { add('Where are our biggest search opportunities?'); add('What do people abroad search us for?'); }
+                if (topPageName) add('How is ' + topPageName + ' performing?');
+                if (cat) add('Biggest search opportunities in ' + cat); else add('Where are our biggest search opportunities?');
+                add('What do people abroad search us for?');
                 break;
             case 'language_gap':
                 add('What do people search for?'); add('Where are our biggest search opportunities?'); add('Which sections get the most traffic?');
@@ -2047,8 +2056,8 @@
                 add('Where are our biggest search opportunities?'); add('Any pages competing for the same search?');
                 break;
             case 'page_queries':
-                if (plan.page) add('Why is ' + plan.page + ' underperforming?');
-                add('What questions do people ask?'); add('Where are our biggest search opportunities?');
+                if (plan.page) { add('How is ' + plan.page + ' performing?'); add('Why is ' + plan.page + ' underperforming?'); }
+                add('What questions do people ask?');
                 break;
             case 'cannibalisation':
                 if (cat) { add('Biggest search opportunities in ' + cat); add('Top pages in ' + cat); }
@@ -2437,7 +2446,7 @@
                         '<button class="sv-ask-memo-md" data-eid="' + eid + '" title="Download the memo (.md)" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DOC + '.md</button>') : '') +
                         '</div>');
                 }
-                const _fups = _followups(plan, res);
+                const _fups = _followups(plan, res, r);
                 if (_fups.length) {
                     resp.insertAdjacentHTML('beforeend',
                         '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--color-border-primary);">' +
