@@ -571,6 +571,30 @@
         const kids = node.children || node._children || [];
         for (let i = 0; i < kids.length; i++) collectPages(kids[i], out);
     }
+    // Merge same-named pages (e.g. EN + GA versions) into one logical page.
+    function mergePages(raw) {
+        const map = new Map();
+        raw.forEach(function (p) {
+            const k = String(p.name || '').toLowerCase();
+            if (!map.has(k)) map.set(k, { name: p.name, url: p.url, urls: [], lm: p.lm, _maxImp: -1, imp: 0, clk: 0, pv: 0, us: 0, posSum: 0, posW: 0 });
+            const m = map.get(k), sp = p.s || {};
+            m.urls.push(p.url);
+            m.imp += sp.impressions || 0; m.clk += sp.clicks || 0; m.pv += sp.pageViews || 0; m.us += sp.users || 0;
+            if ((sp.impressions || 0) > 0 && sp.position != null) { m.posSum += sp.position * sp.impressions; m.posW += sp.impressions; }
+            if ((sp.impressions || 0) > m._maxImp) { m._maxImp = sp.impressions || 0; m.url = p.url; }
+            if (p.lm && (!m.lm || Date.parse(p.lm) > Date.parse(m.lm))) m.lm = p.lm;
+        });
+        return Array.from(map.values()).map(function (m) {
+            return { name: m.name, url: m.url, urls: m.urls, lm: m.lm,
+                s: { impressions: m.imp, clicks: m.clk, pageViews: m.pv, users: m.us,
+                     ctr: m.imp > 0 ? m.clk / m.imp : 0, position: m.posW > 0 ? m.posSum / m.posW : null } };
+        });
+    }
+    function catPages(cat) {
+        const raw = [];
+        (cat.nodes || []).forEach(function (n) { collectPages(n, raw); });
+        return mergePages(raw);
+    }
 
     function showLoadingOverlay(text) {
         let el = document.getElementById('sv-loading-overlay');
@@ -623,27 +647,7 @@
         const hasGA4 = (d.pageViews || 0) > 0 || (d.users || 0) > 0;
 
         // most-viewed pages under this category (leaf/URL nodes)
-        const _rawPages = [];
-        (cat.nodes || []).forEach(function (n) { collectPages(n, _rawPages); });
-        // Merge same-named pages (e.g. English + Irish versions share a slug) into one
-        // logical page: sum counts, impression-weight position, keep all URLs + the
-        // highest-traffic one as the click target and the most recent lastmod.
-        const _pageMap = new Map();
-        _rawPages.forEach(function (p) {
-            const k = String(p.name || '').toLowerCase();
-            if (!_pageMap.has(k)) _pageMap.set(k, { name: p.name, url: p.url, urls: [], lm: p.lm, _maxImp: -1, imp: 0, clk: 0, pv: 0, us: 0, posSum: 0, posW: 0 });
-            const m = _pageMap.get(k), sp = p.s || {};
-            m.urls.push(p.url);
-            m.imp += sp.impressions || 0; m.clk += sp.clicks || 0; m.pv += sp.pageViews || 0; m.us += sp.users || 0;
-            if ((sp.impressions || 0) > 0 && sp.position != null) { m.posSum += sp.position * sp.impressions; m.posW += sp.impressions; }
-            if ((sp.impressions || 0) > m._maxImp) { m._maxImp = sp.impressions || 0; m.url = p.url; }
-            if (p.lm && (!m.lm || Date.parse(p.lm) > Date.parse(m.lm))) m.lm = p.lm;
-        });
-        const pages = Array.from(_pageMap.values()).map(function (m) {
-            return { name: m.name, url: m.url, urls: m.urls, lm: m.lm,
-                s: { impressions: m.imp, clicks: m.clk, pageViews: m.pv, users: m.us,
-                     ctr: m.imp > 0 ? m.clk / m.imp : 0, position: m.posW > 0 ? m.posSum / m.posW : null } };
-        });
+        const pages = catPages(cat);
         const rankKey = hasGA4 ? 'pageViews' : 'impressions';
         const topPages = pages.filter(function (p) { return (p.s[rankKey] || 0) > 0; })
             .sort(function (a, b) { return (b.s[rankKey] || 0) - (a.s[rankKey] || 0); }).slice(0, 12);
@@ -827,6 +831,195 @@
         } finally { _refreshing = false; }
     }
 
+    // ══════════════════ "Ask your data" ══════════════════
+    function _catByName(cats, name) {
+        if (!name) return null;
+        const k = String(name).toLowerCase();
+        return cats.find(function (c) { return String(c.name).toLowerCase() === k; })
+            || cats.find(function (c) { return String(c.name).toLowerCase().indexOf(k) >= 0 || k.indexOf(String(c.name).toLowerCase()) >= 0; })
+            || null;
+    }
+    function _allPages(r) { const out = []; r.categories.forEach(function (c) { catPages(c).forEach(function (p) { out.push(p); }); }); return out; }
+    function _mval(s, m) { return m === 'ctr' ? s.ctr : (m === 'position' ? (s.position == null ? 999 : s.position) : (s[m] || 0)); }
+    function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
+    const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users' };
+
+    function _rankCard(items) {
+        if (!items.length) return '<div style="font-size:0.85rem;color:var(--color-text-muted);">No results.</div>';
+        const max = Math.max.apply(null, items.map(function (it) { return Math.abs(it.bar || 0); }).concat([1]));
+        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
+            items.map(function (it) {
+                const bw = Math.min(100, Math.abs(it.bar || 0) / max * 100);
+                const col = it.col || 'var(--primary)';
+                const clickable = it.url ? ' class="sv-ask-page" data-url="' + esc(it.url) + '" style="cursor:pointer;"' : ' style=""';
+                return '<div' + clickable + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.85rem;">' +
+                    '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(it.name) + '</span>' +
+                    '<span style="width:96px;flex-shrink:0;"><span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span></span>' +
+                    '<span style="width:88px;flex-shrink:0;text-align:right;font-weight:700;color:' + (it.valCol || 'var(--color-text-primary)') + ';">' + it.val + '</span>' +
+                '</div></div>';
+            }).join('') + '</div>';
+    }
+    function _stripCard(rollup, hasGA4) {
+        const cell = function (l, v) { return '<div style="flex:1;min-width:66px;padding:8px 10px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div></div>'; };
+        return '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
+            cell('Pages', fmt(rollup.leafCount)) + cell('Impressions', fmt(rollup.impressions)) + cell('Clicks', fmt(rollup.clicks)) +
+            cell('CTR', (rollup.ctr * 100).toFixed(1) + '%') + cell('Avg pos', rollup.position != null ? rollup.position.toFixed(1) : '—') +
+            (hasGA4 ? cell('Views', fmt(rollup.pageViews)) : '') + (hasGA4 ? cell('Users', fmt(rollup.users)) : '') + '</div>';
+    }
+
+    async function runIntent(plan, r) {
+        const cats = r.categories, hasGA4 = r.totals.pageViews > 0 || r.totals.users > 0;
+        const metric = ['impressions', 'clicks', 'ctr', 'position', 'pageViews', 'users'].indexOf(plan.metric) >= 0 ? plan.metric : 'impressions';
+        const limit = Math.min(15, Math.max(1, plan.limit || 6));
+        const intent = plan.intent;
+
+        if (intent === 'site_summary') {
+            return { html: _stripCard(r.totals, hasGA4), summary: 'Whole site: ' + fmt(r.totals.impressions) + ' impressions, ' + fmt(r.totals.clicks) + ' clicks, ' + (r.totals.ctr * 100).toFixed(1) + '% CTR, ' + fmt(r.totals.leafCount) + ' content pages.' };
+        }
+        if (intent === 'section_summary') {
+            const c = _catByName(cats, plan.category);
+            if (!c) return { html: '', summary: '', err: 'I couldn\'t find that section.' };
+            return { html: '<div style="font-weight:700;margin-bottom:8px;">' + esc(c.name) + '</div>' + _stripCard(c.rollup, hasGA4), summary: c.name + ': ' + fmt(c.rollup.impressions) + ' impressions, ' + (c.rollup.ctr * 100).toFixed(1) + '% CTR, ' + fmt(c.rollup.pageViews) + ' views, ' + fmt(c.rollup.leafCount) + ' pages.' };
+        }
+        if (intent === 'rank_categories') {
+            const desc = plan.direction !== 'up';
+            const sorted = cats.slice().sort(function (a, b) { const av = _mval(a.rollup, metric), bv = _mval(b.rollup, metric); return desc ? bv - av : av - bv; }).slice(0, limit);
+            const items = sorted.map(function (c) { return { name: c.name, val: _mfmt(c.rollup, metric), bar: _mval(c.rollup, metric) }; });
+            return { html: _rankCard(items), summary: 'Sections by ' + _MLABEL[metric] + ': ' + sorted.map(function (c) { return c.name + ' ' + _mfmt(c.rollup, metric); }).join(', ') + '.' };
+        }
+        if (intent === 'top_pages') {
+            const c = _catByName(cats, plan.category);
+            const pages = c ? catPages(c) : _allPages(r);
+            const desc = plan.direction !== 'up';
+            const sorted = pages.filter(function (p) { return _mval(p.s, metric) > 0; }).sort(function (a, b) { const av = _mval(a.s, metric), bv = _mval(b.s, metric); return desc ? bv - av : av - bv; }).slice(0, limit);
+            const items = sorted.map(function (p) { return { name: p.name, val: _mfmt(p.s, metric), bar: _mval(p.s, metric), url: p.url }; });
+            return { html: _rankCard(items), summary: 'Top pages' + (c ? ' in ' + c.name : '') + ' by ' + _MLABEL[metric] + ': ' + sorted.slice(0, 5).map(function (p) { return p.name + ' ' + _mfmt(p.s, metric); }).join(', ') + '.' };
+        }
+        if (intent === 'low_ctr') {
+            const c = _catByName(cats, plan.category);
+            const pages = c ? catPages(c) : _allPages(r);
+            const avg = (c ? c.rollup.ctr : r.totals.ctr) || 0;
+            const rows = pages.filter(function (p) { return (p.s.impressions || 0) >= 300 && p.s.ctr < Math.max(0.005, avg * 0.6); }).sort(function (a, b) { return b.s.impressions - a.s.impressions; }).slice(0, limit);
+            const items = rows.map(function (p) { return { name: p.name, val: (p.s.ctr * 100).toFixed(1) + '%', bar: p.s.impressions, url: p.url }; });
+            return { html: _rankCard(items), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.' };
+        }
+        if (intent === 'stale') {
+            const c = _catByName(cats, plan.category);
+            const pages = c ? catPages(c) : _allPages(r);
+            const now = Date.now();
+            const rows = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12; }).sort(function (a, b) { return b.m - a.m; }).slice(0, limit);
+            const items = rows.map(function (x) { return { name: x.p.name, val: Math.round(x.m) + 'mo', bar: x.m, url: x.p.url }; });
+            return { html: _rankCard(items), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.' };
+        }
+        if (intent === 'compare') {
+            const names = plan.categories || [];
+            const a = _catByName(cats, names[0]), b = _catByName(cats, names[1]);
+            if (!a || !b) return { html: '', summary: '', err: 'I need two sections to compare.' };
+            return { html: '<div style="font-weight:700;margin:2px 0 6px;">' + esc(a.name) + '</div>' + _stripCard(a.rollup, hasGA4) + '<div style="font-weight:700;margin:12px 0 6px;">' + esc(b.name) + '</div>' + _stripCard(b.rollup, hasGA4),
+                summary: a.name + ' vs ' + b.name + ': impressions ' + fmt(a.rollup.impressions) + ' vs ' + fmt(b.rollup.impressions) + ', CTR ' + (a.rollup.ctr * 100).toFixed(1) + '% vs ' + (b.rollup.ctr * 100).toFixed(1) + '%.' };
+        }
+        if (intent === 'movers') {
+            const c = _catByName(cats, plan.category);
+            const prior = await getPriorMaps(window.treeData, _ddDays);
+            const useImp = (c ? c.rollup.impressions : r.totals.impressions) > 0;
+            const mkey = useImp ? 'impressions' : 'pageViews';
+            const priorBy = useImp ? prior.gscBy : prior.ga4By;
+            const pages = c ? catPages(c) : _allPages(r);
+            let rows = pages.map(function (p) {
+                const cur = p.s[mkey] || 0;
+                const prev = (p.urls || [p.url]).reduce(function (sum, u) { const pr = priorBy[normUrl(u)]; return sum + (pr ? (pr[mkey] || 0) : 0); }, 0);
+                return { name: p.name, url: p.url, cur: cur, pct: prev >= 100 ? (cur - prev) / prev * 100 : null };
+            }).filter(function (x) { return x.pct != null; });
+            const dir = plan.direction || 'both';
+            if (dir === 'up') rows = rows.filter(function (x) { return x.pct > 0; });
+            else if (dir === 'down') rows = rows.filter(function (x) { return x.pct < 0; });
+            rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
+            rows = rows.slice(0, limit).sort(function (a, b) { return b.pct - a.pct; });
+            const items = rows.map(function (x) { const up = x.pct >= 0, pa = Math.abs(x.pct); return { name: x.name, val: (up ? '▲ ' : '▼ ') + (pa > 500 ? '500+' : pa.toFixed(0)) + '%', bar: Math.min(500, pa), col: up ? '#059669' : '#dc2626', valCol: up ? '#059669' : '#dc2626', url: x.url }; });
+            return { html: _rankCard(items), summary: 'Biggest ' + (dir === 'down' ? 'fallers' : dir === 'up' ? 'risers' : 'movers') + (c ? ' in ' + c.name : ' across the site') + ' vs the previous ' + _ddDays + ' days: ' + rows.slice(0, 5).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.' };
+        }
+        return { html: '', summary: '', unknown: true };
+    }
+
+    const _ASK_EXAMPLES = ['Which sections get the most search traffic?', 'Top 5 most viewed pages in Health', 'Which Housing pages lost traffic?', 'Pages with high impressions but low clicks', 'What is stale in Employment?', 'Compare Health and Housing'];
+
+    async function showAsk() {
+        const tree = window.treeData;
+        if (!tree) { alert('Load a sitemap first.'); return; }
+        if (!window.GroqAI || !window.GroqAI.isConfigured || !window.GroqAI.isConfigured()) { alert('Connect AI first — click the ✨ AI button in the toolbar to add your Groq key.'); return; }
+        ensureDDStyle();
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow:auto;backdrop-filter:blur(3px);';
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+        const content = document.createElement('div');
+        content.className = 'sv-dd-modal';
+        content.style.cssText = 'background:var(--color-bg-secondary);border-radius:16px;max-width:720px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);position:relative;font-family:var(--font-family);';
+        content.innerHTML =
+            '<div style="padding:24px 28px;">' +
+                '<button class="sv-ask-close" title="Close" style="position:absolute;top:18px;right:20px;background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button>' +
+                '<div style="font-size:1.4rem;font-weight:700;color:var(--color-text-heading);margin-bottom:2px;">Ask your data</div>' +
+                '<div style="font-size:0.82rem;color:var(--color-text-secondary);margin-bottom:16px;">Ask a question about your sections, pages, and trends. Figures come from your real GSC/GA4 data.</div>' +
+                '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+                    '<input id="sv-ask-input" type="text" placeholder="e.g. which Health pages lost traffic?" style="flex:1;font-family:inherit;font-size:0.9rem;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);" />' +
+                    '<button id="sv-ask-go" style="background:var(--primary);color:#fff;border:none;padding:10px 18px;border-radius:9px;font-weight:600;font-size:0.9rem;cursor:pointer;font-family:inherit;">Ask</button>' +
+                '</div>' +
+                '<div id="sv-ask-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">' +
+                    _ASK_EXAMPLES.map(function (q) { return '<button class="sv-ask-chip" data-q="' + esc(q) + '" style="font-size:0.72rem;padding:5px 10px;border-radius:20px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join('') +
+                '</div>' +
+                '<div id="sv-ask-answer"></div>' +
+            '</div>';
+        overlay.appendChild(content);
+        document.body.appendChild(overlay);
+
+        const input = content.querySelector('#sv-ask-input');
+        const answer = content.querySelector('#sv-ask-answer');
+        content.querySelector('.sv-ask-close').addEventListener('click', function () { overlay.remove(); });
+        content.addEventListener('click', function (e) {
+            const chip = e.target.closest('.sv-ask-chip');
+            if (chip) { input.value = chip.dataset.q; ask(); return; }
+            const row = e.target.closest('.sv-ask-page[data-url]');
+            if (row && window.showUnifiedDashboardReport) { const u = row.getAttribute('data-url'); overlay.remove(); showLoadingOverlay('Loading page report…'); Promise.resolve(window.showUnifiedDashboardReport(u)).catch(function () {}).finally(hideLoadingOverlay); }
+        });
+        content.querySelector('#sv-ask-go').addEventListener('click', ask);
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(); });
+        setTimeout(function () { input.focus(); }, 50);
+
+        let busy = false;
+        async function ask() {
+            const q = input.value.trim();
+            if (!q || busy) return;
+            busy = true;
+            answer.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-muted);padding:8px 0;">Thinking…</div>';
+            try {
+                const r = await refreshForPeriod(tree, _ddDays).catch(function () { return build(tree); });
+                const catNames = r.categories.map(function (c) { return c.name; });
+                const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
+                    'Sections available: ' + catNames.join(', ') + '. ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","unknown"], ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare, ' +
+                    '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
+                    '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
+                    'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
+                    'most viewed->top_pages metric pageViews; low CTR / seen but not clicked->low_ctr; out of date / old->stale; how is X doing->section_summary.';
+                const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
+                let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
+                const res = await runIntent(plan, r);
+                if (res.unknown) { answer.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">I can answer about sections, pages, movers, low-CTR pages, and stale content. Try one of the examples above.</div>'; busy = false; return; }
+                if (res.err) { answer.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>'; busy = false; return; }
+                answer.innerHTML = '<div id="sv-ask-oneliner" style="font-size:0.92rem;color:var(--color-text-primary);font-weight:600;margin-bottom:12px;line-height:1.5;"></div>' + res.html;
+                // one-line takeaway from the REAL results (numbers already computed)
+                try {
+                    const line = await window.GroqAI.complete([{ role: 'system', content: 'Given these real analytics results, write ONE short plain-English sentence that answers the question. Use the numbers exactly as given. No preamble, no markdown.' }, { role: 'user', content: 'Question: ' + q + '\nResults: ' + res.summary }], { temperature: 0.2, max_tokens: 90 });
+                    const el = answer.querySelector('#sv-ask-oneliner'); if (el) el.textContent = String(line).trim();
+                } catch (e) { const el = answer.querySelector('#sv-ask-oneliner'); if (el) el.textContent = res.summary; }
+            } catch (e) {
+                answer.innerHTML = '<div style="font-size:0.85rem;color:#dc2626;">Something went wrong: ' + esc(e && e.message ? e.message : String(e)) + '</div>';
+            }
+            busy = false;
+        }
+    }
+
     window.SVRollup = {
         build: build,
         statsForUrl: statsForUrl,
@@ -835,10 +1028,12 @@
         refresh: refresh,
         computeMovers: computeMovers,
         showPanel: showPanel,
+        showAsk: showAsk,
         showDeepDive: showDeepDive,
         selfTest: selfTest,
         _normUrl: normUrl
     };
     // Convenience global for the Reports menu onclick
     window.showCategoryPerformance = showPanel;
+    window.showAskData = showAsk;
 })();
