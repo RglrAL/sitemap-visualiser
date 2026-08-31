@@ -907,7 +907,8 @@ function formatDuration(seconds) {
                     position: row.position || 0
                 };
                 result.set(url, rec);
-                if (!gscDataMap.has(url)) gscDataMap.set(url, rec);
+                // NOTE: do NOT warm gscDataMap here — it would make fetchNodeData return
+                // these minimal records (no top-queries) instead of the full page fetch.
             });
             debugLog('Bulk GSC fetch: ' + result.size + ' pages in one call');
             return result;
