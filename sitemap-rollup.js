@@ -1657,6 +1657,15 @@
     }
     function getAskMisses() { try { return JSON.parse(localStorage.getItem('svAskMisses') || '[]'); } catch (e) { return []; } }
 
+    // Deterministic fast-path for the exact phrasings we generate as chips (e.g. the
+    // result-aware "Why is X underperforming?"), so a long/odd page name can never be
+    // mis-parsed to unknown. Returns a plan or null (null -> fall back to the LLM).
+    function _quickParse(q) {
+        const m = /^why is (?:the\s+)?(.+?)(?:\s+page)?\s+(?:underperforming|not getting clicks|not ranking|down)\??$/i.exec(String(q || '').trim());
+        if (m && m[1]) return { intent: 'diagnose', page: m[1].trim() };
+        return null;
+    }
+
     async function showAsk() {
         const tree = window.treeData;
         if (!tree) { alert('Load a sitemap first.'); return; }
@@ -1804,12 +1813,13 @@
                     'from a named place (the US / in Australia / from Britain)->international_queries with country set to that country name; ' +
                     'which countries / where are searchers from / top countries->top_countries; ' +
                     'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); ' +
-                    'why is the X page underperforming / what is wrong with the X page / diagnose the X page / why is X not getting clicks->diagnose with page set to that page name; ' +
+                    'why is X underperforming / why is X down / why is the X page underperforming / what is wrong with X / diagnose X / why is X not getting clicks->diagnose with page set to X (the page named, even a long multi-word name); ' +
                     'what questions do people ask / what are people asking / question searches / common questions->questions (category optional); ' +
                     'Irish vs English / as Gaeilge / language gap / where does the Irish version underperform / English vs Irish->language_gap; ' +
                     'cannibalisation / cannibalization / pages competing / competing pages / self-competition / multiple pages ranking for the same search->cannibalisation (category optional).';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
+                if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
                 if (((plan.intent === 'opportunities' || plan.intent === 'top_queries') && !_queryCache[_ddDays]) ||
                     ((plan.intent === 'international_queries' || plan.intent === 'top_countries') && !_countryQueryCache[_ddDays])) {
                     resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-muted);padding:4px 0;">Fetching search-query data from Search Console...</div>';
