@@ -1609,7 +1609,7 @@ window.DashboardGlossary = {
                     .glossary-fab {
                         position: fixed;
                         bottom: 30px;
-                        right: 30px;
+                        left: 30px;
                         width: 56px;
                         height: 56px;
                         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -1640,7 +1640,7 @@ window.DashboardGlossary = {
                     
                     .fab-tooltip {
                         position: absolute;
-                        left: -120px;
+                        left: 66px;
                         top: 50%;
                         transform: translateY(-50%);
                         background: #1f2937;
@@ -1658,7 +1658,7 @@ window.DashboardGlossary = {
                     
                     .glossary-fab:hover .fab-tooltip {
                         opacity: 1;
-                        transform: translateY(-50%) translateX(-5px);
+                        transform: translateY(-50%) translateX(5px);
                     }
                     
                     /* Glossary Panel */
@@ -2198,7 +2198,7 @@ window.DashboardGlossary = {
                         .glossary-fab {
                             top: auto;
                             bottom: 20px;
-                            right: 20px;
+                            left: 20px;
                             width: 48px;
                             height: 48px;
                             font-size: 1.2rem;
