@@ -1164,70 +1164,186 @@
         }).join('');
     }
 
-    // ── deterministic charts: intent -> chart is decided in code (data.chart), never by the LLM ──
-    function _renderChart(data) {
+    // ── deterministic SVG charts: intent -> chart is decided in code, never by the LLM.
+    // All charts are SVG (exportable as PNG, hover-tooltip-able, expandable). Bars/points
+    // carry class="sv-tipel" data-tip="..." for the delegated tooltip; clickable page bars
+    // also carry class="sv-ask-page" data-url="...".
+    function _svTrunc(s, max) { s = String(s == null ? '' : s); max = Math.max(4, max || 20); return s.length > max ? s.slice(0, max - 1) + '…' : s; }
+    function _renderChart(data, opts) {
         if (!data || !data.chart) return '';
-        const t = data.chart.type;
-        if (t === 'diverging') return _chartDiverging(data);
-        if (t === 'smallmultiples') return _chartSmallMultiples(data);
-        if (t === 'line') return _chartLine(data);
-        return '';   // 'bar'/null -> keep the rank card
+        const t = data.chart.type; let svg = '';
+        if (t === 'diverging') svg = _chartDiverging(data, opts);
+        else if (t === 'smallmultiples') svg = _chartSmallMultiples(data, opts);
+        else if (t === 'line') svg = _chartLine(data, opts);
+        else return '';
+        return svg ? '<div class="sv-chart">' + svg + '</div>' : '';
     }
-    function _chartDiverging(data) {
-        const rows = data.rows || [];
-        if (!rows.length) return '';
-        const maxAbs = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.changePct || 0); }).concat([1]));
-        const body = rows.map(function (r) {
-            const pct = r.changePct || 0, up = pct >= 0, w = Math.min(100, Math.abs(pct) / maxAbs * 100) * 0.5;
-            const col = up ? '#059669' : '#dc2626';
-            const valTxt = (up ? '+' : '') + (Math.abs(pct) > 500 ? (up ? '500+' : '-500+') : pct.toFixed(0)) + '%';
-            const clickable = r.url ? ' class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(r.url) + '" style="cursor:pointer;"' : '';
-            return '<div' + clickable + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'" style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:5px;font-size:0.8rem;">' +
-                '<span style="width:38%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(r.page) + '</span>' +
-                '<span style="position:relative;flex:1;height:12px;">' +
-                    '<span style="position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--color-border-primary);"></span>' +
-                    '<span style="position:absolute;top:1px;bottom:1px;background:' + col + ';border-radius:3px;' + (up ? 'left:50%;width:' + w + '%;' : 'right:50%;width:' + w + '%;') + '"></span>' +
-                '</span>' +
-                '<span style="width:52px;flex-shrink:0;text-align:right;font-weight:700;color:' + col + ';">' + valTxt + '</span>' +
+    function _isChart(data) { return !!(data && data.chart && (data.chart.type === 'diverging' || data.chart.type === 'smallmultiples' || data.chart.type === 'line')); }
+
+    // Delegated hover tooltip for any .sv-tipel[data-tip] within a chart container.
+    function _chartTipMove(e) {
+        const el = e.target && e.target.closest ? e.target.closest('.sv-tipel') : null;
+        if (!el) { _chartTipHide(); return; }
+        const text = el.getAttribute('data-tip'); if (!text) { _chartTipHide(); return; }
+        let tip = document.getElementById('sv-chart-tip');
+        if (!tip) { tip = document.createElement('div'); tip.id = 'sv-chart-tip'; tip.style.cssText = 'position:fixed;z-index:100002;pointer-events:none;background:var(--color-bg-elevated,#1f2937);color:#fff;font:600 0.72rem/1.4 var(--font-family,sans-serif);padding:6px 9px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.28);white-space:nowrap;display:none;'; document.body.appendChild(tip); }
+        tip.textContent = text; tip.style.display = 'block';
+        let x = e.clientX + 13, y = e.clientY + 13;
+        if (x + tip.offsetWidth + 8 > window.innerWidth) x = e.clientX - 13 - tip.offsetWidth;
+        tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    }
+    function _chartTipHide() { const t = document.getElementById('sv-chart-tip'); if (t) t.style.display = 'none'; }
+
+    // Serialize an on-page SVG to PNG (resolves CSS vars to computed colours; no deps).
+    function _svgToPng(svgEl, filename, scale) {
+        if (!svgEl) return;
+        scale = scale || 2;
+        const cs = getComputedStyle(document.body);
+        const vb = (svgEl.getAttribute('viewBox') || '0 0 400 200').split(/\s+/).map(Number);
+        const w = vb[2] || 400, h = vb[3] || 200;
+        const clone = svgEl.cloneNode(true);
+        clone.setAttribute('width', w); clone.setAttribute('height', h);
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        let str = new XMLSerializer().serializeToString(clone);
+        str = str.replace(/var\((--[a-z0-9-]+)(?:,[^)]*)?\)/gi, function (m, name) { const v = cs.getPropertyValue(name).trim(); return v || '#888'; });
+        const bg = (cs.getPropertyValue('--color-bg-primary').trim()) || '#ffffff';
+        str = str.replace(/(<svg[^>]*>)/, '$1<rect x="0" y="0" width="' + w + '" height="' + h + '" fill="' + bg + '"/>');
+        const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(str)));
+        const img = new Image();
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+            const ctx = canvas.getContext('2d'); ctx.scale(scale, scale); ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(function (blob) {
+                if (!blob) { alert('Chart export failed.'); return; }
+                const u = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = u; a.download = filename;
+                document.body.appendChild(a); a.click();
+                setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 150);
+            }, 'image/png');
+        };
+        img.onerror = function () { alert('Chart export failed (render).'); };
+        img.src = url;
+    }
+
+    // View a chart larger in a modal (re-rendered at big size); has its own PNG button.
+    function _expandChart(data, title) {
+        const hasChart = _isChart(data);
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.6);display:flex;align-items:flex-start;justify-content:center;padding:28px;overflow:auto;backdrop-filter:blur(2px);';
+        function close() { document.removeEventListener('keydown', onKey); ov.remove(); }
+        function onKey(e) { if (e.key === 'Escape') close(); }
+        ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+        document.addEventListener('keydown', onKey);
+        const box = document.createElement('div');
+        box.style.cssText = 'background:var(--color-bg-secondary);border-radius:14px;max-width:960px;width:100%;margin:auto;padding:22px 24px;position:relative;font-family:var(--font-family);box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+        const tog = hasChart ? ('<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;margin-bottom:14px;">' +
+            '<button class="sv-xc-view" data-mode="chart" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">Chart</button>' +
+            '<button class="sv-xc-view" data-mode="table" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:transparent;color:var(--color-text-secondary);">Table</button></div>') : '';
+        box.innerHTML =
+            '<button class="sv-xc-close" aria-label="Close" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">&times;</button>' +
+            (title ? '<div style="font-weight:700;font-size:0.98rem;margin-bottom:12px;color:var(--color-text-heading);padding-right:24px;">' + esc(title) + '</div>' : '') +
+            tog +
+            (hasChart ? ('<div class="sv-xc-chart">' + _renderChart(data, { w: 900, h: 460, big: true }) + '</div>') : '') +
+            '<div class="sv-xc-tbl"' + (hasChart ? ' style="display:none;"' : '') + '>' + _dataTable(data, { big: true }) + '</div>' +
+            '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">' +
+                (hasChart ? '<button class="sv-xc-png" style="display:inline-flex;align-items:center;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Download PNG</button>' : '') +
+                '<button class="sv-xc-csv" style="display:inline-flex;align-items:center;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Download CSV</button>' +
             '</div>';
-        }).join('');
-        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:8px 10px;">' + body + '</div>';
+        ov.appendChild(box); document.body.appendChild(ov);
+        box.querySelector('.sv-xc-close').addEventListener('click', close);
+        box.addEventListener('mousemove', _chartTipMove);
+        box.addEventListener('mouseleave', _chartTipHide);
+        const pngBtn = box.querySelector('.sv-xc-png'); if (pngBtn) pngBtn.addEventListener('click', function () { const svg = box.querySelector('.sv-chart svg'); if (svg) _svgToPng(svg, 'chart-' + _todayStr() + '.png', 2); });
+        box.querySelector('.sv-xc-csv').addEventListener('click', function () { _download('ask-' + _todayStr() + '.csv', _toCSV(data), 'text/csv'); });
+        box.addEventListener('click', function (e) {
+            const b = e.target.closest ? e.target.closest('.sv-xc-view') : null; if (!b) return;
+            const mode = b.getAttribute('data-mode');
+            const ch = box.querySelector('.sv-xc-chart'), tb = box.querySelector('.sv-xc-tbl');
+            if (ch) ch.style.display = mode === 'table' ? 'none' : '';
+            if (tb) tb.style.display = mode === 'table' ? '' : 'none';
+            Array.prototype.forEach.call(box.querySelectorAll('.sv-xc-view'), function (x) { const on = x.getAttribute('data-mode') === mode; x.style.background = on ? 'var(--primary)' : 'transparent'; x.style.color = on ? '#fff' : 'var(--color-text-secondary)'; });
+        });
     }
-    function _chartSmallMultiples(data) {
-        const rows = data.rows || [];
-        if (!rows.length) return '';
-        const aName = (data.columns[1] && data.columns[1].label) || 'A';
-        const bName = (data.columns[2] && data.columns[2].label) || 'B';
+
+    // Line chart: single or multi-series ({periods:[...], series:[{name,values:[...]}]}), gridlines, hover.
+    function _chartLine(data, opts) {
+        opts = opts || {};
+        let periods, series;
+        if (data.series && data.periods) { periods = data.periods; series = data.series; }
+        else { periods = (data.rows || []).map(function (r) { return r.period; }); series = [{ name: '', values: (data.rows || []).map(function (r) { return Number(r.value) || 0; }) }]; }
+        if (periods.length < 2) return '';
+        const W = opts.w || 420, H = opts.h || (opts.big ? 420 : 152), padL = opts.big ? 46 : 36, padR = 12, padT = series.length > 1 ? 20 : 14, padB = 24;
+        const colors = ['var(--primary)', '#d97706', '#7c3aed'];
+        let maxV = 1; series.forEach(function (s) { (s.values || []).forEach(function (v) { if ((Number(v) || 0) > maxV) maxV = Number(v) || 0; }); });
+        const n = periods.length;
+        const x = function (i) { return padL + (n === 1 ? 0 : (i / (n - 1)) * (W - padL - padR)); };
+        const y = function (v) { return padT + (1 - (Number(v) || 0) / maxV) * (H - padT - padB); };
+        let grid = ''; const ticks = 3;
+        for (let t = 0; t <= ticks; t++) { const gv = maxV * t / ticks, gy = y(gv); grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--color-border-primary)" stroke-width="1" opacity="0.45"/><text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + fmt(gv) + '</text>'; }
+        let xl = ''; periods.forEach(function (p, i) { xl += '<text x="' + x(i) + '" y="' + (H - 6) + '" font-size="8" text-anchor="middle" fill="var(--color-text-muted)">' + esc(p) + '</text>'; });
+        let lines = '';
+        series.forEach(function (s, si) {
+            const col = colors[si % colors.length];
+            const pts = (s.values || []).map(function (v, i) { return x(i) + ',' + y(v); }).join(' ');
+            lines += '<polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+            (s.values || []).forEach(function (v, i) { const tip = esc((s.name ? s.name + ' - ' : '') + periods[i] + ': ' + fmt(v)); lines += '<circle class="sv-tipel" data-tip="' + tip + '" cx="' + x(i) + '" cy="' + y(v) + '" r="' + (opts.big ? 4 : 3) + '" fill="' + col + '"/>'; });
+        });
+        let legend = '';
+        if (series.length > 1) { let lx = padL; series.forEach(function (s, si) { const col = colors[si % colors.length]; legend += '<rect x="' + lx + '" y="2" width="9" height="9" rx="2" fill="' + col + '"/><text x="' + (lx + 12) + '" y="10" font-size="9" fill="var(--color-text-secondary)">' + esc(s.name) + '</text>'; lx += 12 + Math.min(120, String(s.name).length * 6) + 18; }); }
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);">' + grid + lines + xl + legend + '</svg>';
+    }
+
+    // Diverging horizontal bars (movers): green right / red left from a centre axis.
+    function _chartDiverging(data, opts) {
+        opts = opts || {};
+        const rows = data.rows || []; if (!rows.length) return '';
+        const W = opts.w || 400, rowH = opts.big ? 30 : 22, padT = 4, padB = 4, valW = opts.big ? 66 : 54, gap = 8;
+        const labelW = Math.round(W * (opts.big ? 0.3 : 0.34));
+        const H = opts.h || (rows.length * rowH + padT + padB);
+        const barAreaW = W - labelW - gap - valW - gap, halfW = barAreaW / 2;
+        const cx = labelW + gap + halfW;
+        const maxAbs = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.changePct || 0); }).concat([1]));
+        const fsz = opts.big ? 12 : 10, maxChars = Math.floor(labelW / (opts.big ? 7 : 6));
+        let body = '';
+        rows.forEach(function (r, i) {
+            const y = padT + i * rowH, midY = y + rowH / 2;
+            const pct = r.changePct || 0, up = pct >= 0, col = up ? '#059669' : '#dc2626';
+            const w = Math.min(halfW, Math.abs(pct) / maxAbs * halfW);
+            const barX = up ? cx : cx - w;
+            const valTxt = (up ? '+' : '') + (Math.abs(pct) > 500 ? (up ? '500+' : '-500+') : pct.toFixed(0)) + '%';
+            const tip = esc(r.page + ': ' + valTxt);
+            body += '<g class="sv-tipel' + (r.url ? ' sv-ask-page' : '') + '"' + (r.url ? (' data-url="' + esc(r.url) + '"') : '') + ' data-tip="' + tip + '"' + (r.url ? ' style="cursor:pointer;"' : '') + '>' +
+                '<rect x="0" y="' + y + '" width="' + W + '" height="' + rowH + '" fill="transparent"/>' +
+                '<text x="0" y="' + (midY + 3) + '" font-size="' + fsz + '" fill="var(--color-text-primary)" font-weight="600">' + esc(_svTrunc(r.page, maxChars)) + '</text>' +
+                '<line x1="' + cx + '" y1="' + (y + 3) + '" x2="' + cx + '" y2="' + (y + rowH - 3) + '" stroke="var(--color-border-primary)" stroke-width="1"/>' +
+                '<rect x="' + barX + '" y="' + (midY - 5) + '" width="' + Math.max(0, w) + '" height="10" rx="2" fill="' + col + '"/>' +
+                '<text x="' + W + '" y="' + (midY + 3) + '" font-size="' + fsz + '" text-anchor="end" fill="' + col + '" font-weight="700">' + valTxt + '</text>' +
+                '</g>';
+        });
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);">' + body + '</svg>';
+    }
+
+    // Small-multiples (compare): one mini bar-pair per metric (own scale each).
+    function _chartSmallMultiples(data, opts) {
+        opts = opts || {};
+        const rows = data.rows || []; if (!rows.length) return '';
+        const aName = (data.columns[1] && data.columns[1].label) || 'A', bName = (data.columns[2] && data.columns[2].label) || 'B';
         const cA = 'var(--primary)', cB = '#94a3b8';
+        const W = opts.w || 400, padT = 24, rowGap = opts.big ? 50 : 40, barH = opts.big ? 12 : 9, labelH = 14, valW = 66, barMaxW = W - valW - 4;
+        const H = opts.h || (padT + rows.length * rowGap + 6);
         const fmtV = function (metric, v) { return /CTR/i.test(metric) ? (Number(v) || 0).toFixed(1) + '%' : (/position/i.test(metric) ? (v == null ? '-' : Number(v).toFixed(1)) : fmt(Number(v) || 0)); };
-        const legend = '<div style="display:flex;gap:14px;margin-bottom:10px;font-size:0.72rem;color:var(--color-text-secondary);">' +
-            '<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:' + cA + ';display:inline-block;"></span>' + esc(aName) + '</span>' +
-            '<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:' + cB + ';display:inline-block;"></span>' + esc(bName) + '</span></div>';
-        const bar = function (metric, v, col) { const mx = arguments[3]; return '<div style="display:flex;align-items:center;gap:6px;margin-top:3px;"><div style="height:9px;width:' + (Math.abs(Number(v) || 0) / mx * 100) + '%;min-width:2px;background:' + col + ';border-radius:3px;"></div><span style="font-size:0.7rem;color:var(--color-text-secondary);font-weight:600;white-space:nowrap;">' + fmtV(metric, v) + '</span></div>'; };
-        const cells = rows.map(function (r) {
+        let s = '<rect x="0" y="3" width="9" height="9" rx="2" fill="' + cA + '"/><text x="13" y="11" font-size="10" fill="var(--color-text-secondary)">' + esc(aName) + '</text>';
+        const bOff = 13 + Math.min(160, String(aName).length * 6) + 18;
+        s += '<rect x="' + bOff + '" y="3" width="9" height="9" rx="2" fill="' + cB + '"/><text x="' + (bOff + 13) + '" y="11" font-size="10" fill="var(--color-text-secondary)">' + esc(bName) + '</text>';
+        rows.forEach(function (r, i) {
+            const y = padT + i * rowGap;
             const a = Number(r.a) || 0, b = Number(r.b) || 0, mx = Math.max(a, b, 1);
-            return '<div style="margin-bottom:12px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.03em;">' + esc(r.metric) + '</div>' + bar(r.metric, a, cA, mx) + bar(r.metric, b, cB, mx) + '</div>';
-        }).join('');
-        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:12px 14px;">' + legend + cells + '</div>';
-    }
-    function _chartLine(data) {
-        const rows = data.rows || [];
-        if (rows.length < 2) return '';
-        const W = 400, H = 140, padL = 8, padR = 8, padT = 14, padB = 22;
-        const vals = rows.map(function (r) { return Number(r.value) || 0; });
-        const maxV = Math.max.apply(null, vals.concat([1])), n = rows.length;
-        const x = function (i) { return padL + (i / (n - 1)) * (W - padL - padR); };
-        const y = function (v) { return padT + (1 - v / (maxV || 1)) * (H - padT - padB); };
-        const pts = rows.map(function (r, i) { return x(i) + ',' + y(Number(r.value) || 0); }).join(' ');
-        const area = 'M' + x(0) + ',' + y(0) + ' L' + rows.map(function (r, i) { return x(i) + ',' + y(Number(r.value) || 0); }).join(' L') + ' L' + x(n - 1) + ',' + y(0) + ' Z';
-        const dots = rows.map(function (r, i) { return '<circle cx="' + x(i) + '" cy="' + y(Number(r.value) || 0) + '" r="2.5" fill="var(--primary)"></circle>'; }).join('');
-        const labels = rows.map(function (r, i) { return '<text x="' + x(i) + '" y="' + (H - 6) + '" font-size="8" text-anchor="middle" fill="var(--color-text-muted)">' + esc(r.period) + '</text>'; }).join('');
-        const valLabels = rows.map(function (r, i) { return '<text x="' + x(i) + '" y="' + (y(Number(r.value) || 0) - 6) + '" font-size="8" text-anchor="middle" fill="var(--color-text-secondary)" font-weight="600">' + fmt(Number(r.value) || 0) + '</text>'; }).join('');
-        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:10px;">' +
-            '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;">' +
-            '<path d="' + area + '" fill="var(--primary)" opacity="0.08"></path>' +
-            '<polyline points="' + pts + '" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>' +
-            dots + valLabels + labels + '</svg></div>';
+            s += '<text x="0" y="' + (y + 9) + '" font-size="10" font-weight="700" fill="var(--color-text-muted)">' + esc(String(r.metric).toUpperCase()) + '</text>';
+            const bar = function (v, col, name, yy) { const w = Math.max(2, Math.abs(v) / mx * barMaxW); const tip = esc(r.metric + ' - ' + name + ': ' + fmtV(r.metric, v)); return '<g class="sv-tipel" data-tip="' + tip + '"><rect x="0" y="' + yy + '" width="' + w + '" height="' + barH + '" rx="2" fill="' + col + '"/><text x="' + (w + 5) + '" y="' + (yy + barH - 1) + '" font-size="9" font-weight="600" fill="var(--color-text-secondary)">' + fmtV(r.metric, v) + '</text></g>'; };
+            s += bar(a, cA, aName, y + labelH) + bar(b, cB, bName, y + labelH + barH + 3);
+        });
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);">' + s + '</svg>';
     }
 
     // Cached period-window fetch for the trend intent (keyed by days:offset).
@@ -1385,29 +1501,34 @@
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }].concat(code ? [] : [{ key: 'topCountry', label: 'Top country' }]), rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, topCountry: _countryName(x.topCountry) }; }), chart: { type: 'bar', x: 'query', y: 'impressions', label: 'Impressions' } } };
         }
         if (intent === 'trend') {
-            const c = _catByName(cats, plan.category);
             const tmetric = ['impressions', 'clicks', 'pageViews', 'users'].indexOf(metric) >= 0 ? metric : 'impressions';
             const N = 6, win = 30;
-            const series = [];
+            let targets;
+            if (plan.categories && plan.categories.length >= 2) { const a = _catByName(cats, plan.categories[0]), b = _catByName(cats, plan.categories[1]); targets = [a, b].filter(Boolean); }
+            if (!targets || !targets.length) targets = [_catByName(cats, plan.category)];   // may be [null] = whole site
+            const periods = [], seriesVals = targets.map(function () { return []; });
             for (let i = N - 1; i >= 0; i--) {
-                let val = 0;
-                try {
-                    const maps = await fetchTrendWindow(window.treeData, win, i * win);
-                    const rb = build(window.treeData, { statsFor: statsForMaps(maps.gscBy, maps.ga4By) });
-                    if (c) { const cc = _catByName(rb.categories, c.name); val = cc ? _mval(cc.rollup, tmetric) : 0; }
-                    else { val = _mval(rb.totals, tmetric); }
-                } catch (e) { val = 0; }
-                series.push({ period: i === 0 ? 'now' : i + 'mo ago', value: Math.round(val) });
+                periods.push(i === 0 ? 'now' : i + 'mo ago');
+                let rb = null;
+                try { const maps = await fetchTrendWindow(window.treeData, win, i * win); rb = build(window.treeData, { statsFor: statsForMaps(maps.gscBy, maps.ga4By) }); } catch (e) {}
+                targets.forEach(function (tg, ti) {
+                    let val = 0;
+                    if (rb) { if (tg) { const cc = _catByName(rb.categories, tg.name); val = cc ? _mval(cc.rollup, tmetric) : 0; } else { val = _mval(rb.totals, tmetric); } }
+                    seriesVals[ti].push(Math.round(val));
+                });
             }
             build(window.treeData);   // restore current-period annotations on the tree
-            const nonzero = series.filter(function (s) { return s.value > 0; }).length;
-            if (nonzero < 2) return { html: '', summary: '', err: 'Not enough history to plot a trend' + (c ? ' for ' + c.name : '') + '. (Needs GSC/GA4 data across several months.)' };
-            const first = series[0].value, last = series[series.length - 1].value;
-            const chg = first > 0 ? Math.round((last - first) / first * 100) : null;
+            const anyData = seriesVals.some(function (v) { return v.filter(function (x) { return x > 0; }).length >= 2; });
+            const names = targets.map(function (t) { return t ? t.name : 'The site'; });
+            if (!anyData) return { html: '', summary: '', err: 'Not enough history to plot a trend for ' + names.join(' / ') + '. (Needs GSC/GA4 data across several months.)' };
+            const series = seriesVals.map(function (v, i) { return { name: names[i], values: v }; });
+            const summaryParts = series.map(function (s) { const f = s.values[0], l = s.values[s.values.length - 1], chg = f > 0 ? Math.round((l - f) / f * 100) : null; return s.name + ' ' + fmt(f) + '->' + fmt(l) + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '%)' : ''); });
+            const cols = [{ key: 'period', label: 'Period' }].concat(series.map(function (s) { return { key: s.name || 'value', label: s.name || _MLABEL[tmetric] }; }));
+            const rows = periods.map(function (p, i) { const row = { period: p }; series.forEach(function (s) { row[s.name || 'value'] = s.values[i]; }); return row; });
             return {
                 html: '',
-                summary: (c ? c.name : 'The site') + ' ' + _MLABEL[tmetric] + ' over the last ' + N + ' months: ' + series.map(function (s) { return s.period + ' ' + fmt(s.value); }).join(', ') + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '% overall)' : '') + '.',
-                data: { columns: [{ key: 'period', label: 'Period' }, { key: 'value', label: _MLABEL[tmetric] }], rows: series, chart: { type: 'line', x: 'period', y: 'value', label: _MLABEL[tmetric] } }
+                summary: (targets.length > 1 ? 'Trend comparison' : 'Trend') + ' over the last ' + N + ' months by ' + _MLABEL[tmetric] + ': ' + summaryParts.join('; ') + '.',
+                data: { columns: cols, rows: rows, periods: periods, series: series, chart: { type: 'line', label: _MLABEL[tmetric] } }
             };
         }
         if (intent === 'diagnose') {
@@ -1622,6 +1743,24 @@
         const s = String(v);
         return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     }
+    // Render the answer's structured data as an HTML table (Chart/List <-> Table toggle).
+    function _dataTable(data, opts) {
+        opts = opts || {};
+        if (!data || !data.columns || !data.rows || !data.rows.length) return '<div style="font-size:0.8rem;color:var(--color-text-muted);padding:6px 0;">No table data.</div>';
+        const cols = data.columns, rows = data.rows;
+        const big = !!opts.big, fs = big ? '0.82rem' : '0.72rem', pad = big ? '7px 12px' : '5px 8px', maxH = big ? '560px' : '340px', cap = big ? 500 : 200, urlMax = big ? '320px' : '150px';
+        const th = cols.map(function (c) { return '<th style="text-align:left;padding:' + pad + ';border-bottom:1px solid var(--color-border-primary);color:var(--color-text-muted);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--color-bg-primary);">' + esc(c.label) + '</th>'; }).join('');
+        const tb = rows.slice(0, cap).map(function (r) {
+            return '<tr>' + cols.map(function (c) {
+                const v = r[c.key]; const num = typeof v === 'number';
+                const disp = num ? v.toLocaleString() : String(v == null ? '' : v);
+                const urlish = /url/i.test(c.key);
+                return '<td style="padding:' + pad + ';border-bottom:1px solid var(--color-border-primary);color:var(--color-text-secondary);text-align:' + (num ? 'right' : 'left') + ';' + (urlish ? 'max-width:' + urlMax + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' : '') + '">' + esc(disp) + '</td>';
+            }).join('') + '</tr>';
+        }).join('');
+        const more = rows.length > cap ? '<div style="font-size:0.66rem;color:var(--color-text-muted);padding:5px 8px;">Showing first ' + cap + ' of ' + rows.length + ' rows (CSV has all).</div>' : '';
+        return '<div style="overflow:auto;max-height:' + maxH + ';border:1px solid var(--color-border-primary);border-radius:8px;"><table style="width:100%;border-collapse:collapse;font-size:' + fs + ';font-family:var(--font-family);"><thead><tr>' + th + '</tr></thead><tbody>' + tb + '</tbody></table></div>' + more;
+    }
     function _toCSV(data) {
         if (!data || !data.columns || !data.rows) return '';
         const head = data.columns.map(function (c) { return _csvCell(c.label); }).join(',');
@@ -1644,6 +1783,8 @@
     function _todayStr() { const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
     const _ICON_DL = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
     const _ICON_DOC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
+    const _ICON_EXPAND = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+    const _ICON_IMG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
 
     // Miss-log: record questions that resolve to `unknown` so the owner can see what
     // to build next. Capped ring buffer in localStorage. Inspect via SVRollup.getAskMisses().
@@ -1689,7 +1830,7 @@
         panel.id = 'sv-ask-panel';
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-label', 'Ask your data');
-        panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:min(460px,94vw);z-index:4000;background:var(--color-bg-secondary);border-left:1px solid var(--color-border-primary);box-shadow:-8px 0 30px rgba(0,0,0,0.18);display:flex;flex-direction:column;font-family:var(--font-family);transition:transform 0.22s ease;transform:translateX(100%);';
+        panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:min(520px,94vw);z-index:4000;background:var(--color-bg-secondary);border-left:1px solid var(--color-border-primary);box-shadow:-8px 0 30px rgba(0,0,0,0.18);display:flex;flex-direction:column;font-family:var(--font-family);transition:transform 0.22s ease;transform:translateX(100%);';
         panel.innerHTML =
             '<div style="flex:0 0 auto;padding:14px 16px;border-bottom:1px solid var(--color-border-primary);display:flex;align-items:center;gap:8px;">' +
                 '<div style="flex:1;min-width:0;">' +
@@ -1703,6 +1844,7 @@
             '<div style="flex:0 0 auto;padding:12px 14px;border-top:1px solid var(--color-border-primary);">' +
                 '<div style="display:flex;gap:8px;">' +
                     '<input id="sv-ask-input" type="text" placeholder="Ask a question..." aria-label="Ask a question" style="flex:1;min-width:0;font-family:inherit;font-size:0.9rem;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);" />' +
+                    '<button id="sv-ask-mic" title="Ask by voice" aria-label="Ask by voice" style="display:none;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);color:var(--color-text-secondary);border-radius:9px;padding:0 11px;cursor:pointer;font-family:inherit;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>' +
                     '<button id="sv-ask-go" style="background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;cursor:pointer;font-family:inherit;">Ask</button>' +
                 '</div>' +
             '</div>';
@@ -1730,11 +1872,29 @@
             input.focus();
         });
 
+        panel.addEventListener('mousemove', _chartTipMove);
+        panel.addEventListener('mouseleave', _chartTipHide);
         panel.addEventListener('click', function (e) {
             const ecsv = e.target.closest('.sv-ask-export-csv');
             if (ecsv) { const ex = _exports[ecsv.getAttribute('data-eid')]; if (ex) _download('ask-' + _slug(ex.q) + '-' + _todayStr() + '.csv', _toCSV(ex.data), 'text/csv'); return; }
             const ebrief = e.target.closest('.sv-ask-export-brief');
             if (ebrief) { const ex = _exports[ebrief.getAttribute('data-eid')]; if (ex) _exportBrief(ex, ebrief); return; }
+            const epng = e.target.closest('.sv-ask-chart-png');
+            if (epng) { const eid = epng.getAttribute('data-eid'); const el = document.getElementById(eid); const svg = el && el.querySelector('.sv-chart svg'); const ex = _exports[eid]; if (svg) _svgToPng(svg, 'chart-' + _slug(ex ? ex.q : 'ask') + '-' + _todayStr() + '.png', 2); return; }
+            const eexp = e.target.closest('.sv-ask-chart-expand');
+            if (eexp) { const ex = _exports[eexp.getAttribute('data-eid')]; if (ex) _expandChart(ex.data, ex.q); return; }
+            const vbtn = e.target.closest('.sv-ask-view-btn');
+            if (vbtn) {
+                const veid = vbtn.getAttribute('data-eid'), vmode = vbtn.getAttribute('data-mode');
+                const ventry = document.getElementById(veid);
+                if (ventry) {
+                    const vr = ventry.querySelector('.sv-ask-rich'), vt = ventry.querySelector('.sv-ask-tbl');
+                    if (vr) vr.style.display = (vmode === 'table') ? 'none' : '';
+                    if (vt) vt.style.display = (vmode === 'table') ? '' : 'none';
+                    Array.prototype.forEach.call(ventry.querySelectorAll('.sv-ask-view-btn'), function (b) { const on = b.getAttribute('data-mode') === vmode; b.style.background = on ? 'var(--primary)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--color-text-secondary)'; });
+                }
+                return;
+            }
             const chip = e.target.closest('.sv-ask-chip');
             if (chip) { input.value = chip.dataset.q; ask(); return; }
             const row = e.target.closest('.sv-ask-page[data-url]');
@@ -1760,6 +1920,22 @@
 
         panel.querySelector('#sv-ask-go').addEventListener('click', ask);
         input.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(); });
+        // Voice input via the Web Speech API — feature-detected; the mic stays hidden otherwise.
+        const _mic = panel.querySelector('#sv-ask-mic');
+        const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (_mic && _SR) {
+            _mic.style.display = '';
+            let _rec = null, _listening = false;
+            _mic.addEventListener('click', function () {
+                if (_listening) { try { _rec.stop(); } catch (e) {} return; }
+                _rec = new _SR(); _rec.lang = 'en-IE'; _rec.interimResults = false; _rec.maxAlternatives = 1;
+                _rec.onstart = function () { _listening = true; _mic.style.color = '#dc2626'; _mic.style.borderColor = '#dc2626'; };
+                _rec.onerror = function () { _listening = false; _mic.style.color = ''; _mic.style.borderColor = ''; };
+                _rec.onend = function () { _listening = false; _mic.style.color = ''; _mic.style.borderColor = ''; };
+                _rec.onresult = function (ev) { const t = ev.results[0][0].transcript; if (t) { input.value = t; ask(); } };
+                try { _rec.start(); } catch (e) {}
+            });
+        }
         setTimeout(function () { input.focus(); }, 60);
 
         async function _exportBrief(ex, btn) {
@@ -1812,7 +1988,7 @@
                     'from abroad / overseas / internationally / the diaspora / emigrants / people outside Ireland->international_queries with country null; ' +
                     'from a named place (the US / in Australia / from Britain)->international_queries with country set to that country name; ' +
                     'which countries / where are searchers from / top countries->top_countries; ' +
-                    'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); ' +
+                    'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); trend of X vs Y / compare X and Y over time->trend with categories [X,Y]; ' +
                     'why is X underperforming / why is X down / why is the X page underperforming / what is wrong with X / diagnose X / why is X not getting clicks->diagnose with page set to X (the page named, even a long multi-word name); ' +
                     'what questions do people ask / what are people asking / question searches / common questions->questions (category optional); ' +
                     'Irish vs English / as Gaeilge / language gap / where does the Irish version underperform / English vs Irish->language_gap; ' +
@@ -1841,11 +2017,19 @@
                 if (plan.categories && plan.categories.length) interpBits.push(plan.categories.join(' vs '));
                 interpBits.push(periodLabel(_ddDays));
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span></div>';
-                resp.innerHTML = interp + '<div class="sv-ask-oneliner" style="font-size:0.92rem;color:var(--color-text-primary);font-weight:600;margin-bottom:12px;line-height:1.5;"></div>' + (_renderChart(res.data) || res.html);
+                const _bodyHtml = _renderChart(res.data) || res.html;
+                const _tblHtml = _exports[eid] ? '<div class="sv-ask-tbl" style="display:none;">' + _dataTable(res.data) + '</div>' : '';
+                resp.innerHTML = interp + '<div class="sv-ask-oneliner" style="font-size:0.92rem;color:var(--color-text-primary);font-weight:600;margin-bottom:12px;line-height:1.5;"></div>' + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
                 if (_exports[eid]) {
                     resp.insertAdjacentHTML('beforeend',
                         '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:14px;">' +
                         '<span style="font-size:0.68rem;color:var(--color-text-muted);margin-right:auto;">' + res.data.rows.length + ' row' + (res.data.rows.length === 1 ? '' : 's') + '</span>' +
+                        '<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;">' +
+                        '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="rich" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">' + (_isChart(res.data) ? 'Chart' : 'List') + '</button>' +
+                        '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="table" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:transparent;color:var(--color-text-secondary);">Table</button>' +
+                        '</div>' +
+                        '<button class="sv-ask-chart-expand" data-eid="' + eid + '" title="View larger" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_EXPAND + 'Expand</button>' +
+                        (_isChart(res.data) ? '<button class="sv-ask-chart-png" data-eid="' + eid + '" title="Download chart as PNG" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_IMG + 'PNG</button>' : '') +
                         '<button class="sv-ask-export-csv" data-eid="' + eid + '" title="Download these rows as CSV" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DL + 'CSV</button>' +
                         '<button class="sv-ask-export-brief" data-eid="' + eid + '" title="Write a short Markdown brief with AI" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DOC + 'Brief</button>' +
                         '</div>');
