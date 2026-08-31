@@ -1,0 +1,113 @@
+/*
+ * sitemap-geomap.js — interactive geographic maps for the dashboard's Geographic tab.
+ *
+ * Ireland choropleth: counties shaded pale→teal by GA4 users. Self-contained —
+ * loads ireland-counties.geo.json (same-origin, ~39KB, embedded at build time, no
+ * runtime CDN/CORS) and renders with the already-loaded d3-geo. Init is triggered
+ * by an <img onload> in the markup (survives innerHTML injection), reading the
+ * region data stashed on window.__svGeoData by createInteractiveIrelandMap().
+ */
+(function () {
+    'use strict';
+
+    let _geo = null, _loading = null;
+    function loadGeo() {
+        if (_geo) return Promise.resolve(_geo);
+        if (_loading) return _loading;
+        _loading = fetch('ireland-counties.geo.json').then(r => r.json()).then(j => { _geo = j; return j; });
+        return _loading;
+    }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    function fmt(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K' : String(Math.round(n)); }
+
+    // Normalise a county/region name so GA4's names match the geojson's.
+    const ALIAS = { laois: 'laoighis', queens: 'laoighis', kings: 'offaly', 'derry': 'northernireland', 'londonderry': 'northernireland', antrim: 'northernireland', armagh: 'northernireland', down: 'northernireland', fermanagh: 'northernireland', tyrone: 'northernireland', belfast: 'northernireland' };
+    function key(s) {
+        let k = String(s || '').toLowerCase()
+            .replace(/^county\s+/, '').replace(/^co\.?\s+/, '')
+            .replace(/\s+city$/, '').replace(/\s+county$/, '')
+            .replace(/[^a-z]/g, '');
+        return ALIAS[k] || k;
+    }
+
+    function ensureStyle() {
+        if (document.getElementById('sv-geomap-style')) return;
+        const s = document.createElement('style');
+        s.id = 'sv-geomap-style';
+        s.textContent = [
+            '.sv-choropleth-wrap{position:relative;width:100%;max-width:440px;margin:0 auto;}',
+            '.sv-choropleth{width:100%;height:auto;display:block;}',
+            '.sv-choropleth-tip{position:absolute;pointer-events:none;display:none;z-index:20;background:var(--color-bg-elevated,#1f2937);color:#fff;font-size:0.72rem;line-height:1.45;padding:7px 10px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.22);white-space:nowrap;}',
+            '.sv-choropleth-legend{display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.68rem;color:var(--color-text-muted);margin-top:6px;}',
+            '.sv-legend-ramp{display:inline-block;width:64px;height:9px;border-radius:3px;background:linear-gradient(90deg,rgba(0,124,182,0.18),rgba(0,124,182,0.92));}'
+        ].join('');
+        document.head.appendChild(s);
+    }
+
+    async function initIreland(uid) {
+        const svg = document.getElementById(uid);
+        if (!svg || svg._svDone) return;
+        svg._svDone = true;
+        ensureStyle();
+        const regions = (window.__svGeoData || {})[uid] || [];
+        let geo;
+        try { geo = await loadGeo(); } catch (e) { return; }
+        if (typeof d3 === 'undefined' || !d3.geoMercator || !d3.geoPath) return;
+
+        const byCounty = {}; let maxU = 0;
+        regions.forEach(r => {
+            const k = key(r.region);
+            const u = Number(r.users) || 0;
+            byCounty[k] = { users: u, pct: Number(r.percentage) || 0, name: r.region };
+            if (u > maxU) maxU = u;
+        });
+
+        const W = 440, H = 500;
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        const proj = d3.geoMercator().fitSize([W - 12, H - 12], geo);
+        const path = d3.geoPath(proj);
+        const dark = document.body.classList.contains('dark-theme');
+        const noData = dark ? '#2a3340' : '#e8edf1';
+        const strokeBase = dark ? '#151b23' : '#ffffff';
+        const hoverStroke = dark ? '#7dd3fc' : '#007cb6';
+        const tip = document.getElementById(uid + '-tip');
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        const NS = 'http://www.w3.org/2000/svg';
+        geo.features.forEach(f => {
+            const cname = f.properties.county;
+            const d = byCounty[key(cname)];
+            const op = (d && maxU > 0) ? (0.18 + (d.users / maxU) * 0.74) : 0;
+            const fill = d ? 'rgba(0,124,182,' + op.toFixed(2) + ')' : noData;
+            const dstr = path(f);
+            if (!dstr) return;
+            const p = document.createElementNS(NS, 'path');
+            p.setAttribute('d', dstr);
+            p.setAttribute('fill', fill);
+            p.setAttribute('stroke', strokeBase);
+            p.setAttribute('stroke-width', '0.6');
+            p.setAttribute('stroke-linejoin', 'round');
+            p.style.transition = 'fill .15s';
+            p.style.cursor = d ? 'pointer' : 'default';
+            p.addEventListener('mouseenter', function () { p.setAttribute('stroke', hoverStroke); p.setAttribute('stroke-width', '1.5'); p.parentNode.appendChild(p); });
+            p.addEventListener('mouseleave', function () { p.setAttribute('stroke', strokeBase); p.setAttribute('stroke-width', '0.6'); if (tip) tip.style.display = 'none'; });
+            p.addEventListener('mousemove', function (ev) {
+                if (!tip) return;
+                tip.style.display = 'block';
+                tip.innerHTML = d
+                    ? '<strong>' + esc(d.name) + '</strong><br>' + fmt(d.users) + ' users · ' + d.pct.toFixed(1) + '%'
+                    : '<strong>' + esc(cname) + '</strong><br>no data';
+                const wrap = svg.parentElement.getBoundingClientRect();
+                let x = ev.clientX - wrap.left + 12, y = ev.clientY - wrap.top + 12;
+                if (x > wrap.width - 120) x = ev.clientX - wrap.left - 120;
+                tip.style.left = x + 'px';
+                tip.style.top = y + 'px';
+            });
+            svg.appendChild(p);
+        });
+    }
+
+    window.SVGeoMap = { initIreland: initIreland, _key: key };
+})();
