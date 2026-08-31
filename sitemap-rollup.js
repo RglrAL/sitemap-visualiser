@@ -26,6 +26,8 @@
 
     // GA4 per-URL stats, filled by prefetchGA4() (path -> {pageViews, users, ...})
     let _ga4Map = Object.create(null);
+    // GSC per-URL stats, filled by prefetchGSC() (normUrl -> {impressions, clicks, ctr, position})
+    let _gscMap = Object.create(null);
 
     function num(v) { const n = Number(v); return isFinite(n) ? n : 0; }
 
@@ -71,17 +73,43 @@
         };
     }
 
-    // ── live per-URL stats from the connected integrations ──
+    // ── live per-URL stats: prefer the bulk maps; fall back to GSC's per-node getData ──
     function statsForUrl(url) {
         const out = {};
-        const gsc = window.GSCIntegration;
-        if (gsc && typeof gsc.getData === 'function') {
-            const g = gsc.getData(url) || gsc.getData(normUrl(url));
-            if (g) { out.impressions = g.impressions; out.clicks = g.clicks; out.position = g.position; }
+        const key = normUrl(url);
+        const g = _gscMap[key];
+        if (g) { out.impressions = g.impressions; out.clicks = g.clicks; out.position = g.position; }
+        else {
+            const gsc = window.GSCIntegration;
+            if (gsc && typeof gsc.getData === 'function') {
+                const gg = gsc.getData(url) || gsc.getData(key);
+                if (gg) { out.impressions = gg.impressions; out.clicks = gg.clicks; out.position = gg.position; }
+            }
         }
-        const ga = _ga4Map[url] || _ga4Map[normUrl(url)];
+        const ga = _ga4Map[key] || _ga4Map[url];
         if (ga) { out.pageViews = ga.pageViews; out.users = ga.users; }
         return out;
+    }
+
+    // ── bulk GSC prefetch: ONE query for the whole property ──
+    async function prefetchGSC(tree) {
+        const gsc = window.GSCIntegration;
+        if (!gsc || !gsc.isConnected || !gsc.isConnected() || typeof gsc.fetchAllPages !== 'function') return _gscMap;
+        const byUrl = await gsc.fetchAllPages({ days: 30 });
+        byUrl.forEach(function (rec, url) { _gscMap[normUrl(url)] = rec; });
+        return _gscMap;
+    }
+
+    // ── category picker: skip a language-code top level (e.g. CI's /en/, /ga/) ──
+    const LANG_RE = /^(en|ga|gd|cy|fr|de|es|it|pl|pt|ro|ru|lt|lv|nl|sv|no|da|fi|cs|sk|hu|el|zh|ar|uk|bg)$/i;
+    function isLangNode(n) { return n && n.name && LANG_RE.test(String(n.name).trim()); }
+    function pickCategories(tree) {
+        let cats = (tree.children || []).slice();
+        // If the whole top level looks like language codes, descend one level.
+        if (cats.length && cats.every(isLangNode)) {
+            cats = cats.reduce(function (acc, lang) { return acc.concat(lang.children || []); }, []);
+        }
+        return cats;
     }
 
     // ── the core walk (post-order): O(n), one pass ──
@@ -107,10 +135,13 @@
         }
 
         const rootAgg = walk(tree);
-        // Top-level categories = the root's direct children
-        const categories = (tree.children || []).map(function (c) {
+        // Categories = top-level sections (skipping a language-code level if present)
+        const categories = pickCategories(tree).map(function (c) {
             return { name: c.name, url: c.url || null, rollup: c.rollup, node: c };
-        }).sort(function (a, b) { return b.rollup.impressions - a.rollup.impressions; });
+        }).sort(function (a, b) {
+            if (b.rollup.impressions !== a.rollup.impressions) return b.rollup.impressions - a.rollup.impressions;
+            return b.rollup.pageViews - a.rollup.pageViews;   // fall back to GA4 when no GSC
+        });
 
         return { tree: tree, byUrl: byUrl, categories: categories, totals: finalize(rootAgg) };
     }
@@ -237,7 +268,7 @@
         overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
         document.body.appendChild(overlay);
 
-        try { if (ga4On) await prefetchGA4(tree); } catch (e) { /* GA4 optional */ }
+        try { await Promise.all([ gscOn ? prefetchGSC(tree) : null, ga4On ? prefetchGA4(tree) : null ]); } catch (e) { /* best effort */ }
         const r = build(tree);
         const hasGA4 = r.totals.users > 0 || r.totals.pageViews > 0;
 
@@ -301,6 +332,7 @@
         build: build,
         statsForUrl: statsForUrl,
         prefetchGA4: prefetchGA4,
+        prefetchGSC: prefetchGSC,
         showPanel: showPanel,
         selfTest: selfTest,
         _normUrl: normUrl
