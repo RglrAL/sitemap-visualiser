@@ -143,7 +143,9 @@
         return CALIAS[k] || k;
     }
 
-    async function initWorld(uid) {
+    async function initWorld(uid, opts) {
+        opts = opts || {};
+        const valueLabel = opts.valueLabel || 'users';
         const svg = document.getElementById(uid);
         if (!svg || svg._svDone) return;
         svg._svDone = true;
@@ -155,7 +157,7 @@
 
         const byC = {}; let maxU = 0;
         countries.forEach(c => {
-            const u = Number(c.users) || 0;
+            const u = Number(c.value != null ? c.value : c.users) || 0;
             byC[ckey(c.country)] = { users: u, pct: Number(c.percentage) || 0, name: c.country };
             if (u > maxU) maxU = u;
         });
@@ -195,7 +197,7 @@
             let cen;
             try { cen = proj(d3.geoCentroid(f)); } catch (e) { return; }
             if (!cen || !isFinite(cen[0]) || !isFinite(cen[1])) return;
-            const u = Number(c.users) || 0;
+            const u = Number(c.value != null ? c.value : c.users) || 0;
             const r = maxU > 0 ? Math.max(3, maxR * Math.sqrt(u / maxU)) : 4;
             const circ = document.createElementNS(NS, 'circle');
             circ.setAttribute('cx', cen[0]); circ.setAttribute('cy', cen[1]); circ.setAttribute('r', r);
@@ -208,7 +210,7 @@
             circ.addEventListener('mousemove', function (ev) {
                 if (!tip) return;
                 tip.style.display = 'block';
-                tip.innerHTML = '<strong>' + esc(nm) + '</strong><br>' + fmt(u) + ' users · ' + pct + '%';
+                tip.innerHTML = '<strong>' + esc(nm) + '</strong><br>' + fmt(u) + ' ' + valueLabel + ' · ' + pct + '%';
                 const wrap = svg.parentElement.getBoundingClientRect();
                 let x = ev.clientX - wrap.left + 12, y = ev.clientY - wrap.top + 12;
                 if (x > wrap.width - 130) x = ev.clientX - wrap.left - 130;
