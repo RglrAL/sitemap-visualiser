@@ -420,9 +420,10 @@
     }
 
     // ── Category Performance scorecard (modal) ──
-    async function showPanel() {
+    async function showPanel(days) {
         const tree = window.treeData;
         if (!tree) { alert('Load a sitemap first, then open Category Performance.'); return; }
+        _ddDays = days || _ddDays || 30;
         const gscOn = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
         const ga4On = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
         if (!gscOn && !ga4On) { alert('Connect Search Console and/or GA4 to see category performance.'); return; }
@@ -431,12 +432,12 @@
         const overlay = document.createElement('div');
         overlay.id = 'sv-rollup-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow:auto;backdrop-filter:blur(3px);';
-        overlay.innerHTML = '<div style="color:#fff;margin-top:80px;font-size:0.95rem;">Aggregating category performance…</div>';
+        overlay.innerHTML = '<div style="color:#fff;margin-top:80px;font-size:0.95rem;">Aggregating category performance (' + periodLabel(_ddDays) + ')…</div>';
         overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
         document.body.appendChild(overlay);
 
-        try { await Promise.all([ gscOn ? prefetchGSC(tree) : null, ga4On ? prefetchGA4(tree) : null ]); } catch (e) { /* best effort */ }
-        const r = build(tree);
+        let r;
+        try { r = await refreshForPeriod(tree, _ddDays); } catch (e) { r = build(tree); }
         const hasGA4 = r.totals.users > 0 || r.totals.pageViews > 0;
 
         const metric = (label, value) =>
@@ -473,8 +474,15 @@
         content.innerHTML =
             '<div style="padding:24px 28px;">' +
                 '<button id="sv-rollup-close" title="Close" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button>' +
-                '<div style="font-size:1.4rem;font-weight:700;color:var(--color-text-heading);margin-bottom:4px;">Category Performance</div>' +
-                '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:18px;">Search &amp; analytics rolled up by top-level section' + (hasGA4 ? '' : ' (connect GA4 for views/users)') + ' · last 30 days</div>' +
+                '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+                    '<div style="min-width:0;">' +
+                        '<div style="font-size:1.4rem;font-weight:700;color:var(--color-text-heading);margin-bottom:4px;">Category Performance</div>' +
+                        '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:18px;">Search &amp; analytics rolled up by top-level section' + (hasGA4 ? '' : ' (connect GA4 for views/users)') + ' · ' + periodLabel(_ddDays) + '</div>' +
+                    '</div>' +
+                    '<select class="sv-panel-period" style="font-family:inherit;font-size:0.8rem;padding:5px 8px;border-radius:7px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;flex-shrink:0;">' +
+                        PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label + '</option>'; }).join('') +
+                    '</select>' +
+                '</div>' +
                 // whole-site strip
                 '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;margin-bottom:18px;background:var(--color-bg-primary);">' +
                     metric('Content pages', fmt(t.leafCount)) +
@@ -498,6 +506,8 @@
         overlay.innerHTML = '';
         overlay.appendChild(content);
         content.querySelector('#sv-rollup-close').addEventListener('click', function () { overlay.remove(); });
+        const _panelSel = content.querySelector('.sv-panel-period');
+        if (_panelSel) _panelSel.addEventListener('change', function () { const nd = parseInt(this.value, 10); overlay.remove(); showPanel(nd); });
 
         // Click a section (card or treemap cell) → open its deep-dive
         content.addEventListener('click', function (e) {
@@ -690,22 +700,19 @@
                     '<div class="sv-dd-sec-rows">' + (subs.length ? subs.map(subRow).join('') : emptyNote('No sub-sections.')) + '</div>' +
                 '</div>' +
                 '<div class="sv-dd-card" style="margin-top:16px;">' + secHd('Needs attention') +
-                    '<div class="sv-dd-grid">' +
-                        '<div><div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">High views &middot; low click-through</div>' +
-                            '<div class="sv-dd-sec-rows">' + (lowCtr.length ? lowCtr.map(function (p) { return naRow(p.name, fmt(p.s.impressions) + ' impr', (p.s.ctr * 100).toFixed(1) + '% CTR', p.url); }).join('') : emptyNote('Nothing flagged \u2014 CTR looks healthy.')) + '</div>' +
-                        '</div>' +
-                        '<div><div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">Stale content &middot; ' + staleAll.length + ' page' + (staleAll.length === 1 ? '' : 's') + ' &gt;12mo</div>' +
-                            '<div class="sv-dd-sec-rows">' + (stale.length ? stale.map(function (x) { return naRow(x.p.name, '', Math.round(x.m) + 'mo old', x.p.url); }).join('') : emptyNote('No stale pages detected.')) + '</div>' +
-                        '</div>' +
-                    '</div>' +
+                    '<div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">High views &middot; low click-through</div>' +
+                    '<div class="sv-dd-sec-rows">' + (lowCtr.length ? lowCtr.map(function (p) { return naRow(p.name, '', fmt(p.s.impressions) + ' impr &middot; ' + (p.s.ctr * 100).toFixed(1) + '% CTR', p.url); }).join('') : emptyNote('Nothing flagged \u2014 CTR looks healthy.')) + '</div>' +
+                    '<div style="font-size:0.7rem;font-weight:600;color:var(--color-text-secondary);margin:18px 0 6px;">Stale content &middot; ' + staleAll.length + ' page' + (staleAll.length === 1 ? '' : 's') + ' &gt;12mo</div>' +
+                    '<div class="sv-dd-sec-rows">' + (stale.length ? stale.map(function (x) { return naRow(x.p.name, '', Math.round(x.m) + 'mo old', x.p.url); }).join('') : emptyNote('No stale pages detected.')) + '</div>' +
                 '</div>' +
             '</div>';
         overlay.appendChild(content);
         document.body.appendChild(overlay);
+        hideLoadingOverlay();   // clear the period-switch loader now the deep-dive is rendered
         content.querySelector('.sv-dd-close').addEventListener('click', function () { overlay.remove(); });
         content.querySelector('.sv-dd-back').addEventListener('click', function () { overlay.remove(); showPanel(); });
         const _psel = content.querySelector('.sv-dd-period');
-        if (_psel) _psel.addEventListener('change', function () { overlay.remove(); showDeepDive(cat.name, parseInt(this.value, 10)); });
+        if (_psel) _psel.addEventListener('change', function () { const nd = parseInt(this.value, 10); showLoadingOverlay('Loading ' + periodLabel(nd) + '\u2026'); overlay.remove(); showDeepDive(cat.name, nd); });
         content.addEventListener('click', function (e) {
             const row = e.target.closest('.sv-dd-page[data-url]');
             if (!row) return;
