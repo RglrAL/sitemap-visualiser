@@ -24,6 +24,7 @@
 <script src="enhanced-url-matching.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
+<script src="sitemap-rollup.js"></script>
 <script src="groq-integration-module.js"></script>
 
 	
@@ -5539,6 +5540,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
                 <div class="nav-dropdown-item" onclick="showCategoryBreakdown(); closeReportsDropdown();">
                     Content by Category
                 </div>
+                <div class="nav-dropdown-item" onclick="showCategoryPerformance(); closeReportsDropdown();">
+                    Category Performance
+                </div>
                 <div class="nav-dropdown-item" onclick="showURLPatternAnalysis(); closeReportsDropdown();">
                     URL Health Audit
                 </div>
@@ -5595,6 +5599,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             </button>
             <button class="mobile-nav-item" onclick="showContentFreshnessAnalysis(); closeMobileMenu();">
                 Content Freshness
+            </button>
+            <button class="mobile-nav-item" onclick="showCategoryPerformance(); closeMobileMenu();">
+                Category Performance
             </button>
             <button class="mobile-nav-item" onclick="showCategoryBreakdown(); closeMobileMenu();">
                 Content by Category
@@ -6053,35 +6060,6 @@ function addPersistentLabels() {
 
 // Function to toggle 3D labels
 // Replace the existing toggleLabels3D function
-function toggleLabels3D() {
-    const labelsContainer = document.getElementById('labels3d');
-    const checkbox = document.querySelector('input[onchange="toggleLabels3D()"]');
-    
-    if (labelsContainer) {
-        // If labels exist, toggle their visibility
-        if (labelsContainer.style.display === 'none') {
-            labelsContainer.style.display = 'block';
-            if (!labels3DUpdateInterval && is3DViewActive) {
-                addPersistentLabels();
-            }
-            if (checkbox) checkbox.checked = true;
-        } else {
-            labelsContainer.style.display = 'none';
-            if (labels3DUpdateInterval) {
-                cancelAnimationFrame(labels3DUpdateInterval);
-                labels3DUpdateInterval = null;
-            }
-            if (checkbox) checkbox.checked = false;
-        }
-    } else {
-        // If no labels exist, create them
-        if (is3DViewActive) {
-            addPersistentLabels();
-            if (checkbox) checkbox.checked = true;
-        }
-    }
-}
-
 document.getElementById('treeViewBtn').onclick = function() {
     if (currentView !== 'tree') {
         switchView('tree');
@@ -15975,125 +15953,7 @@ function createSimpleNodeLabel(node) {
 let selectedNode3D = null;
 
 // Update handleNodeClick3D
-function handleNodeClick3D(node, event) {
-    const isMobile = checkIfMobile();
-    
-    // Set selected node
-    selectedNode3D = node;
-    
-    // Reset visualization state
-    if (Graph3D) {
-        Graph3D.nodeVisibility(true);
-        Graph3D.linkVisibility(true);
-        Graph3D.nodeOpacity(0.9);
-        
-        Graph3D.nodeColor(n => {
-            if (n === selectedNode3D) return '#ff6b6b';
-            return getNodeColor3D(n);
-        });
-    }
-    
-    if (isMobile) {
-        // Close mobile controls if open
-        closeMobileControls();
-        
-        // Show node details
-        showNodeDetails3D(node);
-        
-        // Focus on node
-        focusOnNode3D(node, 1000);
-        
-        // Haptic feedback if available
-        if (navigator.vibrate) {
-            navigator.vibrate(50);
-        }
-    } else {
-        // Desktop behavior
-        if (event && (event.ctrlKey || event.metaKey)) {
-            if (node.url) {
-                window.open(node.url, '_blank');
-            }
-        } else {
-            focusOnNode3D(node);
-            showNodeDetails3D(node);
-        }
-    }
-}
-
 // Update showNodeDetails3D to ensure it works
-function showNodeDetails3D(node) {
-    if (!is3DViewActive) return;
-    
-    // Remove existing details
-    const existing = document.querySelector('.node-details-3d');
-    if (existing) existing.remove();
-    
-    // Get the container to ensure proper positioning
-    const container = document.getElementById('3d-graph-container');
-    if (!container) return;
-    
-    const details = document.createElement('div');
-    details.className = 'node-details-3d';
-    
-    const freshnessInfo = node.lastModified ? 
-        getFreshnessInfo(node.lastModified) : null;
-    
-    details.innerHTML = `
-        <button class="minimize-btn" onclick="this.parentElement.remove(); selectedNode3D = null;">×</button>
-        
-        <h3 style="margin: 0 0 15px 0; color: var(--color-text-heading);">${node.name}</h3>
-        
-        <div style="display: grid; gap: 10px;">
-            <div style="display: flex; justify-content: space-between;">
-                <span style="color: var(--color-text-secondary);">Depth Level:</span>
-                <span style="font-weight: 600;">${node.depth}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between;">
-                <span style="color: var(--color-text-secondary);">Total Pages:</span>
-                <span style="font-weight: 600;">${node.pageCount || 0}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between;">
-                <span style="color: var(--color-text-secondary);">Children:</span>
-                <span style="font-weight: 600;">${node.children ? node.children.length : 0}</span>
-            </div>
-            
-            ${freshnessInfo ? `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: var(--color-text-secondary);">Freshness:</span>
-                <span style="background: ${freshnessInfo.color}; 
-                            color: white; 
-                            padding: 2px 8px; 
-                            border-radius: 12px; 
-                            font-size: 12px;">
-                    ${freshnessInfo.label}
-                </span>
-            </div>
-            ` : ''}
-            
-            ${node.url ? `
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                <a href="${node.url}" 
-                   target="_blank" 
-                   style="display: block; 
-                          text-align: center; 
-                          padding: 8px 16px; 
-                          background: #007cb6; 
-                          color: white; 
-                          text-decoration: none; 
-                          border-radius: 6px;">
-                    🔗 Visit Page
-                </a>
-            </div>
-            ` : ''}
-        </div>
-    `;
-    
-    // Append to container, not body
-    container.appendChild(details);
-}
-
 // Show mobile interaction hint
 function showMobileHint() {
     const hint = document.createElement('div');
@@ -16705,7 +16565,7 @@ body:not(.mobile) #3d-graph-container > div[style*="bottom"] {
     #mobileMenuFab {
     bottom: max(100px, calc(env(safe-area-inset-bottom, 0px) + 100px)) !important; /* CHANGE: safe area */
     right: 20px !important;
-    background: #4a90e2 !important;
+    background: var(--primary) !important;
 }
     
     /* Dark theme mobile */
@@ -17994,6 +17854,24 @@ function add3DLegend() {
         'padding:8px 12px;font-size:0.72rem;min-width:130px;';
     legend.innerHTML = _build3DLegendHTML(false, false);
     container.appendChild(legend);
+}
+
+// Isolate a node's subtree in the 3D graph + show a banner (called from the node action button)
+function isolateSubtree3D(node) {
+    if (!node || !window.Graph3D || !window.graphData) return;
+    const subtreeIds = new Set([node.id]);
+    (function addDescendants(parentId) {
+        graphData.nodes.forEach(n => {
+            if (graphData.links.some(l => {
+                const sid = typeof l.source === 'object' ? l.source.id : l.source;
+                const tid = typeof l.target === 'object' ? l.target.id : l.target;
+                return sid === parentId && tid === n.id;
+            }) && !subtreeIds.has(n.id)) {
+                subtreeIds.add(n.id);
+                addDescendants(n.id);
+            }
+        });
+    })(node.id);
     Graph3D.nodeVisibility(n => subtreeIds.has(n.id));
     Graph3D.linkVisibility(l => {
         const s = typeof l.source === 'object' ? l.source.id : l.source;
@@ -18001,6 +17879,15 @@ function add3DLegend() {
         return subtreeIds.has(s) && subtreeIds.has(t);
     });
     showIsolationBanner(node.name, subtreeIds.size);
+}
+
+function toggleLegend3D() {
+    const legend = document.getElementById('graph3d-legend');
+    if (!legend) return;
+    const collapsed = legend.dataset.collapsed === '1';
+    legend.dataset.collapsed = collapsed ? '' : '1';
+    const freshness = legend.dataset.freshness === '1';
+    legend.innerHTML = _build3DLegendHTML(freshness, !collapsed);
 }
 
 function showIsolationBanner(nodeName, count) {
