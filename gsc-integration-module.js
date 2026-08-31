@@ -567,6 +567,8 @@ function formatDuration(seconds) {
         toggleConnection: toggleGSCConnection,
         fetchData: fetchGSCDataForSitemap,
         fetchAllPages: fetchAllGSCPages,
+        fetchAllQueries: fetchAllGSCQueries,
+        fetchQueriesByCountry: fetchQueriesByCountry,
         fetchNodeData: fetchNodeGSCData,
         events: gscEvents,
         reset: resetGSCData,
@@ -914,6 +916,120 @@ function formatDuration(seconds) {
             return result;
         } catch (e) {
             debugLog('Bulk GSC fetch error', e);
+            return result;
+        }
+    }
+
+    // Bulk: ONE searchAnalytics query with dimensions:['query','page'] returns the
+    // top query/page pairs by impressions (up to rowLimit, default 25000 - enough
+    // for meaningful demand; paginate via opts.startRow later if ever needed).
+    // Returns an ARRAY of rows {query, page, clicks, impressions, ctr, position}.
+    // Same days/offset window semantics as fetchAllGSCPages. Feeds the rollup's
+    // query index ("Ask your data" opportunities / top_queries intents).
+    async function fetchAllGSCQueries(opts) {
+        opts = opts || {};
+        const result = [];
+        if (!gscConnected || !accessToken) return result;
+        // Ensure we have a matched property (same recovery path as fetchAllGSCPages)
+        if (!gscSiteUrl) {
+            try {
+                const sitesResponse = await robustGSCApiCall(async () => gapi.client.request({
+                    path: 'https://www.googleapis.com/webmasters/v3/sites', method: 'GET'
+                }));
+                const sites = (sitesResponse.result && sitesResponse.result.siteEntry) || [];
+                const treeRef = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+                const matched = await findBestMatchingSite(sites, treeRef && treeRef.name);
+                if (matched) gscSiteUrl = matched.siteUrl;
+            } catch (e) { debugLog('Bulk GSC queries: site lookup failed', e); }
+        }
+        if (!gscSiteUrl) return result;
+        const today = new Date();
+        const days = opts.days || 30;
+        const offset = opts.offset || 0;   // days to shift the window back (for prior-period comparison)
+        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        try {
+            const resp = await robustGSCApiCall(async () => gapi.client.request({
+                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                method: 'POST',
+                body: {
+                    startDate: start.toISOString().split('T')[0],
+                    endDate: end.toISOString().split('T')[0],
+                    dimensions: ['query', 'page'],
+                    rowLimit: opts.limit || 25000,
+                    startRow: opts.startRow || 0
+                }
+            }));
+            const rows = (resp.result && resp.result.rows) || [];
+            rows.forEach(function (row) {
+                const q = row.keys && row.keys[0];
+                const page = row.keys && row.keys[1];
+                if (!q || !page) return;
+                result.push({
+                    query: q,
+                    page: page,
+                    clicks: row.clicks || 0,
+                    impressions: row.impressions || 0,
+                    ctr: row.ctr || 0,
+                    position: row.position || 0
+                });
+            });
+            debugLog('Bulk GSC query fetch: ' + result.length + ' query/page rows in one call');
+            return result;
+        } catch (e) {
+            debugLog('Bulk GSC query fetch error', e);
+            return result;
+        }
+    }
+
+    // Bulk: ONE searchAnalytics query with dimensions:['query','country'] - every top
+    // search query and the country the searcher is in (ISO-3166 alpha-3). Site-wide
+    // (no page dim), rowLimit 25000. Powers the "searches from abroad / by country"
+    // Ask intents. Same days/offset window as fetchAllGSCPages.
+    async function fetchQueriesByCountry(opts) {
+        opts = opts || {};
+        const result = [];
+        if (!gscConnected || !accessToken) return result;
+        if (!gscSiteUrl) {
+            try {
+                const sitesResponse = await robustGSCApiCall(async () => gapi.client.request({
+                    path: 'https://www.googleapis.com/webmasters/v3/sites', method: 'GET'
+                }));
+                const sites = (sitesResponse.result && sitesResponse.result.siteEntry) || [];
+                const treeRef = window.treeData || (typeof treeData !== 'undefined' ? treeData : null);
+                const matched = await findBestMatchingSite(sites, treeRef && treeRef.name);
+                if (matched) gscSiteUrl = matched.siteUrl;
+            } catch (e) { debugLog('Bulk GSC country queries: site lookup failed', e); }
+        }
+        if (!gscSiteUrl) return result;
+        const today = new Date();
+        const days = opts.days || 30;
+        const offset = opts.offset || 0;
+        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        try {
+            const resp = await robustGSCApiCall(async () => gapi.client.request({
+                path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+                method: 'POST',
+                body: {
+                    startDate: start.toISOString().split('T')[0],
+                    endDate: end.toISOString().split('T')[0],
+                    dimensions: ['query', 'country'],
+                    rowLimit: opts.limit || 25000,
+                    startRow: opts.startRow || 0
+                }
+            }));
+            const rows = (resp.result && resp.result.rows) || [];
+            rows.forEach(function (row) {
+                const q = row.keys && row.keys[0];
+                const country = row.keys && row.keys[1];
+                if (!q || !country) return;
+                result.push({ query: q, country: country, clicks: row.clicks || 0, impressions: row.impressions || 0, ctr: row.ctr || 0, position: row.position || 0 });
+            });
+            debugLog('Bulk GSC country-query fetch: ' + result.length + ' query/country rows in one call');
+            return result;
+        } catch (e) {
+            debugLog('Bulk GSC country-query fetch error', e);
             return result;
         }
     }
