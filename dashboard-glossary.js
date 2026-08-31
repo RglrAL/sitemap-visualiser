@@ -250,7 +250,7 @@ window.DashboardGlossary = {
             calculation: 'Direct count from Search Console',
             benchmark: 'Government pages typically 100–1,000+ monthly',
             example: '245 clicks means 245 people visited your page from Google search this month',
-            relatedTerms: ['Impressions', 'CTR (Click-Through Rate)', 'Organic Traffic']
+            relatedTerms: ['Impressions', 'CTR (Click-Through Rate)', 'Top Queries']
         },
 
         'Impressions': {
@@ -321,7 +321,7 @@ window.DashboardGlossary = {
             calculation: 'Count of distinct user sessions from GA4',
             benchmark: 'Usually similar to Users for single-page analysis',
             example: '1,300 sessions means people made 1,300 separate visits',
-            relatedTerms: ['Users', 'Engaged Sessions', 'Bounce Rate']
+            relatedTerms: ['Users', 'Bounce Rate']
         },
 
         'Avg Engagement Time': {
@@ -331,17 +331,7 @@ window.DashboardGlossary = {
             calculation: 'Total engaged time ÷ Number of users',
             benchmark: 'Government content: 52+ seconds excellent, 35+ good, 20+ fair',
             example: '1m 48s avg engagement time means users are actively reading your content',
-            relatedTerms: ['Engaged Sessions', 'Engagement Score', 'Bounce Rate']
-        },
-
-        'Engaged Sessions': {
-            category: 'Google Analytics',
-            source: 'ga4',
-            definition: 'Sessions lasting 10+ seconds, having 2+ page views, or triggering a conversion event. GA4\'s replacement for Bounce Rate inverse.',
-            calculation: 'Count of sessions meeting at least one engagement threshold',
-            benchmark: '50%+ of sessions should be engaged for quality content',
-            example: '650 engaged sessions out of 1,000 total = 65% engagement rate',
-            relatedTerms: ['Engagement Rate', 'Sessions', 'Bounce Rate']
+            relatedTerms: ['Engagement Score', 'Bounce Rate']
         },
 
         'Bounce Rate': {
@@ -351,7 +341,7 @@ window.DashboardGlossary = {
             calculation: '(Non-engaged sessions ÷ Total sessions) × 100',
             benchmark: 'Government: <40% excellent, 40–60% good, 60–80% fair, >80% poor',
             example: '35% bounce rate means 35 out of 100 visitors left without engaging',
-            relatedTerms: ['Engagement Rate', 'Engaged Sessions', 'Avg Engagement Time']
+            relatedTerms: ['Engagement Rate', 'Avg Engagement Time']
         },
 
         'Engagement Rate': {
@@ -361,7 +351,7 @@ window.DashboardGlossary = {
             calculation: '(Engaged sessions ÷ Total sessions) × 100',
             benchmark: 'Government: 50%+ excellent, 35%+ good, 20%+ fair',
             example: '65% engagement rate means 65 out of 100 visitors actively engaged',
-            relatedTerms: ['Engaged Sessions', 'Bounce Rate', 'Engagement Score']
+            relatedTerms: ['Bounce Rate', 'Engagement Score']
         },
 
         // ── Dashboard Calculations ────────────────────────────────────────
@@ -424,46 +414,86 @@ window.DashboardGlossary = {
             relatedTerms: ['Users', 'Clicks', 'Engagement Rate']
         },
 
-        // ── Traffic Sources ───────────────────────────────────────────────
-        'Organic Traffic': {
-            category: 'Traffic Sources',
-            source: 'ga4',
-            definition: 'Visitors who arrive through unpaid search engine results.',
-            calculation: 'Users attributed to organic search channel in GA4',
-            benchmark: '60–80% organic traffic indicates strong SEO performance',
-            example: '1,200 organic visitors means people found you through search',
-            relatedTerms: ['Direct Traffic', 'Clicks', 'CTR (Click-Through Rate)']
+        // ── AI Overview Impact ────────────────────────────────────────────
+        'AI Overview Impact': {
+            category: 'AI Overview Impact',
+            source: 'calculated',
+            definition: 'Google\'s AI Overviews answer questions directly in search results, so people see your page but click less. This section measures that effect on your page.',
+            calculation: 'Compares click-through and impression trends over the last 12 months to spot rising visibility paired with falling clicks.',
+            example: 'A page whose impressions rose but clicks fell is likely being displaced by AI Overviews.',
+            relatedTerms: ['Divergence Index', 'CTR (Click-Through Rate)', 'Impressions']
         },
 
-        'Direct Traffic': {
-            category: 'Traffic Sources',
-            source: 'ga4',
-            definition: 'Users who visit by typing the URL directly, using bookmarks, or from an untracked source.',
-            calculation: 'Sessions with no identifiable referral source in GA4',
-            benchmark: '20–40% direct traffic shows good brand recognition',
-            example: '340 direct visits indicate citizens know your URL',
-            relatedTerms: ['Organic Traffic', 'Sessions', 'Users']
+        'Divergence Index': {
+            category: 'AI Overview Impact',
+            source: 'calculated',
+            definition: 'A single score for how much AI Overviews are affecting a page. It climbs when many people see the page in search but fewer click through.',
+            calculation: 'Weighted combination of CTR change and impression change vs 6 months ago.',
+            benchmark: '0–30 Low · 30–60 Moderate · 60–100 High · 100+ Severe',
+            example: 'A divergence index of 45 means a moderate AI Overview effect on this page.',
+            relatedTerms: ['AI Overview Impact', 'CTR (Click-Through Rate)', 'Impressions']
         },
 
-        // ── Device Performance ────────────────────────────────────────────
-        'Mobile Users': {
-            category: 'Device Performance',
-            source: 'ga4',
-            definition: 'Percentage of users accessing your content via mobile devices.',
-            calculation: '(Mobile sessions ÷ Total sessions) × 100',
-            benchmark: '50%+ mobile usage is typical for government services',
-            example: '67% mobile users indicates need for mobile-optimised content',
-            relatedTerms: ['Desktop Users', 'Engagement Rate', 'Bounce Rate']
+        // ── Category Analytics ────────────────────────────────────────────
+        'Category Performance': {
+            category: 'Category Analytics',
+            source: 'calculated',
+            definition: 'Search and analytics rolled up by top-level section, so you can see how a whole category (e.g. Health, Housing) performs across all its pages.',
+            calculation: 'Each page\'s stats are summed up its branch of the sitemap; rates like CTR and position are impression-weighted.',
+            example: 'The Social Welfare section might account for 20% of all your search impressions.',
+            relatedTerms: ['Biggest Movers', 'Content pages vs URLs', 'Treemap']
         },
 
-        'Desktop Users': {
-            category: 'Device Performance',
+        'Biggest Movers': {
+            category: 'Category Analytics',
+            source: 'calculated',
+            definition: 'The sections or pages with the largest change in impressions versus the previous period — the fastest risers and biggest fallers.',
+            calculation: 'Percentage change in impressions this period vs the previous equal-length period, for items with a meaningful prior baseline.',
+            example: '▲ Housing +18% means the Housing section\'s impressions grew 18% vs last month.',
+            relatedTerms: ['Category Performance', 'Period Comparison']
+        },
+
+        'Content pages vs URLs': {
+            category: 'Category Analytics',
+            source: 'calculated',
+            definition: 'Two ways of counting pages: "content pages" are leaf pages (actual articles); "URLs" also include section/landing pages. Analytics aggregate all URLs so section totals add up correctly.',
+            example: 'A section may have 318 content pages but 354 URLs — the extra 36 are its landing pages.',
+            relatedTerms: ['Category Performance', 'Sitemap']
+        },
+
+        // ── Content Freshness & Reading Rhythm (Content Intelligence) ─────
+        'Content Freshness': {
+            category: 'Content Intelligence',
+            source: 'sitemap',
+            definition: 'How recently a page was last updated, from the sitemap\'s lastmod date. Used to flag stale content that may need review.',
+            benchmark: 'New <1mo · Fresh 1–3mo · Recent 3–6mo · Ageing 6–12mo · Stale >12mo',
+            example: 'A page not updated in 18 months is flagged as stale content.',
+            relatedTerms: ['Sitemap', 'Reading Rhythm']
+        },
+
+        'Reading Rhythm': {
+            category: 'Content Intelligence',
+            source: 'calculated',
+            definition: 'A visualisation of sentence-length variation through a page. Good writing mixes short and long sentences; a flat rhythm reads as monotonous.',
+            example: 'Long runs of similar-length sentences appear as a flat line in the rhythm chart.',
+            relatedTerms: ['Avg Sentence Length', 'Long Sentences', 'Readability Score']
+        },
+
+        // ── Treemap & Geographic (Graph & Visualisation) ──────────────────
+        'Treemap': {
+            category: 'Graph & Visualisation',
+            source: 'calculated',
+            definition: 'A map of your site as rectangles — one per section — sized by search impressions and tinted by click-through rate. A whole-site "where\'s the traffic and where\'s the opportunity" view.',
+            example: 'A large pale rectangle = a high-traffic section with weak CTR, worth improving.',
+            relatedTerms: ['Category Performance', 'CTR (Click-Through Rate)']
+        },
+
+        'Geographic Map': {
+            category: 'Graph & Visualisation',
             source: 'ga4',
-            definition: 'Percentage of users accessing your content via desktop computers.',
-            calculation: '(Desktop sessions ÷ Total sessions) × 100',
-            benchmark: 'Forms and complex services typically see higher desktop usage',
-            example: '45% desktop users may indicate complex content requiring larger screens',
-            relatedTerms: ['Mobile Users', 'Engagement Rate', 'Sessions']
+            definition: 'Interactive maps of where your visitors are: an Ireland county choropleth (counties shaded by users) and a world bubble map for international visitors.',
+            example: 'Dublin shown as the darkest county means most of your users are in Dublin.',
+            relatedTerms: ['Users', 'Sessions']
         },
 
         // ── Content Intelligence ──────────────────────────────────────────
@@ -712,7 +742,7 @@ window.DashboardGlossary = {
             source: 'system',
             definition: 'Google\'s analytics platform tracking user behaviour on your site — sessions, engagement, bounce rate, and more. GA4 replaced Universal Analytics in 2023.',
             example: 'Connect GA4 via the "Connect Analytics" button to overlay user engagement data on the graph',
-            relatedTerms: ['Users', 'Engaged Sessions', 'Engagement Rate', 'Google Search Console (GSC)']
+            relatedTerms: ['Users', 'Engagement Rate', 'Google Search Console (GSC)']
         },
 
         'Data Availability Offset': {
@@ -749,13 +779,13 @@ window.DashboardGlossary = {
             icon: '🎯',
             description: 'Measurements of real-world citizen service impact and effectiveness'
         },
-        'Traffic Sources': {
-            icon: '🚪',
-            description: 'How citizens discover and arrive at your digital services'
+        'AI Overview Impact': {
+            icon: '✨',
+            description: 'How Google\'s AI Overviews affect your page — visibility up, clicks down'
         },
-        'Device Performance': {
-            icon: '📱',
-            description: 'Usage patterns and performance across mobile, desktop, and tablet devices'
+        'Category Analytics': {
+            icon: '📊',
+            description: 'Section-level rollups: performance, movers, and page counts by category'
         },
         'Content Intelligence': {
             icon: '📄',
@@ -983,7 +1013,7 @@ window.DashboardGlossary = {
                 
                 <!-- Floating Action Button -->
                 <button class="glossary-fab" id="${CONFIG.SELECTORS.fab}" aria-label="Open Dashboard Glossary">
-                    <span class="fab-icon" aria-hidden="true">📚</span>
+                    <span class="fab-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span>
                     <span class="fab-tooltip">Glossary</span>
                 </button>
             `;
@@ -1321,7 +1351,7 @@ window.DashboardGlossary = {
             if (exactMatch && query !== '') {
                 setTimeout(() => {
                     exactMatch.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    exactMatch.style.background = 'rgba(59, 130, 246, 0.15)';
+                    exactMatch.style.background = 'rgba(0, 124, 182, 0.15)';
                     setTimeout(() => {
                         exactMatch.style.background = '';
                     }, 2000);
@@ -1407,7 +1437,7 @@ window.DashboardGlossary = {
             
             if (targetEntry) {
                 targetEntry.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                targetEntry.style.background = 'rgba(59, 130, 246, 0.1)';
+                targetEntry.style.background = 'rgba(0, 124, 182, 0.1)';
                 setTimeout(() => {
                     targetEntry.style.background = '';
                 }, 2000);
@@ -1582,13 +1612,13 @@ window.DashboardGlossary = {
                         right: 30px;
                         width: 56px;
                         height: 56px;
-                        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
                         border: none;
                         border-radius: 50%;
                         color: white;
                         font-size: 1.5rem;
                         cursor: pointer;
-                        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+                        box-shadow: 0 4px 20px rgba(0, 124, 182, 0.4);
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         z-index: 9998;
                         display: flex;
@@ -1600,7 +1630,7 @@ window.DashboardGlossary = {
                     
                     .glossary-fab:hover {
                         transform: translateY(-3px) scale(1.05);
-                        box-shadow: 0 8px 30px rgba(59, 130, 246, 0.6);
+                        box-shadow: 0 8px 30px rgba(0, 124, 182, 0.6);
                     }
                     
                     .glossary-fab:focus {
@@ -1698,7 +1728,7 @@ window.DashboardGlossary = {
                     
                     .glossary-close:focus {
                         border-color: #3b82f6;
-                        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+                        box-shadow: 0 0 0 2px rgba(0, 124, 182, 0.2);
                     }
                     
                     /* Search */
@@ -1722,7 +1752,7 @@ window.DashboardGlossary = {
                     
                     .glossary-search input:focus {
                         border-color: #3b82f6;
-                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                        box-shadow: 0 0 0 3px rgba(0, 124, 182, 0.1);
                         transform: translateY(-1px);
                     }
                     
@@ -1783,19 +1813,19 @@ window.DashboardGlossary = {
                         border-color: #3b82f6;
                         color: #3b82f6;
                         transform: translateY(-1px);
-                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+                        box-shadow: 0 2px 8px rgba(0, 124, 182, 0.15);
                     }
                     
                     .smart-nav-toggle:focus {
                         border-color: #3b82f6;
-                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                        box-shadow: 0 0 0 3px rgba(0, 124, 182, 0.2);
                     }
                     
                     .smart-nav-toggle.expanded {
                         background: #3b82f6;
                         color: white;
                         border-color: #3b82f6;
-                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+                        box-shadow: 0 2px 8px rgba(0, 124, 182, 0.3);
                     }
                     
                     .toggle-text {
@@ -1863,7 +1893,7 @@ window.DashboardGlossary = {
                         color: white;
                         border-color: #3b82f6;
                         transform: translateY(-1px);
-                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+                        box-shadow: 0 2px 8px rgba(0, 124, 182, 0.3);
                     }
                     
                     .alpha-btn.no-terms {
@@ -1901,7 +1931,7 @@ window.DashboardGlossary = {
                     .category-select:hover,
                     .category-select:focus {
                         border-color: #3b82f6;
-                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                        box-shadow: 0 0 0 3px rgba(0, 124, 182, 0.1);
                     }
                     
                     .quick-categories {
@@ -1937,11 +1967,11 @@ window.DashboardGlossary = {
                         border-color: #3b82f6;
                         color: white;
                         transform: translateY(-1px);
-                        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+                        box-shadow: 0 2px 8px rgba(0, 124, 182, 0.3);
                     }
                     
                     .quick-cat-btn:focus {
-                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                        box-shadow: 0 0 0 3px rgba(0, 124, 182, 0.2);
                     }
                     
                     /* Simplified Results Summary */
@@ -2121,7 +2151,7 @@ window.DashboardGlossary = {
                     
                     .related-term-link:hover {
                         color: #1d4ed8;
-                        background: rgba(59, 130, 246, 0.1);
+                        background: rgba(0, 124, 182, 0.1);
                         text-decoration: none;
                     }
                     
@@ -2140,7 +2170,7 @@ window.DashboardGlossary = {
                         position: absolute;
                         bottom: 24px;
                         right: 24px;
-                        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
                         color: white;
                         border: none;
                         padding: 12px 16px;
@@ -2148,14 +2178,14 @@ window.DashboardGlossary = {
                         font-size: 0.8rem;
                         font-weight: 600;
                         cursor: pointer;
-                        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                        box-shadow: 0 4px 12px rgba(0, 124, 182, 0.3);
                         transition: all 0.3s ease;
                         outline: none;
                     }
                     
                     .back-to-top:hover {
                         transform: translateY(-2px);
-                        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+                        box-shadow: 0 6px 20px rgba(0, 124, 182, 0.4);
                     }
                     
                     /* Responsive Design */
