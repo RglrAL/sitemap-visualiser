@@ -1041,8 +1041,8 @@ function addMobileGA4Button() {
                     bounceRate: parseFloat(m[4] && m[4].value || 0)
                 };
                 result.set(path, rec);
-                // warm the per-page cache too (merge, don't clobber richer cached entries)
-                if (!ga4DataCache.has(path)) ga4DataCache.set(path, rec);
+                // NOTE: do NOT warm ga4DataCache here — fetchData would return these minimal
+                // records instead of the full multi-call page fetch (geo/traffic).
             });
             ga4Log('Bulk GA4 fetch: ' + result.size + ' pages in one call');
             return result;
