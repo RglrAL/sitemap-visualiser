@@ -670,9 +670,15 @@
             '.sv-dd-card .sv-dd-sec-rows>*:last-child{border-bottom:none;}',
             '@media(max-width:720px){.sv-dd-grid{grid-template-columns:1fr;}}',
             '.sv-dd-page{cursor:pointer;border-radius:5px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;}',
-            '.sv-dd-page:hover{background:var(--color-bg-tertiary);}'
+            '.sv-dd-page:hover{background:var(--color-bg-tertiary);}',
+            '@keyframes sv-bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}'
         ].join('');
         document.head.appendChild(st);
+    }
+    // Animated "thinking" indicator (three bouncing dots) - better feedback than static text.
+    function _thinkingHtml(text) {
+        const dot = function (d) { return '<span style="width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;animation:sv-bounce 1s infinite ' + d + ';"></span>'; };
+        return '<div style="display:flex;align-items:center;gap:9px;padding:6px 0;font-size:0.85rem;color:var(--color-text-muted);"><span style="display:inline-flex;gap:4px;align-items:flex-end;">' + dot('0s') + dot('.15s') + dot('.3s') + '</span><span>' + esc(text || 'Thinking') + '</span></div>';
     }
 
     async function showDeepDive(categoryName, days) {
@@ -1083,14 +1089,20 @@
     function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users' };
 
-    function _rankCard(items) {
+    function _rankCard(items, opts) {
+        opts = opts || {};
         if (!items.length) return '<div style="font-size:0.85rem;color:var(--color-text-muted);">No results.</div>';
         const max = Math.max.apply(null, items.map(function (it) { return Math.abs(it.bar || 0); }).concat([1]));
-        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
+        // Labelled header so the numbers say WHAT they are (name column + value column).
+        const header = (opts.nameLabel || opts.valueLabel) ? '<div style="display:flex;align-items:center;gap:10px;padding:5px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);background:var(--color-bg-secondary);">' +
+            '<span style="flex:1;min-width:0;">' + esc(opts.nameLabel || '') + '</span><span style="width:96px;flex-shrink:0;"></span>' +
+            '<span style="width:88px;flex-shrink:0;text-align:right;">' + esc(opts.valueLabel || '') + '</span></div>' : '';
+        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' + header +
             items.map(function (it) {
                 const bw = Math.min(100, Math.abs(it.bar || 0) / max * 100);
                 const col = it.col || 'var(--primary)';
-                const clickable = it.url ? ' class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(it.url) + '" style="cursor:pointer;"' : ' style=""';
+                const tipTxt = esc(String(it.name) + ' - ' + it.val + (opts.valueLabel ? ' ' + opts.valueLabel.toLowerCase() : ''));
+                const clickable = it.url ? ' class="sv-ask-page sv-tipel" role="button" tabindex="0" data-url="' + esc(it.url) + '" data-tip="' + tipTxt + '" style="cursor:pointer;"' : ' class="sv-tipel" data-tip="' + tipTxt + '" style=""';
                 return '<div' + clickable + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.85rem;">' +
                     '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(it.name) + '</span>' +
                     '<span style="width:96px;flex-shrink:0;"><span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span></span>' +
@@ -1387,7 +1399,7 @@
             const col = colors[si % colors.length];
             const pts = (s.values || []).map(function (v, i) { return x(i) + ',' + y(v); }).join(' ');
             lines += '<polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-            (s.values || []).forEach(function (v, i) { const tip = esc((s.name ? s.name + ' - ' : '') + periods[i] + ': ' + fmt(v)); lines += '<circle class="sv-tipel" data-tip="' + tip + '" cx="' + x(i) + '" cy="' + y(v) + '" r="' + (opts.big ? 4 : 3) + '" fill="' + col + '"/>'; });
+            (s.values || []).forEach(function (v, i) { const tip = esc((s.name ? s.name + ' - ' : '') + periods[i] + ': ' + fmt(v)); lines += '<circle class="sv-tipel" data-tip="' + tip + '" cx="' + x(i) + '" cy="' + y(v) + '" r="11" fill="transparent" style="cursor:pointer;"/>' + '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="' + (opts.big ? 4 : 3) + '" fill="' + col + '" style="pointer-events:none;"/>'; });
         });
         let legend = '';
         if (series.length > 1) { let lx = padL; series.forEach(function (s, si) { const col = colors[si % colors.length]; legend += '<rect x="' + lx + '" y="2" width="9" height="9" rx="2" fill="' + col + '"/><text x="' + (lx + 12) + '" y="10" font-size="9" fill="var(--color-text-secondary)">' + esc(s.name) + '</text>'; lx += 12 + Math.min(120, String(s.name).length * 6) + 18; }); }
@@ -1535,7 +1547,7 @@
             const desc = plan.direction !== 'up';
             const sorted = cats.slice().sort(function (a, b) { const av = _mval(a.rollup, metric), bv = _mval(b.rollup, metric); return desc ? bv - av : av - bv; }).slice(0, limit);
             const items = sorted.map(function (c) { return { name: c.name, val: _mfmt(c.rollup, metric), bar: _mval(c.rollup, metric) }; });
-            return { html: _rankCard(items), summary: 'Sections by ' + _MLABEL[metric] + ': ' + sorted.map(function (c) { return c.name + ' ' + _mfmt(c.rollup, metric); }).join(', ') + '.', data: { columns: [{ key: 'section', label: 'Section' }, { key: 'value', label: _MLABEL[metric] }], rows: sorted.map(function (c) { return { section: c.name, value: _mval(c.rollup, metric), display: _mfmt(c.rollup, metric) }; }), chart: { type: 'bar', x: 'section', y: 'value', label: _MLABEL[metric] } } };
+            return { html: _rankCard(items, { nameLabel: 'Section', valueLabel: _MLABEL[metric] }), summary: 'Sections by ' + _MLABEL[metric] + ': ' + sorted.map(function (c) { return c.name + ' ' + _mfmt(c.rollup, metric); }).join(', ') + '.', data: { columns: [{ key: 'section', label: 'Section' }, { key: 'value', label: _MLABEL[metric] }], rows: sorted.map(function (c) { return { section: c.name, value: _mval(c.rollup, metric), display: _mfmt(c.rollup, metric) }; }), chart: { type: 'bar', x: 'section', y: 'value', label: _MLABEL[metric] } } };
         }
         if (intent === 'top_pages') {
             const c = _catByName(cats, plan.category);
@@ -1544,7 +1556,7 @@
             const sorted = pages.filter(function (p) { return _mval(p.s, metric) > 0; }).sort(function (a, b) { const av = _mval(a.s, metric), bv = _mval(b.s, metric); return desc ? bv - av : av - bv; }).slice(0, limit);
             if (!sorted.length) return { html: '', err: 'No pages with ' + _MLABEL[metric] + ' data found' + (c ? ' in ' + c.name : '') + '. (' + pages.length + ' pages checked — is GA4 connected for views/users?)', summary: '' };
             const items = sorted.map(function (p) { return { name: p.name, val: _mfmt(p.s, metric), bar: _mval(p.s, metric), url: p.url }; });
-            return { html: _rankCard(items), summary: 'Top pages' + (c ? ' in ' + c.name : '') + ' by ' + _MLABEL[metric] + ': ' + sorted.slice(0, 5).map(function (p) { return p.name + ' ' + _mfmt(p.s, metric); }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'value', label: _MLABEL[metric] }, { key: 'url', label: 'URL' }], rows: sorted.map(function (p) { return { page: p.name, value: _mval(p.s, metric), display: _mfmt(p.s, metric), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'value', label: _MLABEL[metric] } } };
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: _MLABEL[metric] }), summary: 'Top pages' + (c ? ' in ' + c.name : '') + ' by ' + _MLABEL[metric] + ': ' + sorted.slice(0, 5).map(function (p) { return p.name + ' ' + _mfmt(p.s, metric); }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'value', label: _MLABEL[metric] }, { key: 'url', label: 'URL' }], rows: sorted.map(function (p) { return { page: p.name, value: _mval(p.s, metric), display: _mfmt(p.s, metric), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'value', label: _MLABEL[metric] } } };
         }
         if (intent === 'low_ctr') {
             const c = _catByName(cats, plan.category);
@@ -1552,7 +1564,7 @@
             const avg = (c ? c.rollup.ctr : r.totals.ctr) || 0;
             const rows = pages.filter(function (p) { return (p.s.impressions || 0) >= 300 && p.s.ctr < Math.max(0.005, avg * 0.6); }).sort(function (a, b) { return b.s.impressions - a.s.impressions; }).slice(0, limit);
             const items = rows.map(function (p) { return { name: p.name, val: (p.s.ctr * 100).toFixed(1) + '%', bar: p.s.impressions, url: p.url }; });
-            return { html: _rankCard(items), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' } } };
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR' }), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' } } };
         }
         if (intent === 'stale') {
             const c = _catByName(cats, plan.category);
@@ -1560,7 +1572,7 @@
             const now = Date.now();
             const rows = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12; }).sort(function (a, b) { return b.m - a.m; }).slice(0, limit);
             const items = rows.map(function (x) { return { name: x.p.name, val: Math.round(x.m) + 'mo', bar: x.m, url: x.p.url }; });
-            return { html: _rankCard(items), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Age' }), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
         }
         if (intent === 'compare') {
             const names = plan.categories || [];
@@ -1587,7 +1599,7 @@
             rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
             rows = rows.slice(0, limit).sort(function (a, b) { return b.pct - a.pct; });
             const items = rows.map(function (x) { const up = x.pct >= 0, pa = Math.abs(x.pct); return { name: x.name, val: (up ? '▲ ' : '▼ ') + (pa > 500 ? '500+' : pa.toFixed(0)) + '%', bar: Math.min(500, pa), col: up ? '#059669' : '#dc2626', valCol: up ? '#059669' : '#dc2626', url: x.url }; });
-            return { html: _rankCard(items), summary: 'Biggest ' + (dir === 'down' ? 'fallers' : dir === 'up' ? 'risers' : 'movers') + (c ? ' in ' + c.name : ' across the site') + ' vs the previous ' + _ddDays + ' days: ' + rows.slice(0, 5).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'changePct', label: 'Change %' }, { key: 'current', label: 'Current' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, changePct: +x.pct.toFixed(1), current: x.cur, url: x.url }; }), chart: { type: 'diverging', x: 'page', y: 'changePct' } } };
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Change %' }), summary: 'Biggest ' + (dir === 'down' ? 'fallers' : dir === 'up' ? 'risers' : 'movers') + (c ? ' in ' + c.name : ' across the site') + ' vs the previous ' + _ddDays + ' days: ' + rows.slice(0, 5).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'changePct', label: 'Change %' }, { key: 'current', label: 'Current' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, changePct: +x.pct.toFixed(1), current: x.cur, url: x.url }; }), chart: { type: 'diverging', x: 'page', y: 'changePct' } } };
         }
         if (intent === 'opportunities' || intent === 'top_queries') {
             let rows;
@@ -1613,7 +1625,7 @@
                 const items = qs.map(function (x) {
                     return { name: x.query, val: fmt(x[mkey]) + (x.bestPos != null ? ' · #' + x.bestPos.toFixed(0) : ''), bar: x[mkey], url: x.bestPage };
                 });
-                return { html: _rankCard(items),
+                return { html: _rankCard(items, { nameLabel: 'Query', valueLabel: mkey === 'clicks' ? 'Clicks' : 'Impressions' }),
                     summary: 'Top searches' + (c ? ' in ' + c.name : ' site-wide') + ' by ' + mkey + ' (' + periodLabel(_ddDays) + '): ' +
                         qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x[mkey]) + (x.bestPos != null ? ' (best pos ' + x.bestPos.toFixed(0) + ')' : ''); }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Section' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
             }
@@ -1645,7 +1657,7 @@
                     .sort(function (a, b) { return b[mkey] - a[mkey]; }).slice(0, limit);
                 if (!cs.length) return { html: '', summary: '', err: 'No international search data for ' + periodLabel(_ddDays) + '.' };
                 const items = cs.map(function (x) { return { name: _countryName(x.country), val: fmt(x[mkey]), bar: x[mkey] }; });
-                return { html: _worldSearchMapHtml(rows) + _rankCard(items),
+                return { html: _worldSearchMapHtml(rows) + _rankCard(items, { nameLabel: 'Country', valueLabel: mkey === 'clicks' ? 'Clicks' : 'Impressions' }),
                     summary: 'Countries searching the site the most (excluding Ireland, ' + periodLabel(_ddDays) + ', by ' + mkey + '): ' + cs.slice(0, 6).map(function (x) { return _countryName(x.country) + ' ' + fmt(x[mkey]); }).join(', ') + '.',
                     data: { columns: [{ key: 'country', label: 'Country' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }], rows: cs.map(function (x) { return { country: _countryName(x.country), impressions: x.impressions, clicks: x.clicks }; }), chart: { type: 'map', label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
             }
@@ -1658,7 +1670,7 @@
                 .sort(function (a, b) { return b.impressions - a.impressions; }).slice(0, limit);
             if (!qs.length) return { html: '', summary: '', err: 'No searches found from ' + scopeName + ' for ' + periodLabel(_ddDays) + '.' + (plan.country && !code ? ' (I didn\'t recognise that country.)' : '') };
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions }; });
-            return { html: _rankCard(items),
+            return { html: _rankCard(items, { nameLabel: 'Query', valueLabel: 'Impressions' }),
                 summary: 'Top searches from ' + scopeName + ' (' + periodLabel(_ddDays) + '): ' + qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x.impressions) + ' impr' + (!code && x.topCountry ? ' (mostly ' + _countryName(x.topCountry) + ')' : ''); }).join(', ') + '.',
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }].concat(code ? [] : [{ key: 'topCountry', label: 'Top country' }]), rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, topCountry: _countryName(x.topCountry) }; }), chart: { type: 'bar', x: 'query', y: 'impressions', label: 'Impressions' } } };
         }
@@ -1725,7 +1737,7 @@
             const head = '<div class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(page.url) + '" style="cursor:pointer;font-weight:700;color:var(--color-text-heading);margin-bottom:4px;">' + esc(page.name) + '</div>';
             const stat = '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:12px;">' + fmt(impressions) + ' impr &middot; ' + (ctr * 100).toFixed(1) + '% CTR &middot; pos ' + (position != null ? position.toFixed(1) : '-') + (pv ? (' &middot; ' + fmt(pv) + ' views') : '') + (impChg != null ? (' &middot; ' + (impChg >= 0 ? '+' : '') + impChg + '% vs prev') : '') + '</div>';
             const sigCard = '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:2px 12px;margin-bottom:12px;">' + sigHtml + '</div>';
-            const qCard = topQ.length ? ('<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:6px;">Top queries for this page</div>' + _rankCard(topQ.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions }; }))) : '';
+            const qCard = topQ.length ? ('<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:6px;">Top queries for this page</div>' + _rankCard(topQ.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions }; }), { nameLabel: 'Query', valueLabel: 'Impressions' })) : '';
             return {
                 html: head + stat + sigCard + qCard,
                 summary: 'Page "' + page.name + '": ' + fmt(impressions) + ' impressions, ' + (ctr * 100).toFixed(1) + '% CTR, position ' + (position != null ? position.toFixed(1) : 'n/a') + (impChg != null ? (', ' + (impChg >= 0 ? '+' : '') + impChg + '% vs previous period') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + '. Findings: ' + signals.map(function (x) { return x.t + ' (' + x.d + ')'; }).join('; ') + '.',
@@ -1756,7 +1768,7 @@
             if (!qs.length) return { html: '', summary: '', err: 'No question-style searches found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + '.' };
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions, url: x.bestPage }; });
             return {
-                html: _rankCard(items),
+                html: _rankCard(items, { nameLabel: 'Question', valueLabel: 'Impressions' }),
                 summary: 'Question-style searches' + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '), most-searched first: ' + qs.slice(0, 10).map(function (x) { return '"' + x.query + '" ' + fmt(x.impressions); }).join(', ') + '. In one sentence, name the 2-3 themes people are asking about.',
                 data: { columns: [{ key: 'question', label: 'Question' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { question: x.query, impressions: x.impressions, clicks: x.clicks, bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'question', y: 'impressions', label: 'Impressions' } }
             };
@@ -1793,7 +1805,7 @@
             if (!top.length) return { html: '', summary: '', err: 'No clear English/Irish gaps found (needs paired /en/ and /ga/ pages with English ' + metL + ' of at least 50).' };
             const items = top.map(function (x) { return { name: x.name, val: fmt(x.en) + ' vs ' + fmt(x.ga), bar: x.gap, url: x.enUrl }; });
             return {
-                html: _rankCard(items),
+                html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'English vs Irish' }),
                 summary: 'Pages where the Irish version most underperforms its English twin (English ' + metL + ' vs Irish, ' + periodLabel(_ddDays) + '): ' + top.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.en) + ' vs ' + fmt(x.ga) + ')'; }).join('; ') + '.',
                 data: { columns: [{ key: 'page', label: 'Page' }, { key: 'english', label: 'English ' + metL }, { key: 'irish', label: 'Irish ' + metL }, { key: 'gap', label: 'Gap' }, { key: 'enUrl', label: 'EN URL' }, { key: 'gaUrl', label: 'GA URL' }], rows: top.map(function (x) { return { page: x.name, english: x.en, irish: x.ga, gap: x.gap, enUrl: x.enUrl, gaUrl: x.gaUrl }; }), chart: { type: 'bar', x: 'page', y: 'gap', label: 'Gap' } }
             };
@@ -1896,7 +1908,7 @@
             }
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x[by]) + (x.position != null ? ' · #' + x.position.toFixed(0) : ''), bar: x[by] }; });
             return {
-                html: head + _rankCard(items) + footnote,
+                html: head + _rankCard(items, { nameLabel: 'Query', valueLabel: by === 'clicks' ? 'Clicks' : 'Impressions' }) + footnote,
                 summary: 'Top search queries bringing people to "' + page.name + '" (' + periodLabel(_ddDays) + ', by ' + by + '): ' + qs.slice(0, 8).map(function (x) { return '"' + x.query + '" ' + fmt(x[by]) + (x.position != null ? ' (pos ' + x.position.toFixed(0) + ')' : ''); }).join(', ') + '.',
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'position', label: 'Position' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, position: x.position != null ? +x.position.toFixed(1) : '' }; }), chart: { type: 'bar', x: 'query', y: by, label: by === 'clicks' ? 'Clicks' : 'Impressions' } }
             };
@@ -1914,9 +1926,41 @@
             const headline = '<div style="font-weight:700;font-size:0.95rem;color:var(--color-text-heading);margin-bottom:2px;">' + fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + esc(c.name) : '') + ' had zero search impressions</div>' +
                 '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:12px;">' + pctDead + '% of ' + fmt(total) + ' pages, ' + periodLabel(_ddDays) + (ga4On ? ' (views are GA4 - some may still get referral/direct visits)' : '') + '</div>';
             return {
-                html: headline + _rankCard(items) + (dead.length > shown.length ? '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;">Showing ' + shown.length + ' of ' + fmt(dead.length) + ' - Table / CSV has all.</div>' : ''),
+                html: headline + _rankCard(items, { nameLabel: 'Page', valueLabel: ga4On ? 'Views' : 'Impressions' }) + (dead.length > shown.length ? '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;">Showing ' + shown.length + ' of ' + fmt(dead.length) + ' - Table / CSV has all.</div>' : ''),
                 summary: fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + c.name : '') + ' had zero search impressions in ' + periodLabel(_ddDays) + ' (' + pctDead + '% of ' + fmt(total) + ')' + (ga4On ? '; GA4 views shown' : '') + '.',
                 data: { columns: [{ key: 'page', label: 'Page' }, { key: 'views', label: 'Views (GA4)' }, { key: 'url', label: 'URL' }], rows: dead.map(function (p) { return { page: p.name, views: p.s.pageViews || 0, url: p.url }; }), chart: null }
+            };
+        }
+        if (intent === 'page_summary') {
+            const _ref = plan.page || plan.category || '';
+            const _res = _resolvePage(r, _ref);
+            if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap (e.g. "EU and family law").' };
+            if (_res.candidates) return { html: _disambig('page_summary', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '" - pick one.', data: { columns: [], rows: [] } };
+            const p = _res.page, s = p.s || {};
+            const hasGA4p = r.totals.pageViews > 0 || r.totals.users > 0;
+            const cell = function (l, v) { return '<div style="flex:1;min-width:64px;padding:8px 10px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div></div>'; };
+            const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
+                cell('Impressions', fmt(s.impressions || 0)) + cell('Clicks', fmt(s.clicks || 0)) + cell('CTR', ((s.ctr || 0) * 100).toFixed(1) + '%') + cell('Avg pos', s.position != null ? s.position.toFixed(1) : '-') +
+                (hasGA4p ? cell('Views', fmt(s.pageViews || 0)) : '') + (hasGA4p ? cell('Users', fmt(s.users || 0)) : '') + '</div>';
+            const months = p.lm ? (Date.now() - Date.parse(p.lm)) / (1000 * 60 * 60 * 24 * 30.44) : null;
+            const meta = '<div style="font-size:0.7rem;color:var(--color-text-muted);margin-top:8px;">' + (months != null ? ('Last updated ~' + Math.round(months) + ' months ago') : 'No last-modified date') + '</div>';
+            const head = '<div class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(p.url) + '" style="cursor:pointer;font-weight:700;font-size:0.95rem;color:var(--color-text-heading);margin-bottom:8px;">' + esc(p.name) + '</div>';
+            // top queries for the page, if query data is available (best-effort, non-blocking)
+            let topQ = '';
+            try {
+                const all = await getQueryRows(_ddDays);
+                if (all && all.length) {
+                    const set = {}; (p.urls || [p.url]).forEach(function (u) { set[normUrl(u)] = 1; });
+                    const byQ = {};
+                    all.forEach(function (row) { if (!set[normUrl(row.page || '')]) return; const q = row.query; if (!q) return; byQ[q] = (byQ[q] || 0) + (row.impressions || 0); });
+                    const tq = Object.keys(byQ).map(function (q) { return { name: q, val: fmt(byQ[q]), bar: byQ[q] }; }).sort(function (a, b) { return b.bar - a.bar; }).slice(0, 5);
+                    if (tq.length) topQ = '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 6px;">Top queries for this page</div>' + _rankCard(tq, { nameLabel: 'Query', valueLabel: 'Impressions' });
+                }
+            } catch (e) {}
+            return {
+                html: head + strip + meta + topQ,
+                summary: '"' + p.name + '" (' + periodLabel(_ddDays) + '): ' + fmt(s.impressions || 0) + ' impressions, ' + fmt(s.clicks || 0) + ' clicks, ' + ((s.ctr || 0) * 100).toFixed(1) + '% CTR, position ' + (s.position != null ? s.position.toFixed(1) : 'n/a') + (hasGA4p ? (', ' + fmt(s.pageViews || 0) + ' views') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + '.',
+                data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'Impressions', value: s.impressions || 0 }, { metric: 'Clicks', value: s.clicks || 0 }, { metric: 'CTR %', value: +((s.ctr || 0) * 100).toFixed(2) }, { metric: 'Avg position', value: s.position != null ? +s.position.toFixed(1) : null }].concat(hasGA4p ? [{ metric: 'Views', value: s.pageViews || 0 }, { metric: 'Users', value: s.users || 0 }] : []), chart: null }
             };
         }
         return { html: '', summary: '', unknown: true };
@@ -2014,11 +2058,39 @@
                 if (cat) { add('What is stale in ' + cat + '?'); add('Top pages in ' + cat); }
                 else { add('What is stale across the site?'); add('Which sections get the most traffic?'); }
                 break;
+            case 'page_summary':
+                if (plan.page) { add('What queries bring people to ' + plan.page + '?'); add('Why is ' + plan.page + ' underperforming?'); }
+                else add('Where are our biggest search opportunities?');
+                break;
         }
         return out;
     }
 
-    const _ASK_EXAMPLES = ['What should I focus on in Health?', 'Where are our biggest search opportunities?', 'What questions do people ask?', 'Which pages get no search traffic?', 'Which Housing pages lost traffic?', 'Generate a weekly digest'];
+    // Example questions grouped by capability; _pickChips rotates one from each group
+    // so the suggestions vary each time the panel opens and cover the breadth.
+    const _ASK_POOL = [
+        ['What should I focus on in Health?', 'What should I focus on in Employment?', 'Generate a weekly digest'],
+        ['Where are our biggest search opportunities?', 'Biggest search opportunities in Housing', 'What questions do people ask?'],
+        ['How is the Fuel Allowance page performing?', 'What queries bring people to the Medical Card page?', 'What do people search for in Health?'],
+        ['Which Housing pages lost traffic?', 'What is stale in Employment?', 'Which pages get no search traffic?', 'Any pages competing for the same search?'],
+        ['What do people abroad search us for?', 'Which countries search us the most?', 'Where does the Irish version underperform?'],
+        ['How has Health trended?', 'Compare Health and Housing', 'Top pages in Health']
+    ];
+    function _shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+    function _pickChips() { return _shuffle(_ASK_POOL.map(function (g) { return g[Math.floor(Math.random() * g.length)]; })); }
+    function _chipBtns(list) { return list.map(function (q) { return '<button class="sv-ask-chip" data-q="' + esc(q) + '" style="font-size:0.72rem;padding:5px 10px;border-radius:20px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join(''); }
+    // Categorised "What can I ask?" guide - example chips are live (clickable to run).
+    function _helpGuideHtml() {
+        const grp = function (title, items) { return '<div style="margin-bottom:11px;"><div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">' + title + '</div><div style="display:flex;flex-wrap:wrap;gap:5px;">' + _chipBtns(items) + '</div></div>'; };
+        return '<div style="font-size:0.9rem;font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">What you can ask</div>' +
+            grp('Priorities & digest', ['What should I focus on in Health?', 'Generate a weekly digest']) +
+            grp('Opportunities & queries', ['Where are our biggest search opportunities?', 'What questions do people ask?', 'What do people search for in Health?']) +
+            grp('A specific page', ['How is the Fuel Allowance page performing?', 'What queries bring people to the Medical Card page?', 'Why is the Carers Allowance page underperforming?']) +
+            grp('Health checks', ['Which Housing pages lost traffic?', 'What is stale in Employment?', 'Which pages get no search traffic?', 'Any pages competing for the same search?']) +
+            grp('Geography & Irish', ['What do people abroad search us for?', 'Which countries search us the most?', 'Where does the Irish version underperform?']) +
+            grp('Trends & compare', ['How has Health trended?', 'Compare Health and Housing']) +
+            '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:6px;line-height:1.5;">Tip: every answer can be shown as a Chart or Table, exported (CSV / brief / PNG) and Expanded, and the period selector changes the window. You can also ask by voice using the mic.</div>';
+    }
 
     // ── export helpers (CSV + AI brief) — consume the runIntent data contract ──
     function _csvCell(v) {
@@ -2107,8 +2179,13 @@
         }
         const dm = /^(?:generate |create |show |give me |make )?(?:a |the |my )?(?:weekly |content |section )?digest(?: (?:for|of|across) (?:all(?: sections| owners| the sections)?|every section|everyone|the (?:whole )?site))?\??$/i.exec(s);
         if (dm) return { intent: 'digest' };
-        const dm2 = /^(?:weekly |content )?digest (?:for|of) (.+?)\??$/i.exec(s);
+        const dm2 = /^(?:generate |create |show |give me |make )?(?:a |the |my )?(?:weekly |content )?digest (?:for|of) (.+?)\??$/i.exec(s);
         if (dm2 && dm2[1]) return { intent: 'briefing', category: dm2[1].trim() };
+        // "how is the X page doing/performing" / "page views for X" / "stats for the X page" -> page_summary
+        const psm = /^(?:how(?:'s| is| are)?|what(?:'s| is| are)?)\s+(?:the\s+)?(.+?)\s+page (?:doing|performing|going|getting on)\??$/i.exec(s)
+            || /^(?:page ?views|views|clicks|impressions|stats|metrics|performance|numbers) for (?:the )?(.+?)(?:\s+page)?\??$/i.exec(s)
+            || /^how many (?:page ?)?views (?:does|for) (?:the )?(.+?)(?:\s+page)?(?: get)?\??$/i.exec(s);
+        if (psm && psm[1]) return { intent: 'page_summary', page: psm[1].trim() };
         // "quick wins for X" / "what should X target" -> page_queries by potential
         const pmp = /^(?:quick wins for (?:the )?(.+?)(?:\s+page)?|what should (?:the )?(.+?)(?:\s+page)? target)\??$/i.exec(s);
         if (pmp && (pmp[1] || pmp[2])) return { intent: 'page_queries', page: (pmp[1] || pmp[2]).trim(), by_potential: true };
@@ -2130,12 +2207,13 @@
         if (existing) { const ei = existing.querySelector('#sv-ask-input'); if (ei) ei.focus(); return; }
 
         const _prevFocus = document.activeElement;
-        const _chipsHtml = _ASK_EXAMPLES.map(function (q) { return '<button class="sv-ask-chip" data-q="' + esc(q) + '" style="font-size:0.72rem;padding:5px 10px;border-radius:20px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join('');
+        const _chipsHtml = _chipBtns(_pickChips());
         const _introHtml =
             '<div class="sv-ask-intro">' +
                 '<div style="font-size:0.82rem;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5;">Ask about sections, pages, search queries, opportunities, and where in the world people search for you. Figures come from your real GSC/GA4 data.</div>' +
                 '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:7px;">Try one</div>' +
                 '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + _chipsHtml + '</div>' +
+                '<button class="sv-ask-help" style="margin-top:12px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">What can I ask?</button>' +
             '</div>';
 
         const panel = document.createElement('div');
@@ -2211,6 +2289,8 @@
                 }
                 return;
             }
+            const help = e.target.closest('.sv-ask-help');
+            if (help) { const _in = transcript.querySelector('.sv-ask-intro'); if (_in) _in.remove(); const _d = document.createElement('div'); _d.style.cssText = 'margin-bottom:18px;'; _d.innerHTML = _helpGuideHtml(); transcript.appendChild(_d); _d.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
             const chip = e.target.closest('.sv-ask-chip');
             if (chip) { input.value = chip.dataset.q; ask(); return; }
             const row = e.target.closest('.sv-ask-page[data-url]');
@@ -2284,7 +2364,7 @@
             entry.style.cssText = 'margin-bottom:18px;';
             entry.innerHTML =
                 '<div style="display:flex;justify-content:flex-end;margin-bottom:9px;"><div style="background:var(--primary);color:#fff;font-size:0.82rem;font-weight:600;padding:7px 12px;border-radius:12px 12px 3px 12px;max-width:88%;word-break:break-word;">' + esc(q) + '</div></div>' +
-                '<div class="sv-ask-resp"><div style="font-size:0.85rem;color:var(--color-text-muted);padding:4px 0;">Thinking...</div></div>';
+                '<div class="sv-ask-resp">' + _thinkingHtml('Thinking') + '</div>';
             transcript.appendChild(entry);
             const resp = entry.querySelector('.sv-ask-resp');
             entry.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2293,7 +2373,7 @@
                 const catNames = r.categories.map(function (c) { return c.name; });
                 const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Sections available: ' + catNames.join(', ') + '. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","unknown"], ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","unknown"], ' +
                     '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
@@ -2312,23 +2392,24 @@
                     'what should I focus on / what should I work on / my priorities / where should I focus / where do I start / what needs attention / section briefing / triage->briefing (category optional). Prefer briefing when the user asks what to DO; prefer section_summary when they ask how a section is DOING; ' +
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
-                    'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional).';
+                    'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section).';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
                 if (((plan.intent === 'opportunities' || plan.intent === 'top_queries') && !_queryCache[_ddDays]) ||
                     ((plan.intent === 'international_queries' || plan.intent === 'top_countries') && !_countryQueryCache[_ddDays])) {
-                    resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-muted);padding:4px 0;">Fetching search-query data from Search Console...</div>';
+                    resp.innerHTML = _thinkingHtml('Fetching search-query data from Search Console');
                 }
-                if (plan.intent === 'trend') { resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-muted);padding:4px 0;">Building a 6-month trend (fetching several periods from Search Console)...</div>'; }
+                if (plan.intent === 'trend') { resp.innerHTML = _thinkingHtml('Building a 6-month trend (fetching several periods)'); }
                 const res = await runIntent(plan, r);
                 if (res.unknown) {
                     _logMiss(q);
-                    resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:10px;">I can answer about sections, pages, movers, low-CTR pages, stale content, what people search for, searches from abroad, and where you are missing clicks. Try one of these:</div><div style="display:flex;flex-wrap:wrap;gap:6px;">' + _chipsHtml + '</div>';
+                    resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:10px;">I did not quite catch that. I cover priorities, opportunities, page &amp; section performance, search queries, geography and the Irish/English gap. Try one of these (or tap <b>What can I ask?</b>):</div><div style="display:flex;flex-wrap:wrap;gap:6px;">' + _chipBtns(_pickChips()) + '</div><button class="sv-ask-help" style="margin-top:10px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">What can I ask?</button>';
                     busy = false; return;
                 }
                 if (res.err) { resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>'; busy = false; return; }
-                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages' };
+                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance' };
                 if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 if (plan.category) interpBits.push(plan.category);
