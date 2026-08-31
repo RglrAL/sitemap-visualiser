@@ -130,7 +130,7 @@
             ? '<div style="font-size:0.66rem;color:var(--color-text-muted);padding:6px 10px 0;">Open <strong>Reports › Category Performance</strong> to load search &amp; analytics for this section.</div>'
             : '';
         return '<div style="padding:12px 20px 0;">' +
-            '<div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">This section — ' + _svFmt(r.pageCount) + ' pages</div>' +
+            '<div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">This section — ' + _svFmt(r.leafCount != null ? r.leafCount : r.pageCount) + ' content pages</div>' +
             '<div style="display:flex;border:1px solid var(--color-border-primary);border-radius:8px;overflow:hidden;background:var(--color-bg-primary);">' + cells + '</div>' +
             note +
         '</div>';
@@ -1941,7 +1941,32 @@ function showDashboardModal(htmlContent) {
         '.tree-controls{display:none!important;}' +
         '#stats{display:none!important;}' +
         '#colourLegend{display:none!important;}' +
-        '#breadcrumbContainer{display:none!important;}';
+        '#breadcrumbContainer{display:none!important;}' +
+        // ── Mobile responsiveness (applies only while the report panel is open) ──
+        '@media (max-width: 640px){' +
+            // tighter section + card padding
+            '#unified-dashboard-modal .dashboard-header{padding:14px!important;}' +
+            '#unified-dashboard-modal .ai-overview-impact-section,#unified-dashboard-modal .citizen-query-intelligence,#unified-dashboard-modal .enhanced-geographic-intelligence,#unified-dashboard-modal .dashboard-section,#unified-dashboard-modal .geo-clean-card,#unified-dashboard-modal .overview-card,#unified-dashboard-modal .section,#unified-dashboard-modal .overview-content{padding:14px!important;}' +
+            // 3-zone header: stack top bar, full-width controls, smaller title
+            '#unified-dashboard-modal .hdr-topbar{flex-direction:column;align-items:stretch;gap:10px;}' +
+            '#unified-dashboard-modal .hdr-controls{width:100%;}' +
+            '#unified-dashboard-modal .date-range-segmented{flex:1;}' +
+            '#unified-dashboard-modal .date-range-segmented .seg-btn{flex:1;padding:8px 4px;}' +
+            '#unified-dashboard-modal .page-title{font-size:1.25rem!important;line-height:1.3!important;}' +
+            '#unified-dashboard-modal .hdr-meta-url{max-width:190px;}' +
+            // metric strips: 2-up instead of 5-up, smaller values
+            '#unified-dashboard-modal .hdr-metrics-strip,#unified-dashboard-modal .ai-metrics-strip,#unified-dashboard-modal .cqi-strip{grid-template-columns:repeat(2,1fr)!important;}' +
+            '#unified-dashboard-modal .hdr-metric,#unified-dashboard-modal .ai-metric{border-bottom:1px solid var(--color-border-primary);}' +
+            '#unified-dashboard-modal .hdr-metric-value,#unified-dashboard-modal .ai-metric-value{font-size:1.15rem!important;}' +
+            // dense grids collapse to one column
+            '#unified-dashboard-modal .overview-grid,#unified-dashboard-modal .geo-regional-grid,#unified-dashboard-modal .geo-kpi-grid,#unified-dashboard-modal .search-patterns-grid,#unified-dashboard-modal .metrics-grid,#unified-dashboard-modal .county-performance-grid,#unified-dashboard-modal .regional-stats,#unified-dashboard-modal .international-stats,#unified-dashboard-modal .service-stats,#unified-dashboard-modal .demographic-analysis-container,#unified-dashboard-modal .results-grid{grid-template-columns:1fr!important;}' +
+            // tabs: compact, horizontally scrollable (nav already has overflow-x:auto)
+            '#unified-dashboard-modal .tab-btn{min-width:auto!important;padding:12px 14px!important;font-size:0.85rem!important;flex:0 0 auto!important;}' +
+            // section titles a touch smaller
+            '#unified-dashboard-modal .section-title{font-size:1.1rem!important;}' +
+            // wide tables scroll instead of overflowing
+            '#unified-dashboard-modal table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}' +
+        '}';
     document.head.appendChild(styleOverride);
 
     // Dismiss: slide back down
