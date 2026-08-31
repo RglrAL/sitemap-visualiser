@@ -354,7 +354,7 @@
                 '<div style="width:64px;flex-shrink:0;text-align:right;font-size:0.72rem;color:var(--color-text-muted);">' + fmt(r.curImp) + '</div>' +
             '</div>';
         };
-        const top = rows.slice(0, 8);
+        const top = rows.slice(0, 8).sort(function (a, b) { return b.pct - a.pct; });   // biggest gain -> biggest loss
         return '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:4px 0 8px;">Biggest movers · vs previous 30 days</div>' +
             '<div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:4px 14px;margin-bottom:20px;">' +
             top.map(row).join('') +
@@ -743,8 +743,9 @@
                     const pct = prev > 0 ? (cur - prev) / prev * 100 : null;
                     return { name: p.name, url: p.url, cur: cur, prev: prev, pct: pct };
                 }).filter(function (r) { return r.pct != null && r.prev >= 100; });   // real prior baseline only
-                rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
+                rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });   // pick biggest movers (both ways)
                 rows = rows.slice(0, 10);
+                rows.sort(function (a, b) { return b.pct - a.pct; });   // display: biggest gain -> biggest loss
                 if (!rows.length) { moversSlot.innerHTML = secHd('Biggest movers') + '<div style="font-size:0.8rem;color:var(--color-text-muted);">Not enough prior-period data to compare.</div>'; return; }
                 const maxPct = Math.min(500, Math.max.apply(null, rows.map(function (r) { return Math.abs(r.pct); }).concat([1])));
                 const mrow = function (r) {
