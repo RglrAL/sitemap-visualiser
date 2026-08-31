@@ -623,8 +623,27 @@
         const hasGA4 = (d.pageViews || 0) > 0 || (d.users || 0) > 0;
 
         // most-viewed pages under this category (leaf/URL nodes)
-        const pages = [];
-        (cat.nodes || []).forEach(function (n) { collectPages(n, pages); });
+        const _rawPages = [];
+        (cat.nodes || []).forEach(function (n) { collectPages(n, _rawPages); });
+        // Merge same-named pages (e.g. English + Irish versions share a slug) into one
+        // logical page: sum counts, impression-weight position, keep all URLs + the
+        // highest-traffic one as the click target and the most recent lastmod.
+        const _pageMap = new Map();
+        _rawPages.forEach(function (p) {
+            const k = String(p.name || '').toLowerCase();
+            if (!_pageMap.has(k)) _pageMap.set(k, { name: p.name, url: p.url, urls: [], lm: p.lm, _maxImp: -1, imp: 0, clk: 0, pv: 0, us: 0, posSum: 0, posW: 0 });
+            const m = _pageMap.get(k), sp = p.s || {};
+            m.urls.push(p.url);
+            m.imp += sp.impressions || 0; m.clk += sp.clicks || 0; m.pv += sp.pageViews || 0; m.us += sp.users || 0;
+            if ((sp.impressions || 0) > 0 && sp.position != null) { m.posSum += sp.position * sp.impressions; m.posW += sp.impressions; }
+            if ((sp.impressions || 0) > m._maxImp) { m._maxImp = sp.impressions || 0; m.url = p.url; }
+            if (p.lm && (!m.lm || Date.parse(p.lm) > Date.parse(m.lm))) m.lm = p.lm;
+        });
+        const pages = Array.from(_pageMap.values()).map(function (m) {
+            return { name: m.name, url: m.url, urls: m.urls, lm: m.lm,
+                s: { impressions: m.imp, clicks: m.clk, pageViews: m.pv, users: m.us,
+                     ctr: m.imp > 0 ? m.clk / m.imp : 0, position: m.posW > 0 ? m.posSum / m.posW : null } };
+        });
         const rankKey = hasGA4 ? 'pageViews' : 'impressions';
         const topPages = pages.filter(function (p) { return (p.s[rankKey] || 0) > 0; })
             .sort(function (a, b) { return (b.s[rankKey] || 0) - (a.s[rankKey] || 0); }).slice(0, 12);
@@ -765,9 +784,8 @@
                 const metricKey = useImp ? 'impressions' : 'pageViews';
                 const priorBy = useImp ? prior.gscBy : prior.ga4By;
                 let rows = pages.map(function (p) {
-                    const pr = priorBy[normUrl(p.url)];
                     const cur = p.s[metricKey] || 0;
-                    const prev = pr ? (pr[metricKey] || 0) : 0;
+                    const prev = (p.urls || [p.url]).reduce(function (sum, u) { const pr = priorBy[normUrl(u)]; return sum + (pr ? (pr[metricKey] || 0) : 0); }, 0);
                     const pct = prev > 0 ? (cur - prev) / prev * 100 : null;
                     return { name: p.name, url: p.url, cur: cur, prev: prev, pct: pct };
                 }).filter(function (r) { return r.pct != null && r.prev >= 100; });   // real prior baseline only
