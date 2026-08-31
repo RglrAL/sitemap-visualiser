@@ -712,18 +712,20 @@
                     const prev = pr ? (pr[metricKey] || 0) : 0;
                     const pct = prev > 0 ? (cur - prev) / prev * 100 : null;
                     return { name: p.name, url: p.url, cur: cur, prev: prev, pct: pct };
-                }).filter(function (r) { return r.pct != null && (r.cur >= 100 || r.prev >= 100); });
+                }).filter(function (r) { return r.pct != null && r.prev >= 100; });   // real prior baseline only
                 rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
                 rows = rows.slice(0, 10);
                 if (!rows.length) { moversSlot.innerHTML = secHd('Biggest movers') + '<div style="font-size:0.8rem;color:var(--color-text-muted);">Not enough prior-period data to compare.</div>'; return; }
-                const maxPct = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.pct); }).concat([1]));
+                const maxPct = Math.min(500, Math.max.apply(null, rows.map(function (r) { return Math.abs(r.pct); }).concat([1])));
                 const mrow = function (r) {
                     const up = r.pct >= 0, col = up ? '#059669' : '#dc2626', arrow = up ? '▲' : '▼';
-                    const bw = Math.min(100, Math.abs(r.pct) / maxPct * 100);
+                    const pa = Math.abs(r.pct);
+                    const pctText = (pa > 500 ? '500+' : pa.toFixed(0)) + '%';
+                    const bw = Math.min(100, pa / maxPct * 100);
                     return '<div class="sv-dd-page" data-url="' + esc(r.url) + '" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border-primary);">' +
                         '<div style="flex:1;min-width:0;font-size:0.82rem;font-weight:600;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(r.name) + '</div>' +
                         '<div style="width:60px;display:flex;justify-content:flex-end;flex-shrink:0;"><div style="height:6px;width:' + bw + '%;background:' + col + ';border-radius:3px;opacity:0.85;"></div></div>' +
-                        '<div style="width:54px;text-align:right;font-size:0.8rem;font-weight:700;color:' + col + ';flex-shrink:0;">' + arrow + ' ' + Math.abs(r.pct).toFixed(0) + '%</div>' +
+                        '<div style="width:60px;text-align:right;font-size:0.8rem;font-weight:700;color:' + col + ';flex-shrink:0;">' + arrow + ' ' + pctText + '</div>' +
                         '<div style="width:48px;text-align:right;font-size:0.72rem;color:var(--color-text-muted);flex-shrink:0;">' + fmt(r.cur) + '</div>' +
                     '</div>';
                 };
