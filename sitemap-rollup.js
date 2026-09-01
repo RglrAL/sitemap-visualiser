@@ -2458,11 +2458,16 @@
                 const scored = pages.map(function (p) { return { name: p.name, url: p.url, sess: sumScope(data.byPage, [p], m.pred) }; }).filter(function (x) { return x.sess > 0; });
                 const total = scored.reduce(function (s, x) { return s + x.sess; }, 0);
                 if (!scored.length) return { html: '', summary: '', err: 'No pages' + (c ? ' in ' + c.name : '') + ' got traffic from ' + m.label + ' in ' + periodLabel(_ddDays) + '.' + (data.truncated ? ' (Source data was truncated — a rare source may be missing.)' : '') };
+                // Share of ALL sessions in scope — answers "what percentage of traffic is from X".
+                const allTotal = pages.reduce(function (s, p) { let ps = 0; (p.urls || [p.url]).forEach(function (u) { const rs = data.byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { ps += rw.sessions; }); }); return s + ps; }, 0);
+                const share = allTotal > 0 ? total / allTotal * 100 : null;
+                const shareTxt = share != null ? (share < 1 ? '<1' : Math.round(share)) + '% of all traffic' : '';
+                const scopeTxt = c ? c.name : 'the site';
                 const rk = scored.sort(function (a, b) { return b.sess - a.sess; }).slice(0, limit);
                 const items = rk.map(function (x) { return { name: x.name, val: fmt(x.sess), bar: x.sess, url: x.url }; });
                 return {
-                    html: _rankCard(items, { nameLabel: 'Page', valueLabel: m.label + ' sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' session' + (total === 1 ? '' : 's') + ' from ' + esc(m.label) + (c ? ' in ' + esc(c.name) : ' site-wide') + ' (' + periodLabel(_ddDays) + '), across ' + scored.length + ' page' + (scored.length === 1 ? '' : 's') + '.' + truncNote + '</div>' + (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
-                    summary: fmt(total) + ' sessions from ' + m.label + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '); top pages: ' + rk.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
+                    html: (share != null ? '<div style="font-size:1.1rem;font-weight:700;color:var(--color-text-primary);margin-bottom:10px;">' + esc(m.label) + ' is ' + shareTxt + ' &mdash; ' + fmt(total) + ' of ' + fmt(allTotal) + ' sessions' + (c ? ' in ' + esc(c.name) : '') + '.</div>' : '') + _rankCard(items, { nameLabel: 'Page', valueLabel: m.label + ' sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' session' + (total === 1 ? '' : 's') + ' from ' + esc(m.label) + (c ? ' in ' + esc(c.name) : ' site-wide') + ' (' + periodLabel(_ddDays) + '), across ' + scored.length + ' page' + (scored.length === 1 ? '' : 's') + '.' + truncNote + '</div>' + (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
+                    summary: (share != null ? m.label + ' is ' + shareTxt + ' to ' + scopeTxt + ' (' + fmt(total) + ' of ' + fmt(allTotal) + ' sessions, ' + periodLabel(_ddDays) + '). ' : fmt(total) + ' sessions from ' + m.label + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '). ') + 'Top pages: ' + rk.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
                     data: { columns: [{ key: 'page', label: 'Page' }, { key: 'sessions', label: m.label + ' sessions' }, { key: 'url', label: 'URL' }], rows: rk.map(function (x) { return { page: x.name, sessions: x.sess, url: x.url }; }), chart: { type: 'bar', x: 'page', y: 'sessions', label: m.label + ' sessions' } }
                 };
             }
@@ -3367,9 +3372,14 @@
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
                     'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year).';
-                const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
-                let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
-                if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
+                // Deterministic parser FIRST — only fall back to the LLM (a Groq call) when it
+                // can't handle the phrasing. Cuts ~1 Groq call per question for common queries.
+                let plan = _quickParse(q);
+                if (!plan) {
+                    const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
+                    try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
+                }
+                if (!plan) plan = { intent: 'unknown' };
                 // Category-owner scope: default bare questions to the owner's section, one-shot for
                 // explicit overrides, site-wide for page/unscopeable intents (rules 1-3).
                 const _sticky = _getScopeName();
@@ -3410,12 +3420,14 @@
                 interpBits.push(periodLabel(_ddDays));
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span></div>';
                 const _metricTgl = (res.data && res.data.availableMetrics && res.data.availableMetrics.length > 1 && res.data.metricViews) ? _metricToggleHtml(eid, res.data.availableMetrics, res.data.metric) : '';
-                const _bodyHtml = _metricTgl + ((res.data && res.data.metricViews) ? res.data.metricViews[res.data.metric].body : (_renderChart(res.data) || res.html));
+                // Chart/card body only — the metric toggle sits OUTSIDE .sv-ask-rich so the handler's
+                // innerHTML swap (which replaces .sv-ask-rich) doesn't delete the toggle buttons.
+                const _bodyHtml = (res.data && res.data.metricViews) ? res.data.metricViews[res.data.metric].body : (_renderChart(res.data) || res.html);
                 const _tblHtml = _exports[eid] ? '<div class="sv-ask-tbl" style="display:none;">' + _dataTable(res.data) + '</div>' : '';
                 const _segNames = r.categories.map(function (c) { return c.name; }).concat([plan.category, plan.page]).concat(plan.categories || []);
                 const _segNote = plan.intent === 'traffic_sources' ? '' : _segmentNote(q, _segNames);
                 const _segHtml = _segNote ? '<div style="font-size:0.7rem;color:#b45309;background:var(--color-bg-tertiary);border-radius:7px;padding:7px 10px;margin-bottom:10px;">' + esc(_segNote) + '</div>' : '';
-                resp.innerHTML = interp + _segHtml + '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;"></div>' + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
+                resp.innerHTML = interp + _segHtml + '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;border-left:3px solid var(--primary);padding-left:11px;">' + esc(res.summary || '') + '</div>' + _metricTgl + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
                 if (_exports[eid]) {
                     const _abtn = 'display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;';
                     const _hasMemo = _exports[eid] && _exports[eid].markdown;
@@ -3449,12 +3461,8 @@
                         '</div></div>');
                 }
                 entry.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                try {
-                    const _tsys = 'You write ONE short plain-English sentence summarising analytics RESULTS for a website owner. The Results line is the ground truth: use its numbers and its stated time period EXACTLY. If the question mentions anything NOT present in the Results — e.g. "paid", "organic", "mobile", or a different time period — IGNORE it and never repeat those words. No preamble, no markdown; end with a full stop.';
-                    let line = String(await window.GroqAI.complete([{ role: 'system', content: _tsys }, { role: 'user', content: 'Question: ' + q + '\nResults (' + periodLabel(_ddDays) + '): ' + res.summary }], { temperature: 0.2, max_tokens: 120 })).trim();
-                    if (!line || line.length < 8 || !/[.!?]["'’\)\]]?$/.test(line)) line = res.summary;   // empty/truncated -> safe deterministic summary
-                    const el = resp.querySelector('.sv-ask-oneliner'); if (el) { el.textContent = line; el.style.borderLeft = '3px solid var(--primary)'; el.style.paddingLeft = '11px'; }
-                } catch (e) { const el = resp.querySelector('.sv-ask-oneliner'); if (el) { el.textContent = res.summary; el.style.borderLeft = '3px solid var(--primary)'; el.style.paddingLeft = '11px'; } }
+                // Headline = the deterministic res.summary (rendered above). No second Groq call —
+                // it saved nothing over the summary and was the source of hallucination/truncation.
             } catch (e) {
                 resp.innerHTML = '<div style="font-size:0.85rem;color:#dc2626;">Something went wrong: ' + esc(e && e.message ? e.message : String(e)) + '</div>';
             } finally {
