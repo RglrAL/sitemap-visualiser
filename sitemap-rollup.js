@@ -806,14 +806,14 @@
         const now = Date.now(), out = [];
         const avg = (c ? c.rollup.ctr : r.totals.ctr) || 0;
         const lowc = pages.filter(function (p) { return (p.s.impressions || 0) >= 300 && p.s.ctr < Math.max(0.005, avg * 0.6); }).sort(function (a, b) { return b.s.impressions - a.s.impressions; })[0];
-        if (lowc) out.push({ icon: '⚡', text: '“' + lowc.name + '” gets ' + fmt(lowc.s.impressions) + ' impressions but only ' + (lowc.s.ctr * 100).toFixed(1) + '% click', q: 'Why is the ' + lowc.name + ' page underperforming?' });
+        if (lowc) out.push({ icon: _ficon('zap'), text: '“' + lowc.name + '” gets ' + fmt(lowc.s.impressions) + ' impressions but only ' + (lowc.s.ctr * 100).toFixed(1) + '% click', q: 'Why is the ' + lowc.name + ' page underperforming?' });
         const stale = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12 && (x.p.s.impressions || 0) >= 200; }).sort(function (a, b) { return b.m - a.m; })[0];
-        if (stale) out.push({ icon: '✎', text: '“' + stale.p.name + '” is ~' + Math.round(stale.m) + ' months old and still gets ' + fmt(stale.p.s.impressions) + ' impressions', q: 'What is stale' + (scopeName ? ' in ' + scopeName : '') + '?' });
+        if (stale) out.push({ icon: _ficon('edit'), text: '“' + stale.p.name + '” is ~' + Math.round(stale.m) + ' months old and still gets ' + fmt(stale.p.s.impressions) + ' impressions', q: 'What is stale' + (scopeName ? ' in ' + scopeName : '') + '?' });
         const eng = pages.filter(function (p) { return p.s.engagementRate != null && (p.s.sessions || 0) >= 20; }).sort(function (a, b) { return a.s.engagementRate - b.s.engagementRate; })[0];
-        if (eng && eng.s.engagementRate < 0.5) out.push({ icon: '⇕', text: '“' + eng.name + '” — only ' + Math.round(eng.s.engagementRate * 100) + '% of visits are engaged', q: 'Which pages do people leave quickly' + (scopeName ? ' in ' + scopeName : '') + '?' });
+        if (eng && eng.s.engagementRate < 0.5) out.push({ icon: _ficon('activity'), text: '“' + eng.name + '” — only ' + Math.round(eng.s.engagementRate * 100) + '% of visits are engaged', q: 'Which pages do people leave quickly' + (scopeName ? ' in ' + scopeName : '') + '?' });
         const dead = pages.filter(function (p) { return (p.s.impressions || 0) === 0; }).length;
-        if (dead > 0) out.push({ icon: '○', text: dead + ' page' + (dead === 1 ? '' : 's') + (scopeName ? ' in ' + scopeName : '') + ' get no search traffic', q: 'Which pages get no search traffic' + (scopeName ? ' in ' + scopeName : '') + '?' });
-        if (!out.length) { const top = pages.slice().sort(function (a, b) { return (b.s.pageViews || b.s.impressions || 0) - (a.s.pageViews || a.s.impressions || 0); })[0]; if (top && (top.s.pageViews || top.s.impressions)) out.push({ icon: '★', text: 'Most-viewed' + (scopeName ? ' in ' + scopeName : '') + ': “' + top.name + '”', q: 'How is the ' + top.name + ' page performing?' }); }
+        if (dead > 0) out.push({ icon: _ficon('circle'), text: dead + ' page' + (dead === 1 ? '' : 's') + (scopeName ? ' in ' + scopeName : '') + ' get no search traffic', q: 'Which pages get no search traffic' + (scopeName ? ' in ' + scopeName : '') + '?' });
+        if (!out.length) { const top = pages.slice().sort(function (a, b) { return (b.s.pageViews || b.s.impressions || 0) - (a.s.pageViews || a.s.impressions || 0); })[0]; if (top && (top.s.pageViews || top.s.impressions)) out.push({ icon: _ficon('star'), text: 'Most-viewed' + (scopeName ? ' in ' + scopeName : '') + ': “' + top.name + '”', q: 'How is the ' + top.name + ' page performing?' }); }
         return out.slice(0, 4);
     }
     function _scopeOptions(sel) {
@@ -825,7 +825,7 @@
         const scopeLbl = scopeName || 'the whole site';
         const head = '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:8px;">What stands out &middot; ' + esc(scopeLbl) + '</div>';
         const body = findings.length
-            ? '<div style="display:flex;flex-direction:column;gap:6px;">' + findings.map(function (f) { return '<button class="sv-ask-chip" data-q="' + esc(f.q) + '" style="text-align:left;display:flex;gap:9px;align-items:flex-start;font-size:0.8rem;padding:9px 11px;border-radius:9px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;line-height:1.4;"><span style="flex-shrink:0;font-size:0.9rem;">' + f.icon + '</span><span>' + esc(f.text) + '</span></button>'; }).join('') + '</div>'
+            ? '<div style="display:flex;flex-direction:column;gap:6px;">' + findings.map(function (f) { return '<button class="sv-ask-chip sv-ask-chip-row" data-q="' + esc(f.q) + '" style="display:flex;gap:9px;align-items:flex-start;font-size:0.8rem;padding:9px 11px;line-height:1.4;"><span style="flex-shrink:0;display:inline-flex;align-items:center;color:var(--primary);">' + f.icon + '</span><span>' + esc(f.text) + '</span></button>'; }).join('') + '</div>'
             : '<div style="font-size:0.82rem;color:var(--color-text-secondary);margin-bottom:6px;">Nothing jumps out' + (scopeName ? ' in ' + esc(scopeName) : '') + ' right now — ask a question below to dig in.</div>';
         const pickHint = !scopeName ? '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:11px;">Owner of a section? <button class="sv-ask-scope-open" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;font-size:0.68rem;">Pick your section</button> to make this yours.</div>' : '';
         const more = '<button class="sv-ask-help" style="margin-top:12px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">See what you can ask</button>';
@@ -854,6 +854,57 @@
             '.sv-chart .sv-cbar{transform-box:fill-box;transform-origin:left center;animation:sv-growx .55s cubic-bezier(.22,.61,.36,1) both;}'
         ].join('');
         document.head.appendChild(st);
+    }
+    // Ask-panel stylesheet — committed radius (6/10/14), type (0.72/0.8/0.9rem, weight carries the
+    // rest) and spacing (8/12/16/20) scales, plus the :hover / :focus-visible states that inline
+    // styles literally cannot express (so this doubles as the accessibility fix). Injected once.
+    function ensureAskStyle() {
+        if (document.getElementById('sv-ask-style')) return;
+        const st = document.createElement('style'); st.id = 'sv-ask-style';
+        st.textContent = `
+#sv-ask-panel{--sv-r-sm:6px;--sv-r-md:10px;--sv-r-lg:14px;font-variant-numeric:tabular-nums;}
+.sv-ask-ctl{appearance:none;-webkit-appearance:none;font-family:inherit;font-size:0.72rem;font-weight:600;padding:6px 26px 6px 10px;border:1px solid var(--color-border-primary);border-radius:var(--sv-r-sm);color:var(--color-text-secondary);cursor:pointer;background:var(--color-bg-primary) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 8px center;transition:border-color .15s,box-shadow .15s;}
+.sv-ask-ctl:hover{border-color:var(--primary);}
+.sv-ask-ctl:focus-visible{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,124,182,0.18);}
+.sv-ask-input{flex:1;min-width:0;font-family:inherit;font-size:0.9rem;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:var(--sv-r-md);background:var(--color-bg-primary);color:var(--color-text-primary);transition:border-color .15s,box-shadow .15s;}
+.sv-ask-input:focus-visible{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,124,182,0.18);}
+.sv-ask-btn-primary{background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:var(--sv-r-md);font-weight:600;font-size:0.9rem;cursor:pointer;font-family:inherit;transition:filter .15s,transform .05s;}
+.sv-ask-btn-primary:hover{filter:brightness(1.08);}
+.sv-ask-btn-primary:active{transform:translateY(1px);}
+.sv-ask-icon-btn{display:inline-flex;align-items:center;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);color:var(--color-text-secondary);border-radius:var(--sv-r-md);padding:0 11px;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;}
+.sv-ask-icon-btn:hover{border-color:var(--primary);color:var(--primary);}
+.sv-ask-iconbtn-muted{background:none;border:none;color:var(--color-text-muted);cursor:pointer;border-radius:var(--sv-r-sm);padding:5px;display:inline-flex;align-items:center;transition:color .15s,background .15s;}
+.sv-ask-iconbtn-muted:hover{color:var(--color-text-primary);background:var(--color-bg-tertiary);}
+@keyframes sv-ask-enter{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.sv-ask-entry{margin-bottom:22px;animation:sv-ask-enter .32s cubic-bezier(.22,.61,.36,1) both;}
+.sv-ask-chip{font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .06s;}
+.sv-ask-chip:active{transform:scale(0.97);}
+.sv-ask-chip-pill{font-size:0.72rem;padding:5px 11px;border-radius:20px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-secondary);}
+.sv-ask-chip-pill:hover{border-color:var(--primary);color:var(--primary);background:var(--color-bg-tertiary);}
+.sv-ask-chip-accent{font-size:0.72rem;padding:5px 11px;border-radius:20px;border:1px solid var(--primary);background:transparent;color:var(--primary);font-weight:600;}
+.sv-ask-chip-accent:hover{background:var(--primary);color:#fff;}
+.sv-ask-chip-row{text-align:left;border:1px solid var(--color-border-primary);border-radius:var(--sv-r-md);background:var(--color-bg-primary);color:var(--color-text-primary);}
+.sv-ask-chip-row:hover{border-color:var(--primary);background:var(--color-bg-tertiary);}
+/* Fewer boxes: the answer list is borderless with hairline dividers between rows (not around each);
+   the panel is the only real box. Last row drops its trailing divider. */
+.sv-ask-list{border:none;border-radius:var(--sv-r-md);overflow:hidden;background:var(--color-bg-primary);}
+.sv-ask-list>*:last-child>div{border-bottom:none;}
+.sv-ask-bar{transform-origin:left center;animation:sv-growx .5s cubic-bezier(.22,.61,.36,1) both;}
+@media(prefers-reduced-motion:reduce){#sv-ask-panel,#sv-ask-panel *{animation:none !important;transition:none !important;}.sv-chart svg .sv-cline,.sv-chart svg .sv-carea,.sv-chart svg .sv-cdot,.sv-chart .sv-cbar{animation:none !important;}}
+`;
+        document.head.appendChild(st);
+    }
+    // Feather-style icon (SVG via currentColor) for the hero findings — replaces emoji, which
+    // violate the design language and render inconsistently across the colleagues' machines.
+    function _ficon(n) {
+        const p = {
+            zap:      '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+            edit:     '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+            activity: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+            circle:   '<circle cx="12" cy="12" r="9"/>',
+            star:     '<polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/>'
+        }[n] || '';
+        return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
     }
     // Animated "thinking" indicator (three bouncing dots) - better feedback than static text.
     function _thinkingHtml(text) {
@@ -1387,7 +1438,7 @@
         const header = (opts.nameLabel || opts.valueLabel) ? '<div style="display:flex;align-items:center;gap:10px;padding:5px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);background:var(--color-bg-secondary);">' +
             '<span style="flex:1;min-width:0;">' + esc(opts.nameLabel || '') + '</span><span style="width:96px;flex-shrink:0;"></span>' +
             '<span style="width:88px;flex-shrink:0;text-align:right;">' + esc(opts.valueLabel || '') + '</span></div>' : '';
-        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' + header +
+        return '<div class="sv-ask-list">' + header +
             items.map(function (it) {
                 const bw = Math.min(100, Math.abs(it.bar || 0) / max * 100);
                 const col = it.col || 'var(--primary)';
@@ -1395,7 +1446,7 @@
                 const clickable = it.url ? ' class="sv-ask-page sv-tipel" role="button" tabindex="0" data-url="' + esc(it.url) + '" data-tip="' + tipTxt + '" style="cursor:pointer;"' : ' class="sv-tipel" data-tip="' + tipTxt + '" style=""';
                 return '<div' + clickable + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.85rem;">' +
                     '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(it.name) + '</span>' +
-                    '<span style="width:96px;flex-shrink:0;"><span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span></span>' +
+                    '<span style="width:96px;flex-shrink:0;"><span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span class="sv-ask-bar" style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span></span>' +
                     '<span style="width:88px;flex-shrink:0;text-align:right;font-weight:700;color:' + (it.valCol || 'var(--color-text-primary)') + ';">' + it.val + '</span>' +
                 '</div></div>';
             }).join('') + '</div>';
@@ -1523,7 +1574,7 @@
         const cq = function (name) { return intent === 'page_queries' ? ('What queries bring people to ' + name + '?') : ('Why is ' + name + ' underperforming?'); };
         return '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:8px;">A few pages match "' + esc(ref) + '". Did you mean:</div>' +
             '<div style="display:flex;flex-direction:column;gap:6px;">' + candidates.map(function (p) {
-                return '<button class="sv-ask-chip sv-ask-disambig" data-q="' + esc(cq(p.name)) + '" style="text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 11px;border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;">' +
+                return '<button class="sv-ask-chip sv-ask-chip-row sv-ask-disambig" data-q="' + esc(cq(p.name)) + '" style="display:flex;flex-direction:column;gap:2px;padding:8px 11px;">' +
                     '<span style="font-weight:600;font-size:0.82rem;">' + esc(p.name) + '</span>' +
                     '<span style="font-size:0.68rem;color:var(--color-text-muted);">' + esc(_shortUrl(p.url)) + ' &middot; ' + fmt(p.s.impressions || 0) + ' impr</span>' +
                 '</button>';
@@ -2952,7 +3003,7 @@
     }
     function _shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
     function _pickChips() { return _shuffle(_askPool().map(function (g) { return g[Math.floor(Math.random() * g.length)]; })); }
-    function _chipBtns(list) { return list.map(function (q) { return '<button class="sv-ask-chip" data-q="' + esc(q) + '" style="font-size:0.72rem;padding:5px 10px;border-radius:20px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join(''); }
+    function _chipBtns(list) { return list.map(function (q) { return '<button class="sv-ask-chip sv-ask-chip-pill" data-q="' + esc(q) + '">' + esc(q) + '</button>'; }).join(''); }
     // In-context discovery: rank the (scope-aware) example pool against what the user is typing.
     function _suggestPool() { const seen = {}, out = []; _askPool().forEach(function (g) { g.forEach(function (q) { const k = q.toLowerCase(); if (!seen[k]) { seen[k] = 1; out.push(q); } }); }); return out; }
     function _suggest(q) {
@@ -2981,7 +3032,7 @@
             return '<div class="sv-pal-group" style="margin-bottom:13px;">' +
                 '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:6px;">' + esc(j.t) + '</div>' +
                 '<div style="display:flex;flex-direction:column;gap:4px;">' +
-                j.items.map(function (q) { return '<button class="sv-ask-chip sv-pal-item" data-q="' + esc(q) + '" style="text-align:left;font-size:0.8rem;padding:7px 10px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join('') +
+                j.items.map(function (q) { return '<button class="sv-ask-chip sv-pal-item sv-ask-chip-row" data-q="' + esc(q) + '" style="font-size:0.8rem;padding:7px 10px;">' + esc(q) + '</button>'; }).join('') +
                 '</div></div>';
         };
         return '<div class="sv-ask-palette">' +
@@ -3200,6 +3251,7 @@
         if (!tree) { alert('Load a sitemap first.'); return; }
         if (!window.GroqAI || !window.GroqAI.isConfigured || !window.GroqAI.isConfigured()) { alert('Connect AI first - click the AI button in the toolbar to add your Groq key.'); return; }
         ensureDDStyle();
+        ensureAskStyle();
 
         // Already open? just focus it.
         const existing = document.getElementById('sv-ask-panel');
@@ -3232,18 +3284,18 @@
                     '<div style="font-size:1.05rem;font-weight:700;color:var(--color-text-heading);">Ask your data</div>' +
                     '<div style="font-size:0.66rem;color:var(--color-text-muted);">AI phrases &middot; code computes &middot; real GSC/GA4</div>' +
                 '</div>' +
-                '<select id="sv-ask-period" title="Time window for answers" style="font-family:inherit;font-size:0.72rem;font-weight:600;padding:5px 4px;border:1px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;">' + PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label.replace(/^Last /, '') + '</option>'; }).join('') + '</select>' +
-                '<select id="sv-ask-scope" title="Your section — scopes answers, one tap to broaden" style="max-width:124px;font-family:inherit;font-size:0.72rem;font-weight:600;padding:5px 6px;border:1px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;">' + _scopeOptions(_getScopeName()) + '</select>' +
-                '<button class="sv-ask-clear" title="Clear session" aria-label="Clear session" style="background:none;border:none;color:var(--color-text-muted);cursor:pointer;padding:5px;display:inline-flex;border-radius:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
-                '<button class="sv-ask-close" title="Close (Esc)" aria-label="Close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
+                '<select id="sv-ask-period" class="sv-ask-ctl" title="Time window for answers">' + PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label.replace(/^Last /, '') + '</option>'; }).join('') + '</select>' +
+                '<select id="sv-ask-scope" class="sv-ask-ctl" title="Your section — scopes answers, one tap to broaden" style="max-width:124px;">' + _scopeOptions(_getScopeName()) + '</select>' +
+                '<button class="sv-ask-clear sv-ask-iconbtn-muted" title="Clear session" aria-label="Clear session"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
+                '<button class="sv-ask-close sv-ask-iconbtn-muted" title="Close (Esc)" aria-label="Close" style="font-size:22px;line-height:1;padding:0 4px;">&times;</button>' +
             '</div>' +
             '<div id="sv-ask-transcript" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px;">' + _introHtml + '</div>' +
             '<div style="flex:0 0 auto;padding:12px 14px;border-top:1px solid var(--color-border-primary);">' +
                 '<div id="sv-ask-suggest" style="display:none;flex-direction:column;gap:3px;margin-bottom:8px;max-height:184px;overflow-y:auto;overscroll-behavior:contain;"></div>' +
                 '<div style="display:flex;gap:8px;">' +
-                    '<input id="sv-ask-input" type="text" placeholder="Ask a question..." aria-label="Ask a question" autocomplete="off" style="flex:1;min-width:0;font-family:inherit;font-size:0.9rem;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);" />' +
-                    '<button id="sv-ask-mic" title="Ask by voice" aria-label="Ask by voice" style="display:none;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);color:var(--color-text-secondary);border-radius:9px;padding:0 11px;cursor:pointer;font-family:inherit;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>' +
-                    '<button id="sv-ask-go" style="background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;cursor:pointer;font-family:inherit;">Ask</button>' +
+                    '<input id="sv-ask-input" class="sv-ask-input" type="text" placeholder="Ask a question..." aria-label="Ask a question" autocomplete="off" />' +
+                    '<button id="sv-ask-mic" class="sv-ask-icon-btn" title="Ask by voice" aria-label="Ask by voice" style="display:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>' +
+                    '<button id="sv-ask-go" class="sv-ask-btn-primary">Ask</button>' +
                 '</div>' +
             '</div>';
         document.body.appendChild(panel);
@@ -3465,9 +3517,8 @@
             const intro = transcript.querySelector('.sv-ask-intro'); if (intro) intro.remove();
             const eid = 'sv-ask-e-' + (++_entryN);
             const entry = document.createElement('div');
-            entry.className = 'sv-ask-entry';
+            entry.className = 'sv-ask-entry';   // margin + fade-up entrance now live in the stylesheet
             entry.id = eid;
-            entry.style.cssText = 'margin-bottom:22px;';
             entry.innerHTML =
                 '<div style="display:flex;justify-content:flex-end;margin-bottom:9px;"><div style="background:var(--primary);color:#fff;font-size:0.82rem;font-weight:600;padding:7px 12px;border-radius:12px 12px 3px 12px;max-width:88%;word-break:break-word;">' + esc(q) + '</div></div>' +
                 '<div class="sv-ask-resp">' + _thinkingHtml('Thinking') + '</div>';
@@ -3516,7 +3567,7 @@
                 if (res.err) {
                     // Escape hatch (rule note): a scoped default that comes up empty shouldn't feel like a trap.
                     const _esc = (_sc.resolvedScope && !_sc.oneShot && _sticky)
-                        ? '<button class="sv-ask-chip" data-scope="site" data-q="' + esc(q) + '" style="margin-top:10px;font-size:0.72rem;padding:5px 11px;border-radius:20px;border:1px solid var(--primary);background:transparent;color:var(--primary);cursor:pointer;font-family:inherit;font-weight:600;">Check the whole site &rarr;</button>'
+                        ? '<button class="sv-ask-chip sv-ask-chip-accent" data-scope="site" data-q="' + esc(q) + '" style="margin-top:10px;">Check the whole site &rarr;</button>'
                         : '';
                     resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>' + _esc;
                     busy = false; return;
@@ -3587,7 +3638,7 @@
                         '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--color-border-primary);">' +
                         '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:8px;">Explore next</div>' +
                         '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
-                        _fups.map(function (fq) { return '<button class="sv-ask-chip sv-ask-follow" data-q="' + esc(fq) + '" style="font-size:0.72rem;padding:5px 11px;border-radius:20px;border:1px solid var(--primary);background:transparent;color:var(--primary);cursor:pointer;font-family:inherit;font-weight:600;">' + esc(fq) + ' &rarr;</button>'; }).join('') +
+                        _fups.map(function (fq) { return '<button class="sv-ask-chip sv-ask-chip-accent sv-ask-follow" data-q="' + esc(fq) + '">' + esc(fq) + ' &rarr;</button>'; }).join('') +
                         '</div></div>');
                 }
                 entry.scrollIntoView({ behavior: 'smooth', block: 'start' });
