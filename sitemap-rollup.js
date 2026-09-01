@@ -2908,11 +2908,13 @@
         if (dm) return { intent: 'digest' };
         const dm2 = /^(?:generate |create |show |give me |make )?(?:a |the |my )?(?:weekly |content )?digest (?:for|of) (.+?)\??$/i.exec(s);
         if (dm2 && dm2[1]) return { intent: 'briefing', category: dm2[1].trim() };
-        // "how is the X page doing/performing" / "page views for X" / "stats for the X page" -> page_summary
-        const psm = /^(?:how(?:'s| is| are)?|what(?:'s| is| are)?)\s+(?:the\s+)?(.+?)\s+page (?:doing|performing|going|getting on)\??$/i.exec(s)
-            || /^(?:page ?views|views|clicks|impressions|stats|metrics|performance|numbers) for (?:the )?(.+?)(?:\s+page)?\??$/i.exec(s)
-            || /^how many (?:page ?)?views (?:does|for) (?:the )?(.+?)(?:\s+page)?(?: get)?\??$/i.exec(s);
-        if (psm && psm[1]) return { intent: 'page_summary', page: psm[1].trim() };
+        // "how is the X page doing" / "page views for X" / "how many views has X page (this month)" -> page_summary
+        // Strip a trailing time expression first so it isn't captured as part of the page name.
+        const _psq = s.replace(/\b(?:in\s+)?(?:the\s+)?(?:this|last|past)\s+(?:week|month|quarter|year|\d+\s*(?:days?|weeks?|months?))\b/gi, '').replace(/\bin the last\b[^?]*/gi, '').replace(/\s+/g, ' ').trim();
+        const psm = /^(?:how's|how is|how are|what's|what is|what are)\s+(?:the\s+)?(.+?)\s+page(?:\s+(?:doing|performing|going|getting on|perform))?\??$/i.exec(_psq)
+            || /^(?:page ?views|views|clicks|impressions|traffic|stats|metrics|performance|numbers)\s+(?:for|on|of)\s+(?:the )?(.+?)(?:\s+page)?\??$/i.exec(_psq)
+            || /^how (?:many|much)\s+(?:page ?)?(?:views?|clicks?|impressions?|hits?|traffic)\s+(?:does|do|did|has|have|is|are|got)?\s*(?:the )?(.+?)(?:\s+page)?(?:\s+(?:get|gets|got|have|had|getting|receives?))?\??$/i.exec(_psq);
+        if (psm && psm[1]) { const _pg = psm[1].replace(/\s+page$/i, '').trim(); if (_pg && !/^from\b/i.test(_pg)) return { intent: 'page_summary', page: _pg }; }
         // "quick wins for X" / "what should X target" -> page_queries by potential
         const pmp = /^(?:quick wins for (?:the )?(.+?)(?:\s+page)?|what should (?:the )?(.+?)(?:\s+page)? target)\??$/i.exec(s);
         if (pmp && (pmp[1] || pmp[2])) return { intent: 'page_queries', page: (pmp[1] || pmp[2]).trim(), by_potential: true };
