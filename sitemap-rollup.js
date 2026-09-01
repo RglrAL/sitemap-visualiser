@@ -1339,6 +1339,16 @@
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
+    // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
+    // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
+    // splits red-fallers / teal-risers). Single-page focus (diagnose/page_summary) is a fast-follow.
+    function _toneFor(intent) {
+        if (intent === 'dead_pages') return 'grey';
+        if (intent === 'opportunities' || intent === 'top_pages' || intent === 'low_ctr' ||
+            intent === 'briefing' || intent === 'recently_updated') return 'teal';
+        return null;
+    }
+
     // Ask parse system prompt — STATIC (built once, so it caches on Groq and never varies per call).
     const _ASK_SYS_PROMPT = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","compare_periods","unknown"], ' +
@@ -3280,6 +3290,7 @@
 
         function closePanel() {
             document.removeEventListener('keydown', onKey);
+            try { if (window.askClearHighlight) window.askClearHighlight(); } catch (e) {}   // don't leave the tree glowing
             panel.style.transform = 'translateX(100%)';
             setTimeout(function () { panel.remove(); }, 220);
             if (_askFab) _askFab.style.display = '';   // bring the launcher back
@@ -3291,6 +3302,7 @@
         panel.querySelector('.sv-ask-close').addEventListener('click', closePanel);
         panel.querySelector('.sv-ask-clear').addEventListener('click', function () {
             for (const k in _exports) delete _exports[k];
+            try { if (window.askClearHighlight) window.askClearHighlight(); } catch (e) {}
             transcript.innerHTML = _buildIntro();
             input.focus();
         });
@@ -3510,6 +3522,23 @@
                     busy = false; return;
                 }
                 if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
+                // Light up the pages this answer concerns, ON the tree (one-way). Central + tone-by-
+                // intent, so no intent body needs to know the tree exists. Rows already carry `url`
+                // (or `bestPage` for query answers); movers splits by direction. Cleared each question.
+                try {
+                    if (window.askClearHighlight) window.askClearHighlight();
+                    const _rows = (res.data && res.data.rows) || [];
+                    let _hls = null;
+                    if (plan.intent === 'movers' && _rows.length) {
+                        const _pick = function (test) { return _rows.filter(test).map(function (x) { return x.url; }).filter(Boolean); };
+                        _hls = [{ tone: 'red', urls: _pick(function (x) { return (x.changePct || 0) < 0; }) },
+                                { tone: 'teal', urls: _pick(function (x) { return (x.changePct || 0) >= 0; }) }];
+                    } else {
+                        const _t = _toneFor(plan.intent);
+                        if (_t) { const _us = _rows.map(function (x) { return x.url || x.bestPage; }).filter(Boolean); if (_us.length) _hls = [{ tone: _t, urls: _us }]; }
+                    }
+                    if (_hls && window.askHighlight) _hls.forEach(function (h) { if (h.urls && h.urls.length) window.askHighlight(h.urls, h.tone); });
+                } catch (e) {}
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 // The chip shows the RESOLVED scope (rule 3), never the pill's — this is the honesty mechanism.
                 if (plan.categories && plan.categories.length) interpBits.push(plan.categories.join(' vs '));
