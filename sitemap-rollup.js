@@ -2266,12 +2266,12 @@
                 };
             }
             // Channel breakdown for a page / section / whole site.
-            let scopeLabel, pages;
+            let scopeLabel, pages, _pageObj = null;
             if (plan.page) {
                 const _res = _resolvePage(r, plan.page);
                 if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap.' };
                 if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
-                pages = [_res.page]; scopeLabel = _res.page.name;
+                pages = [_res.page]; scopeLabel = _res.page.name; _pageObj = _res.page;
             } else { const c = _catByName(cats, plan.category); pages = c ? catPages(c) : _allPages(r); scopeLabel = c ? c.name : 'the whole site'; }
             const tot = Object.create(null);
             pages.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rec = chMap.get(toPath(u)); if (rec) { for (const k in rec) tot[k] = (tot[k] || 0) + rec[k]; } }); });
@@ -2279,9 +2279,27 @@
             if (!entries.length) return { html: '', summary: '', err: 'No traffic-source data for ' + scopeLabel + ' in ' + periodLabel(_ddDays) + '.' };
             const total = entries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
             const items = entries.slice(0, limit).map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + Math.round(x.sess / total * 100) + '%)', bar: x.sess }; });
+            // For a single page, drill to the specific sources (per-page fetch carries them).
+            let srcLine = '', srcSummary = '', srcRows = [];
+            if (_pageObj && ga4 && typeof ga4.fetchData === 'function') {
+                try {
+                    const detail = await ga4.fetchData(_pageObj.url);
+                    const chans = (detail && detail.trafficSources && detail.trafficSources.channels) || [];
+                    const st = Object.create(null);
+                    chans.forEach(function (c) { (c.sources || []).forEach(function (sx) { st[sx.source] = (st[sx.source] || 0) + (sx.sessions || 0); }); });
+                    const clean = function (v) { v = String(v || ''); return v === '(direct)' ? 'Direct' : (v === '(not set)' || v === '(none)' || v === '') ? 'Unknown' : v; };
+                    const arr = Object.keys(st).map(function (k) { return { source: clean(k), sessions: st[k] }; }).filter(function (x) { return x.sessions > 0; }).sort(function (a, b) { return b.sessions - a.sessions; }).slice(0, 5);
+                    if (arr.length) {
+                        const stot = arr.reduce(function (s, x) { return s + x.sessions; }, 0) || 1;
+                        srcLine = '<div style="font-size:0.7rem;color:var(--color-text-secondary);margin-top:8px;"><strong>Top sources:</strong> ' + arr.map(function (x) { return esc(x.source) + ' ' + Math.round(x.sessions / stot * 100) + '%'; }).join(' &middot; ') + '</div>';
+                        srcSummary = ' Top sources: ' + arr.map(function (x) { return x.source + ' ' + Math.round(x.sessions / stot * 100) + '%'; }).join(', ') + '.';
+                        srcRows = arr;
+                    }
+                } catch (e) {}
+            }
             return {
-                html: _rankCard(items, { nameLabel: 'Channel', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">GA4 default channel grouping &middot; ' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + ').</div>',
-                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 5).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.',
+                html: _rankCard(items, { nameLabel: 'Channel', valueLabel: 'Sessions' }) + srcLine + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">GA4 default channel grouping &middot; ' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + ').</div>',
+                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 5).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.' + srcSummary,
                 data: { columns: [{ key: 'channel', label: 'Channel' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { channel: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'channel', y: 'sessions', label: 'Sessions' } }
             };
         }
