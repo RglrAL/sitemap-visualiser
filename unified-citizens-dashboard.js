@@ -5376,12 +5376,39 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                 </div>
             </div>
             
+            <!-- How people find this page (traffic channels — GA4) -->
+            ${createTrafficSourcesCard(ga4Data)}
+
             <!-- AI Overview Impact Analysis Section -->
             ${createAIOverviewImpactSection(gscData, url, dashboardId)}
-            
+
         </div>
     `;
 }
+
+    // Acquisition card for the Overview tab: where this page's visitors actually come from.
+    // GSC (the card above) only counts organic search; this shows the full channel mix. Uses
+    // ga4Data.trafficSources.channels, already computed by the GA4 fetch — no extra request.
+    function createTrafficSourcesCard(ga4Data) {
+        const channels = (ga4Data && ga4Data.trafficSources && ga4Data.trafficSources.channels) || [];
+        if (!channels.length) return '';
+        const total = channels.reduce(function (s, c) { return s + (c.sessions || 0); }, 0) || 1;
+        const top = channels.slice(0, 6);
+        const rows = top.map(function (c) {
+            const pct = c.sessions / total * 100;
+            return '<div style="display:flex;align-items:center;gap:12px;padding:7px 0;">' +
+                '<span style="flex:0 0 148px;font-size:0.85rem;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + String(c.channel || 'Unassigned') + '</span>' +
+                '<span style="flex:1;min-width:40px;height:8px;background:var(--color-bg-tertiary);border-radius:4px;overflow:hidden;"><span style="display:block;height:100%;width:' + Math.min(100, pct).toFixed(0) + '%;background:var(--primary);"></span></span>' +
+                '<span style="flex:0 0 96px;text-align:right;font-size:0.82rem;font-weight:700;color:var(--color-text-primary);">' + formatNumber(c.sessions) + ' &middot; ' + pct.toFixed(0) + '%</span>' +
+            '</div>';
+        }).join('');
+        const topPct = (top[0].sessions / total * 100).toFixed(0);
+        return '<div class="overview-card" style="margin:0 auto 20px auto;padding:18px 20px;">' +
+            '<div class="card-header" style="margin-bottom:6px;"><div class="card-title">How people find this page</div></div>' +
+            '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:14px;line-height:1.5;">Most visitors arrive via <strong>' + String(top[0].channel || 'Unassigned') + '</strong> (' + topPct + '%). <span style="color:var(--color-text-muted);">Search Performance above counts organic search only — this is every channel (GA4).</span></div>' +
+            rows +
+        '</div>';
+    }
 
     function createSearchPerformancePanel(gscData, gscTrends, pageUrl) {
     if (!gscData || gscData.noDataFound) {
