@@ -143,8 +143,16 @@
     }
 
     // ── the core walk (post-order): O(n), one pass ──
+    let _builtSig = null;
     function build(tree, opts) {
         opts = opts || {};
+        // Cache invalidation: every period-keyed cache below is module-scoped and survives a
+        // sitemap swap. Without this, loading CI then MABS would serve CI's cached data against
+        // MABS's tree — wrong numbers, no error, and the interpretation chip would vouch for them.
+        // If the sitemap root changed since the last build, wipe them all. (Same tree re-built =
+        // a refresh; caches are kept.)
+        const _sig = String((tree && (tree.url || tree.name)) || '') + '|' + ((tree && (tree.children || tree._children) || []).length);
+        if (_sig !== _builtSig) { _builtSig = _sig; try { clearCaches(); } catch (e) {} }
         const statsFor = opts.statsFor || statsForUrl;
         const byUrl = Object.create(null);
 
@@ -820,7 +828,7 @@
             ? '<div style="display:flex;flex-direction:column;gap:6px;">' + findings.map(function (f) { return '<button class="sv-ask-chip" data-q="' + esc(f.q) + '" style="text-align:left;display:flex;gap:9px;align-items:flex-start;font-size:0.8rem;padding:9px 11px;border-radius:9px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;line-height:1.4;"><span style="flex-shrink:0;font-size:0.9rem;">' + f.icon + '</span><span>' + esc(f.text) + '</span></button>'; }).join('') + '</div>'
             : '<div style="font-size:0.82rem;color:var(--color-text-secondary);margin-bottom:6px;">Nothing jumps out' + (scopeName ? ' in ' + esc(scopeName) : '') + ' right now — ask a question below to dig in.</div>';
         const pickHint = !scopeName ? '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:11px;">Owner of a section? <button class="sv-ask-scope-open" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;font-size:0.68rem;">Pick your section</button> to make this yours.</div>' : '';
-        const more = '<button class="sv-ask-help" style="margin-top:12px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">Browse all you can ask</button>';
+        const more = '<button class="sv-ask-help" style="margin-top:12px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">See what you can ask</button>';
         return '<div class="sv-ask-intro">' + head + body + pickHint + more + '</div>';
     }
     function ensureDDStyle() {
@@ -1329,6 +1337,37 @@
     function _mval(s, m) { return m === 'ctr' ? s.ctr : (m === 'position' ? (s.position == null ? 999 : s.position) : (s[m] || 0)); }
     function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
+    // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
+    const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
+    // Ask parse system prompt — STATIC (built once, so it caches on Groq and never varies per call).
+    const _ASK_SYS_PROMPT = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","compare_periods","unknown"], ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
+                    '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
+                    '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
+                    'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
+                    'most viewed->top_pages metric pageViews; low CTR / seen but not clicked->low_ctr; out of date / old->stale; how is X doing->section_summary; ' +
+                    'which sections perform best / rank the sections / best and worst sections / which sections get the most traffic / section league table->rank_categories; ' +
+                    'how is the whole site doing / overall / site-wide totals / the big picture / how are we doing overall->site_summary; ' +
+                    'compare X and Y / X versus Y / how does X compare to Y (side by side, current period)->compare with categories [X,Y] (use trend only if they explicitly say over time/history); ' +
+                    'opportunities / quick wins / missing out / losing clicks / could win more->opportunities; ' +
+                    'what do people search for / search terms / top searches / queries / keywords->top_queries (metric clicks only if they say clicks); ' +
+                    'from abroad / overseas / internationally / the diaspora / emigrants / people outside Ireland->international_queries with country null; ' +
+                    'from a named place / what does X search us for / what do people in X search for (the US / Australia / Britain / Mexico)->international_queries with country set to that country name; ' +
+                    'which countries / where are searchers from / top countries->top_countries; ' +
+                    'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); trend of X vs Y / compare X and Y over time->trend with categories [X,Y]; ' +
+                    'what PAGES are trending / which pages are rising or growing or gaining or climbing / top rising pages / biggest movers / which pages are up or down / what pages are moving in X->movers (page-level; direction up for trending/rising/growing, down for falling/dropping, both otherwise; category optional). IMPORTANT: trend draws ONE line over time for a whole section/site; use movers when the user asks WHICH PAGES changed (e.g. "what pages are trending in Environment" is movers, NOT trend); reserve trend for "over time / history / trended / month by month". ' +
+                    'why is X underperforming / why is X down / why is the X page underperforming / what is wrong with X / diagnose X / why is X not getting clicks->diagnose with page set to X (the page named, even a long multi-word name); ' +
+                    'what questions do people ask / what are people asking / question searches / common questions->questions (category optional); ' +
+                    'Irish vs English / as Gaeilge / language gap / where does the Irish version underperform / English vs Irish->language_gap; ' +
+                    'cannibalisation / cannibalization / pages competing / competing pages / self-competition / multiple pages ranking for the same search->cannibalisation (category optional); ' +
+                    'what should I focus on / what should I work on / my priorities / where should I focus / where do I start / what needs attention / section briefing / triage->briefing (category optional). Prefer briefing when the user asks what to DO; prefer section_summary when they ask how a section is DOING; ' +
+                    'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
+                    'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
+                    'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "what is the capital of France"->{"intent":"unknown"}.';
+    // Integrity check (cheap insurance): a corrupted/truncated prompt breaks routing silently.
+    try { if (_ASK_SYS_PROMPT.length < 8000 || _ASK_SYS_PROMPT.indexOf('never force the closest match') < 0) { if (typeof console !== 'undefined') console.error('[SVRollup] Ask system prompt looks truncated/corrupted (' + _ASK_SYS_PROMPT.length + ' chars) - routing will be unreliable.'); } } catch (e) {}
 
     function _rankCard(items, opts) {
         opts = opts || {};
@@ -2408,13 +2447,18 @@
             let older = pa0, newer = pb0;
             if ((pa0.offset || 0) < (pb0.offset || 0)) { older = pb0; newer = pa0; }
             let page = null, catNode = null, scopeLabel;
-            if (plan.page) {
+            // Scope resolution. quickParse can't tell a section from a page by syntax, so a section
+            // name ("compare Health…") lands in `page`. Prefer an exact SECTION match first, then
+            // resolve as a page — otherwise a section-scoped period comparison would dead-end on
+            // "I could not find that page" (the intent used to error on _resolvePage .none here).
+            const _scopeTerm = plan.page || plan.category;
+            if (_scopeTerm && _catByName(cats, _scopeTerm)) { catNode = _catByName(cats, _scopeTerm); scopeLabel = catNode.name; }
+            else if (plan.page) {
                 const _res = _resolvePage(r, plan.page);
-                if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap.' };
                 if (_res.candidates) return { html: _disambig('compare_periods', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
+                if (_res.none) return { html: '', summary: '', err: 'I could not find a page or section called "' + plan.page + '". Name it as it appears in the sitemap.' };
                 page = _res.page; scopeLabel = page.name;
-            } else if (plan.category && _catByName(cats, plan.category)) { catNode = _catByName(cats, plan.category); scopeLabel = catNode.name; }
-            else scopeLabel = 'the whole site';
+            } else scopeLabel = 'the whole site';
             let mo, mn;
             try { mo = await fetchTrendWindow(window.treeData, older.days, older.offset); mn = await fetchTrendWindow(window.treeData, newer.days, newer.offset); }
             catch (e) { return { html: '', summary: '', err: 'Could not fetch the two periods: ' + (e && e.message ? e.message : String(e)) }; }
@@ -2918,9 +2962,9 @@
         const A = cc[0], B = cc[1], C = cc[2], P0 = ll[0], P1 = ll[1];
         const JOBS = [
             { t: 'Triage — what needs attention', items: ['What should I focus on in ' + A + '?', 'Which ' + A + ' pages lost traffic?', 'Pages with high impressions but low clicks', 'What is stale in ' + A + '?', 'Which pages get no search traffic?', 'Which pages do people leave quickly?', 'Any pages competing for the same search?'] },
-            { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What questions do people ask?', 'Where do visitors to ' + A + ' come from?', 'How much traffic comes from AI?', 'Is AI traffic growing?', 'What do people abroad search us for?'] },
+            { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What do people search for in ' + A + '?', 'What questions do people ask?', 'Where do visitors to ' + A + ' come from?', 'How much traffic comes from AI?', 'Is AI traffic growing?', 'What do people abroad search us for?', 'Which countries search us the most?'] },
             { t: 'Improve — fix a page', items: ['Why is the ' + P0 + ' page underperforming?', 'How is the ' + P1 + ' page performing?', 'What queries bring people to the ' + P0 + ' page?', 'Where does traffic to the ' + P0 + ' page come from?', 'Quick wins for the ' + P0 + ' page', 'Where does the Irish version underperform?'] },
-            { t: 'Verify — did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B] },
+            { t: 'Verify — did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B, 'Compare ' + A + ': this month vs last month'] },
             { t: 'Report — roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which sections get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
         ];
         const grp = function (j) {
@@ -2935,7 +2979,7 @@
             '<input id="sv-ask-pal-search" type="text" placeholder="Filter capabilities…" autocomplete="off" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:0.82rem;padding:8px 11px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);margin-bottom:14px;" />' +
             '<div class="sv-pal-body">' + JOBS.map(grp).join('') + '</div>' +
             '<div class="sv-pal-empty" style="display:none;font-size:0.8rem;color:var(--color-text-muted);">No preset matches — just type your question in the box below; I understand plain English.</div>' +
-            '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;line-height:1.5;">Tip: name a country, a page, a section or a time window (“this week”, “last 90 days”), or ask by voice.</div>' +
+            '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;line-height:1.5;">These are <b>examples</b> spanning what the tool can do — you’re not limited to them. Phrase questions in your own words, and name a country, a page, a section or a time window (“this week”, “last 90 days”). You can also ask by voice.</div>' +
             '</div>';
     }
 
@@ -3201,6 +3245,25 @@
         const transcript = panel.querySelector('#sv-ask-transcript');
         const _exports = Object.create(null);
         let _entryN = 0;
+        // Session-memory cap. _exports (rows/markdown/chart data per answer) and the transcript DOM
+        // (charts, tables, SVGs) grow unboundedly until "clear" or close — a 40-question morning
+        // would eventually feel it, and per house rule that "panel got slow" report arrives with NO
+        // console error. Past ~30 answers, collapse the oldest to just its headline: free its export
+        // record and swap its heavy body for the one-liner. Cheap, and history stays readable.
+        function _capHistory() {
+            const CAP = 30;
+            const entries = transcript.querySelectorAll('.sv-ask-entry');
+            const excess = entries.length - CAP;
+            for (let i = 0; i < excess; i++) {
+                const old = entries[i];
+                if (old.getAttribute('data-collapsed')) continue;
+                if (old.id && _exports[old.id]) delete _exports[old.id];
+                const resp = old.querySelector('.sv-ask-resp');
+                const one = old.querySelector('.sv-ask-oneliner');
+                if (resp) resp.innerHTML = one ? one.outerHTML : '<div style="font-size:0.72rem;color:var(--color-text-muted);font-style:italic;">(earlier answer collapsed to save memory)</div>';
+                old.setAttribute('data-collapsed', '1');
+            }
+        }
         let _forceSite = false;   // set by the "check whole site" escape chip; consumed once by ask()
 
         // Scope pill: persist the owner's section and re-render the hero (only while the intro shows).
@@ -3397,6 +3460,7 @@
                 '<div style="display:flex;justify-content:flex-end;margin-bottom:9px;"><div style="background:var(--primary);color:#fff;font-size:0.82rem;font-weight:600;padding:7px 12px;border-radius:12px 12px 3px 12px;max-width:88%;word-break:break-word;">' + esc(q) + '</div></div>' +
                 '<div class="sv-ask-resp">' + _thinkingHtml('Thinking') + '</div>';
             transcript.appendChild(entry);
+            _capHistory();                                  // collapse oldest answers past the cap
             const resp = entry.querySelector('.sv-ask-resp');
             entry.scrollIntoView({ behavior: 'smooth', block: 'start' });
             const _savedDD = _ddDays;                       // honour a per-question window, then restore
@@ -3405,38 +3469,16 @@
             try {
                 const r = await refreshForPeriod(tree, _ddDays).catch(function () { return build(tree); });
                 const catNames = r.categories.map(function (c) { return c.name; });
-                const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
-                    'Sections available: ' + catNames.join(', ') + '. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","compare_periods","unknown"], ' +
-                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "channel": a traffic source word (paid|organic|direct|referral|social|email) for traffic_sources when they ask which pages a source drives (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
-                    '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
-                    '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
-                    'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
-                    'most viewed->top_pages metric pageViews; low CTR / seen but not clicked->low_ctr; out of date / old->stale; how is X doing->section_summary; ' +
-                    'which sections perform best / rank the sections / best and worst sections / which sections get the most traffic / section league table->rank_categories; ' +
-                    'how is the whole site doing / overall / site-wide totals / the big picture / how are we doing overall->site_summary; ' +
-                    'compare X and Y / X versus Y / how does X compare to Y (side by side, current period)->compare with categories [X,Y] (use trend only if they explicitly say over time/history); ' +
-                    'opportunities / quick wins / missing out / losing clicks / could win more->opportunities; ' +
-                    'what do people search for / search terms / top searches / queries / keywords->top_queries (metric clicks only if they say clicks); ' +
-                    'from abroad / overseas / internationally / the diaspora / emigrants / people outside Ireland->international_queries with country null; ' +
-                    'from a named place / what does X search us for / what do people in X search for (the US / Australia / Britain / Mexico)->international_queries with country set to that country name; ' +
-                    'which countries / where are searchers from / top countries->top_countries; ' +
-                    'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); trend of X vs Y / compare X and Y over time->trend with categories [X,Y]; ' +
-                    'what PAGES are trending / which pages are rising or growing or gaining or climbing / top rising pages / biggest movers / which pages are up or down / what pages are moving in X->movers (page-level; direction up for trending/rising/growing, down for falling/dropping, both otherwise; category optional). IMPORTANT: trend draws ONE line over time for a whole section/site; use movers when the user asks WHICH PAGES changed (e.g. "what pages are trending in Environment" is movers, NOT trend); reserve trend for "over time / history / trended / month by month". ' +
-                    'why is X underperforming / why is X down / why is the X page underperforming / what is wrong with X / diagnose X / why is X not getting clicks->diagnose with page set to X (the page named, even a long multi-word name); ' +
-                    'what questions do people ask / what are people asking / question searches / common questions->questions (category optional); ' +
-                    'Irish vs English / as Gaeilge / language gap / where does the Irish version underperform / English vs Irish->language_gap; ' +
-                    'cannibalisation / cannibalization / pages competing / competing pages / self-competition / multiple pages ranking for the same search->cannibalisation (category optional); ' +
-                    'what should I focus on / what should I work on / my priorities / where should I focus / where do I start / what needs attention / section briefing / triage->briefing (category optional). Prefer briefing when the user asks what to DO; prefer section_summary when they ask how a section is DOING; ' +
-                    'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
-                    'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
-                    'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year).';
+                // Prompt-caching: keep the system prompt 100% STATIC (identical every request) so Groq
+                // caches this ~3k-token prefix — cached tokens don't count toward rate limits. The
+                // per-session section list is dynamic, so it goes in the USER message (the tail), NOT here.
+                const sys = _ASK_SYS_PROMPT;
                 // Deterministic parser FIRST — only fall back to the LLM (a Groq call) when it
                 // can't handle the phrasing. Cuts ~1 Groq call per question for common queries.
                 let plan = _quickParse(q);
                 if (!plan) {
-                    const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
+                    const _usr = 'Sections available: ' + catNames.join(', ') + '.\nQuestion: ' + q;
+                    const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: _usr }], { temperature: 0, max_tokens: 200, response_format: { type: 'json_object' } });
                     try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 }
                 if (!plan) plan = { intent: 'unknown' };
@@ -3467,7 +3509,6 @@
                     resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>' + _esc;
                     busy = false; return;
                 }
-                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
                 if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 // The chip shows the RESOLVED scope (rule 3), never the pill's — this is the honesty mechanism.
@@ -3549,8 +3590,105 @@
         document.body.appendChild(b);
     }
 
+    // Wipe every period-keyed cache. Called automatically on sitemap swap (see build's signature
+    // guard) and exposed as SVRollup.clearCaches() for manual use. Also nudges the GSC/GA4 modules'
+    // own caches so a new site never inherits the old site's fetched maps.
+    function clearCaches() {
+        [_priorCache, _queryCache, _priorQueryCache, _countryQueryCache, _sourcesCache, _trendCache]
+            .forEach(function (c) { for (const k in c) delete c[k]; });
+        try { if (window.GSCIntegration && window.GSCIntegration.clearCache) window.GSCIntegration.clearCache(); } catch (e) {}
+        try { if (window.GA4Integration && window.GA4Integration.clearCache) window.GA4Integration.clearCache(); } catch (e) {}
+    }
+
+    // Golden ROUTING test for the deterministic parser (_quickParse). The parser is ~135 lines of
+    // ordered regexes and precedence is its failure mode: a new pattern above an old one silently
+    // steals matches. selfTest() covers the maths; this covers the routing, in the same headless
+    // harness. Each case: {q, intent, page?, category?}; intent:null means "must DEFER to the LLM"
+    // (quickParse returns null). page/category are case-insensitive substring checks (robust to the
+    // parser's " page" trimming). Coverage: every asserted intent must exist in the _ILBL registry,
+    // so you can't route to an intent the rest of the system doesn't know about.
+    function selfTestRouting() {
+        const R = [
+            // triage
+            { q: 'what should I focus on in Health', intent: 'briefing', category: 'health' },
+            { q: 'which pages get no search traffic', intent: 'dead_pages' },
+            { q: 'which pages do people leave quickly', intent: 'abandoned' },
+            { q: 'what is stale in Employment', intent: null },                 // stale -> LLM
+            { q: 'any pages competing for the same search', intent: null },
+            { q: 'generate a weekly digest', intent: 'digest' },
+            // discover
+            { q: 'what content should we create', intent: 'content_gaps' },
+            { q: "what's newly trending in search", intent: 'emerging' },
+            { q: 'what do people abroad search us for', intent: null },
+            { q: 'what does the US search us for', intent: 'international_queries' },
+            // top_pages metric inference
+            { q: 'most viewed pages in money and tax', intent: 'top_pages' },
+            { q: 'most clicked pages in Housing', intent: 'top_pages' },
+            { q: 'top pages in Health', intent: 'top_pages', category: 'health' },
+            // page-level (assert the extracted page name)
+            { q: 'how many views has capital gains tax page this month', intent: 'page_summary', page: 'capital gains tax' },
+            { q: 'why is the Fuel Allowance page underperforming', intent: 'diagnose', page: 'fuel allowance' },
+            { q: 'how is the Medical Card page performing', intent: 'page_summary', page: 'medical card' },
+            // movers vs trend (the classic confusion)
+            { q: 'what pages are trending in Environment', intent: 'movers' },
+            { q: 'which pages lost traffic', intent: 'movers' },
+            { q: 'how has Health trended', intent: null },                      // trend -> LLM
+            { q: 'which sections are declining', intent: 'section_movers' },
+            // traffic sources / AI — assert the SOURCE slot (extraction is the fragile bit)
+            { q: 'how much traffic from askci', intent: 'traffic_sources', source: 'askci' },
+            { q: 'how much traffic from AI', intent: 'traffic_sources', source: 'AI' },
+            { q: 'which pages does ChatGPT send', intent: 'traffic_sources', source: 'ChatGPT' },
+            { q: 'is AI traffic growing', intent: 'traffic_sources', source: 'AI' },
+            { q: 'how many to the medical card page from askci', intent: 'traffic_sources', source: 'askci', page: 'medical card' },
+            { q: 'traffic sources in Health', intent: 'traffic_sources', category: 'health' },
+            // seasonal / recently updated
+            { q: 'is the recent drop seasonal', intent: 'seasonal' },
+            { q: 'what pages were updated recently', intent: 'recently_updated' },
+            { q: 'pages updated in the last 30 days in Health', intent: 'recently_updated', category: 'health' },
+            // compare_periods — assert the scope slot. quickParse can't tell a section from a page by
+            // syntax, so a section name lands in `page` ("Health"); the intent reconciles that to a
+            // category downstream (see the compare_periods branch). This case pins the parse so the
+            // reconciliation stays honest.
+            { q: 'compare traffic to Voting In A Referendum page from q1 and q2', intent: 'compare_periods', page: 'Voting In A Referendum' },
+            { q: 'compare Health from this month and last month', intent: 'compare_periods', page: 'Health' },
+            // must DEFER to the LLM (quickParse deliberately null)
+            { q: 'what is the capital of France', intent: null },
+            { q: 'compare Health and Housing', intent: null },                  // section compare -> LLM
+            { q: 'how are we doing overall', intent: null },                    // site_summary -> LLM
+            { q: 'what do people search for in Health', intent: null }          // top_queries -> LLM (no hijack)
+        ];
+        const results = [];
+        let passed = 0;
+        function inc(s, sub) { return String(s == null ? '' : s).toLowerCase().indexOf(String(sub).toLowerCase()) >= 0; }
+        R.forEach(function (c) {
+            let p = null, err = null;
+            try { p = _quickParse(c.q); } catch (e) { err = String(e); }
+            let ok, why = '';
+            if (c.intent === null) {
+                ok = (p == null); if (!ok) why = 'should defer';
+            } else {
+                ok = !!p && p.intent === c.intent; if (!ok) why = 'intent';
+                // Slot assertions (subset): only the slots a case names are checked, via
+                // case-insensitive substring. This is where quickParse's regexes are most fragile
+                // ("the Fuel" vs "Fuel Allowance", a section name landing in the page slot) — and
+                // intent-only assertions would sail green straight through every one of them.
+                ['page', 'category', 'source'].forEach(function (slot) {
+                    if (ok && c[slot] != null && !inc(p[slot], c[slot])) { ok = false; why = slot + '="' + (p ? p[slot] : '') + '" (want "' + c[slot] + '")'; }
+                });
+            }
+            if (ok) passed++;
+            results.push({ name: c.q, ok: ok, expect: c.intent, got: err ? ('ERR ' + err) : (p ? p.intent : null), why: ok ? '' : why });
+        });
+        // Coverage: no case may route to an intent the _ILBL registry doesn't know.
+        R.forEach(function (c) {
+            if (c.intent && !(c.intent in _ILBL)) results.push({ name: 'coverage: ' + c.q, ok: false, note: 'intent "' + c.intent + '" not in _ILBL' });
+        });
+        return { passed: results.every(function (r) { return r.ok; }), matched: passed, total: R.length, results: results };
+    }
+
     window.SVRollup = {
         build: build,
+        clearCaches: clearCaches,
         statsForUrl: statsForUrl,
         prefetchGA4: prefetchGA4,
         prefetchGSC: prefetchGSC,
@@ -3560,6 +3698,7 @@
         showAsk: showAsk,
         showDeepDive: showDeepDive,
         selfTest: selfTest,
+        selfTestRouting: selfTestRouting,
         _normUrl: normUrl,
         countryName: _countryName,
         ctrBenchmark: _ctrBenchmark,
