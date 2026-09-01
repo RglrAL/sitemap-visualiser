@@ -835,7 +835,15 @@
             '@media(max-width:720px){.sv-dd-grid{grid-template-columns:1fr;}}',
             '.sv-dd-page{cursor:pointer;border-radius:5px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;}',
             '.sv-dd-page:hover{background:var(--color-bg-tertiary);}',
-            '@keyframes sv-bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}'
+            '@keyframes sv-bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}',
+            // Chart entrances — base state is the FINAL state (so PNG export, which doesn\'t run these, stays correct).
+            '@keyframes sv-draw{from{stroke-dashoffset:3000}to{stroke-dashoffset:0}}',
+            '@keyframes sv-fadein{from{opacity:0}to{opacity:1}}',
+            '@keyframes sv-growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}',
+            '.sv-chart svg .sv-cline{stroke-dasharray:3000;animation:sv-draw .85s cubic-bezier(.22,.61,.36,1);}',
+            '.sv-chart svg .sv-carea{animation:sv-fadein .7s ease .15s both;}',
+            '.sv-chart svg .sv-cdot{animation:sv-fadein .01s linear both;}',
+            '.sv-chart .sv-cbar{transform-box:fill-box;transform-origin:left center;animation:sv-growx .55s cubic-bezier(.22,.61,.36,1) both;}'
         ].join('');
         document.head.appendChild(st);
     }
@@ -1320,7 +1328,7 @@
     function _allPages(r) { const out = []; r.categories.forEach(function (c) { catPages(c).forEach(function (p) { out.push(p); }); }); return out; }
     function _mval(s, m) { return m === 'ctr' ? s.ctr : (m === 'position' ? (s.position == null ? 999 : s.position) : (s[m] || 0)); }
     function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
-    const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users' };
+    const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
 
     function _rankCard(items, opts) {
         opts = opts || {};
@@ -1626,11 +1634,12 @@
         const tog = hasVisual ? ('<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;margin-bottom:14px;">' +
             '<button class="sv-xc-view" data-mode="chart" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">' + (isMap ? 'Map' : 'Chart') + '</button>' +
             '<button class="sv-xc-view" data-mode="table" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 13px;border:none;border-radius:5px;cursor:pointer;background:transparent;color:var(--color-text-secondary);">Table</button></div>') : '';
+        const mtog = (data && data.metricViews && data.availableMetrics && data.availableMetrics.length > 1) ? ('<div style="display:inline-flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;margin-bottom:14px;margin-left:8px;">' + data.availableMetrics.map(function (m) { return '<button class="sv-xc-metric" data-metric="' + m + '" style="font:inherit;font-size:0.72rem;font-weight:600;padding:4px 12px;border:none;border-radius:5px;cursor:pointer;background:' + (m === data.metric ? 'var(--primary)' : 'transparent') + ';color:' + (m === data.metric ? '#fff' : 'var(--color-text-secondary)') + ';">' + _MLABEL[m] + '</button>'; }).join('') + '</div>') : '';
         const visualHtml = isMap ? _worldMapFromRows(data.rows, { big: true }) : (hasChart ? _renderChart(data, { w: 900, h: 460, big: true }) : '');
         box.innerHTML =
             '<button class="sv-xc-close" aria-label="Close" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">&times;</button>' +
             (title ? '<div style="font-weight:700;font-size:0.98rem;margin-bottom:12px;color:var(--color-text-heading);padding-right:24px;">' + esc(title) + '</div>' : '') +
-            tog +
+            tog + mtog +
             (hasVisual ? ('<div class="sv-xc-chart">' + visualHtml + '</div>') : '') +
             '<div class="sv-xc-tbl"' + (hasVisual ? ' style="display:none;"' : '') + '>' + _dataTable(data, { big: true }) + '</div>' +
             '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">' +
@@ -1644,6 +1653,17 @@
         const pngBtn = box.querySelector('.sv-xc-png'); if (pngBtn) pngBtn.addEventListener('click', function () { const svg = box.querySelector('.sv-xc-chart svg'); if (svg) _svgToPng(svg, (isMap ? 'map-' : 'chart-') + _todayStr() + '.png', 2); });
         box.querySelector('.sv-xc-csv').addEventListener('click', function () { _download('ask-' + _todayStr() + '.csv', _toCSV(data), 'text/csv'); });
         box.addEventListener('click', function (e) {
+            const mb = e.target.closest ? e.target.closest('.sv-xc-metric') : null;
+            if (mb) {
+                const m = mb.getAttribute('data-metric'), mv = data.metricViews && data.metricViews[m];
+                if (mv) {
+                    data.columns = mv.columns; data.rows = mv.rows; data.chart = mv.chart; data.metric = m; if (mv.series) data.series = mv.series;
+                    const ch2 = box.querySelector('.sv-xc-chart'); if (ch2) ch2.innerHTML = (_renderChart(data, { w: 900, h: 460, big: true }) || '');
+                    const tb2 = box.querySelector('.sv-xc-tbl'); if (tb2) tb2.innerHTML = _dataTable(data, { big: true });
+                    Array.prototype.forEach.call(box.querySelectorAll('.sv-xc-metric'), function (x) { const on = x.getAttribute('data-metric') === m; x.style.background = on ? 'var(--primary)' : 'transparent'; x.style.color = on ? '#fff' : 'var(--color-text-secondary)'; });
+                }
+                return;
+            }
             const b = e.target.closest ? e.target.closest('.sv-xc-view') : null; if (!b) return;
             const mode = b.getAttribute('data-mode');
             const ch = box.querySelector('.sv-xc-chart'), tb = box.querySelector('.sv-xc-tbl');
@@ -1653,7 +1673,21 @@
         });
     }
 
-    // Line chart: single or multi-series ({periods:[...], series:[{name,values:[...]}]}), gridlines, hover.
+    let _chartUid = 0;
+    // Catmull-Rom -> cubic-bezier smoothing so lines read as smooth curves, not jagged polylines.
+    function _smoothPath(pts) {
+        if (!pts.length) return '';
+        if (pts.length < 3) return 'M' + pts.map(function (p) { return p[0] + ' ' + p[1]; }).join(' L');
+        let d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1); const t = 0.16;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+            const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = p1[1] + (p2[1] - p0[1]) * t;
+            const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = p2[1] - (p3[1] - p1[1]) * t;
+            d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+        }
+        return d;
+    }
+    // Line chart: single or multi-series, smooth curves, gradient area fill, animated draw-in, hover.
     function _chartLine(data, opts) {
         opts = opts || {};
         let periods, series;
@@ -1663,24 +1697,33 @@
         const W = opts.w || 420, H = opts.h || (opts.big ? 420 : 152), padL = opts.big ? 46 : 36, padR = 12, padT = series.length > 1 ? 20 : 14, padB = 24;
         const colors = ['var(--primary)', '#d97706', '#7c3aed'];
         let maxV = 1; series.forEach(function (s) { (s.values || []).forEach(function (v) { if ((Number(v) || 0) > maxV) maxV = Number(v) || 0; }); });
-        const n = periods.length;
+        maxV = maxV * 1.08;   // headroom so the peak isn't jammed against the top
+        const n = periods.length, uid = 'g' + (++_chartUid), baseY = H - padB;
         const x = function (i) { return padL + (n === 1 ? 0 : (i / (n - 1)) * (W - padL - padR)); };
         const y = function (v) { return padT + (1 - (Number(v) || 0) / maxV) * (H - padT - padB); };
         let grid = ''; const ticks = 3;
-        for (let t = 0; t <= ticks; t++) { const gv = maxV * t / ticks, gy = y(gv); grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--color-border-primary)" stroke-width="1" opacity="0.45"/><text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + fmt(gv) + '</text>'; }
+        for (let t = 0; t <= ticks; t++) { const gv = maxV * t / ticks, gy = y(gv); grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--color-border-primary)" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"/><text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + fmt(gv) + '</text>'; }
         let xl = ''; periods.forEach(function (p, i) { xl += '<text x="' + x(i) + '" y="' + (H - 6) + '" font-size="8" text-anchor="middle" fill="var(--color-text-muted)">' + esc(p) + '</text>'; });
-        let lines = '';
+        let defs = '', areas = '', lines = '', dots = '';
         series.forEach(function (s, si) {
             const col = colors[si % colors.length];
-            const pts = (s.values || []).map(function (v, i) { return x(i) + ',' + y(v); }).join(' ');
-            lines += '<polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-            (s.values || []).forEach(function (v, i) { const tip = esc((s.name ? s.name + ' - ' : '') + periods[i] + ': ' + fmt(v)); lines += '<circle class="sv-tipel" data-tip="' + tip + '" cx="' + x(i) + '" cy="' + y(v) + '" r="11" fill="transparent" style="cursor:pointer;"/>' + '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="' + (opts.big ? 4 : 3) + '" fill="' + col + '" style="pointer-events:none;"/>'; });
+            const pts = (s.values || []).map(function (v, i) { return [x(i), y(v)]; });
+            const d = _smoothPath(pts);
+            if (series.length === 1) {   // area fill only for a single series (avoids muddy overlap)
+                defs += '<linearGradient id="' + uid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + col + '" stop-opacity="0.26"/><stop offset="1" stop-color="' + col + '" stop-opacity="0"/></linearGradient>';
+                areas += '<path class="sv-carea" d="' + d + ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + baseY + ' L' + pts[0][0].toFixed(1) + ' ' + baseY + ' Z" fill="url(#' + uid + ')" stroke="none"/>';
+            }
+            lines += '<path class="sv-cline" d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + (opts.big ? 2.6 : 2.2) + '" stroke-linejoin="round" stroke-linecap="round" style="animation-delay:' + (si * 0.12).toFixed(2) + 's;"/>';
+            (s.values || []).forEach(function (v, i) {
+                const cx = x(i), cy = y(v), tv = (s.raw ? s.raw[i] : v), tip = esc((s.name ? s.name + ' - ' : '') + periods[i] + ': ' + fmt(tv)), r = opts.big ? 4 : 3.2;
+                dots += '<circle class="sv-tipel" data-tip="' + tip + '" cx="' + cx + '" cy="' + cy + '" r="11" fill="transparent" style="cursor:pointer;"/>' +
+                    '<circle class="sv-cdot" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="var(--color-bg-primary)" stroke="' + col + '" stroke-width="2" style="pointer-events:none;animation-delay:' + (0.5 + i * 0.06).toFixed(2) + 's;"/>';
+            });
         });
         let legend = '';
         if (series.length > 1) { let lx = padL; series.forEach(function (s, si) { const col = colors[si % colors.length]; legend += '<rect x="' + lx + '" y="2" width="9" height="9" rx="2" fill="' + col + '"/><text x="' + (lx + 12) + '" y="10" font-size="9" fill="var(--color-text-secondary)">' + esc(s.name) + '</text>'; lx += 12 + Math.min(120, String(s.name).length * 6) + 18; }); }
-        // Metric caption (top-right) so the y-axis numbers are labelled, e.g. "views".
         const cap = (data.chart && data.chart.label) ? '<text x="' + (W - padR) + '" y="9" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + esc(data.chart.label) + '</text>' : '';
-        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);">' + grid + lines + xl + legend + cap + '</svg>';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);"><defs>' + defs + '</defs>' + grid + areas + lines + dots + xl + legend + cap + '</svg>';
     }
 
     // Diverging horizontal bars (movers): green right / red left from a centre axis.
@@ -1706,7 +1749,7 @@
                 '<rect x="0" y="' + y + '" width="' + W + '" height="' + rowH + '" fill="transparent"/>' +
                 '<text x="0" y="' + (midY + 3) + '" font-size="' + fsz + '" fill="var(--color-text-primary)" font-weight="600">' + esc(_svTrunc(r.page, maxChars)) + '</text>' +
                 '<line x1="' + cx + '" y1="' + (y + 3) + '" x2="' + cx + '" y2="' + (y + rowH - 3) + '" stroke="var(--color-border-primary)" stroke-width="1"/>' +
-                '<rect x="' + barX + '" y="' + (midY - 5) + '" width="' + Math.max(0, w) + '" height="10" rx="2" fill="' + col + '"/>' +
+                '<rect class="sv-cbar" style="animation-delay:' + (i * 0.045).toFixed(2) + 's;" x="' + barX + '" y="' + (midY - 5) + '" width="' + Math.max(0, w) + '" height="10" rx="2.5" fill="' + col + '"/>' +
                 '<text x="' + W + '" y="' + (midY + 3) + '" font-size="' + fsz + '" text-anchor="end" fill="' + col + '" font-weight="700">' + valTxt + '</text>' +
                 '</g>';
         });
@@ -2035,6 +2078,23 @@
                 return { body: _renderChart({ periods: periods, series: ser, chart: chart }), columns: cols, rows: rws, chart: chart, series: ser };
             };
             const metricViews = {}; avail.forEach(function (m) { metricViews[m] = viewFor(m); });
+            // Indexed overlay: all metrics on ONE chart, each scaled to its own 0-100 so you compare
+            // SHAPES (raw scales differ wildly). Single-target only; tooltips still show real values.
+            if (targets.length === 1 && avail.length >= 2) {
+                const ovSeries = avail.map(function (m) {
+                    const vals = metricViews[m].series[0].values;
+                    const mx = Math.max.apply(null, vals.concat([1]));
+                    return { name: _MLABEL[m], values: vals.map(function (v) { return mx > 0 ? Math.round(v / mx * 1000) / 10 : 0; }), raw: vals };
+                });
+                const ovChart = { type: 'line', label: 'indexed 0–100 (each metric to its own peak)' };
+                metricViews.__overlay = {
+                    body: _renderChart({ periods: periods, series: ovSeries, chart: ovChart }),
+                    columns: [{ key: 'period', label: 'Period' }].concat(avail.map(function (m) { return { key: m, label: _MLABEL[m] }; })),
+                    rows: periods.map(function (p, i) { const row = { period: p }; avail.forEach(function (m) { row[m] = metricViews[m].series[0].values[i]; }); return row; }),
+                    chart: ovChart, series: ovSeries
+                };
+                avail.push('__overlay');
+            }
             const cur = metricViews[curMetric];
             const summaryParts = cur.series.map(function (s) { const f = s.values[0], l = s.values[s.values.length - 1], chg = f > 0 ? Math.round((l - f) / f * 100) : null; return s.name + ' ' + fmt(f) + '->' + fmt(l) + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '%)' : ''); });
             return {
