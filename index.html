@@ -4080,6 +4080,27 @@ body.dark-theme .legend-item {
     opacity: 1;
 }
 
+/* Ask-your-data → tree highlight (one-way: an answer lights up the pages it concerns).
+   Set by window.askHighlight(urls, tone), cleared by askClearHighlight(). Reuses @keyframes pulse. */
+.node.ask-fade circle { opacity: 0.16; transition: opacity 0.3s ease; }
+.node.ask-fade text   { opacity: 0.22; transition: opacity 0.3s ease; }
+.node.ask-hl-teal circle {
+    stroke: #007cb6 !important; stroke-width: 3px !important;
+    filter: drop-shadow(0 0 7px rgba(0,124,182,0.95));
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.node.ask-hl-red circle {
+    stroke: #dc2626 !important; stroke-width: 3px !important;
+    filter: drop-shadow(0 0 7px rgba(220,38,38,0.95));
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.node.ask-hl-grey circle {
+    stroke: #9ca3af !important; stroke-width: 1.5px !important;
+    fill: #d1d5db !important; opacity: 0.55; filter: grayscale(1);
+}
+.node.ask-hl-teal text, .node.ask-hl-red text { font-weight: 700; opacity: 1; }
+.node.ask-hl-grey text { opacity: 0.6; }
+
 
 
 /* Remove top spacing in dashboard view */
@@ -8079,6 +8100,45 @@ function clearLegendHighlights() {
     g.selectAll('path.link')
         .style('opacity', null);
 }
+
+// ── Ask-your-data → tree highlight (one-way) ──────────────────────────────────
+// An answer lights up the pages/sections it concerns, ON the tree — the moment the
+// panel and the diagram stop being two tools and become one. v1: 2D SVG only.
+// Collapsed branches: a match buried under a collapsed node glows the nearest VISIBLE
+// ancestor, so a section still visibly "holds" the answer instead of lighting nothing.
+function _askSubtreeHasUrl(dataNode, set, norm) {
+    if (!dataNode) return false;
+    if (dataNode.url && set[norm(dataNode.url)]) return true;
+    const kids = dataNode.children || dataNode._children;   // this tree collapses via data._children too
+    if (kids) for (let i = 0; i < kids.length; i++) if (_askSubtreeHasUrl(kids[i], set, norm)) return true;
+    return false;
+}
+// Add one tone layer. Additive by design: callers clear ONCE (askClearHighlight) then may
+// call this more than once (e.g. movers: red for fallers, teal for risers) without the second
+// call re-fading the first's highlights.
+window.askHighlight = function (urls, tone) {
+    if (typeof is3DViewActive !== 'undefined' && is3DViewActive) return;   // v1: 2D only
+    if (!g || !urls || !urls.length) return;
+    const cls  = tone === 'red' ? 'ask-hl-red' : tone === 'grey' ? 'ask-hl-grey' : 'ask-hl-teal';
+    const norm = (window.SVRollup && window.SVRollup._normUrl) ? window.SVRollup._normUrl : function (u) { return u; };
+    const set  = {}; urls.forEach(function (u) { if (u) set[norm(u)] = 1; });
+    g.selectAll('g.node').each(function (d) {
+        const el = d3.select(this);
+        if (el.classed('ask-hl-teal') || el.classed('ask-hl-red') || el.classed('ask-hl-grey')) return;  // keep a prior tone
+        const direct    = d.data && d.data.url && set[norm(d.data.url)];
+        const structural = d.data && (d.data.children || d.data._children);
+        const collapsed = !d.children && structural;                          // rendered node hiding a subtree
+        const covers    = !direct && collapsed && _askSubtreeHasUrl(d.data, set, norm);
+        if (direct || covers) el.classed('ask-fade', false).classed(cls, true);
+        else if (!el.classed('ask-fade')) el.classed('ask-fade', true);
+    });
+    g.selectAll('path.link').style('opacity', 0.12);
+};
+window.askClearHighlight = function () {
+    if (!g) return;
+    g.selectAll('g.node').classed('ask-fade ask-hl-teal ask-hl-red ask-hl-grey', false);
+    g.selectAll('path.link').style('opacity', null);
+};
 
 // Toggle permanent highlight (optional feature)
 window.permanentHighlight = null;
