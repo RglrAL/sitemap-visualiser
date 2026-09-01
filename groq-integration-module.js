@@ -146,6 +146,7 @@
     async function _rawComplete(messages, options, overrideKey) {
         const key    = overrideKey || _apiKey;
         const signal = options && options.signal;
+        const retried = options && options._retried;
         const payload = {
             model:       (options && options.model)       || _model,
             messages,
@@ -170,7 +171,15 @@
             throw new Error('Network error: ' + networkErr.message);
         }
 
-        if (!response.ok) _handleHttpError(response.status);
+        if (!response.ok) {
+            // Rate limit: wait once and retry before surfacing it — most 429s are transient.
+            if (response.status === 429 && !retried && !signal) {
+                await new Promise(function (r) { setTimeout(r, 1600); });
+                const opts2 = {}; for (const k in options) opts2[k] = options[k]; opts2._retried = true;
+                return _rawComplete(messages, opts2, overrideKey);
+            }
+            _handleHttpError(response.status);
+        }
 
         const json = await response.json();
         return json.choices[0].message.content;
