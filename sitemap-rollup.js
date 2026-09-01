@@ -708,10 +708,14 @@
         return null;
     }
     // The tool has no traffic-source (paid/organic/social) split yet. If the question asks for
-    // one, say so honestly rather than letting the figures read as if they were that segment.
-    function _segmentNote(q) {
+    // one, say so honestly. BUT don't fire on a word that's part of a section/page NAME — e.g.
+    // "social" in "Social Welfare", "direct" in "Direct Provision", "paid" in "Paid leave".
+    function _segmentNote(q, names) {
         const m = /\b(paid|organic|direct|referral|social|email|cpc)\b/i.exec(String(q || ''));
-        return m ? ('Note: this tool doesn’t split traffic by source yet, so the figures below are ALL traffic — not just ' + m[1].toLowerCase() + '.') : '';
+        if (!m) return '';
+        const w = m[1].toLowerCase();
+        if ((names || []).some(function (n) { return String(n || '').toLowerCase().indexOf(w) > -1; })) return '';   // it's a section/page name, not a source
+        return 'Note: this tool doesn’t split traffic by source yet, so the figures below are ALL traffic — not just ' + w + '.';
     }
 
     // ── Category scope (for category owners) ──────────────────────────────────────────
@@ -727,7 +731,19 @@
         return String(host || t.name || 'default').toLowerCase().replace(/[^a-z0-9.-]/g, '');
     }
     function _scopeKey() { return 'sv:askScope:' + _scopeRootId(); }
-    function _scopeCatNames() { try { return pickCategories(window.treeData || {}).map(function (c) { return c.name; }).filter(Boolean); } catch (e) { return []; } }
+    // Deduped by the SAME key build() merges categories with (trim+lowercase), so the pill lists
+    // each section once — matching r.categories — instead of the raw /en/ + /ga/ copies.
+    function _scopeCatNames() {
+        try {
+            const seen = Object.create(null), out = [];
+            pickCategories(window.treeData || {}).forEach(function (c) {
+                const n = c && c.name; if (!n) return;
+                const k = String(n).trim().toLowerCase();
+                if (!seen[k]) { seen[k] = 1; out.push(n); }
+            });
+            return out;
+        } catch (e) { return []; }
+    }
     // Read + VALIDATE against the current sitemap's sections (rule 4); stale/removed -> whole site.
     function _getScopeName() {
         let v = '';
@@ -1177,6 +1193,21 @@
             .then(function (rows) { if (!rows || !rows.length) delete _countryQueryCache[days]; return rows || []; })
             .catch(function (e) { delete _countryQueryCache[days]; throw e; });
         return _countryQueryCache[days];
+    }
+    // Channel-by-page (GA4): sessions per pagePath x channel, cached per period. null when the
+    // GA4 module lacks fetchChannelsByPage (not redeployed) or isn't connected.
+    const _channelCache = {};   // days -> Promise<Map<path,{channel:sessions}>>
+    function getChannelsByPage(days) {
+        days = days || 30;
+        if (_channelCache[days]) return _channelCache[days];
+        const ga4 = window.GA4Integration;
+        if (!ga4 || !ga4.isConnected || !ga4.isConnected() || typeof ga4.fetchChannelsByPage !== 'function') {
+            return Promise.resolve(null);
+        }
+        _channelCache[days] = ga4.fetchChannelsByPage({ days: days })
+            .then(function (m) { if (!m || !m.size) delete _channelCache[days]; return m && m.size ? m : null; })
+            .catch(function (e) { delete _channelCache[days]; throw e; });
+        return _channelCache[days];
     }
     // Reuse SVGeoMap's world bubble map to visualise search DEMAND by country (bubbles
     // sized by GSC impressions instead of GA4 users). Self-inits via <img onload> so it
@@ -2206,6 +2237,54 @@
                 data: { columns: [{ key: 'page', label: 'Page' }, { key: 'updated', label: 'Updated' }, { key: 'daysAgo', label: 'Days ago' }, { key: 'impressions', label: 'Impressions' }, { key: 'priorImpressions', label: 'Prior impr' }, { key: 'changePct', label: 'Change %' }, { key: 'clicks', label: 'Clicks' }, { key: 'section', label: 'Section' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, updated: x.lm || '', daysAgo: Math.round(x.age), impressions: x.impr, priorImpressions: x.prior, changePct: x.chg != null ? +x.chg.toFixed(1) : null, clicks: x.clicks, section: x.section, url: x.url }; }), chart: (withData.length ? { type: 'diverging', x: 'page', y: 'changePct' } : { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }) }
             };
         }
+        if (intent === 'traffic_sources') {
+            let chMap;
+            try { chMap = await getChannelsByPage(_ddDays); }
+            catch (e) { return { html: '', summary: '', err: 'Could not fetch traffic-source data: ' + (e && e.message ? e.message : String(e)) }; }
+            if (chMap == null) {
+                const ga = window.GA4Integration, on = ga && ga.isConnected && ga.isConnected();
+                return { html: '', summary: '', err: on ? 'Traffic-source data needs the updated GA4 module. Redeploy standalone-ga4-integration.js (it must include fetchChannelsByPage) and hard-refresh.' : 'Traffic-source answers need a GA4 connection.' };
+            }
+            if (!chMap.size) return { html: '', summary: '', err: 'No traffic-source data came back for ' + periodLabel(_ddDays) + '.' };
+            const ga4 = window.GA4Integration;
+            const toPath = (ga4 && typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
+            const chanWord = plan.channel ? String(plan.channel).toLowerCase() : null;
+            // "which pages does {channel} drive" — rank pages by that channel's sessions.
+            if (chanWord && !plan.page) {
+                const c = _catByName(cats, plan.category);
+                const pages = c ? catPages(c) : _allPages(r);
+                const rows = pages.map(function (p) {
+                    let sess = 0; (p.urls || [p.url]).forEach(function (u) { const rec = chMap.get(toPath(u)); if (rec) { for (const k in rec) if (k.toLowerCase().indexOf(chanWord) > -1) sess += rec[k]; } });
+                    return { name: p.name, url: p.url, sess: sess };
+                }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; }).slice(0, limit);
+                if (!rows.length) return { html: '', summary: '', err: 'No pages' + (c ? ' in ' + c.name : '') + ' get meaningful ' + chanWord + ' traffic in ' + periodLabel(_ddDays) + '.' };
+                const items = rows.map(function (x) { return { name: x.name, val: fmt(x.sess), bar: x.sess, url: x.url }; });
+                return {
+                    html: _rankCard(items, { nameLabel: 'Page', valueLabel: chanWord + ' sessions' }),
+                    summary: 'Pages ' + chanWord + ' traffic drives most' + (c ? ' in ' + c.name : '') + ' (' + periodLabel(_ddDays) + '): ' + rows.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
+                    data: { columns: [{ key: 'page', label: 'Page' }, { key: 'sessions', label: chanWord + ' sessions' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, sessions: x.sess, url: x.url }; }), chart: { type: 'bar', x: 'page', y: 'sessions', label: chanWord + ' sessions' } }
+                };
+            }
+            // Channel breakdown for a page / section / whole site.
+            let scopeLabel, pages;
+            if (plan.page) {
+                const _res = _resolvePage(r, plan.page);
+                if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap.' };
+                if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
+                pages = [_res.page]; scopeLabel = _res.page.name;
+            } else { const c = _catByName(cats, plan.category); pages = c ? catPages(c) : _allPages(r); scopeLabel = c ? c.name : 'the whole site'; }
+            const tot = Object.create(null);
+            pages.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rec = chMap.get(toPath(u)); if (rec) { for (const k in rec) tot[k] = (tot[k] || 0) + rec[k]; } }); });
+            const entries = Object.keys(tot).map(function (k) { return { channel: k, sess: tot[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
+            if (!entries.length) return { html: '', summary: '', err: 'No traffic-source data for ' + scopeLabel + ' in ' + periodLabel(_ddDays) + '.' };
+            const total = entries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
+            const items = entries.slice(0, limit).map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + Math.round(x.sess / total * 100) + '%)', bar: x.sess }; });
+            return {
+                html: _rankCard(items, { nameLabel: 'Channel', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">GA4 default channel grouping &middot; ' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + ').</div>',
+                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 5).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.',
+                data: { columns: [{ key: 'channel', label: 'Channel' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { channel: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'channel', y: 'sessions', label: 'Sessions' } }
+            };
+        }
         if (intent === 'abandoned') {
             const hasEng = r.totals.engagementRate != null || (r.totals.sessions || 0) > 0;
             if (!hasEng) return { html: '', summary: '', err: 'Engagement answers need GA4 with engagement metrics (sessions + engagement rate). Connect GA4 and refresh.' };
@@ -2487,8 +2566,12 @@
                 add('What is stale' + (cat ? ' in ' + cat : '') + '?'); add('What should I focus on' + (cat ? ' in ' + cat : '') + '?');
                 break;
             case 'abandoned':
-                if (topRow && topRow.page) { add('How is the ' + topRow.page + ' page performing?'); add('Why is the ' + topRow.page + ' page underperforming?'); }
+                if (topRow && topRow.page) { add('How is the ' + topRow.page + ' page performing?'); add('Where does traffic to the ' + topRow.page + ' page come from?'); }
                 add('What should I focus on' + (cat ? ' in ' + cat : '') + '?');
+                break;
+            case 'traffic_sources':
+                if (plan.page) add('How is the ' + plan.page + ' page performing?');
+                add('Where are our biggest search opportunities?'); add('What should I focus on' + (cat ? ' in ' + cat : '') + '?');
                 break;
             case 'seasonal':
                 add('How has ' + (plan.category || plan.page || 'the site') + ' trended?');
@@ -2548,21 +2631,44 @@
     function _shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
     function _pickChips() { return _shuffle(_askPool().map(function (g) { return g[Math.floor(Math.random() * g.length)]; })); }
     function _chipBtns(list) { return list.map(function (q) { return '<button class="sv-ask-chip" data-q="' + esc(q) + '" style="font-size:0.72rem;padding:5px 10px;border-radius:20px;border:1px solid var(--color-border-primary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join(''); }
-    // Categorised "What can I ask?" guide - example chips are live (clickable to run).
-    function _helpGuideHtml() {
-        const cc = _exampleCats(3), ll = _exampleLeaves(3);
-        const A = cc[0], B = cc[1], C = cc[2], P0 = ll[0], P1 = ll[1], P2 = ll[2];
-        const grp = function (title, items) { return '<div style="margin-bottom:11px;"><div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">' + title + '</div><div style="display:flex;flex-wrap:wrap;gap:5px;">' + _chipBtns(items) + '</div></div>'; };
-        return '<div style="font-size:0.9rem;font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">What you can ask</div>' +
-            grp('Overview', ['How is the whole site doing?', 'How is ' + A + ' doing?', 'Which sections get the most traffic?']) +
-            grp('Priorities & digest', ['What should I focus on in ' + A + '?', 'Generate a weekly digest']) +
-            grp('Opportunities & content', ['Where are our biggest search opportunities?', 'What content should we create?', 'What questions do people ask?', 'What do people search for in ' + A + '?']) +
-            grp('Pages', ['Top pages in ' + A, 'Pages with high impressions but low clicks', 'How is the ' + P0 + ' page performing?', 'What queries bring people to the ' + P1 + ' page?', 'Why is the ' + P2 + ' page underperforming?']) +
-            grp('Recently updated', ['How are pages we updated in the last 90 days doing?', 'What pages were updated recently?', 'Pages updated in the last 30 days in ' + A]) +
-            grp('Health checks', ['Which ' + B + ' pages lost traffic?', 'Which sections are declining?', 'What is stale in ' + C + '?', 'Which pages get no search traffic?', 'Which pages do people find but leave quickly?', 'Any pages competing for the same search?']) +
-            grp('Geography & Irish', ['What do people abroad search us for?', 'Which countries search us the most?', 'Where does the Irish version underperform?']) +
-            grp('Trends & seasonality', ["What's newly trending in search?", 'How has ' + A + ' trended?', 'Is the recent change in ' + A + ' seasonal?', 'Compare ' + A + ' and ' + B]) +
-            '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:8px;line-height:1.5;">Power tips: name a country ("what does the US search us for?"), ask "quick wins for [page]", say "biggest risers" or "trend of ' + A + ' vs ' + B + '", or add "by clicks / by views". Every answer can be shown as a Chart or Table, exported (CSV / brief / PNG) and Expanded; the period selector changes the window; and you can ask by voice with the mic.</div>';
+    // In-context discovery: rank the (scope-aware) example pool against what the user is typing.
+    function _suggestPool() { const seen = {}, out = []; _askPool().forEach(function (g) { g.forEach(function (q) { const k = q.toLowerCase(); if (!seen[k]) { seen[k] = 1; out.push(q); } }); }); return out; }
+    function _suggest(q) {
+        const s = String(q || '').trim().toLowerCase();
+        if (s.length < 2) return [];
+        const words = s.split(/\s+/).filter(Boolean);
+        return _suggestPool().map(function (cand) {
+            const lc = cand.toLowerCase(); let score = 0;
+            if (lc.indexOf(s) === 0) score = 4; else if (lc.indexOf(s) > -1) score = 3; else if (words.every(function (w) { return lc.indexOf(w) > -1; })) score = 2;
+            return { cand: cand, score: score };
+        }).filter(function (x) { return x.score > 0; }).sort(function (a, b) { return b.score - a.score || a.cand.length - b.cand.length; }).slice(0, 6).map(function (x) { return x.cand; });
+    }
+    // Searchable command palette grouped by the content-creator JOBS (Triage/Discover/Improve/
+    // Verify/Report). Example names come from the loaded sitemap. Live-filtered by _wirePalette.
+    function _paletteHtml() {
+        const cc = _exampleCats(3), ll = _exampleLeaves(2);
+        const A = cc[0], B = cc[1], C = cc[2], P0 = ll[0], P1 = ll[1];
+        const JOBS = [
+            { t: 'Triage — what needs attention', items: ['What should I focus on in ' + A + '?', 'Which ' + A + ' pages lost traffic?', 'Pages with high impressions but low clicks', 'What is stale in ' + A + '?', 'Which pages get no search traffic?', 'Which pages do people leave quickly?', 'Any pages competing for the same search?'] },
+            { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What questions do people ask?', 'What do people search for in ' + A + '?', 'Where do visitors to ' + A + ' come from?', 'What do people abroad search us for?', 'Which countries search us the most?'] },
+            { t: 'Improve — fix a page', items: ['Why is the ' + P0 + ' page underperforming?', 'How is the ' + P1 + ' page performing?', 'What queries bring people to the ' + P0 + ' page?', 'Where does traffic to the ' + P0 + ' page come from?', 'Quick wins for the ' + P0 + ' page', 'Where does the Irish version underperform?'] },
+            { t: 'Verify — did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B] },
+            { t: 'Report — roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which sections get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
+        ];
+        const grp = function (j) {
+            return '<div class="sv-pal-group" style="margin-bottom:13px;">' +
+                '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:6px;">' + esc(j.t) + '</div>' +
+                '<div style="display:flex;flex-direction:column;gap:4px;">' +
+                j.items.map(function (q) { return '<button class="sv-ask-chip sv-pal-item" data-q="' + esc(q) + '" style="text-align:left;font-size:0.8rem;padding:7px 10px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;">' + esc(q) + '</button>'; }).join('') +
+                '</div></div>';
+        };
+        return '<div class="sv-ask-palette">' +
+            '<div style="font-size:0.9rem;font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">What you can ask</div>' +
+            '<input id="sv-ask-pal-search" type="text" placeholder="Filter capabilities…" autocomplete="off" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:0.82rem;padding:8px 11px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);margin-bottom:14px;" />' +
+            '<div class="sv-pal-body">' + JOBS.map(grp).join('') + '</div>' +
+            '<div class="sv-pal-empty" style="display:none;font-size:0.8rem;color:var(--color-text-muted);">No preset matches — just type your question in the box below; I understand plain English.</div>' +
+            '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;line-height:1.5;">Tip: name a country, a page, a section or a time window (“this week”, “last 90 days”), or ask by voice.</div>' +
+            '</div>';
     }
 
     // ── export helpers (CSV + AI brief) — consume the runIntent data contract ──
@@ -2662,6 +2768,18 @@
                 return { intent: 'movers', category: _im ? _im[1].trim() : null, direction: _dir };
             }
         }
+        // "which pages does social/paid/... drive" or "where does traffic come from" -> traffic_sources
+        {
+            const _chan = /\bpages?\b/.test(s) ? /\b(paid|organic|direct|referral|social|email)\b/i.exec(s) : null;
+            if (_chan && /\b(?:drive|drives|driving|bring|brings|sends?|send)\b/i.test(s)) {
+                const _im = / (?:in|for) (.+?)\??$/i.exec(s);
+                return { intent: 'traffic_sources', channel: _chan[1].toLowerCase(), category: _im ? _im[1].trim() : null };
+            }
+            if (/\btraffic sources?\b|\bchannel breakdown\b|\bwhich channels?\b|\bwhere (?:do|does) (?:my |our |the )?(?:visitors?|traffic|people) (?:come from|arrive|land)\b/i.test(s)) {
+                const _im = / (?:in|for) (.+?)\??$/i.exec(s);
+                return { intent: 'traffic_sources', category: _im ? _im[1].trim() : null };
+            }
+        }
         // "is this normal / seasonal / vs last year" -> seasonal
         if (/\bseasonal\b|\bis (?:this|that|it) normal\b|\bvs\.? last year\b|\bversus last year\b|\bto last year\b|\bagainst last year\b|\bcompared? to last year\b|\bsame (?:time|period) last year\b|\byear[- ]on[- ]year\b|\byoy\b/i.test(s)) {
             const _s1 = / (?:in|for) (.+?)\??$/i.exec(s);
@@ -2749,14 +2867,16 @@
                     '<div style="font-size:1.05rem;font-weight:700;color:var(--color-text-heading);">Ask your data</div>' +
                     '<div style="font-size:0.66rem;color:var(--color-text-muted);">AI phrases &middot; code computes &middot; real GSC/GA4</div>' +
                 '</div>' +
-                '<select id="sv-ask-scope" title="Your section — scopes answers, one tap to broaden" style="max-width:132px;font-family:inherit;font-size:0.72rem;font-weight:600;padding:5px 6px;border:1px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;">' + _scopeOptions(_getScopeName()) + '</select>' +
+                '<select id="sv-ask-period" title="Time window for answers" style="font-family:inherit;font-size:0.72rem;font-weight:600;padding:5px 4px;border:1px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;">' + PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label.replace(/^Last /, '') + '</option>'; }).join('') + '</select>' +
+                '<select id="sv-ask-scope" title="Your section — scopes answers, one tap to broaden" style="max-width:124px;font-family:inherit;font-size:0.72rem;font-weight:600;padding:5px 6px;border:1px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;">' + _scopeOptions(_getScopeName()) + '</select>' +
                 '<button class="sv-ask-clear" title="Clear session" aria-label="Clear session" style="background:none;border:none;color:var(--color-text-muted);cursor:pointer;padding:5px;display:inline-flex;border-radius:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
                 '<button class="sv-ask-close" title="Close (Esc)" aria-label="Close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;padding:0 4px;">&times;</button>' +
             '</div>' +
             '<div id="sv-ask-transcript" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px;">' + _introHtml + '</div>' +
             '<div style="flex:0 0 auto;padding:12px 14px;border-top:1px solid var(--color-border-primary);">' +
+                '<div id="sv-ask-suggest" style="display:none;flex-direction:column;gap:3px;margin-bottom:8px;max-height:184px;overflow-y:auto;overscroll-behavior:contain;"></div>' +
                 '<div style="display:flex;gap:8px;">' +
-                    '<input id="sv-ask-input" type="text" placeholder="Ask a question..." aria-label="Ask a question" style="flex:1;min-width:0;font-family:inherit;font-size:0.9rem;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);" />' +
+                    '<input id="sv-ask-input" type="text" placeholder="Ask a question..." aria-label="Ask a question" autocomplete="off" style="flex:1;min-width:0;font-family:inherit;font-size:0.9rem;padding:10px 12px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);" />' +
                     '<button id="sv-ask-mic" title="Ask by voice" aria-label="Ask by voice" style="display:none;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);color:var(--color-text-secondary);border-radius:9px;padding:0 11px;cursor:pointer;font-family:inherit;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>' +
                     '<button id="sv-ask-go" style="background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;cursor:pointer;font-family:inherit;">Ask</button>' +
                 '</div>' +
@@ -2779,6 +2899,10 @@
             const intro = transcript.querySelector('.sv-ask-intro');
             if (intro) transcript.innerHTML = _buildIntro();
         });
+        // Period pill: sets the base window for subsequent questions (a typed "this week" still
+        // overrides per-question). No fetch here — the next question fetches for the new window.
+        const _perSel = panel.querySelector('#sv-ask-period');
+        if (_perSel) _perSel.addEventListener('change', function () { const d = parseInt(this.value, 10); if (d) _ddDays = d; });
 
         function closePanel() {
             document.removeEventListener('keydown', onKey);
@@ -2803,6 +2927,8 @@
         panel.addEventListener('mousemove', _chartTipMove);
         panel.addEventListener('mouseleave', _chartTipHide);
         panel.addEventListener('click', function (e) {
+            const more = e.target.closest('.sv-ask-more');
+            if (more) { const box = transcript.querySelector('.sv-ask-actions[data-eid="' + more.getAttribute('data-eid') + '"]'); if (box) { const open = box.style.display !== 'none'; box.style.display = open ? 'none' : 'flex'; more.setAttribute('aria-expanded', open ? 'false' : 'true'); more.style.background = open ? 'var(--color-bg-primary)' : 'var(--color-bg-tertiary)'; } return; }
             const ecsv = e.target.closest('.sv-ask-export-csv');
             if (ecsv) { const ex = _exports[ecsv.getAttribute('data-eid')]; if (ex) _download('ask-' + _slug(ex.q) + '-' + _todayStr() + '.csv', _toCSV(ex.data), 'text/csv'); return; }
             const ebrief = e.target.closest('.sv-ask-export-brief');
@@ -2828,7 +2954,25 @@
                 return;
             }
             const help = e.target.closest('.sv-ask-help');
-            if (help) { const _in = transcript.querySelector('.sv-ask-intro'); if (_in) _in.remove(); const _d = document.createElement('div'); _d.style.cssText = 'margin-bottom:18px;'; _d.innerHTML = _helpGuideHtml(); transcript.appendChild(_d); _d.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+            if (help) {
+                const _in = transcript.querySelector('.sv-ask-intro'); if (_in) _in.remove();
+                const _d = document.createElement('div'); _d.style.cssText = 'margin-bottom:18px;'; _d.innerHTML = _paletteHtml(); transcript.appendChild(_d);
+                const ps = _d.querySelector('#sv-ask-pal-search');
+                if (ps) {
+                    ps.addEventListener('input', function () {
+                        const term = this.value.trim().toLowerCase(); let any = false;
+                        Array.prototype.forEach.call(_d.querySelectorAll('.sv-pal-group'), function (g) {
+                            let gv = false;
+                            Array.prototype.forEach.call(g.querySelectorAll('.sv-pal-item'), function (it) { const show = !term || it.textContent.toLowerCase().indexOf(term) > -1; it.style.display = show ? '' : 'none'; if (show) gv = true; });
+                            g.style.display = gv ? '' : 'none'; if (gv) any = true;
+                        });
+                        const emp = _d.querySelector('.sv-pal-empty'); if (emp) emp.style.display = any ? 'none' : 'block';
+                    });
+                    setTimeout(function () { try { ps.focus(); } catch (_e) {} }, 50);
+                }
+                _d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
             const scopeOpen = e.target.closest('.sv-ask-scope-open');
             if (scopeOpen) { if (_scopeSel) { try { _scopeSel.focus(); } catch (_e) {} } return; }
             const chip = e.target.closest('.sv-ask-chip');
@@ -2854,8 +2998,28 @@
             if (row) { e.preventDefault(); row.click(); }
         });
 
-        panel.querySelector('#sv-ask-go').addEventListener('click', ask);
-        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') ask(); });
+        panel.querySelector('#sv-ask-go').addEventListener('click', function () { _hideSuggest(); ask(); });
+        // ── Typeahead: suggest matching questions as the user types ──
+        const suggestBox = panel.querySelector('#sv-ask-suggest');
+        let _sugItems = [], _sugIdx = -1;
+        function _highlightSug() { Array.prototype.forEach.call(suggestBox.children, function (el, i) { el.style.background = i === _sugIdx ? 'var(--color-bg-tertiary)' : 'var(--color-bg-primary)'; }); }
+        function _hideSuggest() { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; _sugItems = []; _sugIdx = -1; }
+        function _renderSuggest() {
+            _sugItems = _suggest(input.value); _sugIdx = -1;
+            if (!_sugItems.length) { _hideSuggest(); return; }
+            suggestBox.innerHTML = _sugItems.map(function (qq) { return '<button class="sv-ask-sug" data-q="' + esc(qq) + '" style="text-align:left;font-size:0.8rem;padding:7px 10px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-primary);cursor:pointer;font-family:inherit;">' + esc(qq) + '</button>'; }).join('');
+            suggestBox.style.display = 'flex';
+        }
+        input.addEventListener('input', _renderSuggest);
+        input.addEventListener('blur', function () { setTimeout(_hideSuggest, 150); });
+        input.addEventListener('keydown', function (e) {
+            const open = suggestBox.style.display !== 'none' && _sugItems.length;
+            if (open && e.key === 'ArrowDown') { e.preventDefault(); _sugIdx = (_sugIdx + 1) % _sugItems.length; _highlightSug(); return; }
+            if (open && e.key === 'ArrowUp') { e.preventDefault(); _sugIdx = (_sugIdx - 1 + _sugItems.length) % _sugItems.length; _highlightSug(); return; }
+            if (open && e.key === 'Escape') { e.preventDefault(); _hideSuggest(); return; }
+            if (e.key === 'Enter') { if (open && _sugIdx >= 0) { input.value = _sugItems[_sugIdx]; } _hideSuggest(); ask(); }
+        });
+        suggestBox.addEventListener('click', function (e) { const b = e.target.closest('.sv-ask-sug'); if (b) { input.value = b.getAttribute('data-q'); _hideSuggest(); ask(); } });
         // Voice input via the Web Speech API — feature-detected; the mic stays hidden otherwise.
         const _mic = panel.querySelector('#sv-ask-mic');
         const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2901,7 +3065,7 @@
             const entry = document.createElement('div');
             entry.className = 'sv-ask-entry';
             entry.id = eid;
-            entry.style.cssText = 'margin-bottom:18px;';
+            entry.style.cssText = 'margin-bottom:22px;';
             entry.innerHTML =
                 '<div style="display:flex;justify-content:flex-end;margin-bottom:9px;"><div style="background:var(--primary);color:#fff;font-size:0.82rem;font-weight:600;padding:7px 12px;border-radius:12px 12px 3px 12px;max-width:88%;word-break:break-word;">' + esc(q) + '</div></div>' +
                 '<div class="sv-ask-resp">' + _thinkingHtml('Thinking') + '</div>';
@@ -2916,8 +3080,8 @@
                 const catNames = r.categories.map(function (c) { return c.name; });
                 const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Sections available: ' + catNames.join(', ') + '. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","unknown"], ' +
-                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","unknown"], ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "channel": a traffic source word (paid|organic|direct|referral|social|email) for traffic_sources when they ask which pages a source drives (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
@@ -2940,7 +3104,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year).';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does social / paid / organic / referral / email drive / social traffic pages / pages driven by X->traffic_sources with channel set to that source word.';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
@@ -2955,6 +3119,7 @@
                 }
                 if (plan.intent === 'trend') { resp.innerHTML = _thinkingHtml('Building a 6-month trend (fetching several periods)'); }
                 if (plan.intent === 'seasonal') { resp.innerHTML = _thinkingHtml('Comparing to last period and the same period last year'); }
+                if (plan.intent === 'traffic_sources') { resp.innerHTML = _thinkingHtml('Fetching traffic sources from GA4'); }
                 const res = await runIntent(plan, r);
                 if (res.unknown) {
                     _logMiss(q);
@@ -2969,7 +3134,7 @@
                     resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>' + _esc;
                     busy = false; return;
                 }
-                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)' };
+                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources' };
                 if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 // The chip shows the RESOLVED scope (rule 3), never the pill's — this is the honesty mechanism.
@@ -2983,10 +3148,14 @@
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span></div>';
                 const _bodyHtml = _renderChart(res.data) || res.html;
                 const _tblHtml = _exports[eid] ? '<div class="sv-ask-tbl" style="display:none;">' + _dataTable(res.data) + '</div>' : '';
-                const _segNote = _segmentNote(q);
+                const _segNames = r.categories.map(function (c) { return c.name; }).concat([plan.category, plan.page]).concat(plan.categories || []);
+                const _segNote = plan.intent === 'traffic_sources' ? '' : _segmentNote(q, _segNames);
                 const _segHtml = _segNote ? '<div style="font-size:0.7rem;color:#b45309;background:var(--color-bg-tertiary);border-radius:7px;padding:7px 10px;margin-bottom:10px;">' + esc(_segNote) + '</div>' : '';
-                resp.innerHTML = interp + _segHtml + '<div class="sv-ask-oneliner" style="font-size:0.92rem;color:var(--color-text-primary);font-weight:600;margin-bottom:12px;line-height:1.5;"></div>' + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
+                resp.innerHTML = interp + _segHtml + '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;"></div>' + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
                 if (_exports[eid]) {
+                    const _abtn = 'display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;';
+                    const _hasMemo = _exports[eid] && _exports[eid].markdown;
+                    // Primary row: row count + the view toggle + one "⋯" that reveals export/expand actions.
                     resp.insertAdjacentHTML('beforeend',
                         '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:14px;">' +
                         '<span style="font-size:0.68rem;color:var(--color-text-muted);margin-right:auto;">' + res.data.rows.length + ' row' + (res.data.rows.length === 1 ? '' : 's') + '</span>' +
@@ -2994,12 +3163,16 @@
                         '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="rich" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:var(--primary);color:#fff;">' + (_isChart(res.data) ? 'Chart' : ((res.data.chart && res.data.chart.type === 'map') ? 'Map' : 'List')) + '</button>' +
                         '<button class="sv-ask-view-btn" data-eid="' + eid + '" data-mode="table" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 9px;border:none;border-radius:5px;cursor:pointer;background:transparent;color:var(--color-text-secondary);">Table</button>' +
                         '</div>' +
-                        '<button class="sv-ask-chart-expand" data-eid="' + eid + '" title="View larger" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_EXPAND + 'Expand</button>' +
-                        (_isChart(res.data) ? '<button class="sv-ask-chart-png" data-eid="' + eid + '" title="Download chart as PNG" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_IMG + 'PNG</button>' : '') +
-                        '<button class="sv-ask-export-csv" data-eid="' + eid + '" title="Download these rows as CSV" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DL + 'CSV</button>' +
-                        '<button class="sv-ask-export-brief" data-eid="' + eid + '" title="Write a short Markdown brief with AI" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DOC + 'Brief</button>' +
-                        ((_exports[eid] && _exports[eid].markdown) ? ('<button class="sv-ask-memo-copy" data-eid="' + eid + '" title="Copy the memo (Markdown)" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_COPY + 'Copy</button>' +
-                        '<button class="sv-ask-memo-md" data-eid="' + eid + '" title="Download the memo (.md)" style="display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;">' + _ICON_DOC + '.md</button>') : '') +
+                        '<button class="sv-ask-more" data-eid="' + eid + '" title="Export & more" aria-label="Export and more actions" aria-expanded="false" style="font:inherit;font-size:0.95rem;font-weight:700;line-height:1;padding:3px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;">&#8943;</button>' +
+                        '</div>' +
+                        // Secondary actions, hidden until "⋯" is tapped.
+                        '<div class="sv-ask-actions" data-eid="' + eid + '" style="display:none;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:8px;">' +
+                        '<button class="sv-ask-chart-expand" data-eid="' + eid + '" title="View larger" style="' + _abtn + '">' + _ICON_EXPAND + 'Expand</button>' +
+                        (_isChart(res.data) ? '<button class="sv-ask-chart-png" data-eid="' + eid + '" title="Download chart as PNG" style="' + _abtn + '">' + _ICON_IMG + 'PNG</button>' : '') +
+                        '<button class="sv-ask-export-csv" data-eid="' + eid + '" title="Download these rows as CSV" style="' + _abtn + '">' + _ICON_DL + 'CSV</button>' +
+                        '<button class="sv-ask-export-brief" data-eid="' + eid + '" title="Write a short Markdown brief with AI" style="' + _abtn + '">' + _ICON_DOC + 'Brief</button>' +
+                        (_hasMemo ? ('<button class="sv-ask-memo-copy" data-eid="' + eid + '" title="Copy the memo (Markdown)" style="' + _abtn + '">' + _ICON_COPY + 'Copy</button>' +
+                        '<button class="sv-ask-memo-md" data-eid="' + eid + '" title="Download the memo (.md)" style="' + _abtn + '">' + _ICON_DOC + '.md</button>') : '') +
                         '</div>');
                 }
                 const _fups = _followups(plan, res, r);
@@ -3016,8 +3189,8 @@
                     const _tsys = 'You write ONE short plain-English sentence summarising analytics RESULTS for a website owner. The Results line is the ground truth: use its numbers and its stated time period EXACTLY. If the question mentions anything NOT present in the Results — e.g. "paid", "organic", "mobile", or a different time period — IGNORE it and never repeat those words. No preamble, no markdown; end with a full stop.';
                     let line = String(await window.GroqAI.complete([{ role: 'system', content: _tsys }, { role: 'user', content: 'Question: ' + q + '\nResults (' + periodLabel(_ddDays) + '): ' + res.summary }], { temperature: 0.2, max_tokens: 120 })).trim();
                     if (!line || line.length < 8 || !/[.!?]["'’\)\]]?$/.test(line)) line = res.summary;   // empty/truncated -> safe deterministic summary
-                    const el = resp.querySelector('.sv-ask-oneliner'); if (el) el.textContent = line;
-                } catch (e) { const el = resp.querySelector('.sv-ask-oneliner'); if (el) el.textContent = res.summary; }
+                    const el = resp.querySelector('.sv-ask-oneliner'); if (el) { el.textContent = line; el.style.borderLeft = '3px solid var(--primary)'; el.style.paddingLeft = '11px'; }
+                } catch (e) { const el = resp.querySelector('.sv-ask-oneliner'); if (el) { el.textContent = res.summary; el.style.borderLeft = '3px solid var(--primary)'; el.style.paddingLeft = '11px'; } }
             } catch (e) {
                 resp.innerHTML = '<div style="font-size:0.85rem;color:#dc2626;">Something went wrong: ' + esc(e && e.message ? e.message : String(e)) + '</div>';
             } finally {
