@@ -694,6 +694,34 @@
     let _ddDays = 30;
     const PERIODS = [ { d: 7, label: 'Last 7 days' }, { d: 30, label: 'Last 30 days' }, { d: 90, label: 'Last 3 months' }, { d: 180, label: 'Last 6 months' }, { d: 365, label: 'Last 12 months' } ];
     function periodLabel(days) { const p = PERIODS.find(function (x) { return x.d === days; }); return p ? p.label.toLowerCase() : ('last ' + days + ' days'); }
+    // ── Period comparison (compare_periods) ──────────────────────────────────────────────
+    // Canonical cache key for ANY period (relative or, in stage 2, absolute) — every cache
+    // should key on this so two different absolute ranges can never collide (point 1).
+    function periodKey(p) { return (p && p.startDate && p.endDate) ? (p.startDate + '|' + p.endDate) : ('d' + ((p && p.days) || 30) + 'o' + ((p && p.offset) || 0)); }
+    // Resolve a period phrase. Stage 1 = RELATIVE windows only (map to days+offset). Calendar
+    // terms (q1-q4, month names, years) return {calendar:true} so the intent can say "coming".
+    function _resolvePeriod(term) {
+        const t = String(term || '').trim().toLowerCase().replace(/\bthe\b/g, '').replace(/\s+/g, ' ').trim();
+        if (!t) return null;
+        if (/\b(?:q[1-4]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\b/.test(t) || /\b20\d\d\b/.test(t)) return { calendar: true, raw: term };
+        if (/^(?:this|current|last 30 days?|past 30 days?|this month|current month)$/.test(t) || t === 'month' || t === 'this month') return { label: 'the last 30 days', days: 30, offset: 0 };
+        if (/\b(?:last|previous|prior) month\b|\bmonth before\b|\bprevious 30 days?\b/.test(t)) return { label: 'the previous 30 days', days: 30, offset: 30 };
+        if (/\b(?:this|current|past|last) week\b|\blast 7 days?\b/.test(t) || t === 'week') return { label: 'the last 7 days', days: 7, offset: 0 };
+        if (/\b(?:last|previous|prior) week\b|\bweek before\b|\bprevious 7 days?\b/.test(t)) return { label: 'the previous 7 days', days: 7, offset: 7 };
+        if (/\b(?:this|current|past) quarter\b|\blast 90 days?\b|\blast 3 months?\b/.test(t) || t === 'quarter') return { label: 'the last 90 days', days: 90, offset: 0 };
+        if (/\b(?:last|previous|prior) quarter\b|\bquarter before\b|\bprevious 90 days?\b|\bprevious 3 months?\b/.test(t)) return { label: 'the previous 90 days', days: 90, offset: 90 };
+        const nm = /\b(\d{1,3})\s*days?\b/.exec(t);
+        if (nm) { const d = Math.min(365, Math.max(1, parseInt(nm[1], 10))); return /\b(?:previous|prior|before|earlier)\b/.test(t) ? { label: 'the previous ' + d + ' days', days: d, offset: d } : { label: 'the last ' + d + ' days', days: d, offset: 0 }; }
+        if (/\bprevious period\b/.test(t)) return { label: 'the previous period', days: 30, offset: 30, _prev: true };
+        return null;
+    }
+    // Combine finalized per-URL stats into one, re-weighting rates correctly (point 5): CTR by
+    // impressions, position by impressions, engagement/duration/bounce by sessions.
+    function _combineStats(arr) {
+        let imp = 0, clk = 0, pv = 0, us = 0, ses = 0, posW = 0, posSum = 0, engW = 0, engSum = 0, durSum = 0, bounceSum = 0;
+        (arr || []).forEach(function (s) { if (!s) return; const i = s.impressions || 0; imp += i; clk += s.clicks || 0; pv += s.pageViews || 0; us += s.users || 0; const se = s.sessions || 0; ses += se; if (i > 0 && s.position != null) { posSum += s.position * i; posW += i; } if (se > 0) { if (s.engagementRate != null) engSum += s.engagementRate * se; if (s.avgSessionDuration != null) durSum += s.avgSessionDuration * se; if (s.bounceRate != null) bounceSum += s.bounceRate * se; engW += se; } });
+        return { impressions: imp, clicks: clk, pageViews: pv, users: us, sessions: ses, ctr: imp > 0 ? clk / imp : 0, position: posW > 0 ? posSum / posW : null, engagementRate: engW > 0 ? engSum / engW : null, avgSessionDuration: engW > 0 ? durSum / engW : null, bounceRate: engW > 0 ? bounceSum / engW : null };
+    }
     // Honour an explicit metric window in the question ("this week"/"this month") for that
     // answer, so the data matches the words. Only returns windows the fetch supports (PERIODS).
     // "last year" is deliberately excluded - that's the seasonal comparison, not a 365-day window.
@@ -1527,6 +1555,14 @@
         return svg ? '<div class="sv-chart">' + svg + '</div>' : '';
     }
     function _isChart(data) { return !!(data && data.chart && (data.chart.type === 'diverging' || data.chart.type === 'smallmultiples' || data.chart.type === 'line')); }
+    // Segmented metric toggle for charts that carry data.metricSeries (currently trend) — switches
+    // impressions/clicks/views/users live, no re-fetch (all metrics were computed up front).
+    function _metricToggleHtml(eid, avail, current) {
+        if (!avail || avail.length < 2) return '';
+        return '<div style="display:flex;gap:2px;border:1px solid var(--color-border-primary);border-radius:7px;padding:2px;margin-bottom:10px;width:fit-content;">' +
+            avail.map(function (m) { return '<button class="sv-ask-metric-btn" data-eid="' + eid + '" data-metric="' + m + '" style="font:inherit;font-size:0.68rem;font-weight:600;padding:3px 10px;border:none;border-radius:5px;cursor:pointer;background:' + (m === current ? 'var(--primary)' : 'transparent') + ';color:' + (m === current ? '#fff' : 'var(--color-text-secondary)') + ';">' + _MLABEL[m] + '</button>'; }).join('') +
+        '</div>';
+    }
 
     // Delegated hover tooltip for any .sv-tipel[data-tip] within a chart container.
     function _chartTipMove(e) {
@@ -1642,7 +1678,9 @@
         });
         let legend = '';
         if (series.length > 1) { let lx = padL; series.forEach(function (s, si) { const col = colors[si % colors.length]; legend += '<rect x="' + lx + '" y="2" width="9" height="9" rx="2" fill="' + col + '"/><text x="' + (lx + 12) + '" y="10" font-size="9" fill="var(--color-text-secondary)">' + esc(s.name) + '</text>'; lx += 12 + Math.min(120, String(s.name).length * 6) + 18; }); }
-        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);">' + grid + lines + xl + legend + '</svg>';
+        // Metric caption (top-right) so the y-axis numbers are labelled, e.g. "views".
+        const cap = (data.chart && data.chart.label) ? '<text x="' + (W - padR) + '" y="9" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + esc(data.chart.label) + '</text>' : '';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);">' + grid + lines + xl + legend + cap + '</svg>';
     }
 
     // Diverging horizontal bars (movers): green right / red left from a centre axis.
@@ -1818,18 +1856,35 @@
         }
         if (intent === 'rank_categories') {
             const desc = plan.direction !== 'up';
-            const sorted = cats.slice().sort(function (a, b) { const av = _mval(a.rollup, metric), bv = _mval(b.rollup, metric); return desc ? bv - av : av - bv; }).slice(0, limit);
-            const items = sorted.map(function (c) { return { name: c.name, val: _mfmt(c.rollup, metric), bar: _mval(c.rollup, metric) }; });
-            return { html: _rankCard(items, { nameLabel: 'Section', valueLabel: _MLABEL[metric] }), summary: 'Sections by ' + _MLABEL[metric] + ': ' + sorted.map(function (c) { return c.name + ' ' + _mfmt(c.rollup, metric); }).join(', ') + '.', data: { columns: [{ key: 'section', label: 'Section' }, { key: 'value', label: _MLABEL[metric] }], rows: sorted.map(function (c) { return { section: c.name, value: _mval(c.rollup, metric), display: _mfmt(c.rollup, metric) }; }), chart: { type: 'bar', x: 'section', y: 'value', label: _MLABEL[metric] } } };
+            const TM = ['impressions', 'clicks', 'pageViews', 'users'];
+            const availRC = TM.filter(function (m) { return cats.some(function (c) { return _mval(c.rollup, m) > 0; }); });
+            if (!availRC.length) return { html: '', summary: '', err: 'No section data to rank yet.' };
+            const curRC = availRC.indexOf(metric) >= 0 ? metric : availRC[0];
+            const viewRC = function (m) {
+                const sorted = cats.slice().sort(function (a, b) { const av = _mval(a.rollup, m), bv = _mval(b.rollup, m); return desc ? bv - av : av - bv; }).slice(0, limit);
+                const items = sorted.map(function (c) { return { name: c.name, val: _mfmt(c.rollup, m), bar: _mval(c.rollup, m) }; });
+                return { body: _rankCard(items, { nameLabel: 'Section', valueLabel: _MLABEL[m] }), columns: [{ key: 'section', label: 'Section' }, { key: 'value', label: _MLABEL[m] }], rows: sorted.map(function (c) { return { section: c.name, value: _mval(c.rollup, m), display: _mfmt(c.rollup, m) }; }), chart: { type: 'bar', x: 'section', y: 'value', label: _MLABEL[m] } };
+            };
+            const mvRC = {}; availRC.forEach(function (m) { mvRC[m] = viewRC(m); });
+            const curV = mvRC[curRC];
+            return { html: curV.body, summary: 'Sections by ' + _MLABEL[curRC] + ': ' + curV.rows.map(function (x) { return x.section + ' ' + x.display; }).join(', ') + '.', data: { columns: curV.columns, rows: curV.rows, chart: curV.chart, metric: curRC, availableMetrics: availRC, metricViews: mvRC } };
         }
         if (intent === 'top_pages') {
             const c = _catByName(cats, plan.category);
             const pages = c ? catPages(c) : _allPages(r);
             const desc = plan.direction !== 'up';
-            const sorted = pages.filter(function (p) { return _mval(p.s, metric) > 0; }).sort(function (a, b) { const av = _mval(a.s, metric), bv = _mval(b.s, metric); return desc ? bv - av : av - bv; }).slice(0, limit);
-            if (!sorted.length) return { html: '', err: 'No pages with ' + _MLABEL[metric] + ' data found' + (c ? ' in ' + c.name : '') + '. (' + pages.length + ' pages checked — is GA4 connected for views/users?)', summary: '' };
-            const items = sorted.map(function (p) { return { name: p.name, val: _mfmt(p.s, metric), bar: _mval(p.s, metric), url: p.url }; });
-            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: _MLABEL[metric] }), summary: 'Top pages' + (c ? ' in ' + c.name : '') + ' by ' + _MLABEL[metric] + ': ' + sorted.slice(0, 5).map(function (p) { return p.name + ' ' + _mfmt(p.s, metric); }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'value', label: _MLABEL[metric] }, { key: 'url', label: 'URL' }], rows: sorted.map(function (p) { return { page: p.name, value: _mval(p.s, metric), display: _mfmt(p.s, metric), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'value', label: _MLABEL[metric] } } };
+            const TM = ['impressions', 'clicks', 'pageViews', 'users'];
+            const availTP = TM.filter(function (m) { return pages.some(function (p) { return _mval(p.s, m) > 0; }); });
+            if (!availTP.length) return { html: '', err: 'No pages with ' + _MLABEL[metric] + ' data found' + (c ? ' in ' + c.name : '') + '. (' + pages.length + ' pages checked — is GA4 connected for views/users?)', summary: '' };
+            const curTP = availTP.indexOf(metric) >= 0 ? metric : availTP[0];
+            const viewTP = function (m) {
+                const sorted = pages.filter(function (p) { return _mval(p.s, m) > 0; }).sort(function (a, b) { const av = _mval(a.s, m), bv = _mval(b.s, m); return desc ? bv - av : av - bv; }).slice(0, limit);
+                const items = sorted.map(function (p) { return { name: p.name, val: _mfmt(p.s, m), bar: _mval(p.s, m), url: p.url }; });
+                return { body: _rankCard(items, { nameLabel: 'Page', valueLabel: _MLABEL[m] }), columns: [{ key: 'page', label: 'Page' }, { key: 'value', label: _MLABEL[m] }, { key: 'url', label: 'URL' }], rows: sorted.map(function (p) { return { page: p.name, value: _mval(p.s, m), display: _mfmt(p.s, m), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'value', label: _MLABEL[m] } };
+            };
+            const mvTP = {}; availTP.forEach(function (m) { mvTP[m] = viewTP(m); });
+            const curV = mvTP[curTP];
+            return { html: curV.body, summary: 'Top pages' + (c ? ' in ' + c.name : '') + ' by ' + _MLABEL[curTP] + ': ' + curV.rows.slice(0, 5).map(function (x) { return x.page + ' ' + x.display; }).join(', ') + '.', data: { columns: curV.columns, rows: curV.rows, chart: curV.chart, metric: curTP, availableMetrics: availTP, metricViews: mvTP } };
         }
         if (intent === 'low_ctr') {
             const c = _catByName(cats, plan.category);
@@ -1953,29 +2008,39 @@
             let targets;
             if (plan.categories && plan.categories.length >= 2) { const a = _catByName(cats, plan.categories[0]), b = _catByName(cats, plan.categories[1]); targets = [a, b].filter(Boolean); }
             if (!targets || !targets.length) targets = [_catByName(cats, plan.category)];   // may be [null] = whole site
-            const periods = [], seriesVals = targets.map(function () { return []; });
+            // Fetch once; compute ALL metrics per period so the chart's metric toggle needs no re-fetch.
+            const TM = ['impressions', 'clicks', 'pageViews', 'users'];
+            const periods = [], byMetric = {}; TM.forEach(function (m) { byMetric[m] = targets.map(function () { return []; }); });
             for (let i = N - 1; i >= 0; i--) {
                 periods.push(i === 0 ? 'now' : i + 'mo ago');
                 let rb = null;
                 try { const maps = await fetchTrendWindow(window.treeData, win, i * win); rb = build(window.treeData, { statsFor: statsForMaps(maps.gscBy, maps.ga4By) }); } catch (e) {}
                 targets.forEach(function (tg, ti) {
-                    let val = 0;
-                    if (rb) { if (tg) { const cc = _catByName(rb.categories, tg.name); val = cc ? _mval(cc.rollup, tmetric) : 0; } else { val = _mval(rb.totals, tmetric); } }
-                    seriesVals[ti].push(Math.round(val));
+                    let rollup = null;
+                    if (rb) { if (tg) { const cc = _catByName(rb.categories, tg.name); rollup = cc ? cc.rollup : null; } else rollup = rb.totals; }
+                    TM.forEach(function (m) { byMetric[m][ti].push(rollup ? Math.round(_mval(rollup, m)) : 0); });
                 });
             }
             build(window.treeData);   // restore current-period annotations on the tree
-            const anyData = seriesVals.some(function (v) { return v.filter(function (x) { return x > 0; }).length >= 2; });
             const names = targets.map(function (t) { return t ? t.name : 'The site'; });
-            if (!anyData) return { html: '', summary: '', err: 'Not enough history to plot a trend for ' + names.join(' / ') + '. (Needs GSC/GA4 data across several months.)' };
-            const series = seriesVals.map(function (v, i) { return { name: names[i], values: v }; });
-            const summaryParts = series.map(function (s) { const f = s.values[0], l = s.values[s.values.length - 1], chg = f > 0 ? Math.round((l - f) / f * 100) : null; return s.name + ' ' + fmt(f) + '->' + fmt(l) + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '%)' : ''); });
-            const cols = [{ key: 'period', label: 'Period' }].concat(series.map(function (s) { return { key: s.name || 'value', label: s.name || _MLABEL[tmetric] }; }));
-            const rows = periods.map(function (p, i) { const row = { period: p }; series.forEach(function (s) { row[s.name || 'value'] = s.values[i]; }); return row; });
+            const hasM = function (m) { return byMetric[m].some(function (v) { return v.filter(function (x) { return x > 0; }).length >= 2; }); };
+            const avail = TM.filter(hasM);
+            if (!avail.length) return { html: '', summary: '', err: 'Not enough history to plot a trend for ' + names.join(' / ') + '. (Needs GSC/GA4 data across several months.)' };
+            const curMetric = hasM(tmetric) ? tmetric : avail[0];   // requested metric if it has data, else the first that does
+            const seriesFor = function (m) { return byMetric[m].map(function (v, ti) { return { name: names[ti], values: v }; }); };
+            const viewFor = function (m) {
+                const ser = seriesFor(m), chart = { type: 'line', label: _MLABEL[m] };
+                const cols = [{ key: 'period', label: 'Period' }].concat(ser.map(function (s) { return { key: s.name || 'value', label: (s.name ? s.name + ' · ' : '') + _MLABEL[m] }; }));
+                const rws = periods.map(function (p, i) { const row = { period: p }; ser.forEach(function (s) { row[s.name || 'value'] = s.values[i]; }); return row; });
+                return { body: _renderChart({ periods: periods, series: ser, chart: chart }), columns: cols, rows: rws, chart: chart, series: ser };
+            };
+            const metricViews = {}; avail.forEach(function (m) { metricViews[m] = viewFor(m); });
+            const cur = metricViews[curMetric];
+            const summaryParts = cur.series.map(function (s) { const f = s.values[0], l = s.values[s.values.length - 1], chg = f > 0 ? Math.round((l - f) / f * 100) : null; return s.name + ' ' + fmt(f) + '->' + fmt(l) + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '%)' : ''); });
             return {
                 html: '',
-                summary: (targets.length > 1 ? 'Trend comparison' : 'Trend') + ' over the last ' + N + ' months by ' + _MLABEL[tmetric] + ': ' + summaryParts.join('; ') + '.',
-                data: { columns: cols, rows: rows, periods: periods, series: series, chart: { type: 'line', label: _MLABEL[tmetric] } }
+                summary: (targets.length > 1 ? 'Trend comparison' : 'Trend') + ' over the last ' + N + ' months by ' + _MLABEL[curMetric] + ': ' + summaryParts.join('; ') + '.',
+                data: { columns: cur.columns, rows: cur.rows, periods: periods, series: cur.series, metric: curMetric, availableMetrics: avail, metricViews: metricViews, chart: cur.chart }
             };
         }
         if (intent === 'diagnose') {
@@ -2273,6 +2338,66 @@
                 html: _freshCard(rows) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Pages with a last-updated date in the last ' + windowDays + ' days' + (prior ? ', with impressions vs the previous ' + _ddDays + ' days so you can see if the update helped' : '') + '. Freshness comes from the sitemap.</div>',
                 summary: rows.length + ' page' + (rows.length === 1 ? '' : 's') + ' updated in the last ' + windowDays + ' days' + (c ? ' in ' + c.name : '') + (withData.length ? ' - ' + rising + ' of ' + withData.length + ' gained search impressions vs the previous ' + _ddDays + ' days' : '') + '. Most recent: ' + rows.slice(0, 5).map(function (x) { return x.name + ' (' + _relAge(x.age) + (x.chg != null ? ', ' + (x.chg >= 0 ? '+' : '') + x.chg.toFixed(0) + '%' : '') + ')'; }).join(', ') + '.',
                 data: { columns: [{ key: 'page', label: 'Page' }, { key: 'updated', label: 'Updated' }, { key: 'daysAgo', label: 'Days ago' }, { key: 'impressions', label: 'Impressions' }, { key: 'priorImpressions', label: 'Prior impr' }, { key: 'changePct', label: 'Change %' }, { key: 'clicks', label: 'Clicks' }, { key: 'section', label: 'Section' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, updated: x.lm || '', daysAgo: Math.round(x.age), impressions: x.impr, priorImpressions: x.prior, changePct: x.chg != null ? +x.chg.toFixed(1) : null, clicks: x.clicks, section: x.section, url: x.url }; }), chart: (withData.length ? { type: 'diverging', x: 'page', y: 'changePct' } : { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }) }
+            };
+        }
+        if (intent === 'compare_periods') {
+            const pa0 = _resolvePeriod(plan.periodA), pb0 = _resolvePeriod(plan.periodB);
+            if ((pa0 && pa0.calendar) || (pb0 && pb0.calendar)) return { html: '', summary: '', err: 'I can compare relative periods for now — e.g. "this month vs last month", or "last 90 days vs the previous 90 days". Calendar quarters and months are coming; try the relative version.' };
+            if (!pa0 || !pb0) return { html: '', summary: '', err: 'I could not read those two periods. Try "this month vs last month" or "last 90 days vs the previous 90 days".' };
+            // Order older -> newer by offset so the strip reads left (older) to right (newer).
+            let older = pa0, newer = pb0;
+            if ((pa0.offset || 0) < (pb0.offset || 0)) { older = pb0; newer = pa0; }
+            let page = null, catNode = null, scopeLabel;
+            if (plan.page) {
+                const _res = _resolvePage(r, plan.page);
+                if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap.' };
+                if (_res.candidates) return { html: _disambig('compare_periods', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
+                page = _res.page; scopeLabel = page.name;
+            } else if (plan.category && _catByName(cats, plan.category)) { catNode = _catByName(cats, plan.category); scopeLabel = catNode.name; }
+            else scopeLabel = 'the whole site';
+            let mo, mn;
+            try { mo = await fetchTrendWindow(window.treeData, older.days, older.offset); mn = await fetchTrendWindow(window.treeData, newer.days, newer.offset); }
+            catch (e) { return { html: '', summary: '', err: 'Could not fetch the two periods: ' + (e && e.message ? e.message : String(e)) }; }
+            const rbO = build(window.treeData, { statsFor: statsForMaps(mo.gscBy, mo.ga4By) });
+            const rbN = build(window.treeData, { statsFor: statsForMaps(mn.gscBy, mn.ga4By) });
+            build(window.treeData);   // restore current-period annotations
+            const statOf = function (rb) { if (page) return _combineStats((page.urls || [page.url]).map(function (u) { return rb.byUrl[normUrl(u)]; })); if (catNode) { const cc = _catByName(rb.categories, catNode.name); return cc ? cc.rollup : {}; } return rb.totals; };
+            const so = statOf(rbO) || {}, sn = statOf(rbN) || {};
+            if (!(so.impressions || so.pageViews || sn.impressions || sn.pageViews)) return { html: '', summary: '', err: 'No data for ' + scopeLabel + ' across those two periods. (GSC keeps ~16 months; GA4 keeps only 2 or 14 months depending on the property.)' };
+            const norm = older.days !== newer.days;
+            const ds = function (v, days) { return norm ? v / days : v; };
+            const ga4o = (so.pageViews || so.sessions || 0) > 0, ga4n = (sn.pageViews || sn.sessions || 0) > 0;
+            const ga4both = ga4o && ga4n;
+            // count metrics (per-day-normalised when lengths differ), then rate metrics (point-diff Δ)
+            const rows = [];
+            const countM = [['impressions', 'Impressions'], ['clicks', 'Clicks']];
+            if (ga4both) { countM.push(['pageViews', 'Views']); countM.push(['sessions', 'Sessions']); }
+            countM.forEach(function (mm) { const a = ds(so[mm[0]] || 0, older.days), b = ds(sn[mm[0]] || 0, newer.days); const pct = a > 0 ? Math.round((b - a) / a * 100) : null; rows.push({ metric: mm[1], older: Math.round(a), newer: Math.round(b), delta: pct, dtype: 'pct' }); });
+            // CTR
+            rows.push({ metric: 'CTR', older: +((so.ctr || 0) * 100).toFixed(1), newer: +((sn.ctr || 0) * 100).toFixed(1), delta: +(((sn.ctr || 0) - (so.ctr || 0)) * 100).toFixed(1), dtype: 'pt', unit: '%' });
+            if (so.position != null || sn.position != null) rows.push({ metric: 'Avg position', older: so.position != null ? +so.position.toFixed(1) : null, newer: sn.position != null ? +sn.position.toFixed(1) : null, delta: (so.position != null && sn.position != null) ? +(sn.position - so.position).toFixed(1) : null, dtype: 'ptpos' });
+            if (ga4both && (so.engagementRate != null || sn.engagementRate != null)) rows.push({ metric: 'Engaged', older: +((so.engagementRate || 0) * 100).toFixed(0), newer: +((sn.engagementRate || 0) * 100).toFixed(0), delta: +(((sn.engagementRate || 0) - (so.engagementRate || 0)) * 100).toFixed(0), dtype: 'pt', unit: '%' });
+            const fmtCell = function (v, r) { if (v == null) return '&mdash;'; if (r.unit === '%') return v + '%'; return (r.dtype === 'ptpos' && r.metric === 'Avg position') ? '#' + v : fmt(v); };
+            const dcell = function (r) {
+                if (r.delta == null) return '<span style="color:var(--color-text-muted);">&mdash;</span>';
+                const goodUp = r.metric !== 'Avg position';   // lower position = better
+                const good = r.dtype === 'ptpos' ? r.delta < 0 : r.delta >= 0;
+                const col = good ? '#059669' : '#dc2626';
+                const txt = r.dtype === 'pct' ? (r.delta >= 0 ? '+' : '') + r.delta + '%' : r.dtype === 'ptpos' ? (r.delta >= 0 ? '+' : '') + r.delta : (r.delta >= 0 ? '+' : '') + r.delta + (r.unit === '%' ? 'pt' : '');
+                return '<span style="color:' + col + ';font-weight:700;">' + txt + '</span>';
+            };
+            const hcell = 'padding:7px 10px;border-bottom:1px solid var(--color-border-primary);font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);';
+            const cell = 'padding:8px 10px;border-bottom:1px solid var(--color-border-primary);font-size:0.85rem;';
+            const table = '<div style="border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
+                '<div style="display:flex;"><span style="flex:1;' + hcell + '">Metric</span><span style="flex:1;text-align:right;' + hcell + '">' + esc(older.label) + '</span><span style="flex:1;text-align:right;' + hcell + '">' + esc(newer.label) + '</span><span style="width:84px;text-align:right;' + hcell + '">Change</span></div>' +
+                rows.map(function (r) { return '<div style="display:flex;align-items:center;"><span style="flex:1;' + cell + 'font-weight:600;color:var(--color-text-primary);">' + r.metric + '</span><span style="flex:1;text-align:right;' + cell + 'color:var(--color-text-secondary);">' + fmtCell(r.older, r) + '</span><span style="flex:1;text-align:right;' + cell + 'color:var(--color-text-primary);font-weight:600;">' + fmtCell(r.newer, r) + '</span><span style="width:84px;text-align:right;' + cell + '">' + dcell(r) + '</span></div>'; }).join('') +
+                '</div>';
+            const normNote = norm ? '<div style="font-size:0.62rem;color:#b45309;margin-top:8px;">The periods are different lengths (' + older.days + ' vs ' + newer.days + ' days), so counts are shown as <b>daily averages</b>.</div>' : '';
+            const retNote = (!ga4both && (ga4o || ga4n)) ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">GA4 (views / engagement) isn&rsquo;t retained across both periods — showing search metrics only. GA4 keeps 2 or 14 months depending on the property.</div>' : '';
+            return {
+                html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">' + esc(scopeLabel === 'the whole site' ? 'Whole site' : scopeLabel) + ' &middot; ' + esc(older.label) + ' vs ' + esc(newer.label) + '</div>' + table + normNote + retNote,
+                summary: scopeLabel + ', ' + older.label + ' vs ' + newer.label + ': ' + rows.slice(0, 3).map(function (r) { return r.metric + ' ' + fmtCell(r.older, r) + '->' + fmtCell(r.newer, r) + (r.delta != null ? ' (' + (r.dtype === 'pct' ? (r.delta >= 0 ? '+' : '') + r.delta + '%' : (r.delta >= 0 ? '+' : '') + r.delta) + ')' : ''); }).join('; ') + '.' + (norm ? ' (daily averages — periods differ in length.)' : ''),
+                data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'older', label: older.label }, { key: 'newer', label: newer.label }, { key: 'change', label: 'Change' }], rows: rows.map(function (r) { return { metric: r.metric, older: r.older, newer: r.newer, change: r.delta }; }), chart: null }
             };
         }
         if (intent === 'traffic_sources') {
@@ -2846,6 +2971,14 @@
                 return { intent: 'movers', category: _im ? _im[1].trim() : null, direction: _dir };
             }
         }
+        // "compare traffic to X from A and B" / "compare X from A and B" -> compare_periods
+        {
+            const _fab = /\bcompare\b[\s\S]*\bfrom\s+(.+?)\s+(?:and|vs\.?|versus|to|against|compared to)\s+(.+?)\s*\??$/i.exec(s);
+            if (_fab) {
+                const _pm = /\bto (?:the )?(.+?)(?: page)? from\b/i.exec(s) || /\bcompare (?:traffic (?:to|on|for) |the )?(.+?)(?: page)? from\b/i.exec(s);
+                return { intent: 'compare_periods', page: _pm ? _pm[1].trim() : null, periodA: _fab[1].trim(), periodB: _fab[2].trim() };
+            }
+        }
         // ── traffic_sources routes: growth / "which pages does X send" / "from X" / breakdown ──
         {
             const _srcCat = / (?:in|for) (.+?)\??$/i.exec(s);
@@ -2861,9 +2994,12 @@
             if (_drv) { let _src = _drv[1].trim(); if (/ask/i.test(_src)) _src = 'askci'; return { intent: 'traffic_sources', source: _src, category: _cat }; }
             // "how many from X" / "traffic from X" / "how many to the Y page from X"
             const _fromAsk = /\bfrom\s+(ask[\s_-]?ci\w*)/i.exec(s);
-            const _fromGen = (!_fromAsk && /\b(?:how many|how much|traffic|sessions|visits?|visitors)\b/i.test(s)) ? /\bfrom\s+([a-z][\w.\-]{1,30})\b/i.exec(s) : null;
+            // Don't treat "from X" as a source when it's a period comparison ("compare … from q1 and q2")
+            // or a time token (q1-q4, a month, a year) — those are periods, not traffic sources.
+            const _isCmp = /\bcompare\b/i.test(s) || /\bfrom\s+q[1-4]\b/i.test(s) || /\bfrom\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(s) || /\bfrom\s+20\d\d\b/i.test(s);
+            const _fromGen = (!_fromAsk && !_isCmp && /\b(?:how many|how much|traffic|sessions|visits?|visitors)\b/i.test(s)) ? /\bfrom\s+([a-z][\w.\-]{1,30})\b/i.exec(s) : null;
             const _fm = _fromAsk || _fromGen;
-            if (_fm && !/^(abroad|overseas|internationally)$/i.test(_fm[1].trim())) {
+            if (_fm && !/^(abroad|overseas|internationally|q[1-4]|20\d\d)$/i.test(_fm[1].trim())) {
                 const _term = /ask[\s_-]?ci/i.test(_fm[1]) ? 'askci' : _fm[1].trim();
                 const _pm = /\bto (?:the )?(.+?)(?: page)? from\b/i.exec(s) || /\bfrom [\w.\-]+ to (?:the )?(.+?)(?: page)?\??$/i.exec(s);
                 return { intent: 'traffic_sources', source: _term, page: _pm ? _pm[1].trim() : null };
@@ -3039,6 +3175,22 @@
         panel.addEventListener('click', function (e) {
             const more = e.target.closest('.sv-ask-more');
             if (more) { const box = transcript.querySelector('.sv-ask-actions[data-eid="' + more.getAttribute('data-eid') + '"]'); if (box) { const open = box.style.display !== 'none'; box.style.display = open ? 'none' : 'flex'; more.setAttribute('aria-expanded', open ? 'false' : 'true'); more.style.background = open ? 'var(--color-bg-primary)' : 'var(--color-bg-tertiary)'; } return; }
+            const mbtn = e.target.closest('.sv-ask-metric-btn');
+            if (mbtn) {
+                const eid = mbtn.getAttribute('data-eid'), m = mbtn.getAttribute('data-metric');
+                const ex = _exports[eid];
+                if (ex && ex.data && ex.data.metricViews && ex.data.metricViews[m]) {
+                    const mv = ex.data.metricViews[m];
+                    ex.data.columns = mv.columns; ex.data.rows = mv.rows; ex.data.chart = mv.chart; ex.data.metric = m;
+                    const entry = document.getElementById(eid);
+                    if (entry) {
+                        const rich = entry.querySelector('.sv-ask-rich'); if (rich) rich.innerHTML = mv.body;
+                        const tb = entry.querySelector('.sv-ask-tbl'); if (tb) tb.innerHTML = _dataTable(ex.data);
+                        Array.prototype.forEach.call(entry.querySelectorAll('.sv-ask-metric-btn'), function (b) { const on = b.getAttribute('data-metric') === m; b.style.background = on ? 'var(--primary)' : 'transparent'; b.style.color = on ? '#fff' : 'var(--color-text-secondary)'; });
+                    }
+                }
+                return;
+            }
             const ecsv = e.target.closest('.sv-ask-export-csv');
             if (ecsv) { const ex = _exports[ecsv.getAttribute('data-eid')]; if (ex) _download('ask-' + _slug(ex.q) + '-' + _todayStr() + '.csv', _toCSV(ex.data), 'text/csv'); return; }
             const ebrief = e.target.closest('.sv-ask-export-brief');
@@ -3190,8 +3342,8 @@
                 const catNames = r.categories.map(function (c) { return c.name; });
                 const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Sections available: ' + catNames.join(', ') + '. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","unknown"], ' +
-                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "channel": a traffic source word (paid|organic|direct|referral|social|email) for traffic_sources when they ask which pages a source drives (else omit), "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","compare_periods","unknown"], ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "channel": a traffic source word (paid|organic|direct|referral|social|email) for traffic_sources when they ask which pages a source drives (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
@@ -3214,7 +3366,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources).';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year).';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
@@ -3230,6 +3382,7 @@
                 if (plan.intent === 'trend') { resp.innerHTML = _thinkingHtml('Building a 6-month trend (fetching several periods)'); }
                 if (plan.intent === 'seasonal') { resp.innerHTML = _thinkingHtml('Comparing to last period and the same period last year'); }
                 if (plan.intent === 'traffic_sources') { resp.innerHTML = _thinkingHtml('Fetching traffic sources from GA4'); }
+                if (plan.intent === 'compare_periods') { resp.innerHTML = _thinkingHtml('Fetching both periods'); }
                 const res = await runIntent(plan, r);
                 if (res.unknown) {
                     _logMiss(q);
@@ -3244,7 +3397,7 @@
                     resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);">' + esc(res.err) + '</div>' + _esc;
                     busy = false; return;
                 }
-                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources' };
+                const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
                 if ((res.data && res.data.rows && res.data.rows.length) || res.markdown) _exports[eid] = { data: res.data, q: q, summary: res.summary, markdown: res.markdown || null };
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
                 // The chip shows the RESOLVED scope (rule 3), never the pill's — this is the honesty mechanism.
@@ -3256,7 +3409,8 @@
                 if (plan.page) interpBits.push(plan.page);
                 interpBits.push(periodLabel(_ddDays));
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span></div>';
-                const _bodyHtml = _renderChart(res.data) || res.html;
+                const _metricTgl = (res.data && res.data.availableMetrics && res.data.availableMetrics.length > 1 && res.data.metricViews) ? _metricToggleHtml(eid, res.data.availableMetrics, res.data.metric) : '';
+                const _bodyHtml = _metricTgl + ((res.data && res.data.metricViews) ? res.data.metricViews[res.data.metric].body : (_renderChart(res.data) || res.html));
                 const _tblHtml = _exports[eid] ? '<div class="sv-ask-tbl" style="display:none;">' + _dataTable(res.data) + '</div>' : '';
                 const _segNames = r.categories.map(function (c) { return c.name; }).concat([plan.category, plan.page]).concat(plan.categories || []);
                 const _segNote = plan.intent === 'traffic_sources' ? '' : _segmentNote(q, _segNames);
