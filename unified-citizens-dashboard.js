@@ -5376,8 +5376,6 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                 </div>
             </div>
             
-            <!-- Context: what people search to reach this page -->
-            ${createQueryStrip(gscData)}
             <!-- find -> read funnel -->
             ${createFindReadFunnel(gscData, ga4Data)}
             <!-- click-through vs expected -->
@@ -5436,19 +5434,6 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
             '<div class="card-header" style="margin-bottom:6px;"><div class="card-title">How people find this page</div></div>' +
             '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5;">Most visitors arrive via <strong>' + channelLabel(top[0]) + '</strong> (' + topPct + '%). <span style="color:var(--color-text-muted);">Search Performance above counts organic search only — this is every channel (GA4). Tap a channel to see which sites sent it.</span></div>' +
             rows +
-        '</div>';
-    }
-
-    // Top queries this page serves — context BEFORE diagnosis ("who are these people?").
-    function createQueryStrip(gscData) {
-        if (!gscData || gscData.noDataFound || !gscData.topQueries || !gscData.topQueries.length) return '';
-        const esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
-        const top = gscData.topQueries.slice().sort(function (a, b) { return (b.impressions || 0) - (a.impressions || 0); }).slice(0, 3);
-        if (!top.length) return '';
-        const chips = top.map(function (q) { return '<span style="display:inline-flex;align-items:center;gap:7px;background:var(--color-bg-tertiary);border-radius:16px;padding:5px 13px;font-size:0.82rem;color:var(--color-text-primary);"><strong>' + esc(q.query) + '</strong><span style="color:var(--color-text-muted);font-size:0.72rem;">' + formatNumber(q.impressions || 0) + '</span></span>'; }).join('');
-        return '<div class="overview-card" style="margin:0 auto 20px auto;padding:16px 20px;">' +
-            '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:8px;">What people search to reach this page</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + chips + '</div>' +
         '</div>';
     }
 
