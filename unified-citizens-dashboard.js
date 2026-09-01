@@ -5394,18 +5394,30 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
         if (!channels.length) return '';
         const total = channels.reduce(function (s, c) { return s + (c.sessions || 0); }, 0) || 1;
         const top = channels.slice(0, 6);
+        const cleanSrc = function (s) { s = String(s || ''); if (s === '(direct)') return 'Direct'; if (s === '(not set)' || s === '(none)' || s === '') return 'Unknown'; return s; };
+        // Each channel expands (native <details>) to the specific sites/sources that drove it.
         const rows = top.map(function (c) {
             const pct = c.sessions / total * 100;
-            return '<div style="display:flex;align-items:center;gap:12px;padding:7px 0;">' +
+            const bar = '<div style="display:flex;align-items:center;gap:12px;padding:7px 0;">' +
                 '<span style="flex:0 0 148px;font-size:0.85rem;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + String(c.channel || 'Unassigned') + '</span>' +
                 '<span style="flex:1;min-width:40px;height:8px;background:var(--color-bg-tertiary);border-radius:4px;overflow:hidden;"><span style="display:block;height:100%;width:' + Math.min(100, pct).toFixed(0) + '%;background:var(--primary);"></span></span>' +
                 '<span style="flex:0 0 96px;text-align:right;font-size:0.82rem;font-weight:700;color:var(--color-text-primary);">' + formatNumber(c.sessions) + ' &middot; ' + pct.toFixed(0) + '%</span>' +
             '</div>';
+            const srcs = (c.sources || []).filter(function (x) { return (x.sessions || 0) > 0; });
+            if (!srcs.length) return '<div style="padding-left:18px;">' + bar + '</div>';   // align with the ones that expand
+            const srcRows = srcs.slice(0, 5).map(function (x) {
+                const sp = x.sessions / total * 100;
+                return '<div style="display:flex;align-items:center;gap:12px;padding:3px 0 3px 26px;font-size:0.76rem;">' +
+                    '<span style="flex:1;color:var(--color-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cleanSrc(x.source) + '</span>' +
+                    '<span style="flex:0 0 90px;text-align:right;color:var(--color-text-secondary);font-weight:600;">' + formatNumber(x.sessions) + ' &middot; ' + sp.toFixed(0) + '%</span>' +
+                '</div>';
+            }).join('');
+            return '<details style="border-top:1px solid var(--color-border-primary);"><summary style="cursor:pointer;">' + bar + '</summary><div style="padding:0 0 8px 0;">' + srcRows + '</div></details>';
         }).join('');
         const topPct = (top[0].sessions / total * 100).toFixed(0);
         return '<div class="overview-card" style="margin:0 auto 20px auto;padding:18px 20px;">' +
             '<div class="card-header" style="margin-bottom:6px;"><div class="card-title">How people find this page</div></div>' +
-            '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:14px;line-height:1.5;">Most visitors arrive via <strong>' + String(top[0].channel || 'Unassigned') + '</strong> (' + topPct + '%). <span style="color:var(--color-text-muted);">Search Performance above counts organic search only — this is every channel (GA4).</span></div>' +
+            '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5;">Most visitors arrive via <strong>' + String(top[0].channel || 'Unassigned') + '</strong> (' + topPct + '%). <span style="color:var(--color-text-muted);">Search Performance above counts organic search only — this is every channel (GA4). Tap a channel to see which sites sent it.</span></div>' +
             rows +
         '</div>';
     }
