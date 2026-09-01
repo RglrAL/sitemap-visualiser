@@ -5376,6 +5376,12 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
                 </div>
             </div>
             
+            <!-- Context: what people search to reach this page -->
+            ${createQueryStrip(gscData)}
+            <!-- find -> read funnel -->
+            ${createFindReadFunnel(gscData, ga4Data)}
+            <!-- click-through vs expected -->
+            ${createCtrDiagnostic(gscData)}
             <!-- How people find this page (traffic channels — GA4) -->
             ${createTrafficSourcesCard(ga4Data)}
 
@@ -5394,12 +5400,23 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
         if (!channels.length) return '';
         const total = channels.reduce(function (s, c) { return s + (c.sessions || 0); }, 0) || 1;
         const top = channels.slice(0, 6);
-        const cleanSrc = function (s) { s = String(s || ''); if (s === '(direct)') return 'Direct'; if (s === '(not set)' || s === '(none)' || s === '') return 'Unknown'; return s; };
+        // askci-embed = the AskCI chatbot widget; GA4 leaves it 'Unassigned' (links aren't UTM-tagged).
+        const ASKCI = /ask[\s_-]?ci/i;
+        const cleanSrc = function (s) { s = String(s || ''); if (ASKCI.test(s)) return 'AskCI chatbot'; if (s === '(direct)') return 'Direct'; if (s === '(not set)' || s === '(none)' || s === '') return 'Unknown'; return s; };
+        const channelLabel = function (c) {
+            const nm = String(c.channel || 'Unassigned');
+            if (/unassigned/i.test(nm)) {
+                const srcs = c.sources || [], t = srcs.reduce(function (a, x) { return a + (x.sessions || 0); }, 0);
+                const ak = srcs.filter(function (x) { return ASKCI.test(x.source); }).reduce(function (a, x) { return a + (x.sessions || 0); }, 0);
+                if (t > 0 && ak / t >= 0.8) return 'AskCI chatbot';
+            }
+            return nm;
+        };
         // Each channel expands (native <details>) to the specific sites/sources that drove it.
         const rows = top.map(function (c) {
             const pct = c.sessions / total * 100;
             const bar = '<div style="display:flex;align-items:center;gap:12px;padding:7px 0;">' +
-                '<span style="flex:0 0 148px;font-size:0.85rem;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + String(c.channel || 'Unassigned') + '</span>' +
+                '<span style="flex:0 0 148px;font-size:0.85rem;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + channelLabel(c) + '</span>' +
                 '<span style="flex:1;min-width:40px;height:8px;background:var(--color-bg-tertiary);border-radius:4px;overflow:hidden;"><span style="display:block;height:100%;width:' + Math.min(100, pct).toFixed(0) + '%;background:var(--primary);"></span></span>' +
                 '<span style="flex:0 0 96px;text-align:right;font-size:0.82rem;font-weight:700;color:var(--color-text-primary);">' + formatNumber(c.sessions) + ' &middot; ' + pct.toFixed(0) + '%</span>' +
             '</div>';
@@ -5417,8 +5434,135 @@ window.createEnhancedGeographicServiceIntelligence = createEnhancedGeographicSer
         const topPct = (top[0].sessions / total * 100).toFixed(0);
         return '<div class="overview-card" style="margin:0 auto 20px auto;padding:18px 20px;">' +
             '<div class="card-header" style="margin-bottom:6px;"><div class="card-title">How people find this page</div></div>' +
-            '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5;">Most visitors arrive via <strong>' + String(top[0].channel || 'Unassigned') + '</strong> (' + topPct + '%). <span style="color:var(--color-text-muted);">Search Performance above counts organic search only — this is every channel (GA4). Tap a channel to see which sites sent it.</span></div>' +
+            '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.5;">Most visitors arrive via <strong>' + channelLabel(top[0]) + '</strong> (' + topPct + '%). <span style="color:var(--color-text-muted);">Search Performance above counts organic search only — this is every channel (GA4). Tap a channel to see which sites sent it.</span></div>' +
             rows +
+        '</div>';
+    }
+
+    // Top queries this page serves — context BEFORE diagnosis ("who are these people?").
+    function createQueryStrip(gscData) {
+        if (!gscData || gscData.noDataFound || !gscData.topQueries || !gscData.topQueries.length) return '';
+        const esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
+        const top = gscData.topQueries.slice().sort(function (a, b) { return (b.impressions || 0) - (a.impressions || 0); }).slice(0, 3);
+        if (!top.length) return '';
+        const chips = top.map(function (q) { return '<span style="display:inline-flex;align-items:center;gap:7px;background:var(--color-bg-tertiary);border-radius:16px;padding:5px 13px;font-size:0.82rem;color:var(--color-text-primary);"><strong>' + esc(q.query) + '</strong><span style="color:var(--color-text-muted);font-size:0.72rem;">' + formatNumber(q.impressions || 0) + '</span></span>'; }).join('');
+        return '<div class="overview-card" style="margin:0 auto 20px auto;padding:16px 20px;">' +
+            '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:8px;">What people search to reach this page</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + chips + '</div>' +
+        '</div>';
+    }
+
+    // find -> read funnel: seen -> clicked -> arrived (ORGANIC only, one population) -> engaged (est.).
+    function createFindReadFunnel(gscData, ga4Data) {
+        if (!gscData || gscData.noDataFound) return '';
+        const impr = gscData.impressions || 0, clicks = gscData.clicks || 0, ctr = gscData.ctr || 0;
+        if (impr < 1) return '';
+        const chans = (ga4Data && ga4Data.trafficSources && ga4Data.trafficSources.channels) || [];
+        const organic = chans.filter(function (c) { return /organic search/i.test(c.channel || ''); }).reduce(function (s, c) { return s + (c.sessions || 0); }, 0);
+        const totalSess = (ga4Data && ga4Data.sessions) || 0;
+        const otherSess = Math.max(0, totalSess - organic);
+        const engRate = (ga4Data && ga4Data.engagementRate != null) ? ga4Data.engagementRate : null;
+        const hasGA4 = !!(ga4Data && !ga4Data.noDataFound && totalSess > 0);
+        const stages = [
+            { label: 'Seen in search', val: impr, sub: 'impressions', w: 100 },
+            { label: 'Clicked', val: clicks, sub: (ctr * 100).toFixed(1) + '% CTR', w: impr > 0 ? clicks / impr * 100 : 0 }
+        ];
+        if (hasGA4) {
+            stages.push({ label: 'Arrived (organic)', val: organic, sub: 'GA4 sessions', w: impr > 0 ? organic / impr * 100 : 0 });
+            if (engRate != null) { const eng = Math.round(organic * engRate); stages.push({ label: 'Engaged', val: eng, sub: Math.round(engRate * 100) + '% engaged', w: impr > 0 ? eng / impr * 100 : 0, est: true }); }
+        }
+        const rows = stages.map(function (st, i) {
+            const w = Math.max(1.5, Math.min(100, st.w));
+            return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
+                '<span style="flex:0 0 132px;font-size:0.8rem;color:var(--color-text-secondary);">' + st.label + '</span>' +
+                '<span style="flex:1;height:26px;background:var(--color-bg-tertiary);border-radius:5px;overflow:hidden;"><span style="display:block;height:100%;width:' + w.toFixed(1) + '%;background:var(--primary);opacity:' + (1 - i * 0.16).toFixed(2) + ';border-radius:5px;"></span></span>' +
+                '<span style="flex:0 0 156px;text-align:right;font-size:0.82rem;"><strong style="color:var(--color-text-primary);">' + formatNumber(st.val) + '</strong> <span style="color:var(--color-text-muted);font-size:0.72rem;">' + st.sub + (st.est ? ' (est.)' : '') + '</span></span>' +
+            '</div>';
+        }).join('');
+        const otherLine = (hasGA4 && otherSess > 0) ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:4px;">&#43; ' + formatNumber(otherSess) + ' more sessions arrived from AI, social, direct &amp; referral (see &ldquo;How people find this page&rdquo;).</div>' : '';
+        const foot = '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;line-height:1.5;">Search clicks (Search Console) and sessions (GA4) are measured differently, so the middle stages can differ slightly.' + ((hasGA4 && engRate != null) ? ' Engaged is estimated from the page&rsquo;s overall engagement rate.' : '') + '</div>';
+        return '<div class="overview-card" style="margin:0 auto 20px auto;padding:18px 20px;">' +
+            '<div class="card-header" style="margin-bottom:4px;"><div class="card-title">From search to reading</div></div>' +
+            '<div style="font-size:0.78rem;color:var(--color-text-secondary);margin-bottom:14px;">Where this page gains and loses people: search &rarr; click &rarr; arrive &rarr; read.</div>' +
+            rows + otherLine + foot +
+        '</div>';
+    }
+
+    // CTR vs. expected: this page's (position, CTR) against the stepped organic benchmark. Gated < 200 impr.
+    function createCtrDiagnostic(gscData) {
+        if (!gscData || gscData.noDataFound) return '';
+        const impr = gscData.impressions || 0, ctr = gscData.ctr || 0, pos = gscData.position;
+        if (pos == null || !(pos > 0)) return '';
+        const bench = (window.SVRollup && typeof window.SVRollup.ctrBenchmark === 'function') ? window.SVRollup.ctrBenchmark : function (p) { if (!(p > 0)) return 0; if (p <= 1) return 0.28; if (p <= 2) return 0.15; if (p <= 3) return 0.11; if (p <= 4) return 0.08; if (p <= 5) return 0.06; if (p <= 10) return 0.03; return 0.01; };
+        const gated = impr < 200;
+        const W = 320, H = 150, padL = 30, padB = 20, padT = 10, padR = 10, maxPos = 10, maxCtr = 0.30;
+        const X = function (p) { return padL + (Math.min(maxPos, Math.max(1, p)) - 1) / (maxPos - 1) * (W - padL - padR); };
+        const Y = function (c) { return padT + (1 - Math.min(maxCtr, c) / maxCtr) * (H - padT - padB); };
+        let steps = 'M' + X(1) + ' ' + Y(bench(1));
+        for (let p = 1; p < maxPos; p++) { const x1 = X(p + 1); steps += ' L' + x1 + ' ' + Y(bench(p)) + ' L' + x1 + ' ' + Y(bench(p + 1)); }
+        const px = X(pos), py = Y(ctr), expected = bench(pos);
+        const verdict = gated ? 'Not enough data for a reliable read (under 200 impressions).'
+            : ctr < expected * 0.6 ? 'Ranks about #' + pos.toFixed(0) + ' but only ' + (ctr * 100).toFixed(1) + '% click &mdash; well below the ~' + (expected * 100).toFixed(0) + '% typical at this position. The title / meta description are likely underselling it.'
+            : ctr > expected * 1.2 ? 'Punching above its rank &mdash; ' + (ctr * 100).toFixed(1) + '% click vs ~' + (expected * 100).toFixed(0) + '% typical at #' + pos.toFixed(0) + '. To grow, it mainly needs to rank higher.'
+            : 'Click-through is about normal for position ~#' + pos.toFixed(0) + '. To grow, it mainly needs to rank higher.';
+        const op = gated ? '0.4' : '1';
+        return '<div class="overview-card" style="margin:0 auto 20px auto;padding:18px 20px;">' +
+            '<div class="card-header" style="margin-bottom:8px;"><div class="card-title">Click-through vs. expected</div></div>' +
+            '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;">' +
+                '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:' + W + 'px;max-width:100%;height:auto;opacity:' + op + ';">' +
+                    '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="var(--color-border-primary)"/>' +
+                    '<line x1="' + padL + '" y1="' + padT + '" x2="' + padL + '" y2="' + (H - padB) + '" stroke="var(--color-border-primary)"/>' +
+                    '<path d="' + steps + '" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5" stroke-dasharray="3 2"/>' +
+                    '<circle cx="' + px + '" cy="' + py + '" r="5" fill="var(--primary)"/>' +
+                    '<text x="' + (px + 8) + '" y="' + (py + 4) + '" font-size="10" fill="var(--color-text-primary)">this page</text>' +
+                    '<text x="2" y="' + (padT + 6) + '" font-size="8" fill="var(--color-text-muted)">30%</text>' +
+                    '<text x="' + padL + '" y="' + (H - 4) + '" font-size="8" fill="var(--color-text-muted)">pos 1</text>' +
+                    '<text x="' + (W - padR) + '" y="' + (H - 4) + '" font-size="8" fill="var(--color-text-muted)" text-anchor="end">pos 10</text>' +
+                '</svg>' +
+                '<div style="flex:1;min-width:180px;font-size:0.82rem;color:var(--color-text-secondary);line-height:1.55;">' + verdict + '</div>' +
+            '</div>' +
+            '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Dashed line = typical organic click-through by position (stepped, not smoothed).</div>' +
+        '</div>';
+    }
+
+    // On-page checklist for the Content tab — a scannable TL;DR (status + next action per check),
+    // NOT dials. Reads PageIntelligence.getCachedData(url) (populated once the page is analysed).
+    function createContentChecklist(d) {
+        if (!d) return '';
+        const row = function (sev, label, status, action) {
+            const col = sev === 'bad' ? '#dc2626' : sev === 'warn' ? '#d97706' : '#059669';
+            return '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--color-border-primary);">' +
+                '<span style="width:8px;height:8px;border-radius:50%;background:' + col + ';margin-top:6px;flex-shrink:0;"></span>' +
+                '<div style="flex:1;font-size:0.85rem;line-height:1.45;"><span style="font-weight:700;color:var(--color-text-primary);">' + label + '</span> <span style="color:var(--color-text-secondary);">' + status + '</span>' + (action ? ' <span style="color:var(--color-text-muted);">&mdash; ' + action + '</span>' : '') + '</div>' +
+            '</div>';
+        };
+        const rows = []; let issues = 0;
+        if (d.isNoindex) { rows.push(row('bad', 'Indexing:', 'blocked from search (noindex)', 'remove noindex so it can rank')); issues++; }
+        if (!d.titleLength) { rows.push(row('bad', 'Title tag:', 'missing', 'add a descriptive page title')); issues++; }
+        else if (d.titleLength > 60) { rows.push(row('warn', 'Title tag:', d.titleLength + ' chars (long)', 'trim so it is not cut off in results')); issues++; }
+        else rows.push(row('good', 'Title tag:', d.titleLength + ' chars'));
+        if (d.metaDescLength === 0) { rows.push(row('bad', 'Meta description:', 'missing', 'write one &mdash; it is your search snippet')); issues++; }
+        else if (d.metaDescLength < 70) { rows.push(row('warn', 'Meta description:', d.metaDescLength + ' chars (short)', 'expand toward ~120&ndash;155 chars')); issues++; }
+        else if (d.metaDescLength > 160) { rows.push(row('warn', 'Meta description:', d.metaDescLength + ' chars (long)', 'may be truncated in results')); issues++; }
+        else rows.push(row('good', 'Meta description:', d.metaDescLength + ' chars'));
+        if (d.readabilityScore != null) {
+            const rs = Math.round(d.readabilityScore);
+            if (d.readabilityScore < 45) { rows.push(row('warn', 'Readability:', 'hard (ease ' + rs + ')', 'shorter sentences, plainer words')); issues++; }
+            else if (d.readabilityScore < 55) { rows.push(row('warn', 'Readability:', 'fairly hard (ease ' + rs + ')', 'simplify where you can')); issues++; }
+            else rows.push(row('good', 'Readability:', 'good (ease ' + rs + ')'));
+        }
+        if (d.h1Count === 0) { rows.push(row('warn', 'Headings:', 'no H1', 'add one clear top heading')); issues++; }
+        else if (d.h1Count > 1) { rows.push(row('warn', 'Headings:', d.h1Count + ' H1s', 'use a single H1')); issues++; }
+        else rows.push(row('good', 'Headings:', 'H1 + ' + (d.h2Count || 0) + ' sub-headings'));
+        if (d.longSentences > 0) { rows.push(row('warn', 'Long sentences:', d.longSentences + ' over-long', 'break them up')); issues++; }
+        if (d.wordCount != null) {
+            if (d.wordCount < 300) { rows.push(row('warn', 'Length:', d.wordCount + ' words (thin)', 'add depth if the topic needs it')); issues++; }
+            else rows.push(row('good', 'Length:', formatNumber(d.wordCount) + ' words'));
+        }
+        if (d.imagesWithoutAlt > 0) { rows.push(row('warn', 'Image alt text:', d.imagesWithoutAlt + ' missing', 'add alt text for accessibility')); issues++; }
+        const head = issues === 0 ? 'On-page checklist &mdash; all clear' : 'On-page checklist &mdash; ' + issues + ' thing' + (issues === 1 ? '' : 's') + ' to look at';
+        return '<div class="overview-card" style="padding:16px 20px;margin-bottom:16px;">' +
+            '<div class="card-title" style="margin-bottom:10px;">' + head + '</div>' + rows.join('') +
         '</div>';
     }
 
@@ -15572,6 +15716,7 @@ function createUnifiedCitizensDashboard(url, gscData, ga4Data, gscTrends, ga4Tre
 
                     <div class="tab-panel" data-panel="content">
                         <div class="panel-content" style="padding: 20px 24px;">
+                            <div class="content-checklist"></div>
                             <div class="content-intel-mount" data-url="${url}" data-loaded="false" style="min-height: 200px;"></div>
                         </div>
                     </div>
@@ -15665,6 +15810,17 @@ function initializeUnifiedDashboard(dashboardId) {
                     if (mount && mount.dataset.loaded === 'false' && window.PageIntelligence) {
                         mount.dataset.loaded = 'true';
                         window.PageIntelligence.renderFullReport(mount, mount.dataset.url);
+                        // Fill the top-of-tab on-page checklist once analysis has cached the data.
+                        const checklist = targetPanel.querySelector('.content-checklist');
+                        if (checklist && window.PageIntelligence.getCachedData) {
+                            let tries = 0;
+                            const iv = setInterval(function () {
+                                tries++;
+                                const d = window.PageIntelligence.getCachedData(mount.dataset.url);
+                                if (d) { checklist.innerHTML = createContentChecklist(d); clearInterval(iv); }
+                                else if (tries > 40) { clearInterval(iv); }   // ~20s, then give up quietly
+                            }, 500);
+                        }
                     }
                 }
             } else {
