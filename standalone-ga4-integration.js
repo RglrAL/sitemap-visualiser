@@ -684,7 +684,7 @@ const [basicData, geoData, trafficData] = await Promise.all([
             }],
             dimensions: [
                 { name: 'pagePath' },
-                { name: 'sessionDefaultChannelGrouping' },
+                { name: 'sessionDefaultChannelGroup' },   // current API name (legacy 'sessionDefaultChannelGrouping' errored → empty)
                 { name: 'sessionSource' },
                 { name: 'sessionMedium' }
             ],
@@ -1518,6 +1518,52 @@ function addGA4Styles() {
     // EXPORT TO GLOBAL SCOPE
     // ===========================================
 
+    // Bulk: sessions per (pagePath x channel) for the whole property, so the rollup can show
+    // where each page/section's visitors come from (Organic Search, Direct, Referral, Social…).
+    // Returns Map: pagePath -> { channelName: sessions }. pagePath x channel can be large, so we
+    // order by sessions desc and cap with `limit` (100k covers a big site; note if truncated).
+    async function fetchChannelsByPage(opts) {
+        opts = opts || {};
+        if (!ga4Connected || !ga4PropertyId || !ga4AccessToken) return new Map();
+        const today = new Date();
+        const days = opts.days || 30, offset = opts.offset || 0;
+        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        async function run(dim) {
+            return fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${ga4AccessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dateRanges: [{ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] }],
+                    dimensions: [{ name: 'pagePath' }, { name: dim }],
+                    metrics: [{ name: 'sessions' }],
+                    orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+                    limit: opts.limit || 100000
+                })
+            });
+        }
+        const result = new Map();
+        try {
+            // Prefer the current dimension name; fall back to the legacy one if the property rejects it.
+            let resp = await run('sessionDefaultChannelGroup');
+            if (!resp.ok) resp = await run('sessionDefaultChannelGrouping');
+            if (!resp.ok) { ga4Log('Channels-by-page fetch failed:', resp.status); return result; }
+            const json = await resp.json();
+            const rows = (json && json.rows) || [];
+            rows.forEach(function (row) {
+                const dv = row.dimensionValues || [];
+                const path = dv[0] && dv[0].value;
+                if (!path) return;
+                const ch = (dv[1] && dv[1].value) || 'Unassigned';
+                const sess = parseInt((row.metricValues && row.metricValues[0] && row.metricValues[0].value) || 0, 10);
+                let e = result.get(path); if (!e) { e = {}; result.set(path, e); }
+                e[ch] = (e[ch] || 0) + sess;
+            });
+            ga4Log('Channels-by-page: ' + result.size + ' pages in one call');
+            return result;
+        } catch (e) { ga4Log('Channels-by-page error:', e); return result; }
+    }
+
     window.GA4Integration = {
         // Main functions
         init: initGA4Integration,
@@ -1525,6 +1571,7 @@ function addGA4Styles() {
         getPropertyId: () => ga4PropertyId,
         fetchData: fetchGA4DataForPage,
         fetchAllPages: fetchAllGA4Pages,
+        fetchChannelsByPage: fetchChannelsByPage,
         disconnect: disconnectGA4,
         
         // Utility functions
