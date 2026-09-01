@@ -1194,20 +1194,58 @@
             .catch(function (e) { delete _countryQueryCache[days]; throw e; });
         return _countryQueryCache[days];
     }
-    // Channel-by-page (GA4): sessions per pagePath x channel, cached per period. null when the
-    // GA4 module lacks fetchChannelsByPage (not redeployed) or isn't connected.
-    const _channelCache = {};   // days -> Promise<Map<path,{channel:sessions}>>
-    function getChannelsByPage(days) {
-        days = days || 30;
-        if (_channelCache[days]) return _channelCache[days];
+    // Source-by-page (GA4): sessions per pagePath x source x channel, cached per (days:offset).
+    // We classify sources into buckets in OUR code (retroactive + AI-aware), not GA4's native channel.
+    const _sourcesCache = {};   // "days:offset" -> Promise<{byPage:Map, truncated:bool}>
+    function getSourcesByPage(days, offset) {
+        days = days || 30; offset = offset || 0;
+        const key = days + ':' + offset;
+        if (_sourcesCache[key]) return _sourcesCache[key];
         const ga4 = window.GA4Integration;
-        if (!ga4 || !ga4.isConnected || !ga4.isConnected() || typeof ga4.fetchChannelsByPage !== 'function') {
-            return Promise.resolve(null);
-        }
-        _channelCache[days] = ga4.fetchChannelsByPage({ days: days })
-            .then(function (m) { if (!m || !m.size) delete _channelCache[days]; return m && m.size ? m : null; })
-            .catch(function (e) { delete _channelCache[days]; throw e; });
-        return _channelCache[days];
+        if (!ga4 || !ga4.isConnected || !ga4.isConnected() || typeof ga4.fetchSourcesByPage !== 'function') return Promise.resolve(null);
+        _sourcesCache[key] = ga4.fetchSourcesByPage({ days: days, offset: offset })
+            .then(function (d) { if (!d || !d.byPage || !d.byPage.size) { delete _sourcesCache[key]; return null; } return d; })
+            .catch(function (e) { delete _sourcesCache[key]; throw e; });
+        return _sourcesCache[key];
+    }
+    // Deterministic source classifier. Retroactive (source was always recorded) and AI-aware —
+    // GA4's native "AI" channel is forward-only from mid-2026 and misses Perplexity etc. Extend
+    // AI_ANY as new assistants launch. Buckets: Google search / Other search / AI assistants /
+    // AskCI chatbot / Facebook / Other social / Email / Direct / Other referral.
+    const AI_ANY = /(chatgpt|openai|claude\.ai|anthropic|perplexity|gemini|bard\.google|copilot|deepseek|meta\.ai|grok|x\.ai|you\.com|poe\.com|phind)/i;
+    const AI_ASSISTANTS = [
+        { name: 'ChatGPT', re: /(chatgpt|openai)/i }, { name: 'Claude', re: /(claude\.ai|anthropic)/i },
+        { name: 'Perplexity', re: /perplexity/i }, { name: 'Gemini', re: /(gemini|bard\.google)/i },
+        { name: 'Copilot', re: /copilot/i }, { name: 'DeepSeek', re: /deepseek/i },
+        { name: 'Meta AI', re: /meta\.ai/i }, { name: 'Grok', re: /(grok|x\.ai)/i }
+    ];
+    function classifySource(source, channel) {
+        const s = String(source || '').toLowerCase(), ch = String(channel || '');
+        if (/ask[\s_-]?ci/.test(s)) return 'AskCI chatbot';
+        if (AI_ANY.test(s)) return 'AI assistants';
+        if (s === '(direct)' || s === '(none)' || s === '(not set)' || s === '' || ch === 'Direct') return 'Direct';
+        if (/(facebook|(^|\.)fb\.|(^|\.)fb$|instagram|l\.facebook|m\.facebook|lm\.facebook)/.test(s)) return 'Facebook';
+        if (ch === 'Organic Social' || ch === 'Paid Social' || /(twitter|(^|\.)x\.com|t\.co|linkedin|lnkd\.in|reddit|youtube|tiktok|pinterest|whatsapp|telegram|bsky|mastodon)/.test(s)) return 'Other social';
+        if (ch === 'Email' || /(newsletter|mailchimp|sendgrid|(^|\.)mail\.|e?mail|campaign-archive)/.test(s)) return 'Email';
+        if (/google/.test(s)) return 'Google search';
+        if (/(bing|duckduckgo|(^|\.)yahoo|ecosia|baidu|yandex|brave|startpage|qwant)/.test(s) || ch === 'Organic Search') return 'Other search';
+        return 'Other referral';
+    }
+    // Map a user term ("AI", "ChatGPT", "Facebook", "google", "askci", or a raw source) to a matcher
+    // over source-rows: returns {label, pred, isAI}. Per-assistant when a specific assistant is named.
+    function _sourceMatcher(term) {
+        const t = String(term || '').trim().toLowerCase();
+        if (!t) return null;
+        for (let i = 0; i < AI_ASSISTANTS.length; i++) { if (AI_ASSISTANTS[i].name.toLowerCase() === t || AI_ASSISTANTS[i].re.test(t)) { const a = AI_ASSISTANTS[i]; return { label: a.name, isAI: true, pred: function (rw) { return a.re.test(String(rw.source || '')); } }; } }
+        if (/^(ai|ai assistants?|ai traffic|ai search|llm|llms|chatbots?|ai referr)/.test(t)) return { label: 'AI assistants', isAI: true, pred: function (rw) { return classifySource(rw.source, rw.channel) === 'AI assistants'; } };
+        if (/ask[\s_-]?ci/.test(t)) return { label: 'AskCI chatbot', pred: function (rw) { return /ask[\s_-]?ci/i.test(String(rw.source || '')); } };
+        const BUCKETS = { facebook: 'Facebook', fb: 'Facebook', meta: 'Facebook', social: null, google: 'Google search', 'google search': 'Google search', search: null, email: 'Email', newsletter: 'Email', direct: 'Direct', referral: 'Other referral' };
+        if (t === 'social') return { label: 'social', pred: function (rw) { const b = classifySource(rw.source, rw.channel); return b === 'Facebook' || b === 'Other social'; } };
+        if (t === 'search') return { label: 'search', pred: function (rw) { const b = classifySource(rw.source, rw.channel); return b === 'Google search' || b === 'Other search'; } };
+        if (t === 'organic') return { label: 'Organic search', pred: function (rw) { return /organic/i.test(rw.channel); } };
+        if (t === 'paid') return { label: 'Paid', pred: function (rw) { return /paid|cpc|display/i.test(rw.channel); } };
+        if (BUCKETS[t]) { const b = BUCKETS[t]; return { label: b, pred: function (rw) { return classifySource(rw.source, rw.channel) === b; } }; }
+        return { label: term, pred: function (rw) { return String(rw.source || '').toLowerCase().indexOf(t) > -1; } };   // raw source substring
     }
     // Reuse SVGeoMap's world bubble map to visualise search DEMAND by country (bubbles
     // sized by GSC impressions instead of GA4 users). Self-inits via <img onload> so it
@@ -2238,69 +2276,91 @@
             };
         }
         if (intent === 'traffic_sources') {
-            let chMap;
-            try { chMap = await getChannelsByPage(_ddDays); }
+            let data;
+            try { data = await getSourcesByPage(_ddDays); }
             catch (e) { return { html: '', summary: '', err: 'Could not fetch traffic-source data: ' + (e && e.message ? e.message : String(e)) }; }
-            if (chMap == null) {
+            if (data == null) {
                 const ga = window.GA4Integration, on = ga && ga.isConnected && ga.isConnected();
-                return { html: '', summary: '', err: on ? 'Traffic-source data needs the updated GA4 module. Redeploy standalone-ga4-integration.js (it must include fetchChannelsByPage) and hard-refresh.' : 'Traffic-source answers need a GA4 connection.' };
+                return { html: '', summary: '', err: on ? 'Traffic-source data needs the updated GA4 module. Redeploy standalone-ga4-integration.js (it must include fetchSourcesByPage) and hard-refresh.' : 'Traffic-source answers need a GA4 connection.' };
             }
-            if (!chMap.size) return { html: '', summary: '', err: 'No traffic-source data came back for ' + periodLabel(_ddDays) + '.' };
             const ga4 = window.GA4Integration;
             const toPath = (ga4 && typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
-            const chanWord = plan.channel ? String(plan.channel).toLowerCase() : null;
-            // "which pages does {channel} drive" — rank pages by that channel's sessions.
-            if (chanWord && !plan.page) {
-                const c = _catByName(cats, plan.category);
-                const pages = c ? catPages(c) : _allPages(r);
-                const rows = pages.map(function (p) {
-                    let sess = 0; (p.urls || [p.url]).forEach(function (u) { const rec = chMap.get(toPath(u)); if (rec) { for (const k in rec) if (k.toLowerCase().indexOf(chanWord) > -1) sess += rec[k]; } });
-                    return { name: p.name, url: p.url, sess: sess };
-                }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; }).slice(0, limit);
-                if (!rows.length) return { html: '', summary: '', err: 'No pages' + (c ? ' in ' + c.name : '') + ' get meaningful ' + chanWord + ' traffic in ' + periodLabel(_ddDays) + '.' };
-                const items = rows.map(function (x) { return { name: x.name, val: fmt(x.sess), bar: x.sess, url: x.url }; });
+            const rowsFor = function (p, byPage) { const out = []; (p.urls || [p.url]).forEach(function (u) { const rs = byPage.get(toPath(u)); if (rs) rs.push.apply(out, [].concat(rs)); }); return out; };
+            const sumScope = function (byPage, pgs, pred) { let s = 0; pgs.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rs = byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { if (!pred || pred(rw)) s += rw.sessions; }); }); }); return s; };
+            const AI_FLOOR = 'Note: this is a floor, not a ceiling — AI-Overview clicks are counted as Organic Search, and AI visits with no referrer fall into Direct, so real AI traffic is higher than shown.';
+            const truncNote = data.truncated ? ' <span style="color:#b45309;">(source list truncated at the cap — long-tail sources may be undercounted).</span>' : '';
+            const m = plan.source ? _sourceMatcher(plan.source) : (plan.channel ? _sourceMatcher(plan.channel) : null);
+
+            // ── Growth: "is AI traffic growing?" — current vs previous period vs same period last year ──
+            if (m && plan.growth) {
+                const cats2 = cats; const c = _catByName(cats2, plan.category);
+                const pgs = c ? catPages(c) : _allPages(r);
+                const cur = sumScope(data.byPage, pgs, m.pred);
+                let prev = null, yoy = null;
+                try { const pd = await getSourcesByPage(_ddDays, _ddDays); if (pd && pd.byPage) prev = sumScope(pd.byPage, pgs, m.pred); } catch (e) {}
+                try { const yd = await getSourcesByPage(_ddDays, 365); if (yd && yd.byPage) yoy = sumScope(yd.byPage, pgs, m.pred); } catch (e) {}
+                const pct = function (now, then) { return (then != null && then > 0) ? Math.round((now - then) / then * 100) : null; };
+                const pp = pct(cur, prev), yp = pct(cur, yoy);
+                const dcell = function (l, v, sub) { return '<div style="flex:1;min-width:92px;padding:9px 11px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div>' + (sub ? '<div style="font-size:0.62rem;color:' + sub.col + ';font-weight:700;">' + sub.txt + '</div>' : '') + '</div>'; };
+                const dl = function (x) { return x == null ? { txt: 'n/a', col: 'var(--color-text-muted)' } : { txt: (x >= 0 ? '+' : '') + x + '%', col: x >= 0 ? '#059669' : '#dc2626' }; };
+                const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);margin-bottom:10px;">' +
+                    dcell('Now', fmt(cur) + ' sess') + dcell('Vs previous', prev != null ? fmt(prev) : 'n/a', dl(pp)) + dcell('Vs last year', yoy != null ? fmt(yoy) : 'n/a', dl(yp)) + '</div>';
+                const note = (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + AI_FLOOR + '</div>' : '') +
+                    (yoy == null ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">Same-period-last-year data was unavailable (outside GA4 retention).</div>' : '');
                 return {
-                    html: _rankCard(items, { nameLabel: 'Page', valueLabel: chanWord + ' sessions' }),
-                    summary: 'Pages ' + chanWord + ' traffic drives most' + (c ? ' in ' + c.name : '') + ' (' + periodLabel(_ddDays) + '): ' + rows.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
-                    data: { columns: [{ key: 'page', label: 'Page' }, { key: 'sessions', label: chanWord + ' sessions' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, sessions: x.sess, url: x.url }; }), chart: { type: 'bar', x: 'page', y: 'sessions', label: chanWord + ' sessions' } }
+                    html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:8px;">' + esc(m.label) + ' traffic' + (c ? ' &middot; ' + esc(c.name) : '') + '</div>' + strip + note,
+                    summary: m.label + ' traffic' + (c ? ' in ' + c.name : '') + ' (' + periodLabel(_ddDays) + '): ' + fmt(cur) + ' sessions' + (pp != null ? ', ' + (pp >= 0 ? '+' : '') + pp + '% vs the previous period' : '') + (yp != null ? ', ' + (yp >= 0 ? '+' : '') + yp + '% vs the same period last year' : '') + '.',
+                    data: { columns: [{ key: 'period', label: 'Period' }, { key: 'sessions', label: 'Sessions' }, { key: 'changePct', label: 'Change %' }], rows: [{ period: 'Now', sessions: cur, changePct: 0 }, { period: 'Previous', sessions: prev, changePct: pp }, { period: 'Last year', sessions: yoy, changePct: yp }], chart: { type: 'bar', x: 'period', y: 'sessions', label: 'Sessions' } }
                 };
             }
-            // Channel breakdown for a page / section / whole site.
-            let scopeLabel, pages, _pageObj = null;
+
+            // ── Named source / bucket: rank pages (or a single page's count + share) ──
+            if (m) {
+                if (plan.page) {
+                    const _res = _resolvePage(r, plan.page);
+                    if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap.' };
+                    if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
+                    const pg = _res.page, sess = sumScope(data.byPage, [pg], m.pred), pgSess = (pg.s && pg.s.sessions) || 0, share = pgSess > 0 ? Math.round(sess / pgSess * 100) : null;
+                    const cell = function (l, v) { return '<div style="flex:1;min-width:80px;padding:9px 11px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.15rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div></div>'; };
+                    return {
+                        html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:8px;">' + esc(pg.name) + ' &middot; from ' + esc(m.label) + '</div><div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' + cell('Sessions from ' + m.label, fmt(sess)) + (share != null ? cell('Share of its traffic', share + '%') : '') + (pgSess ? cell('All sessions', fmt(pgSess)) : '') + '</div>' + (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + AI_FLOOR + '</div>' : ''),
+                        summary: '"' + pg.name + '" got ' + fmt(sess) + ' session' + (sess === 1 ? '' : 's') + ' from ' + m.label + (share != null ? ' (' + share + '% of its ' + fmt(pgSess) + ' sessions)' : '') + ' in ' + periodLabel(_ddDays) + '.',
+                        data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'Sessions from ' + m.label, value: sess }, { metric: 'All sessions', value: pgSess }, { metric: 'Share %', value: share }], chart: null }
+                    };
+                }
+                const c = _catByName(cats, plan.category);
+                const pages = c ? catPages(c) : _allPages(r);
+                const scored = pages.map(function (p) { return { name: p.name, url: p.url, sess: sumScope(data.byPage, [p], m.pred) }; }).filter(function (x) { return x.sess > 0; });
+                const total = scored.reduce(function (s, x) { return s + x.sess; }, 0);
+                if (!scored.length) return { html: '', summary: '', err: 'No pages' + (c ? ' in ' + c.name : '') + ' got traffic from ' + m.label + ' in ' + periodLabel(_ddDays) + '.' + (data.truncated ? ' (Source data was truncated — a rare source may be missing.)' : '') };
+                const rk = scored.sort(function (a, b) { return b.sess - a.sess; }).slice(0, limit);
+                const items = rk.map(function (x) { return { name: x.name, val: fmt(x.sess), bar: x.sess, url: x.url }; });
+                return {
+                    html: _rankCard(items, { nameLabel: 'Page', valueLabel: m.label + ' sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' session' + (total === 1 ? '' : 's') + ' from ' + esc(m.label) + (c ? ' in ' + esc(c.name) : ' site-wide') + ' (' + periodLabel(_ddDays) + '), across ' + scored.length + ' page' + (scored.length === 1 ? '' : 's') + '.' + truncNote + '</div>' + (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
+                    summary: fmt(total) + ' sessions from ' + m.label + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '); top pages: ' + rk.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
+                    data: { columns: [{ key: 'page', label: 'Page' }, { key: 'sessions', label: m.label + ' sessions' }, { key: 'url', label: 'URL' }], rows: rk.map(function (x) { return { page: x.name, sessions: x.sess, url: x.url }; }), chart: { type: 'bar', x: 'page', y: 'sessions', label: m.label + ' sessions' } }
+                };
+            }
+
+            // ── Bucket breakdown for a page / section / whole site ──
+            let scopeLabel, pages;
             if (plan.page) {
                 const _res = _resolvePage(r, plan.page);
                 if (_res.none) return { html: '', summary: '', err: 'I could not find that page. Name it as it appears in the sitemap.' };
                 if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
-                pages = [_res.page]; scopeLabel = _res.page.name; _pageObj = _res.page;
+                pages = [_res.page]; scopeLabel = _res.page.name;
             } else { const c = _catByName(cats, plan.category); pages = c ? catPages(c) : _allPages(r); scopeLabel = c ? c.name : 'the whole site'; }
-            const tot = Object.create(null);
-            pages.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rec = chMap.get(toPath(u)); if (rec) { for (const k in rec) tot[k] = (tot[k] || 0) + rec[k]; } }); });
-            const entries = Object.keys(tot).map(function (k) { return { channel: k, sess: tot[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
+            const buckets = Object.create(null);
+            pages.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rs = data.byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { const b = classifySource(rw.source, rw.channel); buckets[b] = (buckets[b] || 0) + rw.sessions; }); }); });
+            const entries = Object.keys(buckets).map(function (k) { return { channel: k, sess: buckets[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
             if (!entries.length) return { html: '', summary: '', err: 'No traffic-source data for ' + scopeLabel + ' in ' + periodLabel(_ddDays) + '.' };
             const total = entries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
             const items = entries.slice(0, limit).map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + Math.round(x.sess / total * 100) + '%)', bar: x.sess }; });
-            // For a single page, drill to the specific sources (per-page fetch carries them).
-            let srcLine = '', srcSummary = '', srcRows = [];
-            if (_pageObj && ga4 && typeof ga4.fetchData === 'function') {
-                try {
-                    const detail = await ga4.fetchData(_pageObj.url);
-                    const chans = (detail && detail.trafficSources && detail.trafficSources.channels) || [];
-                    const st = Object.create(null);
-                    chans.forEach(function (c) { (c.sources || []).forEach(function (sx) { st[sx.source] = (st[sx.source] || 0) + (sx.sessions || 0); }); });
-                    const clean = function (v) { v = String(v || ''); return v === '(direct)' ? 'Direct' : (v === '(not set)' || v === '(none)' || v === '') ? 'Unknown' : v; };
-                    const arr = Object.keys(st).map(function (k) { return { source: clean(k), sessions: st[k] }; }).filter(function (x) { return x.sessions > 0; }).sort(function (a, b) { return b.sessions - a.sessions; }).slice(0, 5);
-                    if (arr.length) {
-                        const stot = arr.reduce(function (s, x) { return s + x.sessions; }, 0) || 1;
-                        srcLine = '<div style="font-size:0.7rem;color:var(--color-text-secondary);margin-top:8px;"><strong>Top sources:</strong> ' + arr.map(function (x) { return esc(x.source) + ' ' + Math.round(x.sessions / stot * 100) + '%'; }).join(' &middot; ') + '</div>';
-                        srcSummary = ' Top sources: ' + arr.map(function (x) { return x.source + ' ' + Math.round(x.sessions / stot * 100) + '%'; }).join(', ') + '.';
-                        srcRows = arr;
-                    }
-                } catch (e) {}
-            }
+            const hasAI = entries.some(function (x) { return x.channel === 'AI assistants'; });
             return {
-                html: _rankCard(items, { nameLabel: 'Channel', valueLabel: 'Sessions' }) + srcLine + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">GA4 default channel grouping &middot; ' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + ').</div>',
-                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 5).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.' + srcSummary,
-                data: { columns: [{ key: 'channel', label: 'Channel' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { channel: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'channel', y: 'sessions', label: 'Sessions' } }
+                html: _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
+                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 6).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.',
+                data: { columns: [{ key: 'source', label: 'Source' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { source: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'source', y: 'sessions', label: 'Sessions' } }
             };
         }
         if (intent === 'abandoned') {
@@ -2668,7 +2728,7 @@
         const A = cc[0], B = cc[1], C = cc[2], P0 = ll[0], P1 = ll[1];
         const JOBS = [
             { t: 'Triage — what needs attention', items: ['What should I focus on in ' + A + '?', 'Which ' + A + ' pages lost traffic?', 'Pages with high impressions but low clicks', 'What is stale in ' + A + '?', 'Which pages get no search traffic?', 'Which pages do people leave quickly?', 'Any pages competing for the same search?'] },
-            { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What questions do people ask?', 'What do people search for in ' + A + '?', 'Where do visitors to ' + A + ' come from?', 'What do people abroad search us for?', 'Which countries search us the most?'] },
+            { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What questions do people ask?', 'Where do visitors to ' + A + ' come from?', 'How much traffic comes from AI?', 'Is AI traffic growing?', 'What do people abroad search us for?'] },
             { t: 'Improve — fix a page', items: ['Why is the ' + P0 + ' page underperforming?', 'How is the ' + P1 + ' page performing?', 'What queries bring people to the ' + P0 + ' page?', 'Where does traffic to the ' + P0 + ' page come from?', 'Quick wins for the ' + P0 + ' page', 'Where does the Irish version underperform?'] },
             { t: 'Verify — did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B] },
             { t: 'Report — roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which sections get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
@@ -2786,16 +2846,31 @@
                 return { intent: 'movers', category: _im ? _im[1].trim() : null, direction: _dir };
             }
         }
-        // "which pages does social/paid/... drive" or "where does traffic come from" -> traffic_sources
+        // ── traffic_sources routes: growth / "which pages does X send" / "from X" / breakdown ──
         {
-            const _chan = /\bpages?\b/.test(s) ? /\b(paid|organic|direct|referral|social|email)\b/i.exec(s) : null;
-            if (_chan && /\b(?:drive|drives|driving|bring|brings|sends?|send)\b/i.test(s)) {
-                const _im = / (?:in|for) (.+?)\??$/i.exec(s);
-                return { intent: 'traffic_sources', channel: _chan[1].toLowerCase(), category: _im ? _im[1].trim() : null };
+            const _srcCat = / (?:in|for) (.+?)\??$/i.exec(s);
+            const _cat = _srcCat ? _srcCat[1].trim() : null;
+            // "is AI traffic growing" / "how has ChatGPT traffic grown"
+            const _gm = /\b(ai|chatgpt|claude|perplexity|gemini|copilot|deepseek|grok|meta ai|facebook|google|social|search|email|direct|referral|ask[\s_-]?ci)\b[^?]*\b(?:growing|grown|growth|rising|increas|on the rise)\b/i.exec(s);
+            if (_gm && /\b(?:traffic|sessions|visits?|referrals?)\b/i.test(s)) {
+                let _src = _gm[1].trim(); if (/ask/i.test(_src)) _src = 'askci';
+                return { intent: 'traffic_sources', source: _src, growth: true, category: _cat };
             }
-            if (/\btraffic sources?\b|\bchannel breakdown\b|\bwhich channels?\b|\bwhere (?:do|does) (?:my |our |the )?(?:visitors?|traffic|people) (?:come from|arrive|land)\b/i.test(s)) {
-                const _im = / (?:in|for) (.+?)\??$/i.exec(s);
-                return { intent: 'traffic_sources', category: _im ? _im[1].trim() : null };
+            // "which pages does X send / drive / bring"
+            const _drv = /\bwhich pages\s+(?:does|do)\s+(.+?)\s+(?:send|sends|drive|drives|bring|brings|refer|refers)\b/i.exec(s);
+            if (_drv) { let _src = _drv[1].trim(); if (/ask/i.test(_src)) _src = 'askci'; return { intent: 'traffic_sources', source: _src, category: _cat }; }
+            // "how many from X" / "traffic from X" / "how many to the Y page from X"
+            const _fromAsk = /\bfrom\s+(ask[\s_-]?ci\w*)/i.exec(s);
+            const _fromGen = (!_fromAsk && /\b(?:how many|how much|traffic|sessions|visits?|visitors)\b/i.test(s)) ? /\bfrom\s+([a-z][\w.\-]{1,30})\b/i.exec(s) : null;
+            const _fm = _fromAsk || _fromGen;
+            if (_fm && !/^(abroad|overseas|internationally)$/i.test(_fm[1].trim())) {
+                const _term = /ask[\s_-]?ci/i.test(_fm[1]) ? 'askci' : _fm[1].trim();
+                const _pm = /\bto (?:the )?(.+?)(?: page)? from\b/i.exec(s) || /\bfrom [\w.\-]+ to (?:the )?(.+?)(?: page)?\??$/i.exec(s);
+                return { intent: 'traffic_sources', source: _term, page: _pm ? _pm[1].trim() : null };
+            }
+            // breakdown: "traffic sources / where do visitors come from / how much from AI"
+            if (/\btraffic sources?\b|\bchannel breakdown\b|\bwhich channels?\b|\bhow much (?:traffic )?(?:comes? )?from ai\b|\bwhere (?:do|does) (?:my |our |the )?(?:visitors?|traffic|people) (?:come from|arrive|land)\b/i.test(s)) {
+                return { intent: 'traffic_sources', category: _cat };
             }
         }
         // "is this normal / seasonal / vs last year" -> seasonal
@@ -2878,7 +2953,7 @@
         panel.id = 'sv-ask-panel';
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-label', 'Ask your data');
-        panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:min(520px,94vw);z-index:4000;background:var(--color-bg-secondary);border-left:1px solid var(--color-border-primary);box-shadow:-8px 0 30px rgba(0,0,0,0.18);display:flex;flex-direction:column;font-family:var(--font-family);transition:transform 0.22s ease;transform:translateX(100%);';
+        panel.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:min(680px,96vw);z-index:4000;background:var(--color-bg-secondary);border-left:1px solid var(--color-border-primary);box-shadow:-8px 0 30px rgba(0,0,0,0.18);display:flex;flex-direction:column;font-family:var(--font-family);transition:transform 0.22s ease;transform:translateX(100%);';
         panel.innerHTML =
             '<div style="flex:0 0 auto;padding:14px 16px;border-bottom:1px solid var(--color-border-primary);display:flex;align-items:center;gap:8px;">' +
                 '<div style="flex:1;min-width:0;">' +
@@ -3099,7 +3174,7 @@
                 const sys = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Sections available: ' + catNames.join(', ') + '. ' +
                     'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","unknown"], ' +
-                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "channel": a traffic source word (paid|organic|direct|referral|social|email) for traffic_sources when they ask which pages a source drives (else omit), ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "channel": a traffic source word (paid|organic|direct|referral|social|email) for traffic_sources when they ask which pages a source drives (else omit), "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
@@ -3122,7 +3197,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does social / paid / organic / referral / email drive / social traffic pages / pages driven by X->traffic_sources with channel set to that source word.';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources).';
                 const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: q }], { temperature: 0, max_tokens: 200 });
                 let plan; try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
                 if (!plan || plan.intent === 'unknown') { const _qp = _quickParse(q); if (_qp) plan = _qp; }
@@ -3248,6 +3323,7 @@
         selfTest: selfTest,
         _normUrl: normUrl,
         countryName: _countryName,
+        ctrBenchmark: _ctrBenchmark,
         getAskMisses: getAskMisses
     };
     // Convenience global for the Reports menu onclick
