@@ -66,6 +66,19 @@
         },
     };
 
+    // Per-prompt default versions. Bump a key here whenever you improve its DEFAULT_PROMPTS text.
+    // An admin-edited override records the version it was forked from (baseV); when these diverge,
+    // the prompt card shows a "default updated" badge so the drift is VISIBLE. We never auto-discard
+    // the user's edit — visibility + one-click Reset, not a silent override in either direction.
+    // (This is the stale-localStorage cousin of the stale-deployed-file bug: an improved default
+    // must never fail to reach an edited machine without anyone noticing.)
+    const PROMPT_VERSIONS = {
+        'long-sentences': 1, 'passive-voice': 1, 'meta-description': 1, 'title-tag': 1,
+        'weak-anchors': 1, 'page-intro': 1, 'hedge-words': 1, 'h2-headings': 1,
+        'nominalisations': 1, 'search-intent': 1,
+    };
+    function _promptV(key) { return PROMPT_VERSIONS[key] || 1; }
+
     // Prompt metadata for the library UI
     const PROMPT_META = [
         {
@@ -154,6 +167,7 @@
             temperature: (options && options.temperature) !== undefined ? options.temperature : 0.7,
             stream:      false,
         };
+        if (options && options.response_format) payload.response_format = options.response_format;
 
         let response;
         try {
@@ -182,6 +196,12 @@
         }
 
         const json = await response.json();
+        // Guard the happy-path shape: a 200 with an empty/error-shaped body (Groq has had moments)
+        // would otherwise throw "Cannot read properties of undefined" here, and the caller's catch
+        // would blame the wrong module. Fail with a message that names the real cause.
+        if (!json || !json.choices || !json.choices[0] || !json.choices[0].message) {
+            throw new Error('Groq returned an unexpected response shape (no choices). Please try again.');
+        }
         return json.choices[0].message.content;
     }
 
@@ -1331,6 +1351,19 @@ body.dark-theme .nav-ai-btn.configured {
 
         const current = _getPrompt(key);
 
+        // Drift badge: if this override was forked from an older default than the current one, say so
+        // out loud. The user's edit is preserved (still shown/used); the existing Reset button below
+        // adopts the improved default. Silent staleness is the bug we're avoiding — not user edits.
+        let _storedEntry = null;
+        try { _storedEntry = (JSON.parse(localStorage.getItem(STORAGE_KEY_PROMPTS) || '{}'))[key] || null; } catch (e) {}
+        if (_storedEntry && (_storedEntry.baseV || 1) !== _promptV(key)) {
+            const drift = document.createElement('div');
+            drift.className = 'groq-prompt-drift';
+            drift.style.cssText = 'font-size:0.72rem;line-height:1.4;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:7px 10px;margin:4px 0 8px;';
+            drift.textContent = 'Customised from an older default (v' + (_storedEntry.baseV || 1) + '; current default is v' + _promptV(key) + '). Your edit is still in use — Reset to default below to adopt the improved version.';
+            card.appendChild(drift);
+        }
+
         // System prompt
         const sysLabel = document.createElement('label');
         sysLabel.className   = 'groq-prompt-label';
@@ -1377,7 +1410,7 @@ body.dark-theme .nav-ai-btn.configured {
         saveBtn.onclick = () => {
             try {
                 const stored = JSON.parse(localStorage.getItem(STORAGE_KEY_PROMPTS) || '{}');
-                stored[key] = { system: sysTa.value, userPrefix: preTa.value };
+                stored[key] = { system: sysTa.value, userPrefix: preTa.value, baseV: _promptV(key) };
                 localStorage.setItem(STORAGE_KEY_PROMPTS, JSON.stringify(stored));
                 _flashSuccess(saveBtn, 'Saved ✓');
             } catch (e) {
@@ -1518,6 +1551,16 @@ body.dark-theme .nav-ai-btn.configured {
             body.appendChild(_buildPromptCard(meta.key, meta));
         });
 
+        // Scope note — these prompts drive the on-page content tools only. The "Ask your data"
+        // analytics parser lives in sitemap-rollup.js (hard-coded for prompt-caching + integrity)
+        // and is NOT edited here; without this note, someone editing here would expect Ask to change
+        // and conclude the tool is broken.
+        const scopeNote = document.createElement('p');
+        scopeNote.className = 'groq-prompts-scopenote';
+        scopeNote.style.cssText = 'font-size:0.72rem;line-height:1.5;color:var(--color-text-muted,#6b7280);margin:16px 4px 4px;';
+        scopeNote.textContent = 'These prompts power the on-page content tools (sentence & heading rewrites, meta descriptions, anchor text, search-intent gaps). The “Ask your data” analytics parser is configured separately and is not edited here.';
+        body.appendChild(scopeNote);
+
         body.appendChild(_buildChangePinSection());
         panel.appendChild(body);
         document.body.appendChild(panel);
@@ -1566,6 +1609,12 @@ body.dark-theme .nav-ai-btn.configured {
     window.GroqAI = {
         complete,
         stream,
+        // NOTE: last-call-wins, and currently unwired (no callers). _activeController holds only the
+        // most recent unsignalled complete()/stream() call, so this aborts just that one. Fine today:
+        // Ask serialises its calls via a busy flag, and nothing invokes cancel() yet. If a path ever
+        // runs two Groq calls concurrently AND wires cancel() to the UI, upgrade _activeController to
+        // a Set and abort all. (Callers that pass their own AbortSignal manage their own cancellation
+        // and are unaffected either way.)
         cancel:       () => { if (_activeController) { _activeController.abort(); _activeController = null; } },
         isConfigured: () => !!_apiKey,
         getModel:     () => _model,
