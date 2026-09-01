@@ -701,7 +701,7 @@ const [basicData, geoData, trafficData] = await Promise.all([
                     }
                 }
             },
-            limit: 10
+            limit: 50
         })
     })
 ]);
@@ -814,6 +814,7 @@ if (geoResponse.rows && geoResponse.rows.length > 0) {
 if (trafficResponse.rows && trafficResponse.rows.length > 0) {
     const channels = {};
     const sources = {};
+    const channelSources = {};   // channel -> { source: sessions } for the per-channel drill
     
     trafficResponse.rows.forEach(row => {
         const channel = row.dimensionValues[1].value;
@@ -827,6 +828,10 @@ if (trafficResponse.rows && trafficResponse.rows.length > 0) {
         // Aggregate by source
         if (!sources[source]) sources[source] = 0;
         sources[source] += sessions;
+
+        // Aggregate source WITHIN channel (so a channel can drill to its referring sites)
+        if (!channelSources[channel]) channelSources[channel] = {};
+        channelSources[channel][source] = (channelSources[channel][source] || 0) + sessions;
     });
     
     const totalSessions = ga4Data.sessions || 1;
@@ -836,6 +841,8 @@ if (trafficResponse.rows && trafficResponse.rows.length > 0) {
             channel, 
             sessions, 
             percentage: (sessions / totalSessions) * 100 
+        ,
+            sources: Object.entries(channelSources[channel] || {}).map(([source, ss]) => ({ source, sessions: ss })).sort((a, b) => b.sessions - a.sessions).slice(0, 5)
         }))
         .sort((a, b) => b.sessions - a.sessions);
     
