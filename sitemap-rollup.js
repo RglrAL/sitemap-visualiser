@@ -2908,6 +2908,21 @@
         if (dm) return { intent: 'digest' };
         const dm2 = /^(?:generate |create |show |give me |make )?(?:a |the |my )?(?:weekly |content )?digest (?:for|of) (.+?)\??$/i.exec(s);
         if (dm2 && dm2[1]) return { intent: 'briefing', category: dm2[1].trim() };
+        // "most viewed / top pages in X" -> top_pages, with the METRIC inferred from the wording
+        // ("viewed/visited/popular"->views, "clicks"->clicks, "searched/seen"->impressions).
+        {
+            const _isTop = (/\b(?:top|most (?:viewed|visited|popular|read|searched|clicked)|best|biggest|highest[- ]?traffic)\b[^?]*\bpages?\b/i.test(s) || /\bpages?\b[^?]*\bby (?:views?|impressions?|clicks?|traffic)\b/i.test(s));
+            const _notTop = /\b(?:lost|losing|falling|dropping|declining|rising|trending|growing|competing|cannibal|stale|updated|leave|bounce|no (?:search )?traffic|zero|get no)\b/i.test(s);
+            if (_isTop && !_notTop) {
+                let _metric = 'impressions';
+                if (/\b(?:views?|viewed|visits?|visited|popular|read)\b/i.test(s)) _metric = 'pageViews';
+                else if (/\b(?:click|clicked|clicks)\b/i.test(s)) _metric = 'clicks';
+                else if (/\b(?:user|users|visitors)\b/i.test(s)) _metric = 'users';
+                const _cs = s.replace(/\bby (?:views?|impressions?|clicks?|traffic|users?)\b/gi, '').replace(/\s+/g, ' ').trim();
+                const _im = / (?:in|for|within) (.+?)\??$/i.exec(_cs);
+                return { intent: 'top_pages', metric: _metric, category: _im ? _im[1].trim() : null };
+            }
+        }
         // "how is the X page doing" / "page views for X" / "how many views has X page (this month)" -> page_summary
         // Strip a trailing time expression first so it isn't captured as part of the page name.
         const _psq = s.replace(/\b(?:in\s+)?(?:the\s+)?(?:this|last|past)\s+(?:week|month|quarter|year|\d+\s*(?:days?|weeks?|months?))\b/gi, '').replace(/\bin the last\b[^?]*/gi, '').replace(/\s+/g, ' ').trim();
