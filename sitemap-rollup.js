@@ -3828,6 +3828,49 @@
         ws['!cols'] = headers.map(function (h) { return { wch: h.key === 'path' ? 60 : h.key === 'title' ? 40 : 12 }; });
         return ws;
     }
+    // Conditional formatting SheetJS (free) can't write, so we inject it into the finished file.
+    // Clean uniform scheme: count columns (Views / Active users) get green DATA BARS; %Δ columns get
+    // a red→white→green COLOUR SCALE. Column letters are detected from each sheet's header row, so it
+    // works for both the site sheets (Views=D) and category sheets (Views=C). Pure + headless-testable.
+    function _condFmtForSheet(sheetXml, prio) {
+        const firstRow = /<row[^>]*>[\s\S]*?<\/row>/.exec(sheetXml);
+        if (!firstRow) return { cf: '', prio: prio };
+        const cols = {}, cellRe = /<c r="([A-Z]+)\d+"[^>]*>([\s\S]*?)<\/c>/g; let m;
+        while ((m = cellRe.exec(firstRow[0]))) { const t = /<t[^>]*>([\s\S]*?)<\/t>/.exec(m[2]); cols[m[1]] = t ? t[1] : ''; }
+        let last = 1, rm; const rowRe = /<row r="(\d+)"/g;
+        while ((rm = rowRe.exec(sheetXml))) { const n = +rm[1]; if (n > last) last = n; }
+        if (last < 2) return { cf: '', prio: prio };
+        let cf = '';
+        Object.keys(cols).forEach(function (col) {
+            const label = cols[col], sqref = col + '2:' + col + last;
+            if (/%|Δ/.test(label)) {                            // % Δ column -> colour scale
+                cf += '<conditionalFormatting sqref="' + sqref + '"><cfRule type="colorScale" priority="' + (prio++) + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>';
+            } else if (/Views|Active users/.test(label)) {           // count column -> green data bar
+                cf += '<conditionalFormatting sqref="' + sqref + '"><cfRule type="dataBar" priority="' + (prio++) + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar></cfRule></conditionalFormatting>';
+            }
+        });
+        return { cf: cf, prio: prio };
+    }
+    async function _decorateXlsx(bytes, filename) {
+        const dl = function (blob) {
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        };
+        const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        if (typeof JSZip === 'undefined') {                          // graceful fallback: save without the formatting
+            if (typeof console !== 'undefined') console.warn('[SVRollup] JSZip not loaded - saving the report without conditional formatting.');
+            dl(new Blob([bytes], { type: MIME })); return;
+        }
+        const zip = await JSZip.loadAsync(bytes);
+        let prio = 1;
+        const names = Object.keys(zip.files).filter(function (f) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(f); });
+        for (let i = 0; i < names.length; i++) {
+            let xml = await zip.file(names[i]).async('string');
+            const res = _condFmtForSheet(xml, prio); prio = res.prio;
+            if (res.cf) { xml = xml.replace('</sheetData>', '</sheetData>' + res.cf); zip.file(names[i], xml); }
+        }
+        dl(await zip.generateAsync({ type: 'blob', mimeType: MIME }));
+    }
     async function buildMonthlyReport(year, month) {
         const tree = window.treeData;
         if (!tree) { alert('Load a sitemap first.'); return; }
@@ -3879,7 +3922,8 @@
             const cr = rows.filter(function (r) { return r.category === name; }).sort(byDelta);   // all real pages, %Δ desc
             if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, ['dViews', 'dUsers']), _xlSheetName(name));
         });
-        XLSX.writeFile(wb, 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx');
+        const _fname = 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
+        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname);   // write + inject conditional formatting
     }
     function promptMonthlyReport() {
         const now = new Date();
