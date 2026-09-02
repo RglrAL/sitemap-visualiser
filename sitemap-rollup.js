@@ -3871,6 +3871,20 @@
         });
         return { cf: cf, ext: ext, prio: prio };
     }
+    // Header names (from row 1) + extent, for wrapping a sheet as an Excel Table. Names come from the
+    // header cells (SheetJS t="str" stores them in <v>); they must be unique (see the "% Δ2" dedupe).
+    function _tableInfo(sheetXml) {
+        const fr = /<row[^>]*>[\s\S]*?<\/row>/.exec(sheetXml);
+        if (!fr) return null;
+        const names = []; let m, lastCol = 'A'; const cellRe = /<c r="([A-Z]+)\d+"[^>]*>([\s\S]*?)<\/c>/g;
+        while ((m = cellRe.exec(fr[0]))) {
+            const tm = /<t[^>]*>([\s\S]*?)<\/t>/.exec(m[2]), vm = /<v>([\s\S]*?)<\/v>/.exec(m[2]);
+            names.push(tm ? tm[1] : (vm ? vm[1] : '')); lastCol = m[1];
+        }
+        let last = 1, rm; const rowRe = /<row r="(\d+)"/g;
+        while ((rm = rowRe.exec(sheetXml))) { const n = +rm[1]; if (n > last) last = n; }
+        return { names: names, lastCol: lastCol, lastRow: last };
+    }
     async function _decorateXlsx(bytes, filename) {
         const dl = function (blob) {
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
@@ -3894,6 +3908,36 @@
                 zip.file(names[i], xml); injected++;
             }
             if (typeof console !== 'undefined') console.log('[SVRollup] monthly report: conditional formatting injected into ' + injected + '/' + names.length + ' sheets.');
+            // Tables pass: wrap each sheet's data as an Excel Table (TableStyleMedium20). Touches 3
+            // parts per table — the table XML, the worksheet <tableParts>+rels, and [Content_Types].
+            // Own try so a table hiccup never loses the conditional formatting already applied.
+            try {
+                const ct = await zip.file('[Content_Types].xml').async('string'); let ctAdd = '', tabled = 0;
+                for (let i = 0; i < names.length; i++) {
+                    let xml = await zip.file(names[i]).async('string');
+                    const info = _tableInfo(xml);
+                    if (!info || info.lastRow < 2 || !info.names.length) continue;
+                    const tId = i + 1, ref = 'A1:' + info.lastCol + info.lastRow;
+                    const colXml = info.names.map(function (nm, j) { return '<tableColumn id="' + (j + 1) + '" name="' + nm + '"/>'; }).join('');
+                    zip.file('xl/tables/table' + tId + '.xml',
+                        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="' + tId + '" name="Table' + tId + '" displayName="Table' + tId + '" ref="' + ref + '" totalsRowShown="0"><autoFilter ref="' + ref + '"/><tableColumns count="' + info.names.length + '">' + colXml + '</tableColumns><tableStyleInfo name="TableStyleMedium20" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>');
+                    // <tableParts> must sit just before the worksheet-level extLst (or before </worksheet>)
+                    const tp = '<tableParts count="1"><tablePart r:id="rIdTbl1"/></tableParts>';
+                    const marker = '<extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}"';
+                    xml = xml.indexOf(marker) >= 0 ? xml.replace(marker, tp + marker) : xml.replace('</worksheet>', tp + '</worksheet>');
+                    zip.file(names[i], xml);
+                    const relPath = 'xl/worksheets/_rels/' + names[i].split('/').pop() + '.rels';
+                    const rel = '<Relationship Id="rIdTbl1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table' + tId + '.xml"/>';
+                    const existing = zip.file(relPath);
+                    zip.file(relPath, existing
+                        ? (await existing.async('string')).replace('</Relationships>', rel + '</Relationships>')
+                        : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rel + '</Relationships>');
+                    ctAdd += '<Override PartName="/xl/tables/table' + tId + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>';
+                    tabled++;
+                }
+                if (ctAdd) zip.file('[Content_Types].xml', ct.replace('</Types>', ctAdd + '</Types>'));
+                if (typeof console !== 'undefined') console.log('[SVRollup] monthly report: Excel table applied to ' + tabled + '/' + names.length + ' sheets.');
+            } catch (te) { if (typeof console !== 'undefined') console.error('[SVRollup] table step failed (kept conditional formatting):', te); }
             dl(await zip.generateAsync({ type: 'blob', mimeType: MIME }));
         } catch (e) {
             if (typeof console !== 'undefined') console.error('[SVRollup] conditional-formatting step failed, saving plain file:', e);
@@ -3941,7 +3985,7 @@
         });
         if (!rows.length) { alert('No GA4 page data for ' + _RPT_MONTHS[month - 1] + ' ' + year + '. (GA4 retention is ~2-14 months; the month may be out of range.)'); return; }
         const wb = XLSX.utils.book_new();
-        const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ' }];
+        const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ2' }];   // 2nd %Δ deduped for Excel-table column-name uniqueness (matches original)
         const catH = siteH.slice(1);                                    // per-category sheets drop the Category column
         const byViews = function (a, b) { return b.views - a.views; };
         // %Δ descending, new pages (null delta) last — matches the hand-made Trends + category tabs.
