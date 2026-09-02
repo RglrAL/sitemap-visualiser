@@ -3836,7 +3836,12 @@
         const firstRow = /<row[^>]*>[\s\S]*?<\/row>/.exec(sheetXml);
         if (!firstRow) return { cf: '', prio: prio };
         const cols = {}, cellRe = /<c r="([A-Z]+)\d+"[^>]*>([\s\S]*?)<\/c>/g; let m;
-        while ((m = cellRe.exec(firstRow[0]))) { const t = /<t[^>]*>([\s\S]*?)<\/t>/.exec(m[2]); cols[m[1]] = t ? t[1] : ''; }
+        while ((m = cellRe.exec(firstRow[0]))) {
+            const inner = m[2];
+            const tm = /<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);   // inline string  <is><t>label</t></is>
+            const vm = /<v>([\s\S]*?)<\/v>/.exec(inner);        // SheetJS default: t="str" stores the label in <v>
+            cols[m[1]] = tm ? tm[1] : (vm ? vm[1] : '');
+        }
         let last = 1, rm; const rowRe = /<row r="(\d+)"/g;
         while ((rm = rowRe.exec(sheetXml))) { const n = +rm[1]; if (n > last) last = n; }
         if (last < 2) return { cf: '', prio: prio };
