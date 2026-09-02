@@ -3784,6 +3784,16 @@
     // tree, so they drop out. Output: Top Views + Trends + one sheet per category, this month vs
     // the prior month. GA4-only for now (matches the current workflow; GSC columns can come later).
     const _RPT_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    // Curation: ONLY these top-level sections become tabs (full sitemap names, owner's preference),
+    // in this order. Excludes non-content sections (About / All Categories / My Situation).
+    const _RPT_CATS = [
+        'Consumer', 'Death', 'Education', 'Employment', 'Environment',
+        'Birth Family Relationships', 'Government In Ireland', 'Health', 'Housing', 'Justice',
+        'Money And Tax', 'Moving Country', 'Returning To Ireland', 'Social Welfare',
+        'Travel And Recreation', 'Whats New'
+    ];
+    const _RPT_TOPVIEWS_MIN = 1000;   // Top Views: pages with >= this many views (owner's ~1,003 floor)
+    const _RPT_TREND_MIN = 0.5;       // Trends: pages that grew >= +50% MoM, sorted desc (owner's rule)
     function _monthRange(year, month) {                       // month is 1-12
         const mm = ('0' + month).slice(-2);
         const last = new Date(year, month, 0).getDate();     // day 0 of next month = last day of this one
@@ -3834,15 +3844,19 @@
         const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
         const rc = build(tree, { statsFor: statsForMaps({}, curBy) });   // categories, merged by name
         build(tree);                                                     // restore current-period annotations
+        const catOrder = {};                                          // sitemap category name (lc) -> tab order
+        _RPT_CATS.forEach(function (name, i) { catOrder[String(name).toLowerCase()] = i; });
         const rows = [];
         rc.categories.forEach(function (cat) {
+            const ord = catOrder[String(cat.name || '').toLowerCase()];
+            if (ord === undefined) return;                            // excludes non-content / uncurated sections
             (cat.nodes || []).forEach(function (top) {
                 (function walk(n) {
                     if (n.url) {
                         const k = normUrl(n.url), a = curBy[k], b = prevBy[k];
                         const v = a ? (a.pageViews || 0) : 0, u = a ? (a.users || 0) : 0;
                         const pv = b ? (b.pageViews || 0) : 0, pu = b ? (b.users || 0) : 0;
-                        if (v > 0 || pv > 0) rows.push({ category: cat.name, title: n.name || '', path: toPath(n.url), views: v, dViews: _pctDelta(v, pv), users: u, dUsers: _pctDelta(u, pu) });
+                        if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: toPath(n.url), views: v, dViews: _pctDelta(v, pv), users: u, dUsers: _pctDelta(u, pu) });
                     }
                     (n.children || n._children || []).forEach(walk);
                 })(top);
@@ -3855,13 +3869,15 @@
         const byViews = function (a, b) { return b.views - a.views; };
         // %Δ descending, new pages (null delta) last — matches the hand-made Trends + category tabs.
         const byDelta = function (a, b) { return (b.dViews == null ? -Infinity : b.dViews) - (a.dViews == null ? -Infinity : a.dViews); };
-        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, rows.slice().sort(byViews), ['dViews', 'dUsers']), 'Top Views');       // by views
-        const trend = rows.filter(function (r) { return r.dViews != null; }).sort(byDelta);
-        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, trend, ['dViews', 'dUsers']), 'Trends');                               // by %Δ
-        const byCat = {};
-        rows.forEach(function (r) { (byCat[r.category] = byCat[r.category] || []).push(r); });
-        Object.keys(byCat).sort().forEach(function (c) {
-            XLSX.utils.book_append_sheet(wb, _reportWs(catH, byCat[c].slice().sort(byDelta), ['dViews', 'dUsers']), _xlSheetName(c));  // by %Δ
+        const topViews = rows.filter(function (r) { return r.views >= _RPT_TOPVIEWS_MIN; }).sort(byViews);
+        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, topViews, ['dViews', 'dUsers']), 'Top Views');                         // views >= floor
+        const trend = rows.filter(function (r) { return r.dViews != null && r.dViews >= _RPT_TREND_MIN; }).sort(byDelta);
+        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, trend, ['dViews', 'dUsers']), 'Trends');                               // grew >= +50%
+        const seenCat = {};                                            // category name -> order (present in data)
+        rows.forEach(function (r) { seenCat[r.category] = r.order; });
+        Object.keys(seenCat).sort(function (a, b) { return seenCat[a] - seenCat[b]; }).forEach(function (name) {
+            const cr = rows.filter(function (r) { return r.category === name; }).sort(byDelta);   // all real pages, %Δ desc
+            if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, ['dViews', 'dUsers']), _xlSheetName(name));
         });
         XLSX.writeFile(wb, 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx');
     }
