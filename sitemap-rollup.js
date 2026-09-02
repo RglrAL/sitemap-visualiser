@@ -3845,14 +3845,18 @@
         let last = 1, rm; const rowRe = /<row r="(\d+)"/g;
         while ((rm = rowRe.exec(sheetXml))) { const n = +rm[1]; if (n > last) last = n; }
         if (last < 2) return { cf: '', prio: prio };
+        // Match the hand-made original's per-sheet pattern (option B):
+        //  • site sheets (they have a Category column = Top Views / Trends): green DATA BARS on Views
+        //    AND both %Δ columns; the Active-users count column is left plain.
+        //  • category tabs: red→green COLOUR SCALE on both %Δ columns only; count columns left plain.
+        const isSite = Object.keys(cols).some(function (c) { return /Category/.test(cols[c]); });
+        const bar = function (sq) { return '<conditionalFormatting sqref="' + sq + '"><cfRule type="dataBar" priority="' + (prio++) + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar></cfRule></conditionalFormatting>'; };
+        const scale = function (sq) { return '<conditionalFormatting sqref="' + sq + '"><cfRule type="colorScale" priority="' + (prio++) + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>'; };
         let cf = '';
         Object.keys(cols).forEach(function (col) {
-            const label = cols[col], sqref = col + '2:' + col + last;
-            if (/%|Δ/.test(label)) {                            // % Δ column -> colour scale
-                cf += '<conditionalFormatting sqref="' + sqref + '"><cfRule type="colorScale" priority="' + (prio++) + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>';
-            } else if (/Views|Active users/.test(label)) {           // count column -> green data bar
-                cf += '<conditionalFormatting sqref="' + sqref + '"><cfRule type="dataBar" priority="' + (prio++) + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar></cfRule></conditionalFormatting>';
-            }
+            const label = cols[col], sq = col + '2:' + col + last, isDelta = /%|Δ/.test(label), isViews = /Views/.test(label);
+            if (isSite) { if (isViews || isDelta) cf += bar(sq); }        // Views + both %Δ -> data bars
+            else if (isDelta) cf += scale(sq);                            // category tabs: %Δ -> colour scale only
         });
         return { cf: cf, prio: prio };
     }
