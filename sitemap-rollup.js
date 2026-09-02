@@ -3850,15 +3850,26 @@
         //    AND both %Δ columns; the Active-users count column is left plain.
         //  • category tabs: red→green COLOUR SCALE on both %Δ columns only; count columns left plain.
         const isSite = Object.keys(cols).some(function (c) { return /Category/.test(cols[c]); });
-        const bar = function (sq) { return '<conditionalFormatting sqref="' + sq + '"><cfRule type="dataBar" priority="' + (prio++) + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar></cfRule></conditionalFormatting>'; };
-        const scale = function (sq) { return '<conditionalFormatting sqref="' + sq + '"><cfRule type="colorScale" priority="' + (prio++) + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>'; };
-        let cf = '';
+        let cf = '', ext = '';
+        // MODERN (Excel 2010+) data bar to match the original: solid green fill, RED negatives, auto
+        // centre-axis — a plain <dataBar> renders %Δ (which has negatives) as a one-way gradient, which
+        // is the "looks off" bug. The legacy <dataBar> stays as a fallback, linked by GUID to an x14
+        // rule that lives in the worksheet-level <extLst> (assembled in `ext`; _decorateXlsx injects it).
+        const guid = function (p) { return '{DA7ABAA5-0000-4A5E-B000-' + String(p).padStart(12, '0') + '}'; };
+        const bar = function (sq) {
+            const p = prio++, g = guid(p);
+            cf += '<conditionalFormatting sqref="' + sq + '"><cfRule type="dataBar" priority="' + p + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar><extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:id>' + g + '</x14:id></ext></extLst></cfRule></conditionalFormatting>';
+            ext += '<x14:conditionalFormatting xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"><x14:cfRule type="dataBar" id="' + g + '"><x14:dataBar minLength="0" maxLength="100" gradient="0"><x14:cfvo type="autoMin"/><x14:cfvo type="autoMax"/><x14:negativeFillColor rgb="FFFF0000"/><x14:axisColor rgb="FF000000"/></x14:dataBar></x14:cfRule><xm:sqref>' + sq + '</xm:sqref></x14:conditionalFormatting>';
+        };
+        const scale = function (sq) {
+            cf += '<conditionalFormatting sqref="' + sq + '"><cfRule type="colorScale" priority="' + (prio++) + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>';
+        };
         Object.keys(cols).forEach(function (col) {
             const label = cols[col], sq = col + '2:' + col + last, isDelta = /%|Δ/.test(label), isViews = /Views/.test(label);
-            if (isSite) { if (isViews || isDelta) cf += bar(sq); }        // Views + both %Δ -> data bars
-            else if (isDelta) cf += scale(sq);                            // category tabs: %Δ -> colour scale only
+            if (isSite) { if (isViews || isDelta) bar(sq); }              // Views + both %Δ -> data bars
+            else if (isDelta) scale(sq);                                  // category tabs: %Δ -> colour scale only
         });
-        return { cf: cf, prio: prio };
+        return { cf: cf, ext: ext, prio: prio };
     }
     async function _decorateXlsx(bytes, filename) {
         const dl = function (blob) {
@@ -3877,7 +3888,10 @@
             for (let i = 0; i < names.length; i++) {
                 let xml = await zip.file(names[i]).async('string');
                 const res = _condFmtForSheet(xml, prio); prio = res.prio;
-                if (res.cf) { xml = xml.replace('</sheetData>', '</sheetData>' + res.cf); zip.file(names[i], xml); injected++; }
+                if (!res.cf && !res.ext) continue;
+                if (res.cf) xml = xml.replace('</sheetData>', '</sheetData>' + res.cf);   // rules go after sheetData
+                if (res.ext) xml = xml.replace('</worksheet>', '<extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:conditionalFormattings>' + res.ext + '</x14:conditionalFormattings></ext></extLst></worksheet>');   // x14 defs go last, before </worksheet>
+                zip.file(names[i], xml); injected++;
             }
             if (typeof console !== 'undefined') console.log('[SVRollup] monthly report: conditional formatting injected into ' + injected + '/' + names.length + ' sheets.');
             dl(await zip.generateAsync({ type: 'blob', mimeType: MIME }));
