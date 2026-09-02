@@ -3861,15 +3861,21 @@
             if (typeof console !== 'undefined') console.warn('[SVRollup] JSZip not loaded - saving the report without conditional formatting.');
             dl(new Blob([bytes], { type: MIME })); return;
         }
-        const zip = await JSZip.loadAsync(bytes);
-        let prio = 1;
-        const names = Object.keys(zip.files).filter(function (f) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(f); });
-        for (let i = 0; i < names.length; i++) {
-            let xml = await zip.file(names[i]).async('string');
-            const res = _condFmtForSheet(xml, prio); prio = res.prio;
-            if (res.cf) { xml = xml.replace('</sheetData>', '</sheetData>' + res.cf); zip.file(names[i], xml); }
+        try {
+            const zip = await JSZip.loadAsync(bytes);
+            let prio = 1, injected = 0;
+            const names = Object.keys(zip.files).filter(function (f) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(f); });
+            for (let i = 0; i < names.length; i++) {
+                let xml = await zip.file(names[i]).async('string');
+                const res = _condFmtForSheet(xml, prio); prio = res.prio;
+                if (res.cf) { xml = xml.replace('</sheetData>', '</sheetData>' + res.cf); zip.file(names[i], xml); injected++; }
+            }
+            if (typeof console !== 'undefined') console.log('[SVRollup] monthly report: conditional formatting injected into ' + injected + '/' + names.length + ' sheets.');
+            dl(await zip.generateAsync({ type: 'blob', mimeType: MIME }));
+        } catch (e) {
+            if (typeof console !== 'undefined') console.error('[SVRollup] conditional-formatting step failed, saving plain file:', e);
+            dl(new Blob([bytes], { type: MIME }));   // never fail the download over formatting
         }
-        dl(await zip.generateAsync({ type: 'blob', mimeType: MIME }));
     }
     async function buildMonthlyReport(year, month) {
         const tree = window.treeData;
