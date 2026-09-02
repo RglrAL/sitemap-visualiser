@@ -3911,10 +3911,15 @@
             (cat.nodes || []).forEach(function (top) {
                 (function walk(n) {
                     if (n.url) {
-                        const k = normUrl(n.url), a = curBy[k], b = prevBy[k];
-                        const v = a ? (a.pageViews || 0) : 0, u = a ? (a.users || 0) : 0;
-                        const pv = b ? (b.pageViews || 0) : 0, pu = b ? (b.users || 0) : 0;
-                        if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: toPath(n.url), views: v, dViews: _pctDelta(v, pv), users: u, dUsers: _pctDelta(u, pu) });
+                        const p = toPath(n.url);
+                        if (p.indexOf('/en/') === 0) {          // English pages only — the report is EN; excludes /ga/ (Irish) versions
+                            const k = normUrl(n.url), a = curBy[k], b = prevBy[k];
+                            // "Active users" column uses GA4 activeUsers (matches the manual export);
+                            // falls back to users(=totalUsers) if an older cached fetch lacks the field.
+                            const v = a ? (a.pageViews || 0) : 0, u = a ? ((a.activeUsers != null ? a.activeUsers : a.users) || 0) : 0;
+                            const pv = b ? (b.pageViews || 0) : 0, pu = b ? ((b.activeUsers != null ? b.activeUsers : b.users) || 0) : 0;
+                            if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: p, views: v, dViews: _pctDelta(v, pv), users: u, dUsers: _pctDelta(u, pu) });
+                        }
                     }
                     (n.children || n._children || []).forEach(walk);
                 })(top);
