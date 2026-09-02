@@ -1389,7 +1389,7 @@
     function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
-    const _ILBL = { rank_categories: 'rank sections', section_summary: 'section summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare sections', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'section movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
+    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
     // splits red-fallers / teal-risers). Single-page focus (diagnose/page_summary) is a fast-follow.
@@ -1408,7 +1408,7 @@
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
                     'most viewed->top_pages metric pageViews; low CTR / seen but not clicked->low_ctr; out of date / old->stale; how is X doing->section_summary; ' +
-                    'which sections perform best / rank the sections / best and worst sections / which sections get the most traffic / section league table->rank_categories; ' +
+                    'which sections/categories perform best / rank the sections / rank the categories / best and worst sections / which sections or categories get the most traffic / section or category league table->rank_categories; ' +
                     'how is the whole site doing / overall / site-wide totals / the big picture / how are we doing overall->site_summary; ' +
                     'compare X and Y / X versus Y / how does X compare to Y (side by side, current period)->compare with categories [X,Y] (use trend only if they explicitly say over time/history); ' +
                     'opportunities / quick wins / missing out / losing clicks / could win more->opportunities; ' +
@@ -1426,7 +1426,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections are growing / declining / rising / biggest section movers / how are sections trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "what is the capital of France"->{"intent":"unknown"}.';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "what is the capital of France"->{"intent":"unknown"}.';
     // Integrity check (cheap insurance): a corrupted/truncated prompt breaks routing silently.
     try { if (_ASK_SYS_PROMPT.length < 8000 || _ASK_SYS_PROMPT.indexOf('never force the closest match') < 0) { if (typeof console !== 'undefined') console.error('[SVRollup] Ask system prompt looks truncated/corrupted (' + _ASK_SYS_PROMPT.length + ' chars) - routing will be unreliable.'); } } catch (e) {}
 
@@ -2001,12 +2001,12 @@
             const desc = plan.direction !== 'up';
             const TM = ['impressions', 'clicks', 'pageViews', 'users'];
             const availRC = TM.filter(function (m) { return cats.some(function (c) { return _mval(c.rollup, m) > 0; }); });
-            if (!availRC.length) return { html: '', summary: '', err: 'No section data to rank yet.' };
+            if (!availRC.length) return { html: '', summary: '', err: 'No category data to rank yet.' };
             const curRC = availRC.indexOf(metric) >= 0 ? metric : availRC[0];
             const viewRC = function (m) {
                 const sorted = cats.slice().sort(function (a, b) { const av = _mval(a.rollup, m), bv = _mval(b.rollup, m); return desc ? bv - av : av - bv; }).slice(0, limit);
                 const items = sorted.map(function (c) { return { name: c.name, val: _mfmt(c.rollup, m), bar: _mval(c.rollup, m) }; });
-                return { body: _rankCard(items, { nameLabel: 'Section', valueLabel: _MLABEL[m] }), columns: [{ key: 'section', label: 'Section' }, { key: 'value', label: _MLABEL[m] }], rows: sorted.map(function (c) { return { section: c.name, value: _mval(c.rollup, m), display: _mfmt(c.rollup, m) }; }), chart: { type: 'bar', x: 'section', y: 'value', label: _MLABEL[m] } };
+                return { body: _rankCard(items, { nameLabel: 'Category', valueLabel: _MLABEL[m] }), columns: [{ key: 'section', label: 'Category' }, { key: 'value', label: _MLABEL[m] }], rows: sorted.map(function (c) { return { section: c.name, value: _mval(c.rollup, m), display: _mfmt(c.rollup, m) }; }), chart: { type: 'bar', x: 'section', y: 'value', label: _MLABEL[m] } };
             };
             const mvRC = {}; availRC.forEach(function (m) { mvRC[m] = viewRC(m); });
             const curV = mvRC[curRC];
@@ -2048,7 +2048,7 @@
         if (intent === 'compare') {
             const names = plan.categories || [];
             const a = _catByName(cats, names[0]), b = _catByName(cats, names[1]);
-            if (!a || !b) return { html: '', summary: '', err: 'I need two sections to compare.' };
+            if (!a || !b) return { html: '', summary: '', err: 'I need two categories to compare.' };
             return { html: '<div style="font-weight:700;margin:2px 0 6px;">' + esc(a.name) + '</div>' + _stripCard(a.rollup, hasGA4) + '<div style="font-weight:700;margin:12px 0 6px;">' + esc(b.name) + '</div>' + _stripCard(b.rollup, hasGA4),
                 summary: a.name + ' vs ' + b.name + ': impressions ' + fmt(a.rollup.impressions) + ' vs ' + fmt(b.rollup.impressions) + ', CTR ' + (a.rollup.ctr * 100).toFixed(1) + '% vs ' + (b.rollup.ctr * 100).toFixed(1) + '%.', data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'a', label: a.name }, { key: 'b', label: b.name }], rows: (function () { const ra = _metricRows(a.rollup, hasGA4), rb = _metricRows(b.rollup, hasGA4); return ra.map(function (x, i) { return { metric: x.metric, a: x.value, b: rb[i].value }; }); })(), chart: { type: 'smallmultiples', a: a.name, b: b.name } } };
         }
@@ -2098,7 +2098,7 @@
                 });
                 return { html: _rankCard(items, { nameLabel: 'Query', valueLabel: mkey === 'clicks' ? 'Clicks' : 'Impressions' }),
                     summary: 'Top searches' + (c ? ' in ' + c.name : ' site-wide') + ' by ' + mkey + ' (' + periodLabel(_ddDays) + '): ' +
-                        qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x[mkey]) + (x.bestPos != null ? ' (best pos ' + x.bestPos.toFixed(0) + ')' : ''); }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Section' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
+                        qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x[mkey]) + (x.bestPos != null ? ' (best pos ' + x.bestPos.toFixed(0) + ')' : ''); }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
             }
 
             // opportunities: rank by potential extra clicks; floors keep out noise.
@@ -2107,7 +2107,7 @@
             if (!qs.length) return { html: '', summary: '', err: 'No sizeable search opportunities found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + ' - CTR looks healthy on the big queries.' };
             return { html: _oppCard(qs),
                 summary: 'Biggest search opportunities' + (c ? ' in ' + c.name : '') + ' (potential extra clicks over ' + periodLabel(_ddDays) + ', if each performed like a top-3 result): ' +
-                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Section' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'potentialClicks', label: 'Potential clicks' } } };
+                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'potentialClicks', label: 'Potential clicks' } } };
         }
         if (intent === 'international_queries' || intent === 'top_countries') {
             let rows;
@@ -2360,7 +2360,7 @@
                 md += _briefMarkdown(sc.name, sc.rollup, acts);
                 previews.push({ name: sc.name, rollup: sc.rollup, actions: acts });
             });
-            if (!previews.length) return { html: '<div style="font-size:0.9rem;color:var(--color-text-secondary);">All sections look healthy - no urgent priorities across the site right now.</div>', summary: 'All sections look healthy - no urgent priorities.', data: { columns: [], rows: [] }, markdown: md };
+            if (!previews.length) return { html: '<div style="font-size:0.9rem;color:var(--color-text-secondary);">All categories look healthy - no urgent priorities across the site right now.</div>', summary: 'All categories look healthy - no urgent priorities.', data: { columns: [], rows: [] }, markdown: md };
             const html = '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:10px;">Weekly digest - ' + previews.length + ' section' + (previews.length === 1 ? '' : 's') + ' need attention</div>' +
                 previews.map(function (p) { return '<div style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:6px;font-size:0.9rem;">' + esc(p.name) + ' <span style="font-weight:400;font-size:0.68rem;color:var(--color-text-muted);">' + fmt(p.rollup.impressions) + ' impr</span></div>' + _briefCard(p.actions.slice(0, 3)) + '</div>'; }).join('');
             const rows = [];
@@ -2368,7 +2368,7 @@
             return {
                 html: html,
                 summary: 'Weekly digest (' + periodLabel(_ddDays) + '): ' + previews.slice(0, 5).map(function (p) { return p.name + ' - ' + p.actions.length + ' action' + (p.actions.length === 1 ? '' : 's') + ' (top: ' + p.actions[0].type.toLowerCase() + ')'; }).join('; ') + '.',
-                data: { columns: [{ key: 'section', label: 'Section' }, { key: 'priority', label: '#' }, { key: 'type', label: 'Type' }, { key: 'action', label: 'Action' }, { key: 'detail', label: 'Detail' }, { key: 'url', label: 'URL' }], rows: rows, chart: null },
+                data: { columns: [{ key: 'section', label: 'Category' }, { key: 'priority', label: '#' }, { key: 'type', label: 'Type' }, { key: 'action', label: 'Action' }, { key: 'detail', label: 'Detail' }, { key: 'url', label: 'URL' }], rows: rows, chart: null },
                 markdown: md
             };
         }
@@ -2497,7 +2497,7 @@
             return {
                 html: _freshCard(rows) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Pages with a last-updated date in the last ' + windowDays + ' days' + (prior ? ', with impressions vs the previous ' + _ddDays + ' days so you can see if the update helped' : '') + '. Freshness comes from the sitemap.</div>',
                 summary: rows.length + ' page' + (rows.length === 1 ? '' : 's') + ' updated in the last ' + windowDays + ' days' + (c ? ' in ' + c.name : '') + (withData.length ? ' - ' + rising + ' of ' + withData.length + ' gained search impressions vs the previous ' + _ddDays + ' days' : '') + '. Most recent: ' + rows.slice(0, 5).map(function (x) { return x.name + ' (' + _relAge(x.age) + (x.chg != null ? ', ' + (x.chg >= 0 ? '+' : '') + x.chg.toFixed(0) + '%' : '') + ')'; }).join(', ') + '.',
-                data: { columns: [{ key: 'page', label: 'Page' }, { key: 'updated', label: 'Updated' }, { key: 'daysAgo', label: 'Days ago' }, { key: 'impressions', label: 'Impressions' }, { key: 'priorImpressions', label: 'Prior impr' }, { key: 'changePct', label: 'Change %' }, { key: 'clicks', label: 'Clicks' }, { key: 'section', label: 'Section' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, updated: x.lm || '', daysAgo: Math.round(x.age), impressions: x.impr, priorImpressions: x.prior, changePct: x.chg != null ? +x.chg.toFixed(1) : null, clicks: x.clicks, section: x.section, url: x.url }; }), chart: (withData.length ? { type: 'diverging', x: 'page', y: 'changePct' } : { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }) }
+                data: { columns: [{ key: 'page', label: 'Page' }, { key: 'updated', label: 'Updated' }, { key: 'daysAgo', label: 'Days ago' }, { key: 'impressions', label: 'Impressions' }, { key: 'priorImpressions', label: 'Prior impr' }, { key: 'changePct', label: 'Change %' }, { key: 'clicks', label: 'Clicks' }, { key: 'section', label: 'Category' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, updated: x.lm || '', daysAgo: Math.round(x.age), impressions: x.impr, priorImpressions: x.prior, changePct: x.chg != null ? +x.chg.toFixed(1) : null, clicks: x.clicks, section: x.section, url: x.url }; }), chart: (withData.length ? { type: 'diverging', x: 'page', y: 'changePct' } : { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }) }
             };
         }
         if (intent === 'compare_periods') {
@@ -2762,16 +2762,26 @@
                 return o.mult >= 2 && o.gain >= 20;           // at least doubled, meaningful absolute gain
             }).sort(function (a, b) { return b.gain - a.gain; }).slice(0, limit);
             if (!em.length) return { html: '', summary: '', err: 'No newly emerging or fast-rising searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days.' };
-            const items = em.map(function (o) {
+            const _ctrPct = function (v) { return ((v || 0) * 100).toFixed(1) + '%'; };
+            // Richer than the generic rank card: query + a muted stat line (impressions · clicks · CTR)
+            // so all three metrics fit — the narrow value column can't. Borderless .sv-ask-list.
+            const _emRow = function (o) {
                 const x = o.x;
-                return { name: x.query, bar: o.gain, col: '#059669', valCol: '#059669',
-                    val: (o.isNew ? 'NEW · ' : '▲ ') + fmt(x.impressions) + (o.isNew ? ' impr' : ' impr (was ' + fmt(o.prior) + ')'),
-                    url: x.bestPage };
-            });
+                const badge = o.isNew
+                    ? '<span style="color:#059669;font-weight:700;">NEW</span>'
+                    : '<span style="color:#059669;font-weight:700;">▲ rising</span> <span style="color:var(--color-text-muted);">(was ' + fmt(o.prior) + ' impressions)</span>';
+                const stat = fmt(x.impressions) + ' impressions · ' + fmt(x.clicks) + ' clicks · ' + _ctrPct(x.ctr) + ' CTR';
+                const click = x.bestPage ? ' class="sv-ask-page sv-tipel" role="button" tabindex="0" data-url="' + esc(x.bestPage) + '" style="cursor:pointer;"' : '';
+                return '<div' + click + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="padding:9px 12px;border-bottom:1px solid var(--color-border-primary);">' +
+                    '<div style="display:flex;align-items:baseline;gap:8px;"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:0.85rem;color:var(--color-text-primary);">' + esc(x.query) + '</span><span style="flex-shrink:0;font-size:0.72rem;font-weight:700;color:#059669;">+' + fmt(o.gain) + '</span></div>' +
+                    '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:3px;">' + badge + ' · ' + stat + '</div>' +
+                '</div></div>';
+            };
+            const _emHead = '<div style="display:flex;align-items:center;gap:10px;padding:5px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);background:var(--color-bg-secondary);"><span style="flex:1;">Emerging query</span><span style="flex-shrink:0;">Impressions gained</span></div>';
             return {
-                html: _rankCard(items, { nameLabel: 'Emerging query', valueLabel: 'Impr gain' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">New or fast-rising searches vs the previous ' + _ddDays + ' days (current impressions vs prior). Ride the demand while it is fresh.</div>',
-                summary: 'Emerging searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days: ' + em.slice(0, 6).map(function (o) { return '"' + o.x.query + '" ' + fmt(o.x.impressions) + ' impr' + (o.isNew ? ' (new)' : ' (was ' + fmt(o.prior) + ')'); }).join('; ') + '.',
-                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'priorImpressions', label: 'Prior impressions' }, { key: 'gain', label: 'Impr gain' }, { key: 'status', label: 'Status' }, { key: 'section', label: 'Section' }, { key: 'bestPage', label: 'Best page' }], rows: em.map(function (o) { return { query: o.x.query, impressions: o.x.impressions, priorImpressions: o.prior, gain: o.gain, status: o.isNew ? 'new' : 'rising', section: o.x.category || '', bestPage: o.x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'gain', label: 'Impr gain' } }
+                html: '<div class="sv-ask-list">' + _emHead + em.map(_emRow).join('') + '</div><div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">New or fast-rising searches vs the previous ' + _ddDays + ' days (current impressions vs prior). Ride the demand while it is fresh.</div>',
+                summary: 'Emerging searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days: ' + em.slice(0, 6).map(function (o) { return '"' + o.x.query + '" ' + fmt(o.x.impressions) + ' impressions' + (o.isNew ? ' (new)' : ' (was ' + fmt(o.prior) + ')'); }).join('; ') + '.',
+                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR %' }, { key: 'priorImpressions', label: 'Prior impressions' }, { key: 'gain', label: 'Impressions gained' }, { key: 'status', label: 'Status' }, { key: 'category', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: em.map(function (o) { return { query: o.x.query, impressions: o.x.impressions, clicks: o.x.clicks, ctr: +(((o.x.ctr) || 0) * 100).toFixed(2), priorImpressions: o.prior, gain: o.gain, status: o.isNew ? 'new' : 'rising', category: o.x.category || '', bestPage: o.x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'gain', label: 'Impressions gained' } }
             };
         }
         if (intent === 'content_gaps') {
@@ -2792,26 +2802,26 @@
             return {
                 html: _oppCard(qs) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">High demand where your best page ranks page 2 or worse - candidates for a new or expanded page.</div>',
                 summary: 'Content gaps' + (c ? ' in ' + c.name : '') + ' (high-demand searches where you rank poorly, ' + periodLabel(_ddDays) + '): ' + qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x.impressions) + ' impr at ~pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?'); }).join('; ') + '.',
-                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'bestPosition', label: 'Best position' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'section', label: 'Section' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, potentialClicks: Math.round(x.potential), section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'impressions', label: 'Impressions' } }
+                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'bestPosition', label: 'Best position' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, potentialClicks: Math.round(x.potential), section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'impressions', label: 'Impressions' } }
             };
         }
         if (intent === 'section_movers') {
             let mrows;
             try { mrows = await computeMovers(window.treeData, cats, { days: _ddDays }); }
-            catch (e) { return { html: '', summary: '', err: 'Could not compare sections: ' + (e && e.message ? e.message : String(e)) }; }
-            if (!mrows || !mrows.length) return { html: '', summary: '', err: 'Not enough history to compare sections. (Needs GSC data across two periods.)' };
+            catch (e) { return { html: '', summary: '', err: 'Could not compare categories: ' + (e && e.message ? e.message : String(e)) }; }
+            if (!mrows || !mrows.length) return { html: '', summary: '', err: 'Not enough history to compare categories. (Needs GSC data across two periods.)' };
             const dir = plan.direction || 'both';
             let flt = mrows.slice();
             if (dir === 'up') flt = flt.filter(function (x) { return x.pct > 0; });
             else if (dir === 'down') flt = flt.filter(function (x) { return x.pct < 0; });
             flt.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
             flt = flt.slice(0, limit).sort(function (a, b) { return b.pct - a.pct; });
-            if (!flt.length) return { html: '', summary: '', err: 'No sections ' + (dir === 'up' ? 'rose' : dir === 'down' ? 'fell' : 'moved') + ' meaningfully vs the previous ' + _ddDays + ' days.' };
+            if (!flt.length) return { html: '', summary: '', err: 'No categories ' + (dir === 'up' ? 'rose' : dir === 'down' ? 'fell' : 'moved') + ' meaningfully vs the previous ' + _ddDays + ' days.' };
             const items = flt.map(function (x) { const up = x.pct >= 0, pa = Math.abs(x.pct); return { name: x.name, val: (up ? '▲ ' : '▼ ') + (pa > 500 ? '500+' : pa.toFixed(0)) + '%', bar: Math.min(500, pa), col: up ? '#059669' : '#dc2626', valCol: up ? '#059669' : '#dc2626' }; });
             return {
-                html: _rankCard(items, { nameLabel: 'Section', valueLabel: 'Change %' }),
+                html: _rankCard(items, { nameLabel: 'Category', valueLabel: 'Change %' }),
                 summary: 'Biggest section ' + (dir === 'down' ? 'declines' : dir === 'up' ? 'risers' : 'movers') + ' vs the previous ' + _ddDays + ' days: ' + flt.slice(0, 6).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.',
-                data: { columns: [{ key: 'page', label: 'Section' }, { key: 'changePct', label: 'Change %' }, { key: 'current', label: 'Current impr' }], rows: flt.map(function (x) { return { page: x.name, changePct: +x.pct.toFixed(1), current: x.curImp, url: null }; }), chart: { type: 'diverging', x: 'page', y: 'changePct' } }
+                data: { columns: [{ key: 'page', label: 'Category' }, { key: 'changePct', label: 'Change %' }, { key: 'current', label: 'Current impr' }], rows: flt.map(function (x) { return { page: x.name, changePct: +x.pct.toFixed(1), current: x.curImp, url: null }; }), chart: { type: 'diverging', x: 'page', y: 'changePct' } }
             };
         }
         return { html: '', summary: '', unknown: true };
@@ -2842,7 +2852,7 @@
             case 'opportunities':
                 if (topPageName) addWhy(topPageName);
                 if (cat) { add('Top queries in ' + cat); add('Top pages in ' + cat); }
-                else { add('What do people search for?'); add('Which sections get the most traffic?'); }
+                else { add('What do people search for?'); add('Which categories get the most traffic?'); }
                 break;
             case 'top_queries':
                 if (topPageName) add('How is ' + topPageName + ' performing?');
@@ -2851,32 +2861,32 @@
                 break;
             case 'top_pages':
                 if (cat) { add('Which ' + cat + ' pages lost traffic?'); add('Biggest search opportunities in ' + cat); add('What is stale in ' + cat + '?'); }
-                else { add('Which sections get the most traffic?'); add('Biggest movers across the site'); add('Where are our biggest search opportunities?'); }
+                else { add('Which categories get the most traffic?'); add('Biggest movers across the site'); add('Where are our biggest search opportunities?'); }
                 break;
             case 'movers':
                 if (faller) addWhy(faller.page);
                 if (cat) { add('Top pages in ' + cat); add('Biggest search opportunities in ' + cat); }
-                else { add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?'); }
+                else { add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?'); }
                 break;
             case 'low_ctr':
                 if (topRow) addWhy(topRow.page);
                 add('Biggest search opportunities' + inCat);
-                if (cat) add('Top pages in ' + cat); else add('Which sections get the most traffic?');
+                if (cat) add('Top pages in ' + cat); else add('Which categories get the most traffic?');
                 break;
             case 'stale':
                 if (topRow) addWhy(topRow.page);
                 if (cat) { add('Top pages in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
-                else add('Which sections get the most traffic?');
+                else add('Which categories get the most traffic?');
                 break;
             case 'section_summary':
                 if (cat) { add('What should I focus on in ' + cat + '?'); add('Biggest search opportunities in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
                 break;
             case 'briefing':
                 if (cat) { add('Biggest search opportunities in ' + cat); add('What is stale in ' + cat + '?'); add('How has ' + cat + ' trended?'); }
-                else { add('Generate a weekly digest'); add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?'); }
+                else { add('Generate a weekly digest'); add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?'); }
                 break;
             case 'digest':
-                add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?'); add('Biggest movers across the site');
+                add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?'); add('Biggest movers across the site');
                 break;
             case 'rank_categories':
                 if (topRow && topRow.section) add('Where are our biggest search opportunities in ' + topRow.section + '?');
@@ -2886,7 +2896,7 @@
                 if (plan.categories && plan.categories.length === 2) { add('Top pages in ' + plan.categories[0]); add('Top pages in ' + plan.categories[1]); }
                 break;
             case 'site_summary':
-                add('What should I focus on?'); add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?');
+                add('What should I focus on?'); add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?');
                 break;
             case 'international_queries':
                 add('Which countries search us the most?'); add('What do people search for?'); add('Where are our biggest search opportunities?');
@@ -2900,7 +2910,7 @@
                 add('What do people abroad search us for?');
                 break;
             case 'language_gap':
-                add('What do people search for?'); add('Where are our biggest search opportunities?'); add('Which sections get the most traffic?');
+                add('What do people search for?'); add('Where are our biggest search opportunities?'); add('Which categories get the most traffic?');
                 break;
             case 'diagnose':
                 if (plan.page) add('What queries bring people to ' + plan.page + '?');
@@ -2916,7 +2926,7 @@
                 break;
             case 'dead_pages':
                 if (cat) { add('What is stale in ' + cat + '?'); add('Top pages in ' + cat); }
-                else { add('What is stale across the site?'); add('Which sections get the most traffic?'); }
+                else { add('What is stale across the site?'); add('Which categories get the most traffic?'); }
                 break;
             case 'page_summary':
                 if (plan.page) { add('What queries bring people to ' + plan.page + '?'); add('Why is ' + plan.page + ' underperforming?'); }
@@ -2928,7 +2938,7 @@
                 break;
             case 'section_movers':
                 if (topRow && topRow.page) add('What should I focus on in ' + topRow.page + '?');
-                add('Which sections get the most traffic?'); add('Where are our biggest search opportunities?');
+                add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?');
                 break;
             case 'emerging':
                 if (topRow && topRow.query) add('What queries bring people to the ' + topRow.query + ' page?');
@@ -3026,7 +3036,7 @@
             { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What do people search for in ' + A + '?', 'What questions do people ask?', 'Where do visitors to ' + A + ' come from?', 'How much traffic comes from AI?', 'Is AI traffic growing?', 'What do people abroad search us for?', 'Which countries search us the most?'] },
             { t: 'Improve — fix a page', items: ['Why is the ' + P0 + ' page underperforming?', 'How is the ' + P1 + ' page performing?', 'What queries bring people to the ' + P0 + ' page?', 'Where does traffic to the ' + P0 + ' page come from?', 'Quick wins for the ' + P0 + ' page', 'Where does the Irish version underperform?'] },
             { t: 'Verify — did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B, 'Compare ' + A + ': this month vs last month'] },
-            { t: 'Report — roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which sections get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
+            { t: 'Report — roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which categories get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
         ];
         const grp = function (j) {
             return '<div class="sv-pal-group" style="margin-bottom:13px;">' +
@@ -3766,9 +3776,111 @@
         return { passed: results.every(function (r) { return r.ok; }), matched: passed, total: R.length, results: results };
     }
 
+    // ── Monthly report (.xlsx) ────────────────────────────────────────────────────
+    // Automates the manual GA4 monthly spreadsheet. Tree-driven, and clean BY CONSTRUCTION:
+    // the GA4 fetch is keyed by pagePath only, so translated-title duplicate rows never exist
+    // (that's the manual "drop rows that aren't real page titles" step — gone); titles come from
+    // the sitemap (always real); non-content artifacts (e.g. .../search_wagtail/) aren't in the
+    // tree, so they drop out. Output: Top Views + Trends + one sheet per category, this month vs
+    // the prior month. GA4-only for now (matches the current workflow; GSC columns can come later).
+    const _RPT_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    function _monthRange(year, month) {                       // month is 1-12
+        const mm = ('0' + month).slice(-2);
+        const last = new Date(year, month, 0).getDate();     // day 0 of next month = last day of this one
+        return { start: year + '-' + mm + '-01', end: year + '-' + mm + '-' + ('0' + last).slice(-2) };
+    }
+    function _pctDelta(cur, prev) { return prev > 0 ? (cur - prev) / prev : null; }   // null = brand-new / no prior
+    function _xlSheetName(name) { return (String(name || 'Sheet').replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31)) || 'Sheet'; }
+    async function _fetchGA4Range(tree, startDate, endDate) {
+        const ga4By = Object.create(null);
+        const ga4 = window.GA4Integration;
+        if (!(ga4 && ga4.isConnected && ga4.isConnected() && ga4.fetchAllPages)) return ga4By;
+        const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
+        const byPath = await ga4.fetchAllPages({ startDate: startDate, endDate: endDate });
+        (function collect(n) {
+            if (n.url) { const r = byPath.get(toPath(n.url)); if (r) ga4By[normUrl(n.url)] = r; }
+            (n.children || n._children || []).forEach(collect);
+        })(tree);
+        return ga4By;
+    }
+    function _reportWs(headers, rows, pctKeys) {              // array-of-objects -> worksheet; pctKeys get % format
+        const aoa = [headers.map(function (h) { return h.label; })];
+        rows.forEach(function (r) { aoa.push(headers.map(function (h) { return r[h.key]; })); });
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = 1; R <= range.e.r; R++) {
+            headers.forEach(function (h, C) {
+                if (pctKeys.indexOf(h.key) < 0) return;
+                const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+                if (cell && typeof cell.v === 'number') cell.z = '0.0%';
+            });
+        }
+        ws['!cols'] = headers.map(function (h) { return { wch: h.key === 'path' ? 60 : h.key === 'title' ? 40 : 12 }; });
+        return ws;
+    }
+    async function buildMonthlyReport(year, month) {
+        const tree = window.treeData;
+        if (!tree) { alert('Load a sitemap first.'); return; }
+        const ga4 = window.GA4Integration;
+        if (!(ga4 && ga4.isConnected && ga4.isConnected())) { alert('Connect GA4 first - the monthly report is GA4-based.'); return; }
+        if (typeof XLSX === 'undefined') { alert('Spreadsheet library not loaded. Hard-refresh (index.html must include xlsx.full.min.js).'); return; }
+        const cur = _monthRange(year, month);
+        const pm = month === 1 ? 12 : month - 1, py = month === 1 ? year - 1 : year;
+        const prev = _monthRange(py, pm);
+        let pair;
+        try { pair = await Promise.all([_fetchGA4Range(tree, cur.start, cur.end), _fetchGA4Range(tree, prev.start, prev.end)]); }
+        catch (e) { alert('Could not fetch GA4 data: ' + (e && e.message ? e.message : String(e))); return; }
+        const curBy = pair[0], prevBy = pair[1];
+        const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
+        const rc = build(tree, { statsFor: statsForMaps({}, curBy) });   // categories, merged by name
+        build(tree);                                                     // restore current-period annotations
+        const rows = [];
+        rc.categories.forEach(function (cat) {
+            (cat.nodes || []).forEach(function (top) {
+                (function walk(n) {
+                    if (n.url) {
+                        const k = normUrl(n.url), a = curBy[k], b = prevBy[k];
+                        const v = a ? (a.pageViews || 0) : 0, u = a ? (a.users || 0) : 0;
+                        const pv = b ? (b.pageViews || 0) : 0, pu = b ? (b.users || 0) : 0;
+                        if (v > 0 || pv > 0) rows.push({ category: cat.name, title: n.name || '', path: toPath(n.url), views: v, dViews: _pctDelta(v, pv), users: u, dUsers: _pctDelta(u, pu) });
+                    }
+                    (n.children || n._children || []).forEach(walk);
+                })(top);
+            });
+        });
+        if (!rows.length) { alert('No GA4 page data for ' + _RPT_MONTHS[month - 1] + ' ' + year + '. (GA4 retention is ~2-14 months; the month may be out of range.)'); return; }
+        const wb = XLSX.utils.book_new();
+        const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ' }];
+        const catH = siteH.slice(1);                                    // per-category sheets drop the Category column
+        const byViews = function (a, b) { return b.views - a.views; };
+        // %Δ descending, new pages (null delta) last — matches the hand-made Trends + category tabs.
+        const byDelta = function (a, b) { return (b.dViews == null ? -Infinity : b.dViews) - (a.dViews == null ? -Infinity : a.dViews); };
+        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, rows.slice().sort(byViews), ['dViews', 'dUsers']), 'Top Views');       // by views
+        const trend = rows.filter(function (r) { return r.dViews != null; }).sort(byDelta);
+        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, trend, ['dViews', 'dUsers']), 'Trends');                               // by %Δ
+        const byCat = {};
+        rows.forEach(function (r) { (byCat[r.category] = byCat[r.category] || []).push(r); });
+        Object.keys(byCat).sort().forEach(function (c) {
+            XLSX.utils.book_append_sheet(wb, _reportWs(catH, byCat[c].slice().sort(byDelta), ['dViews', 'dUsers']), _xlSheetName(c));  // by %Δ
+        });
+        XLSX.writeFile(wb, 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx');
+    }
+    function promptMonthlyReport() {
+        const now = new Date();
+        let m = now.getMonth(), y = now.getFullYear();       // getMonth() 0-11 == last-completed month as 1-12
+        if (m === 0) { m = 12; y -= 1; }
+        const inp = prompt('Monthly report — which month? (YYYY-MM)', y + '-' + ('0' + m).slice(-2));
+        if (!inp) return;
+        const mm = /^(\d{4})-(\d{1,2})$/.exec(inp.trim());
+        if (!mm) { alert('Please enter the month as YYYY-MM, e.g. 2026-06.'); return; }
+        buildMonthlyReport(parseInt(mm[1], 10), parseInt(mm[2], 10));
+    }
+
     window.SVRollup = {
         build: build,
         clearCaches: clearCaches,
+        buildMonthlyReport: buildMonthlyReport,
+        downloadMonthlyReport: promptMonthlyReport,
         statsForUrl: statsForUrl,
         prefetchGA4: prefetchGA4,
         prefetchGSC: prefetchGSC,
@@ -3787,6 +3899,7 @@
     // Convenience global for the Reports menu onclick
     window.showCategoryPerformance = showPanel;
     window.showAskData = showAsk;
+    window.downloadMonthlyReport = promptMonthlyReport;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _ensureAskFab);
     else _ensureAskFab();
 })();
