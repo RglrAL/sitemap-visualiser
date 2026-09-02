@@ -3832,6 +3832,19 @@
     // Clean uniform scheme: count columns (Views / Active users) get green DATA BARS; %Δ columns get
     // a red→white→green COLOUR SCALE. Column letters are detected from each sheet's header row, so it
     // works for both the site sheets (Views=D) and category sheets (Views=C). Pure + headless-testable.
+    // Reusable CF-rule builders (shared by the per-sheet detector and the Summary sheet). Modern x14
+    // data bar: solid green, red negatives, auto centre-axis (legacy <dataBar> kept as fallback, GUID-
+    // linked to the x14 rule that goes in the worksheet extLst). Colour scale: red→white→green.
+    function _cfDataBar(sq, prio) {
+        const g = '{DA7ABAA5-0000-4A5E-B000-' + String(prio).padStart(12, '0') + '}';
+        return {
+            cf: '<conditionalFormatting sqref="' + sq + '"><cfRule type="dataBar" priority="' + prio + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar><extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:id>' + g + '</x14:id></ext></extLst></cfRule></conditionalFormatting>',
+            ext: '<x14:conditionalFormatting xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"><x14:cfRule type="dataBar" id="' + g + '"><x14:dataBar minLength="0" maxLength="100" gradient="0"><x14:cfvo type="autoMin"/><x14:cfvo type="autoMax"/><x14:negativeFillColor rgb="FFFF0000"/><x14:axisColor rgb="FF000000"/></x14:dataBar></x14:cfRule><xm:sqref>' + sq + '</xm:sqref></x14:conditionalFormatting>'
+        };
+    }
+    function _cfColorScale(sq, prio) {
+        return { cf: '<conditionalFormatting sqref="' + sq + '"><cfRule type="colorScale" priority="' + prio + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>', ext: '' };
+    }
     function _condFmtForSheet(sheetXml, prio) {
         const firstRow = /<row[^>]*>[\s\S]*?<\/row>/.exec(sheetXml);
         if (!firstRow) return { cf: '', prio: prio };
@@ -3851,19 +3864,8 @@
         //  • category tabs: red→green COLOUR SCALE on both %Δ columns only; count columns left plain.
         const isSite = Object.keys(cols).some(function (c) { return /Category/.test(cols[c]); });
         let cf = '', ext = '';
-        // MODERN (Excel 2010+) data bar to match the original: solid green fill, RED negatives, auto
-        // centre-axis — a plain <dataBar> renders %Δ (which has negatives) as a one-way gradient, which
-        // is the "looks off" bug. The legacy <dataBar> stays as a fallback, linked by GUID to an x14
-        // rule that lives in the worksheet-level <extLst> (assembled in `ext`; _decorateXlsx injects it).
-        const guid = function (p) { return '{DA7ABAA5-0000-4A5E-B000-' + String(p).padStart(12, '0') + '}'; };
-        const bar = function (sq) {
-            const p = prio++, g = guid(p);
-            cf += '<conditionalFormatting sqref="' + sq + '"><cfRule type="dataBar" priority="' + p + '"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63C384"/></dataBar><extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:id>' + g + '</x14:id></ext></extLst></cfRule></conditionalFormatting>';
-            ext += '<x14:conditionalFormatting xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"><x14:cfRule type="dataBar" id="' + g + '"><x14:dataBar minLength="0" maxLength="100" gradient="0"><x14:cfvo type="autoMin"/><x14:cfvo type="autoMax"/><x14:negativeFillColor rgb="FFFF0000"/><x14:axisColor rgb="FF000000"/></x14:dataBar></x14:cfRule><xm:sqref>' + sq + '</xm:sqref></x14:conditionalFormatting>';
-        };
-        const scale = function (sq) {
-            cf += '<conditionalFormatting sqref="' + sq + '"><cfRule type="colorScale" priority="' + (prio++) + '"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFCFCFF"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>';
-        };
+        const bar = function (sq) { const b = _cfDataBar(sq, prio++); cf += b.cf; ext += b.ext; };   // Views + %Δ (modern data bar)
+        const scale = function (sq) { cf += _cfColorScale(sq, prio++).cf; };                         // %Δ (colour scale)
         Object.keys(cols).forEach(function (col) {
             const label = cols[col], sq = col + '2:' + col + last, isDelta = /%|Δ/.test(label), isViews = /Views/.test(label);
             if (isSite) { if (isViews || isDelta) bar(sq); }              // Views + both %Δ -> data bars
@@ -3885,7 +3887,7 @@
         while ((rm = rowRe.exec(sheetXml))) { const n = +rm[1]; if (n > last) last = n; }
         return { names: names, lastCol: lastCol, lastRow: last };
     }
-    async function _decorateXlsx(bytes, filename) {
+    async function _decorateXlsx(bytes, filename, opts) {
         const dl = function (blob) {
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
             document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
@@ -3908,6 +3910,22 @@
                 zip.file(names[i], xml); injected++;
             }
             if (typeof console !== 'undefined') console.log('[SVRollup] monthly report: conditional formatting injected into ' + injected + '/' + names.length + ' sheets.');
+            // Summary sheet: explicit CF (it isn't a uniform table) — data bars on the league Views
+            // column, colour scale on its %Δ columns; ranges come from _summarySheet via opts.
+            if (opts && opts.summary) {
+                for (let i = 0; i < names.length; i++) {
+                    let xml = await zip.file(names[i]).async('string');
+                    const fr = /<row[^>]*>[\s\S]*?<\/row>/.exec(xml);
+                    if (!fr || fr[0].indexOf('Monthly Summary') < 0) continue;   // the summary tab
+                    let scf = '', sext = '';
+                    (opts.summary.dataBars || []).forEach(function (sq) { const b = _cfDataBar(sq, prio++); scf += b.cf; sext += b.ext; });
+                    (opts.summary.colorScales || []).forEach(function (sq) { scf += _cfColorScale(sq, prio++).cf; });
+                    if (scf) xml = xml.replace('</sheetData>', '</sheetData>' + scf);
+                    if (sext) xml = xml.replace('</worksheet>', '<extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:conditionalFormattings>' + sext + '</x14:conditionalFormattings></ext></extLst></worksheet>');
+                    zip.file(names[i], xml);
+                    break;
+                }
+            }
             // Tables pass: wrap each sheet's data as an Excel Table (TableStyleMedium20). Touches 3
             // parts per table — the table XML, the worksheet <tableParts>+rels, and [Content_Types].
             // Own try so a table hiccup never loses the conditional formatting already applied.
@@ -3915,6 +3933,8 @@
                 const ct = await zip.file('[Content_Types].xml').async('string'); let ctAdd = '', tabled = 0;
                 for (let i = 0; i < names.length; i++) {
                     let xml = await zip.file(names[i]).async('string');
+                    const fr0 = /<row[^>]*>[\s\S]*?<\/row>/.exec(xml);
+                    if (fr0 && fr0[0].indexOf('Monthly Summary') >= 0) continue;   // summary isn't a single table
                     const info = _tableInfo(xml);
                     if (!info || info.lastRow < 2 || !info.names.length) continue;
                     const tId = i + 1, ref = 'A1:' + info.lastCol + info.lastRow;
@@ -3943,6 +3963,48 @@
             if (typeof console !== 'undefined') console.error('[SVRollup] conditional-formatting step failed, saving plain file:', e);
             dl(new Blob([bytes], { type: MIME }));   // never fail the download over formatting
         }
+    }
+    // Exec-summary sheet (this-month-vs-last): site KPI band + category league table (data bars +
+    // colour scale) + biggest risers/fallers site-wide. Returns {ws, dataBars, colorScales}; the CF
+    // ranges are applied by _decorateXlsx (the summary isn't a uniform table, so CF is explicit).
+    function _summarySheet(rows, title) {
+        let cv = 0, pv = 0, cu = 0, pu = 0; const byCat = {};
+        rows.forEach(function (r) {
+            cv += r.views; pv += (r.pViews || 0); cu += r.users; pu += (r.pUsers || 0);
+            const c = byCat[r.category] || (byCat[r.category] = { cat: r.category, v: 0, pv: 0, u: 0, pu: 0 });
+            c.v += r.views; c.pv += (r.pViews || 0); c.u += r.users; c.pu += (r.pUsers || 0);
+        });
+        const cats = Object.keys(byCat).map(function (k) { return byCat[k]; }).sort(function (a, b) { return b.v - a.v; });
+        const FLOOR = 100;   // ignore tiny-view pages so a +900%-on-3-views doesn't dominate the "stories"
+        const movable = rows.filter(function (r) { return r.dViews != null && r.views >= FLOOR; });
+        const risers = movable.slice().sort(function (a, b) { return b.dViews - a.dViews; }).slice(0, 5);
+        const fallers = movable.slice().sort(function (a, b) { return a.dViews - b.dViews; }).slice(0, 5);
+        const aoa = [], pct = []; const push = function (a) { aoa.push(a); return aoa.length - 1; };
+        push([title]); push([]);
+        let r0;
+        r0 = push(['Total views', cv, 'vs last month', _pctDelta(cv, pv)]); pct.push([r0, 3]);
+        r0 = push(['Active users', cu, 'vs last month', _pctDelta(cu, pu)]); pct.push([r0, 3]);
+        push([]);
+        push(['Category performance']);
+        const hdr = push(['Category', 'Views', '% Δ', 'Active users', '% Δ2']);
+        cats.forEach(function (c) { const rr = push([c.cat, c.v, _pctDelta(c.v, c.pv), c.u, _pctDelta(c.u, c.pu)]); pct.push([rr, 2]); pct.push([rr, 4]); });
+        const leagueStart = hdr + 2, leagueEnd = aoa.length;   // 1-based Excel rows spanning the league data
+        push([]);
+        push(['Biggest risers this month (pages with ' + FLOOR + '+ views)']);
+        push(['Page', 'Category', '% Δ', 'Views']);
+        risers.forEach(function (x) { const rr = push([x.title, x.category, x.dViews, x.views]); pct.push([rr, 2]); });
+        push([]);
+        push(['Biggest fallers this month (pages with ' + FLOOR + '+ views)']);
+        push(['Page', 'Category', '% Δ', 'Views']);
+        fallers.forEach(function (x) { const rr = push([x.title, x.category, x.dViews, x.views]); pct.push([rr, 2]); });
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        pct.forEach(function (rc) { const ref = XLSX.utils.encode_cell({ r: rc[0], c: rc[1] }); if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].z = '0.0%'; });
+        ws['!cols'] = [{ wch: 40 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 10 }];
+        return {
+            ws: ws,
+            dataBars: cats.length ? ['B' + leagueStart + ':B' + leagueEnd] : [],
+            colorScales: cats.length ? ['C' + leagueStart + ':C' + leagueEnd, 'E' + leagueStart + ':E' + leagueEnd] : []
+        };
     }
     async function buildMonthlyReport(year, month) {
         const tree = window.treeData;
@@ -3976,7 +4038,7 @@
                             // falls back to users(=totalUsers) if an older cached fetch lacks the field.
                             const v = a ? (a.pageViews || 0) : 0, u = a ? ((a.activeUsers != null ? a.activeUsers : a.users) || 0) : 0;
                             const pv = b ? (b.pageViews || 0) : 0, pu = b ? ((b.activeUsers != null ? b.activeUsers : b.users) || 0) : 0;
-                            if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: p, views: v, dViews: _pctDelta(v, pv), users: u, dUsers: _pctDelta(u, pu) });
+                            if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: p, views: v, pViews: pv, dViews: _pctDelta(v, pv), users: u, pUsers: pu, dUsers: _pctDelta(u, pu) });
                         }
                     }
                     (n.children || n._children || []).forEach(walk);
@@ -3985,6 +4047,8 @@
         });
         if (!rows.length) { alert('No GA4 page data for ' + _RPT_MONTHS[month - 1] + ' ' + year + '. (GA4 retention is ~2-14 months; the month may be out of range.)'); return; }
         const wb = XLSX.utils.book_new();
+        const summary = _summarySheet(rows, 'Monthly Summary — ' + _RPT_MONTHS[month - 1] + ' ' + year);
+        XLSX.utils.book_append_sheet(wb, summary.ws, 'Summary');                                        // exec summary = first tab
         const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ2' }];   // 2nd %Δ deduped for Excel-table column-name uniqueness (matches original)
         const catH = siteH.slice(1);                                    // per-category sheets drop the Category column
         const byViews = function (a, b) { return b.views - a.views; };
@@ -4001,7 +4065,7 @@
             if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, ['dViews', 'dUsers']), _xlSheetName(name));
         });
         const _fname = 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
-        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname);   // write + inject conditional formatting
+        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales } });   // write + inject formatting/tables
     }
     function promptMonthlyReport() {
         const now = new Date();
