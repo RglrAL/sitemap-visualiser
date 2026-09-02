@@ -1027,7 +1027,8 @@ function addMobileGA4Button() {
                         { name: 'totalUsers' },
                         { name: 'averageSessionDuration' },
                         { name: 'bounceRate' },
-                        { name: 'engagementRate' }
+                        { name: 'engagementRate' },
+                        { name: 'activeUsers' }
                     ],
                     orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
                     limit: opts.limit || 100000
@@ -1049,7 +1050,8 @@ function addMobileGA4Button() {
                     users: parseInt(m[2] && m[2].value || 0),
                     avgSessionDuration: parseFloat(m[3] && m[3].value || 0),
                     bounceRate: parseFloat(m[4] && m[4].value || 0),
-                    engagementRate: parseFloat(m[5] && m[5].value || 0)
+                    engagementRate: parseFloat(m[5] && m[5].value || 0),
+                    activeUsers: parseInt(m[6] && m[6].value || 0)   // for the monthly report's "Active users" column (users=totalUsers stays for the app)
                 };
                 result.set(path, rec);
                 // NOTE: do NOT warm ga4DataCache here — fetchData would return these minimal
