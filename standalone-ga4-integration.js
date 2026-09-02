@@ -1009,15 +1009,17 @@ function addMobileGA4Button() {
         const today = new Date();
         const days = opts.days || 30;
         const offset = opts.offset || 0;   // days to shift the window back (for prior-period comparison)
-        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
-        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        // Explicit calendar range (startDate/endDate as 'YYYY-MM-DD') wins over the rolling window —
+        // used by the monthly report, which needs whole calendar months, not last-N-days.
+        const startStr = opts.startDate || new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+        const endStr = opts.endDate || new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
         const result = new Map();
         try {
             const resp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${ga4AccessToken}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    dateRanges: [{ startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] }],
+                    dateRanges: [{ startDate: startStr, endDate: endStr }],
                     dimensions: [{ name: 'pagePath' }],
                     metrics: [
                         { name: 'screenPageViews' },
