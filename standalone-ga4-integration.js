@@ -1065,6 +1065,32 @@ function addMobileGA4Button() {
         }
     }
 
+    // Monthly English pageview totals over a date range — one call, dimensioned by yearMonth,
+    // filtered to /en/ pages. Returns [{ ym: 'YYYYMM', views: N }, ...] ascending. For the report's
+    // 6-month trend sparkline.
+    async function fetchMonthlyViews(opts) {
+        opts = opts || {};
+        if (!ga4Connected || !ga4PropertyId || !ga4AccessToken) return [];
+        try {
+            const resp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${ga4PropertyId}:runReport`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${ga4AccessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dateRanges: [{ startDate: opts.startDate, endDate: opts.endDate }],
+                    dimensions: [{ name: 'yearMonth' }],
+                    metrics: [{ name: 'screenPageViews' }],
+                    dimensionFilter: { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/en/' } } },
+                    orderBys: [{ dimension: { dimensionName: 'yearMonth' } }]
+                })
+            });
+            if (!resp.ok) { ga4Log('fetchMonthlyViews failed:', resp.status); return []; }
+            const json = await resp.json();
+            return ((json && json.rows) || []).map(function (row) {
+                return { ym: row.dimensionValues && row.dimensionValues[0] && row.dimensionValues[0].value, views: parseInt((row.metricValues && row.metricValues[0] && row.metricValues[0].value) || 0) };
+            });
+        } catch (e) { ga4Log('fetchMonthlyViews error:', e); return []; }
+    }
+
     function toggleGA4Connection() {
         ga4Log('Toggle GA4 connection called. Current state:', ga4Connected);
         
@@ -1577,6 +1603,7 @@ function addGA4Styles() {
         getPropertyId: () => ga4PropertyId,
         fetchData: fetchGA4DataForPage,
         fetchAllPages: fetchAllGA4Pages,
+        fetchMonthlyViews: fetchMonthlyViews,
         fetchSourcesByPage: fetchSourcesByPage,
         disconnect: disconnectGA4,
         
