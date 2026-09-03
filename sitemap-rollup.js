@@ -4198,7 +4198,13 @@
         const imprChange = e.impr > 0 ? (l.impr - e.impr) / e.impr : 0;
         const clkChange = e.clk > 0 ? (l.clk - e.clk) / e.clk : 0;
         const ctrChange = eCtr > 0 ? (lCtr - eCtr) / eCtr : 0;
-        return { months: n, eCtr: eCtr, lCtr: lCtr, imprChange: imprChange, clkChange: clkChange, ctrChange: ctrChange, consistentWithAI: imprChange > -0.1 && ctrChange < -0.1 };
+        // The divergence signal is CTR (clicks-per-impression), not whether impressions held. Nuanced read:
+        let read;
+        if (ctrChange > 0.1) read = 'improving';                                  // capturing more of impressions
+        else if (ctrChange < -0.1 && imprChange >= -0.05) read = 'clean';         // CTR fell, impressions held = clean zero-click
+        else if (ctrChange < -0.1) read = 'mixed';                                // CTR fell AND impressions fell = zero-click + visibility loss
+        else read = 'flat';                                                       // CTR steady = click change tracks visibility, not AI
+        return { months: n, eCtr: eCtr, lCtr: lCtr, imprChange: imprChange, clkChange: clkChange, ctrChange: ctrChange, read: read };
     }
     function _aiWedgeSvg(trend) {                                // indexed impressions vs clicks (both start=100); shade the gap
         if (!trend || trend.length < 2) return '';
@@ -4227,9 +4233,10 @@
         if (!ga4On) sendsHtml = '<div style="' + S + '">Connect GA4 to measure what AI assistants send back.</div>';
         else if (!sends || sends.ai <= 0) sendsHtml = '<div style="' + S + '">No measurable AI-assistant referrals in ' + esc(periodLabel(_ddDays)) + ' yet.</div>';
         else {
-            const share = sends.total > 0 ? Math.round(sends.ai / sends.total * 100) : null;
+            const shareN = sends.total > 0 ? sends.ai / sends.total * 100 : null;
+            const shareTxt = shareN == null ? null : (shareN < 1 ? '<1%' : Math.round(shareN) + '%');
             sendsHtml = '<div style="font-size:0.9rem;">AI assistants sent ' + _epi(fmt(sends.ai), 'measured') + ' sessions' +
-                (share != null ? ' (' + _epi(share + '%', 'measured') + ' of traffic)' : '') +
+                (shareTxt != null ? ' (' + _epi(shareTxt, 'measured') + ' of traffic)' : '') +
                 (sends.growth != null ? ', ' + (sends.growth >= 0 ? 'up ' : 'down ') + _epi(Math.abs(Math.round(sends.growth * 100)) + '%', 'measured') + ' vs the prior period' : '') + '.' +
                 (sends.named.length ? ' <span style="' + S + '">Mostly ' + sends.named.slice(0, 3).map(function (x) { return esc(x.name) + ' ' + Math.round(x.sess / (sends.ai || 1) * 100) + '%'; }).join(', ') + '.</span>' : '') + '</div>';
         }
@@ -4237,9 +4244,16 @@
         let takesHtml;
         if (!gscOn) takesHtml = '<div style="' + S + '">Connect Search Console to see the AI-Overviews divergence.</div>';
         else if (!div) takesHtml = '<div style="' + S + '">Not enough Search Console history yet to read the divergence (needs a few months).</div>';
-        else takesHtml = '<div style="font-size:0.9rem;">Over the last ' + div.months + ' months, Google impressions ' + _epi(_aiPct(div.imprChange), 'measured') + ' while clicks ' + _epi(_aiPct(div.clkChange), 'measured') + ' (CTR ' + _aiCtr(div.eCtr) + '→' + _aiCtr(div.lCtr) + ') — ' +
-            (div.consistentWithAI ? 'a pattern <strong>consistent with AI Overviews</strong> taking clicks.' : 'this is <strong>not</strong> the AI-Overviews signature (clicks and impressions moved together).') +
-            ' The per-page figure — which pages, how many clicks — lands with the next phase: ' + _epi('pending page analysis', 'pending') + '.</div>';
+        else {
+            const _rd = {
+                clean: 'a pattern <strong>consistent with AI Overviews</strong> taking clicks — CTR fell while impressions held.',
+                mixed: 'CTR fell sharply — <strong>consistent with clicks being taken in the results page</strong> (AI Overviews / rich results); impressions also fell ' + Math.abs(Math.round(div.imprChange * 100)) + '%, so part of this is reduced visibility too.',
+                improving: 'CTR actually <strong>rose</strong> — you’re capturing more of your impressions, not losing them to AI.',
+                flat: 'CTR held roughly steady — clicks tracked impressions, so this reads as a <strong>visibility / demand</strong> change, not the AI zero-click signature.'
+            }[div.read];
+            takesHtml = '<div style="font-size:0.9rem;">Over the last ' + div.months + ' months, Google impressions ' + _epi(_aiPct(div.imprChange), 'measured') + ' while clicks ' + _epi(_aiPct(div.clkChange), 'measured') + ' (CTR ' + _aiCtr(div.eCtr) + '→' + _aiCtr(div.lCtr) + ') — ' + _rd +
+                ' The per-page figure — which pages, how many clicks — lands with the next phase: ' + _epi('pending page analysis', 'pending') + '.</div>';
+        }
         // Takes-vs-sends bar: measured sends (right, green) + pending takes (left, dashed)
         const sendVal = sends ? sends.ai : 0, barMax = Math.max(sendVal, 1);
         const bar = '<div style="margin:10px 0;"><div style="display:flex;align-items:center;gap:6px;">' +
@@ -4247,7 +4261,7 @@
             '<div style="width:1px;height:22px;background:var(--color-text-muted);"></div>' +
             '<div style="flex:1;"><div style="height:14px;background:#059669;border-radius:3px;width:' + Math.min(100, sendVal / barMax * 60) + '%;"></div></div></div>' +
             '<div style="display:flex;justify-content:space-between;' + S + 'margin-top:3px;"><span>← Takes (' + _epi('pending', 'pending') + ')</span><span>Sends: ' + _epi(fmt(sendVal), 'measured') + ' →</span></div></div>';
-        const legend = '<div style="' + S + 'margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;"><span>' + _epi('measured', 'measured') + ' direct figure</span><span>' + _epi('~estimated', 'estimated') + ' modelled</span><span>' + _epi('inferred', 'inferred') + ' a bound, not a measurement</span></div>';
+        const legend = '<div style="' + S + 'margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;"><span>' + _epi('measured', 'measured') + ' direct figure</span><span>' + _epi('estimated', 'estimated') + ' modelled</span><span>' + _epi('inferred', 'inferred') + ' a bound, not a measurement</span></div>';
         const fresh = '<div style="' + S + 'margin-top:6px;">' + (gscOn && trend && trend.length ? 'GSC through ~' + esc(_aiYm(trend[trend.length - 1].ym)) + ' (Google lags ~3 days). ' : '') + (ga4On ? 'GA4 through ~yesterday.' : '') + '</div>';
         return '<div id="sv-ai-verdict" style="border:1px solid var(--color-border-primary);border-radius:12px;padding:16px 18px;background:var(--color-bg-primary);">' +
             '<div style="font-weight:700;font-size:1.05rem;color:var(--color-text-heading);margin-bottom:2px;">AI Impact — the whole site</div>' +
