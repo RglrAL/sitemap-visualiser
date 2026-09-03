@@ -4435,6 +4435,43 @@ window.GSCIntegration.fetchTrendComparison = async function(nodeData) {
 };
 
 // New function to fetch 12-month time-series data for AI Overview Impact analysis
+// Site-wide monthly GSC totals (English pages), for the AI-Impact report's divergence trend.
+// ONE searchAnalytics query dimensioned by date, filtered to /en/, aggregated to months in JS.
+// Returns [{ ym:'YYYYMM', impressions, clicks, ctr, position }] ascending (impression-weighted position).
+window.GSCIntegration.fetchSiteTrend = async function(opts) {
+    opts = opts || {};
+    if (!gscConnected || !accessToken || !gscSiteUrl) return [];
+    const months = opts.months || 12;
+    const today = new Date();
+    const endDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));          // GSC ~3-day processing lag
+    const startDate = new Date(endDate.getTime() - (months * 31 * 24 * 60 * 60 * 1000));
+    try {
+        const result = await robustGSCApiCall(async () => gapi.client.request({
+            path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+            method: 'POST',
+            body: {
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0],
+                dimensions: ['date'],
+                dimensionFilterGroups: [{ filters: [{ dimension: 'page', operator: 'contains', expression: '/en/' }] }],
+                rowLimit: 25000
+            }
+        }));
+        const rows = (result.result && result.result.rows) || [];
+        const byMonth = {};
+        rows.forEach(function (row) {
+            const d = row.keys && row.keys[0]; if (!d) return;
+            const ym = d.slice(0, 7).replace('-', '');                                // 'YYYY-MM-DD' -> 'YYYYMM'
+            const m = byMonth[ym] || (byMonth[ym] = { clicks: 0, impressions: 0, posSum: 0 });
+            m.clicks += row.clicks || 0; m.impressions += row.impressions || 0; m.posSum += (row.position || 0) * (row.impressions || 0);
+        });
+        return Object.keys(byMonth).sort().map(function (ym) {
+            const m = byMonth[ym];
+            return { ym: ym, impressions: m.impressions, clicks: m.clicks, ctr: m.impressions > 0 ? m.clicks / m.impressions : 0, position: m.impressions > 0 ? m.posSum / m.impressions : 0 };
+        });
+    } catch (e) { debugLog('fetchSiteTrend error', e); return []; }
+};
+
 window.GSCIntegration.fetch12MonthTimeSeriesData = async function(nodeData) {
     if (!nodeData || !nodeData.url || !gscConnected || !gscSiteUrl) {
         debugLog('❌ Cannot fetch time-series data: missing requirements');
