@@ -337,6 +337,100 @@
         results.push({ name: 'resolve.exact_proceeds', got: !!_resolvePage(r, 'A').page, want: true, ok: !!_resolvePage(r, 'A').page });
         results.push({ name: 'resolve.none', got: !!_resolvePage(r, 'zzznomatch').none, want: true, ok: !!_resolvePage(r, 'zzznomatch').none });
 
+        // ── exposure classifier: the thresholds diagnose/briefing now lean on, pinned as assertions ──
+        const _ce = _classifyExposure;
+        const mk = function (name, got, want) { results.push({ name: name, got: got, want: want, ok: got === want }); };
+        mk('classify.exposed', _ce({ impr: 10000, clk: 260, pos: 5.1 }, { impr: 10000, clk: 520, pos: 5.0 }).tier, 'exposed');   // held rank, CTR halved, page 1
+        mk('classify.cited', _ce({ impr: 20000, clk: 800, pos: 1.8 }, { impr: 20000, clk: 1600, pos: 1.6 }).tier, 'cited');       // same pattern at top-2
+        mk('classify.rankslip_reason', _ce({ impr: 10000, clk: 200, pos: 6.0 }, { impr: 10000, clk: 520, pos: 3.0 }).reason, 'rankslip');  // rank slipped 3 places
+        mk('classify.rankslip_notkept', _ce({ impr: 10000, clk: 200, pos: 6.0 }, { impr: 10000, clk: 520, pos: 3.0 }).keep, false);
+        mk('classify.artifact', _ce({ impr: 166000, clk: 0, pos: 3.7 }, { impr: 166000, clk: 13778, pos: 3.7 }).artifact, true);   // ~0 clicks at rank 3.7 = artifact
+        mk('classify.baseCTR', _ce({ impr: 1200000, clk: 6000, pos: 6.2 }, { impr: 1200000, clk: 8400, pos: 6.0 }).reason, 'baseCTR');   // never converted
+        mk('classify.page2', _ce({ impr: 72000, clk: 720, pos: 14.6 }, { impr: 72000, clk: 2448, pos: 14.5 }).reason, 'page2');   // rank 14 = not the Overview zone
+        mk('classify.floor', _ce({ impr: 500, clk: 20, pos: 4.0 }, { impr: 500, clk: 40, pos: 4.0 }).reason, 'floor');            // too few impressions
+        mk('classify.ctrheld', _ce({ impr: 10000, clk: 490, pos: 5.0 }, { impr: 10000, clk: 520, pos: 5.0 }).reason, 'ctrheld');  // CTR barely moved
+
+        // ── ambient AI finding: the machinery diagnose/page_summary/briefing all read (can't detach) ──
+        const _Aok = { gscOn: true, classifyOk: true, exposed: [{ url: 'https://x/en/foo', pos: 5.1, ctrB: 0.052, ctrN: 0.026, lost: 2300 }], excluded: [{ url: 'https://x/en/baz', pos: 3.7, ctrB: 0.083, ctrN: 0, impr: 166000 }] };
+        mk('aifind.exposed_kind', _aiFinding(['https://x/en/foo'], _Aok).kind, 'exposed');
+        mk('aifind.exposed_mag', _aiFinding(['https://x/en/foo'], _Aok).score, 2300);              // exposure carries its floor as the ranking magnitude
+        mk('aifind.artifact_kind', _aiFinding(['https://x/en/baz'], _Aok).kind, 'artifact');
+        mk('aifind.absent_null', _aiFinding(['https://x/en/notlisted'], _Aok), null);              // rank-slip / not-flagged pages say nothing
+        mk('aifind.gscoff_null', _aiFinding(['https://x/en/foo'], { gscOn: false }), null);
+        mk('aifind.unavailable', _aiFinding(['https://x/en/foo'], { gscOn: true, classifyOk: false }).kind, 'unavailable');
+
+        // ── briefing common currency: a ~2,300 clicks/mo exposure must outrank an 800-click opportunity ──
+        const _saCtx = { hasQueries: true, qrows: [], qidx: [{ category: null, query: 'q', impressions: 500, potential: 800, bestPos: 6, bestPage: 'https://x/a' }], urlCat: null, urlToName: {}, prior: null, aiExposed: [{ url: 'https://x/a/1', name: 'A1', pos: 5.1, ctrB: 0.05, ctrN: 0.02, lost: 2300 }], aiChecked: true, gscOn: true };
+        const _sa = _sectionActions(null, r, _saCtx);
+        mk('brief.exposure_leads', (_sa[0] && _sa[0].type) || '', 'AI exposure');   // 2,300 floor outranks the 800 opportunity
+        mk('brief.ranked_count', _sa._rankedCount, 2);                              // opportunity + exposure ranked; staleness excluded from the ranked slice
+
+        // ── verdict headline: the big-type number MUST equal the sum of the rows shown (worst possible bug) ──
+        mk('headline.opps_sum', _headlineFor('opportunities', { rows: [{ potentialClicks: 2500 }, { potentialClicks: 1700 }] }).value, 4200);   // real quantity: sum is the finding
+        mk('headline.opps_tier', _headlineFor('opportunities', { rows: [{ potentialClicks: 10 }] }).tier, 'estimated');
+        mk('headline.exposed_sum', _headlineFor('ai_exposed', { rows: [{ lostClicks: 2300 }, { lostClicks: 817 }, { lostClicks: 711 }] }).value, 3828);
+        mk('headline.share', _headlineFor('top_queries', { rows: [{ impressions: 380 }, { impressions: 0 }], shareBase: 1000, shareKey: 'impressions', shareNoun: 'search impressions' }).value, 38);   // ranked list -> SHARE of scope total, not a limit-dependent sum
+        mk('headline.share_pct', _headlineFor('top_queries', { rows: [{ impressions: 380 }], shareBase: 1000, shareKey: 'impressions' }).pct, true);
+        mk('headline.share_zerobase', _headlineFor('top_queries', { rows: [{ impressions: 380 }], shareBase: 0, shareKey: 'impressions' }), null);
+        mk('headline.empty_null', _headlineFor('opportunities', { rows: [] }), null);
+        // weighted aggregate delta (the override-path headline class): -33.3%, NOT the naive per-row mean (-45%)
+        mk('netdelta.change', _netDelta([{ c: 900, p: 1000 }, { c: 100, p: 500 }], 'c', 'p').change, -500);
+        mk('netdelta.weighted', Math.round(_netDelta([{ c: 900, p: 1000 }, { c: 100, p: 500 }], 'c', 'p').pct * 10) / 10, -33.3);
+        mk('netdelta.zeroprev', _netDelta([{ c: 5, p: 0 }], 'c', 'p').pct, null);
+        // 'both' churn: net cancels to 0 but 12K actually moved — why a two-directional movers answer headlines churn, not net
+        mk('netdelta.churn', _netDelta([{ c: 6000, p: 0 }, { c: 0, p: 6000 }], 'c', 'p').churn, 12000);
+        mk('netdelta.churn_net_cancels', _netDelta([{ c: 6000, p: 0 }, { c: 0, p: 6000 }], 'c', 'p').change, 0);
+
+        // ── SERP ladder bands (shared vocabulary) + renderers produce an SVG ──
+        mk('serp.top3', _serpBand(2), 'top3');
+        mk('serp.top3_edge', _serpBand(_SERP_TOP3), 'top3');
+        mk('serp.strike', _serpBand(7), 'strike');
+        mk('serp.strike_edge', _serpBand(_SERP_STRIKE), 'strike');
+        mk('serp.off', _serpBand(_SERP_STRIKE + 5), 'off');
+        mk('ladder.renders', _chartLadder({ rows: [{ q: 'a', p: 2, i: 900 }, { q: 'b', p: 8, i: 400 }], chart: { type: 'ladder', label: 'q', pos: 'p', size: 'i' } }, {}).indexOf('<svg') === 0, true);
+        mk('ladder.skips_zeropos', _chartLadder({ rows: [{ q: 'x', p: 0, i: 100 }], chart: { type: 'ladder', label: 'q', pos: 'p', size: 'i' } }, {}), '');   // pos 0 -> no valid rows -> empty
+        mk('dumbbell.renders', _chartDumbbell({ rows: [{ n: 'p', was: 1000, now: 600 }], chart: { type: 'dumbbell', label: 'n', before: 'was', after: 'now', shared: true } }, {}).indexOf('<svg') === 0, true);
+        // compare_periods small-multiples: position INVERTS. The classic once-per-tool bug, pinned both ways.
+        mk('deltaimproved.pos_down_good', _deltaImproved('lower', 6.4, 5.1), true);      // position 6.4 -> 5.1 is an improvement
+        mk('deltaimproved.pos_up_bad', _deltaImproved('lower', 5.1, 6.4), false);
+        mk('deltaimproved.count_down_bad', _deltaImproved('higher', 100, 90), false);
+        const _cpMini = function (older, newer) { return _chartMiniDeltas({ rows: [{ metric: 'Avg position', older: older, newer: newer, change: +(newer - older).toFixed(1), dtype: 'ptpos', better: 'lower' }], chart: { type: 'minideltas' } }, {}); };
+        mk('minideltas.pos_improve_good', _cpMini(6.4, 5.1).indexOf('data-sentiment="good"') >= 0, true);   // position dropped -> GOOD (semantic hook, survives a repaint)
+        mk('minideltas.pos_worsen_bad', _cpMini(5.1, 6.4).indexOf('data-sentiment="bad"') >= 0, true);
+        // #1 rate headline: a named rate reads in POINTS, never percent-of-percent; sentiment via the hook
+        const _ctrHl = _headlineHtml({ value: 1.4, pct: true, unit: 'CTR now', delta: { pts: -0.3, improved: false }, tier: 'measured' });
+        const _ctrChip = (/data-sentiment="[^"]*"[^>]*>([^<]*)</.exec(_ctrHl) || [])[1] || '';   // scope to the chip (the #3 hook IS the selector) so an innocent '1,180' or a date elsewhere can't false-fail the negative assertion
+        mk('headline.ctr_pts', _ctrChip.indexOf('0.3pts') >= 0, true);
+        mk('headline.ctr_not_relpct', _ctrChip.indexOf('18') < 0, true);        // the WRONG answer (-0.3/1.7 = -18%) must never be the chip's text (negative assertion: the bug can't hide behind both numbers rendering)
+        mk('headline.ctr_sentiment_bad', _ctrHl.indexOf('data-sentiment="bad"') >= 0, true);
+        // #3 position headline sentiment inverts correctly through the SAME chip path (down = good)
+        mk('headline.pos_sentiment_good', _headlineHtml({ value: 5.1, unit: 'position now', delta: { pts: -1.3, improved: true }, tier: 'measured' }).indexOf('data-sentiment="good"') >= 0, true);
+        // #2 per-day marker rides on the number (crop-proof), not hover-only
+        mk('headline.perday_on_number', _headlineHtml({ value: 12400, sfx: ' /day', unit: 'fewer impressions', delta: { pct: -23 }, tier: 'measured' }).indexOf('12.4K /day') >= 0, true);   // marker rides the number (fmt abbreviates)
+        // Wave 3 line-fills: the gap between two series is shaded only with the flag; sentiment via the hook
+        const _2ser = function (flag) { return { periods: ['a', 'b', 'c'], series: [{ name: 'X', values: [100, 120, 140] }, { name: 'Y', values: [80, 70, 60] }], chart: { type: 'line', fillGap: flag } }; };
+        mk('linefill.gap_on', _chartLine(_2ser(true), {}).indexOf('sv-carea') >= 0, true);
+        mk('linefill.gap_off', _chartLine(_2ser(false), {}).indexOf('sv-carea') < 0, true);   // two series, no flag -> no fill (avoids muddy overlap)
+        mk('linefill.sentiment_decline', _chartLine({ periods: ['a', 'b'], series: [{ name: 'cur', values: [100, 80] }, { name: 'prior', values: [100, 100] }], chart: { type: 'line', fillGap: 'sentiment' } }, {}).indexOf('data-sentiment="bad"') >= 0, true);   // current ends below prior, never crosses = decline
+        mk('linefill.crossing_no_lie', _chartLine({ periods: ['a', 'b', 'c'], series: [{ name: 'cur', values: [80, 100, 130] }, { name: 'prior', values: [120, 100, 90] }], chart: { type: 'line', fillGap: 'sentiment' } }, {}).indexOf('data-sentiment') < 0, true);   // cur trails then overtakes -> crosses -> NO sentiment claim (drops to neutral)
+        // sparkline-in-row: per-row scale, guarded against manufactured drama (clamp + deadband)
+        mk('spark.renders', _sparkline([10, 20, 30], {}).indexOf('<svg') === 0, true);
+        mk('spark.needs_two', _sparkline([5], {}), '');
+        // guard #1 min-range clamp: a low-variance series pads its domain (renders flat); a real collapse does not
+        mk('spark.clamp_lowvar', _sparkRange([980, 1000, 1020], _SPARK_MINRANGE).clamped, true);
+        mk('spark.no_clamp_collapse', _sparkRange([1000, 600, 200], _SPARK_MINRANGE).clamped, false);
+        // guard #2 sentiment deadband: a tiny drift is noise (no sentiment); a genuine collapse/growth reads
+        mk('spark.deadband_noise', _sparkTrend([1000, 1005, 995, 1002], _SPARK_DEADBAND).sentiment, '');
+        mk('spark.collapse_bad', _sparkTrend([1000, 800, 600, 200, 100, 80], _SPARK_DEADBAND).sentiment, 'bad');
+        mk('spark.growth_good', _sparkTrend([20, 40, 80, 120], _SPARK_DEADBAND).sentiment, 'good');
+        // negative assertion: a noisy stable series NEVER gets a sentiment dot (the manufactured-drama bug, pinned)
+        mk('spark.noise_no_sentiment', _sparkline([1000, 1005, 995, 1002, 998, 1003], {}).indexOf('data-sentiment') < 0, true);
+        // stacked proportion bar: segments proportional to value; benchmark: below typical = bad via the hook
+        mk('stacked.proportional', _stackedBar([{ label: 'Direct', value: 30 }, { label: 'Google', value: 70 }], {}).indexOf('width:70.00%') >= 0, true);
+        mk('stacked.empty', _stackedBar([{ label: 'x', value: 0 }], {}), '');
+        mk('bench.below_bad', _benchmarkBar(0.017, 0.024, {}).indexOf('data-sentiment="bad"') >= 0, true);    // CTR below typical-for-position
+        mk('bench.above_good', _benchmarkBar(0.030, 0.024, {}).indexOf('data-sentiment="good"') >= 0, true);
+
         const passed = results.every(r => r.ok);
         return { passed, results };
     }
@@ -758,7 +852,7 @@
     // A sticky, per-sitemap default that scopes the hero, examples and bare questions to the
     // owner's section — but never walls them in. The five rules live here, not in judgement.
     const _SCOPE_PAGE_INTENTS = { diagnose: 1, page_summary: 1, page_queries: 1 };            // rule 2: resolve site-wide
-    const _SCOPE_NONE_INTENTS = { rank_categories: 1, compare: 1, site_summary: 1, digest: 1 }; // rule 3: ignore scope
+    const _SCOPE_NONE_INTENTS = { rank_categories: 1, compare: 1, site_summary: 1, digest: 1, ai_impact: 1 }; // rule 3: ignore scope
     // Namespace the stored scope per sitemap (rule 4) so a "Health" from CI isn't applied to MABS.
     function _scopeRootId() {
         const t = window.treeData || {};
@@ -1399,7 +1493,7 @@
     function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
-    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', compare_periods: 'period comparison' };
+    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
     // splits red-fallers / teal-risers). Single-page focus (diagnose/page_summary) is a fast-follow.
@@ -1412,7 +1506,7 @@
 
     // Ask parse system prompt — STATIC (built once, so it caches on Groq and never varies per call).
     const _ASK_SYS_PROMPT = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","compare_periods","unknown"], ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","unknown"], ' +
                     '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
@@ -1436,7 +1530,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "what is the capital of France"->{"intent":"unknown"}.';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). what is AI doing to us / AI impact / impact of AI / are we losing clicks to AI / zero-click / see but do not click->ai_impact aspect "overview"; how many clicks is AI or Google Overviews taking / clicks lost to AI / what are AI Overviews costing us->ai_impact aspect "takes"; is our click-through rate falling / CTR trend / is CTR dropping->ai_impact aspect "ctr"; which pages is Google answering for / which of my pages are exposed to AI / pages losing clicks to AI / exposed pages / AI exposure in X->ai_exposed (category optional; the SCOPED per-page exposed list). (ai_impact is the whole-site AI verdict, ai_exposed is the per-page list; both distinct from traffic_sources, which is "how much traffic FROM a named source". Use traffic_sources for "traffic from AI" / "is AI traffic growing".) If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "what is the capital of France"->{"intent":"unknown"}.';
     // Integrity check (cheap insurance): a corrupted/truncated prompt breaks routing silently.
     try { if (_ASK_SYS_PROMPT.length < 8000 || _ASK_SYS_PROMPT.indexOf('never force the closest match') < 0) { if (typeof console !== 'undefined') console.error('[SVRollup] Ask system prompt looks truncated/corrupted (' + _ASK_SYS_PROMPT.length + ' chars) - routing will be unreliable.'); } } catch (e) {}
 
@@ -1454,12 +1548,45 @@
                 const col = it.col || 'var(--primary)';
                 const tipTxt = esc(String(it.name) + ' - ' + it.val + (opts.valueLabel ? ' ' + opts.valueLabel.toLowerCase() : ''));
                 const clickable = it.url ? ' class="sv-ask-page sv-tipel" role="button" tabindex="0" data-url="' + esc(it.url) + '" data-tip="' + tipTxt + '" style="cursor:pointer;"' : ' class="sv-tipel" data-tip="' + tipTxt + '" style=""';
+                const trackHtml = (it.spark && it.spark.length >= 2)   // trajectory replaces the magnitude bar (magnitude stays in the number); per-row scale, drama-clamped
+                    ? _sparkline(it.spark, { w: 90, h: 18 })
+                    : '<span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span class="sv-ask-bar" style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span>';
                 return '<div' + clickable + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.85rem;">' +
                     '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(it.name) + '</span>' +
-                    '<span style="width:96px;flex-shrink:0;"><span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span class="sv-ask-bar" style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span></span>' +
+                    '<span style="width:96px;flex-shrink:0;">' + trackHtml + '</span>' +
                     '<span style="width:88px;flex-shrink:0;text-align:right;font-weight:700;color:' + (it.valCol || 'var(--color-text-primary)') + ';">' + it.val + '</span>' +
                 '</div></div>';
             }).join('') + '</div>';
+    }
+    // Stacked proportion bar (Wave 3): a source split reads in half a second as one 100%-stacked bar
+    // (pie/donut refused — the bar wins). Semantic colours per bucket so the language is consistent.
+    const _SOURCE_COLORS = { 'Organic Search': '#4285F4', 'Google': '#4285F4', 'AI assistants': '#7c3aed', 'AskCI chatbot': '#0ea5e9', 'Direct': '#9ca3af', 'Social': '#ec4899', 'Email': '#14b8a6', 'Referral': '#f59e0b', 'Paid Search': '#16a34a', 'Paid': '#16a34a', 'Other': '#94a3b8' };
+    const _STACK_PALETTE = ['#4285F4', '#7c3aed', '#ec4899', '#14b8a6', '#f59e0b', '#16a34a', '#9ca3af', '#0ea5e9'];
+    function _stackColor(name, i) { return _SOURCE_COLORS[name] || _STACK_PALETTE[i % _STACK_PALETTE.length]; }
+    function _stackedBar(entries, opts) {
+        opts = opts || {};
+        const es = (entries || []).filter(function (x) { return (x.value || 0) > 0; });
+        if (!es.length) return '';
+        const total = es.reduce(function (s, x) { return s + x.value; }, 0) || 1;
+        const seg = es.map(function (x, i) { const pct = x.value / total * 100; return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' (' + Math.round(pct) + '%)') + '" style="width:' + pct.toFixed(2) + '%;background:' + _stackColor(x.label, i) + ';height:100%;"></div>'; }).join('');
+        const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + _stackColor(x.label, i) + ';"></span>' + esc(x.label) + ' ' + Math.round(x.value / total * 100) + '%</span>'; }).join('');
+        return '<div style="margin-bottom:12px;"><div style="display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--color-bg-tertiary);">' + seg + '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:7px;">' + legend + '</div></div>';
+    }
+    // Benchmark encoding (Wave 3): a bare number is a fact; a number against its expectation is a judgement.
+    // Fill = actual, tick = the expected-for-position value, colour + data-sentiment hook by above/below.
+    function _benchmarkBar(actual, expected, opts) {
+        opts = opts || {};
+        const a = Number(actual) || 0, e = Number(expected) || 0;
+        const max = Math.max(a, e, 1e-9) * 1.15, aPct = Math.min(100, a / max * 100), ePct = Math.min(100, e / max * 100);
+        const good = a >= e, col = good ? '#059669' : '#dc2626', vf = opts.fmt || function (v) { return fmt(v); };
+        return '<div style="margin-top:8px;">' +
+            '<div style="position:relative;height:8px;background:var(--color-bg-tertiary);border-radius:4px;">' +
+                '<div style="height:100%;width:' + aPct.toFixed(1) + '%;background:' + col + ';border-radius:4px;"></div>' +
+                '<div data-sentiment="' + (good ? 'good' : 'bad') + '" title="' + esc('typical: ' + vf(e)) + '" style="position:absolute;top:-3px;left:' + ePct.toFixed(1) + '%;width:2px;height:14px;background:var(--color-text-heading);"></div>' +
+            '</div>' +
+            '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:4px;">yours <span style="color:' + col + ';font-weight:700;">' + esc(vf(a)) + '</span> &middot; typical ' + esc(vf(e)) + ' ' + esc(opts.note || 'for this position') + '</div>' +
+        '</div>';
     }
     // Two-line row card for query opportunities: query + potential on top,
     // position/impressions/CTR/action label beneath. Rows click through to the
@@ -1663,16 +1790,133 @@
     // carry class="sv-tipel" data-tip="..." for the delegated tooltip; clickable page bars
     // also carry class="sv-ask-page" data-url="...".
     function _svTrunc(s, max) { s = String(s == null ? '' : s); max = Math.max(4, max || 20); return s.length > max ? s.slice(0, max - 1) + '…' : s; }
+    // ── SERP ladder (Wave 2): position made spatial. Shared band constants, so the ladder draws the SAME
+    // bands the labels and classifier vocabulary use (visual and language never disagree). ──
+    const _SERP_TOP3 = 3, _SERP_STRIKE = 20;                     // top 3 / striking distance 4-20 / off page 1 (>20)
+    function _serpBand(pos) { if (pos == null || !isFinite(+pos)) return 'off'; if (+pos <= _SERP_TOP3) return 'top3'; if (+pos <= _SERP_STRIKE) return 'strike'; return 'off'; }
+    function _chartLadder(data, opts) {
+        opts = opts || {};
+        const cfg = data.chart || {};
+        const posK = cfg.pos || 'position', sizeK = cfg.size || 'impressions', labK = cfg.label || 'query', urlK = cfg.url || null;
+        let rows = (data.rows || []).filter(function (r) { return r[posK] !== '' && r[posK] != null && isFinite(+r[posK]) && +r[posK] > 0; });
+        if (!rows.length) return '';
+        rows = rows.slice().sort(function (a, b) { return (+b[sizeK] || 0) - (+a[sizeK] || 0); });
+        const W = opts.w || (opts.big ? 900 : 440), H = opts.h || (opts.big ? 460 : 330);
+        const padT = 16, padB = 16, padL = 12, padR = 96;
+        const plotY0 = padT, floorY = H - padB - 8, plotY1 = floorY - 20;
+        const yFor = function (pos) { if (+pos > _SERP_STRIKE) return floorY; return plotY0 + (plotY1 - plotY0) * ((Math.max(1, +pos) - 1) / (_SERP_STRIKE - 1)); };
+        const uid = 'L' + (++_chartUid), yTop3 = yFor(_SERP_TOP3);
+        const bands = '<rect x="' + padL + '" y="' + plotY0 + '" width="' + (W - padL - padR) + '" height="' + (yTop3 - plotY0) + '" fill="rgba(5,150,105,0.09)"/>' +
+            '<rect x="' + padL + '" y="' + yTop3 + '" width="' + (W - padL - padR) + '" height="' + (plotY1 - yTop3) + '" fill="rgba(3,105,161,0.05)"/>' +
+            '<rect x="' + padL + '" y="' + (floorY - 9) + '" width="' + (W - padL - padR) + '" height="18" fill="rgba(120,120,120,0.10)"/>';
+        const blabels = '<text x="' + (W - padR + 6) + '" y="' + (plotY0 + 11) + '" font-size="9" fill="#059669">top 3</text>' +
+            '<text x="' + (W - padR + 6) + '" y="' + (yTop3 + 13) + '" font-size="9" fill="#0369a1">striking</text>' +
+            '<text x="' + (W - padR + 6) + '" y="' + (yTop3 + 24) + '" font-size="9" fill="#0369a1">4 to ' + _SERP_STRIKE + '</text>' +
+            '<text x="' + (W - padR + 6) + '" y="' + (floorY + 3) + '" font-size="9" fill="var(--color-text-muted)">off page 1</text>';
+        const CAP = opts.big ? 24 : 12, indiv = rows.slice(0, CAP), rest = rows.slice(CAP);
+        const maxSize = Math.max.apply(null, rows.map(function (r) { return +r[sizeK] || 0; }).concat([1]));
+        const rFor = function (sz) { return 4 + 12 * Math.sqrt((+sz || 0) / maxSize); };
+        const innerW = W - padL - padR - 30, xFor = function (i, n) { return padL + 18 + innerW * (n > 1 ? i / (n - 1) : 0.5); };
+        let dots = '', labels = '';
+        indiv.forEach(function (r, i) {
+            const pos = +r[posK], sz = +r[sizeK] || 0, cx = xFor(i, indiv.length), cy = yFor(pos), rr = rFor(sz);
+            const band = _serpBand(pos), col = band === 'top3' ? '#059669' : band === 'strike' ? '#0369a1' : '#9ca3af';
+            const tip = esc(String(r[labK]) + ': pos ' + pos.toFixed(1) + ', ' + fmt(sz) + ' impr');
+            const link = (urlK && r[urlK]);
+            dots += '<circle class="sv-tipel' + (link ? ' sv-ask-page' : '') + '" data-tip="' + tip + '"' + (link ? ' data-url="' + esc(r[urlK]) + '"' : '') + ' cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + rr.toFixed(1) + '" fill="' + col + '" fill-opacity="0.75" stroke="#fff" stroke-width="1.5" style="cursor:' + (link ? 'pointer' : 'default') + ';"/>';
+            if (i < (opts.big ? 12 : 6)) labels += '<text x="' + cx.toFixed(1) + '" y="' + (cy - rr - 3).toFixed(1) + '" font-size="8" text-anchor="middle" fill="var(--color-text-secondary)">' + esc(String(r[labK]).slice(0, 16)) + '</text>';
+        });
+        let aggNote = '';
+        if (rest.length) {
+            const byBand = { top3: [], strike: [], off: [] };
+            rest.forEach(function (r) { byBand[_serpBand(+r[posK])].push(r); });
+            const parts = [];
+            ['top3', 'strike', 'off'].forEach(function (b) { const arr = byBand[b]; if (!arr.length) return; const sm = arr.reduce(function (s, r) { return s + (+r[sizeK] || 0); }, 0); parts.push(arr.length + ' more in ' + (b === 'top3' ? 'top 3' : b === 'strike' ? 'striking distance' : 'off page 1') + ' (' + fmt(sm) + ' impr)'); });
+            const listId = 'sv-ladder-more-' + uid;
+            aggNote = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:4px;cursor:pointer;" onclick="var e=document.getElementById(\'' + listId + '\');if(e)e.style.display=e.style.display===\'none\'?\'block\':\'none\'">' + esc(parts.join(' · ')) + ' &middot; <span style="text-decoration:underline;">show</span></div>' +
+                '<div id="' + listId + '" style="display:none;font-size:0.72rem;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">' + rest.map(function (r) { return esc(String(r[labK]) + ' (pos ' + (+r[posK]).toFixed(1) + ', ' + fmt(+r[sizeK] || 0) + ' impr)'); }).join('<br>') + '</div>';
+        }
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);max-width:' + W + 'px;">' + bands + blabels + dots + labels + '</svg>' + aggNote;
+    }
+    // ── Dumbbell (Wave 2): before -> after as two dots joined, so both LEVELS show (delta bars hide them). ──
+    function _chartDumbbell(data, opts) {
+        opts = opts || {};
+        const cfg = data.chart || {};
+        const labK = cfg.label || 'label', bK = cfg.before, aK = cfg.after, urlK = cfg.url || null, shared = !!cfg.shared;
+        const rows = (data.rows || []).filter(function (r) { return isFinite(+r[bK]) && isFinite(+r[aK]); });
+        if (!rows.length) return '';
+        const W = opts.w || (opts.big ? 720 : 440), rowH = opts.big ? 32 : 25, padT = 8, padB = 16;
+        const labelW = Math.round(W * (opts.big ? 0.24 : 0.28)), valW = opts.big ? 188 : 152, gap = 10;   // wide enough to carry 'B to A ±X%' on every row (the number says what a smudged dot can't)
+        const trackW = W - labelW - gap - valW - gap, x0 = labelW + gap;
+        const H = rows.length * rowH + padT + padB;
+        const sharedMax = shared ? Math.max.apply(null, rows.map(function (r) { return Math.max(Math.abs(+r[bK] || 0), Math.abs(+r[aK] || 0)); }).concat([1])) : null;
+        let body = '';
+        rows.forEach(function (r, i) {
+            const b = +r[bK] || 0, a = +r[aK] || 0, mx = sharedMax != null ? sharedMax : Math.max(Math.abs(b), Math.abs(a), 1);
+            const bx = x0 + trackW * Math.min(1, Math.abs(b) / mx), ax = x0 + trackW * Math.min(1, Math.abs(a) / mx);
+            const y = padT + i * rowH + rowH / 2, up = a >= b, col = up ? '#059669' : '#dc2626';
+            const link = (urlK && r[urlK]);
+            const pct = b > 0 ? (a - b) / b * 100 : null;
+            const pctTxt = pct != null ? '  ' + (pct >= 0 ? '▲' : '▼') + Math.abs(Math.round(pct)) + '%' : '';   // the delta rides on every row, legible even when the dots collapse to a smudge
+            body += '<g' + (link ? ' class="sv-ask-page" data-url="' + esc(r[urlK]) + '" style="cursor:pointer;"' : '') + '>' +
+                '<text x="' + labelW + '" y="' + (y + 3) + '" font-size="' + (opts.big ? 12 : 10) + '" text-anchor="end" fill="var(--color-text-primary)">' + esc(String(r[labK]).slice(0, opts.big ? 40 : 22)) + '</text>' +
+                '<line x1="' + Math.min(bx, ax).toFixed(1) + '" y1="' + y + '" x2="' + Math.max(bx, ax).toFixed(1) + '" y2="' + y + '" stroke="' + col + '" stroke-width="2" opacity="0.45"/>' +
+                '<circle cx="' + bx.toFixed(1) + '" cy="' + y + '" r="4.5" fill="var(--color-bg-primary)" stroke="var(--color-text-muted)" stroke-width="2"/>' +
+                '<circle cx="' + ax.toFixed(1) + '" cy="' + y + '" r="5" fill="' + col + '"/>' +
+                '<text x="' + (W - 2) + '" y="' + (y + 3) + '" font-size="' + (opts.big ? 11 : 9) + '" text-anchor="end" fill="' + col + '">' + esc(fmt(b) + ' to ' + fmt(a)) + pctTxt + '</text>' +
+            '</g>';
+        });
+        const leg = '<text x="' + x0 + '" y="' + (H - 3) + '" font-size="8" fill="var(--color-text-muted)">hollow = before, solid = after</text>';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);max-width:' + W + 'px;">' + body + leg + '</svg>';
+    }
+    // ── Small-multiples of before/after deltas (Wave 3): one self-scaled mini per metric (mixed units, so
+    // NO shared axis — that would be the dial problem). Each mini is a labelled mini-dumbbell + a delta
+    // chip whose colour/arrow come from _deltaImproved(better,...), so position (lower=better) reads green
+    // when it drops. Rates arrive PRE-WEIGHTED from the rollup (Σclicks/Σimpr); the mini never averages. ──
+    function _chartMiniDeltas(data, opts) {
+        opts = opts || {};
+        const cfg = data.chart || {};
+        const bK = cfg.before || 'older', aK = cfg.after || 'newer', labK = cfg.label || 'metric';
+        const rows = (data.rows || []).filter(function (r) { return r[bK] != null && r[aK] != null; });
+        if (!rows.length) return '';
+        const cols = opts.big ? 3 : 2, cellW = (opts.big ? 750 : 452) / cols, cellH = opts.big ? 116 : 100, pad = 9;
+        const W = cellW * cols, H = cellH * Math.ceil(rows.length / cols);
+        const fmtV = function (v, r) { if (v == null) return 'n/a'; if (r.unit === '%') return v + '%'; if (r.dtype === 'ptpos') return '#' + v; return fmt(v); };
+        let cells = '';
+        rows.forEach(function (r, i) {
+            const x0 = (i % cols) * cellW, y0 = Math.floor(i / cols) * cellH;
+            const b = +r[bK], a = +r[aK], better = r.better || (r.dtype === 'ptpos' ? 'lower' : 'higher');
+            const improved = _deltaImproved(better, b, a), col = improved ? '#059669' : '#dc2626';
+            const d = r.change;
+            const dtxt = (d != null) ? (d >= 0 ? '+' : '') + d + (r.dtype === 'pct' ? '%' : (r.unit === '%' ? 'pt' : '')) : '';
+            const tX0 = x0 + pad + 4, tW = cellW - 2 * pad - 10, mx = Math.max(Math.abs(b), Math.abs(a), 1);
+            const bx = tX0 + tW * Math.min(1, Math.abs(b) / mx), ax = tX0 + tW * Math.min(1, Math.abs(a) / mx), ty = y0 + cellH - 33;
+            cells += '<g>' +
+                '<rect x="' + (x0 + 4) + '" y="' + (y0 + 4) + '" width="' + (cellW - 8) + '" height="' + (cellH - 8) + '" rx="9" fill="var(--color-bg-primary)" stroke="var(--color-border-primary)"/>' +
+                '<text x="' + (x0 + pad + 3) + '" y="' + (y0 + 22) + '" font-size="' + (opts.big ? 12 : 10.5) + '" font-weight="700" fill="var(--color-text-heading)">' + esc(String(r[labK])) + '</text>' +
+                (d != null ? '<text data-sentiment="' + (improved ? 'good' : 'bad') + '" x="' + (x0 + cellW - pad - 3) + '" y="' + (y0 + 22) + '" font-size="' + (opts.big ? 12 : 10.5) + '" font-weight="700" text-anchor="end" fill="' + col + '">' + (improved ? '▲' : '▼') + ' ' + esc(dtxt) + '</text>' : '') +
+                '<line x1="' + Math.min(bx, ax).toFixed(1) + '" y1="' + ty + '" x2="' + Math.max(bx, ax).toFixed(1) + '" y2="' + ty + '" stroke="' + col + '" stroke-width="2" opacity="0.45"/>' +
+                '<circle cx="' + bx.toFixed(1) + '" cy="' + ty + '" r="4.5" fill="var(--color-bg-primary)" stroke="var(--color-text-muted)" stroke-width="2"/>' +
+                '<circle data-sentiment="' + (improved ? 'good' : 'bad') + '" cx="' + ax.toFixed(1) + '" cy="' + ty + '" r="5" fill="' + col + '"/>' +
+                '<text x="' + tX0 + '" y="' + (y0 + cellH - 12) + '" font-size="' + (opts.big ? 11 : 9.5) + '" fill="var(--color-text-muted)">' + esc(fmtV(r[bK], r)) + '</text>' +
+                '<text x="' + (x0 + cellW - pad - 5) + '" y="' + (y0 + cellH - 12) + '" font-size="' + (opts.big ? 11 : 9.5) + '" text-anchor="end" font-weight="700" fill="var(--color-text-primary)">' + esc(fmtV(r[aK], r)) + '</text>' +
+            '</g>';
+        });
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);max-width:' + W + 'px;">' + cells + '</svg>';
+    }
     function _renderChart(data, opts) {
         if (!data || !data.chart) return '';
         const t = data.chart.type; let svg = '';
         if (t === 'diverging') svg = _chartDiverging(data, opts);
         else if (t === 'smallmultiples') svg = _chartSmallMultiples(data, opts);
         else if (t === 'line') svg = _chartLine(data, opts);
+        else if (t === 'ladder') svg = _chartLadder(data, opts);
+        else if (t === 'dumbbell') svg = _chartDumbbell(data, opts);
+        else if (t === 'minideltas') svg = _chartMiniDeltas(data, opts);
         else return '';
         return svg ? '<div class="sv-chart">' + svg + '</div>' : '';
     }
-    function _isChart(data) { return !!(data && data.chart && (data.chart.type === 'diverging' || data.chart.type === 'smallmultiples' || data.chart.type === 'line')); }
+    function _isChart(data) { return !!(data && data.chart && ['diverging', 'smallmultiples', 'line', 'ladder', 'dumbbell', 'minideltas'].indexOf(data.chart.type) >= 0); }
     // Segmented metric toggle for charts that carry data.metricSeries (currently trend) — switches
     // impressions/clicks/views/users live, no re-fetch (all metrics were computed up front).
     function _metricToggleHtml(eid, avail, current) {
@@ -1798,6 +2042,62 @@
         return d;
     }
     // Line chart: single or multi-series, smooth curves, gradient area fill, animated draw-in, hover.
+    // Sparkline-in-row (Wave 3). PER-ROW scale: a sparkline is a SHAPE visualisation (the trajectory is the
+    // payload; magnitude is already the number's job), so the dumbbell's shared-scale / label-carries rule
+    // — which only holds where number and geometry encode the SAME quantity — INVERTS here (see the flip
+    // exchange). Two guards against per-row's mirror bug, MANUFACTURED DRAMA: (1) a min-range clamp so a
+    // low-variance series renders flat (stable looks stable, the drama is earned); (2) a sentiment deadband
+    // so a tiny drift is noise, not a red dot. Trend uses first/last PAIR averages (sturdier vs endpoint noise).
+    const _SPARK_MINRANGE = 0.15, _SPARK_DEADBAND = 0.06;   // tune on real data
+    function _sparkRange(vals, frac) {
+        let mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+        const mean = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+        const floor = Math.max(1e-9, Math.abs(mean) * frac);
+        if ((mx - mn) < floor) { const c = (mx + mn) / 2; return { mn: c - floor / 2, mx: c + floor / 2, clamped: true }; }
+        return { mn: mn, mx: mx, clamped: false };
+    }
+    function _sparkTrend(vals, deadband) {
+        const k = Math.min(2, Math.floor(vals.length / 2)) || 1;
+        const fa = vals.slice(0, k).reduce(function (a, b) { return a + b; }, 0) / k;
+        const la = vals.slice(-k).reduce(function (a, b) { return a + b; }, 0) / k;
+        const drift = fa > 0 ? (la - fa) / fa : 0;
+        return { drift: drift, sentiment: Math.abs(drift) >= deadband ? (drift >= 0 ? 'good' : 'bad') : '' };
+    }
+    function _sparkline(values, opts) {
+        opts = opts || {};
+        const vals = (values || []).map(function (v) { return Number(v) || 0; });
+        if (vals.length < 2) return '';
+        const W = opts.w || 90, H = opts.h || 18, pad = 2;
+        const dom = _sparkRange(vals, _SPARK_MINRANGE), span = (dom.mx - dom.mn) || 1;
+        const x = function (i) { return pad + (W - 2 * pad) * (i / (vals.length - 1)); };
+        const y = function (v) { return H - pad - (H - 2 * pad) * Math.max(0, Math.min(1, (v - dom.mn) / span)); };
+        const pts = vals.map(function (v, i) { return [x(i), y(v)]; });
+        const tr = _sparkTrend(vals, _SPARK_DEADBAND);
+        const dotCol = tr.sentiment === 'good' ? '#059669' : tr.sentiment === 'bad' ? '#dc2626' : 'var(--color-text-muted)';
+        const last = pts[pts.length - 1];
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" style="display:block;overflow:visible;">' +
+            '<path d="' + _smoothPath(pts) + '" fill="none" stroke="var(--color-text-muted)" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>' +
+            '<circle' + (tr.sentiment ? ' data-sentiment="' + tr.sentiment + '"' : '') + ' cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.1" fill="' + dotCol + '"/>' +
+        '</svg>';
+    }
+    // Per-row trajectories: `months` cached windows via fetchTrendWindow, one series per page for `metric`.
+    // Impressions is the default (a metric-independent "search visibility" trend, stable across any toggle).
+    async function _pageTrends(pages, months, win, metric) {
+        metric = metric || 'impressions';
+        const useGsc = ['impressions', 'clicks'].indexOf(metric) >= 0;
+        const series = {};
+        (pages || []).forEach(function (p) { series[normUrl(p.url || (p.urls || [])[0])] = []; });
+        for (let i = months - 1; i >= 0; i--) {
+            let by = {};
+            try { const maps = await fetchTrendWindow(window.treeData, win, i * win); by = (useGsc ? maps.gscBy : maps.ga4By) || {}; } catch (e) {}
+            (pages || []).forEach(function (p) {
+                const urls = p.urls || [p.url]; let v = 0;
+                urls.forEach(function (u) { const g = by[normUrl(u)]; if (g) v += Number(g[metric]) || 0; });
+                series[normUrl(p.url || urls[0])].push(v);
+            });
+        }
+        return series;
+    }
     function _chartLine(data, opts) {
         opts = opts || {};
         let periods, series;
@@ -1805,6 +2105,7 @@
         else { periods = (data.rows || []).map(function (r) { return r.period; }); series = [{ name: '', values: (data.rows || []).map(function (r) { return Number(r.value) || 0; }) }]; }
         if (periods.length < 2) return '';
         const W = opts.w || 420, H = opts.h || (opts.big ? 420 : 152), padL = opts.big ? 46 : 36, padR = 12, padT = series.length > 1 ? 20 : 14, padB = 24;
+        const vf = opts.valFmt || fmt;   // axis + tooltip value formatter (default: thousands). Lets callers show %, etc.
         const colors = ['var(--primary)', '#d97706', '#7c3aed'];
         let maxV = 1; series.forEach(function (s) { (s.values || []).forEach(function (v) { if ((Number(v) || 0) > maxV) maxV = Number(v) || 0; }); });
         maxV = maxV * 1.08;   // headroom so the peak isn't jammed against the top
@@ -1812,7 +2113,7 @@
         const x = function (i) { return padL + (n === 1 ? 0 : (i / (n - 1)) * (W - padL - padR)); };
         const y = function (v) { return padT + (1 - (Number(v) || 0) / maxV) * (H - padT - padB); };
         let grid = ''; const ticks = 3;
-        for (let t = 0; t <= ticks; t++) { const gv = maxV * t / ticks, gy = y(gv); grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--color-border-primary)" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"/><text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + fmt(gv) + '</text>'; }
+        for (let t = 0; t <= ticks; t++) { const gv = maxV * t / ticks, gy = y(gv); grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--color-border-primary)" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"/><text x="' + (padL - 5) + '" y="' + (gy + 3) + '" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + vf(gv) + '</text>'; }
         let xl = ''; periods.forEach(function (p, i) { xl += '<text x="' + x(i) + '" y="' + (H - 6) + '" font-size="8" text-anchor="middle" fill="var(--color-text-muted)">' + esc(p) + '</text>'; });
         let defs = '', areas = '', lines = '', dots = '';
         series.forEach(function (s, si) {
@@ -1825,15 +2126,43 @@
             }
             lines += '<path class="sv-cline" d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + (opts.big ? 2.6 : 2.2) + '" stroke-linejoin="round" stroke-linecap="round" style="animation-delay:' + (si * 0.12).toFixed(2) + 's;"/>';
             (s.values || []).forEach(function (v, i) {
-                const cx = x(i), cy = y(v), tv = (s.raw ? s.raw[i] : v), tip = esc((s.name ? s.name + ' - ' : '') + periods[i] + ': ' + fmt(tv)), r = opts.big ? 4 : 3.2;
+                const cx = x(i), cy = y(v), tv = (s.raw ? s.raw[i] : v), tip = esc((s.name ? s.name + ' ' : '') + periods[i] + ': ' + vf(tv)), r = opts.big ? 4 : 3.2;
                 dots += '<circle class="sv-tipel" data-tip="' + tip + '" cx="' + cx + '" cy="' + cy + '" r="11" fill="transparent" style="cursor:pointer;"/>' +
                     '<circle class="sv-cdot" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="var(--color-bg-primary)" stroke="' + col + '" stroke-width="2" style="pointer-events:none;animation-delay:' + (0.5 + i * 0.06).toFixed(2) + 's;"/>';
             });
         });
+        // Gap fill (Wave 3): shade the wedge BETWEEN two series — the area between the lines is the story
+        // (generalises the AI divergence wedge). Neutral tint for a two-entity compare; fillGap:'sentiment'
+        // tints by which line ends on top (growth green / decline red) for a future trend-vs-prior overlay.
+        let gapFill = '';
+        if (series.length === 2 && data.chart && data.chart.fillGap) {
+            const pts0 = (series[0].values || []).map(function (v, i) { return [x(i), y(v)]; });
+            const pts1 = (series[1].values || []).map(function (v, i) { return [x(i), y(v)]; });
+            if (pts0.length >= 2 && pts1.length === pts0.length) {
+                const rev1 = _smoothPath(pts1.slice().reverse()).replace(/^M\s*[-\d.]+\s+[-\d.]+/, '');   // series1 back-to-front, minus its leading moveto
+                const gd = _smoothPath(pts0) + ' L' + pts1[pts1.length - 1][0].toFixed(1) + ' ' + pts1[pts1.length - 1][1].toFixed(1) + rev1 + ' Z';
+                let fCol = 'var(--primary)', fOp = '0.10', sent = '';
+                if (data.chart.fillGap === 'sentiment') {
+                    // CROSSING RULE (decided in the contract, not left to the consumer): tinting by the FINAL
+                    // state lies about the segments before a crossover (trailing then overtaking would paint
+                    // the whole wedge green). If the series CROSS, drop to NEUTRAL — the cheap option that
+                    // never lies. Per-segment tinting (each inter-crossing region by who leads there) is the
+                    // fuller fix; add it only when a consumer needs the expressiveness.
+                    const v0 = series[0].values, v1 = series[1].values;
+                    let mn = Infinity, mx = -Infinity;
+                    for (let i = 0; i < v0.length; i++) { const dd = (Number(v0[i]) || 0) - (Number(v1[i]) || 0); if (dd < mn) mn = dd; if (dd > mx) mx = dd; }
+                    if (!(mn < 0 && mx > 0)) {   // not crossed -> "who's on top" is consistent, so the tint is honest for the whole wedge
+                        const good = (Number(v0[v0.length - 1]) || 0) >= (Number(v1[v1.length - 1]) || 0);
+                        fCol = good ? '#059669' : '#dc2626'; fOp = '0.13'; sent = ' data-sentiment="' + (good ? 'good' : 'bad') + '"';
+                    }
+                }
+                gapFill = '<path class="sv-carea"' + sent + ' d="' + gd + '" fill="' + fCol + '" fill-opacity="' + fOp + '" fill-rule="evenodd" stroke="none"/>';
+            }
+        }
         let legend = '';
         if (series.length > 1) { let lx = padL; series.forEach(function (s, si) { const col = colors[si % colors.length]; legend += '<rect x="' + lx + '" y="2" width="9" height="9" rx="2" fill="' + col + '"/><text x="' + (lx + 12) + '" y="10" font-size="9" fill="var(--color-text-secondary)">' + esc(s.name) + '</text>'; lx += 12 + Math.min(120, String(s.name).length * 6) + 18; }); }
         const cap = (data.chart && data.chart.label) ? '<text x="' + (W - padR) + '" y="9" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + esc(data.chart.label) + '</text>' : '';
-        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);"><defs>' + defs + '</defs>' + grid + areas + lines + dots + xl + legend + cap + '</svg>';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);"><defs>' + defs + '</defs>' + grid + areas + gapFill + lines + dots + xl + legend + cap + '</svg>';
     }
 
     // Diverging horizontal bars (movers): green right / red left from a centre axis.
@@ -1923,7 +2252,7 @@
 
     // Ranked action-card list for the section briefing (numbered, colour-tagged by type).
     function _briefCard(items) {
-        const tcol = { Opportunity: '#0369a1', Cannibalisation: '#d97706', Decline: '#dc2626', Freshness: '#7c3aed' };
+        const tcol = { Opportunity: '#0369a1', Cannibalisation: '#d97706', Decline: '#dc2626', Freshness: '#7c3aed', 'AI exposure': '#dc2626' };
         return '<div style="display:flex;flex-direction:column;gap:8px;">' + items.map(function (it, i) {
             const col = tcol[it.type] || 'var(--primary)';
             const clickable = it.url ? ' class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(it.url) + '" style="cursor:pointer;"' : '';
@@ -1944,18 +2273,27 @@
         const hasQueries = !!(qrows && qrows.length);
         let prior = null;
         try { prior = await getPriorMaps(window.treeData, _ddDays); } catch (e) {}
-        return { qrows: qrows, hasQueries: hasQueries, qidx: hasQueries ? buildQueryIndex(qrows, r) : [], urlCat: hasQueries ? _urlToCatMap(r) : null, urlToName: hasQueries ? _urlToPageName(r) : {}, prior: prior };
+        // AI exposure is read CACHE-ONLY here (deliberately asymmetric with diagnose, which pulls): the
+        // briefing/hero renders on panel-open and must not trigger the expensive two-window fetch. If the
+        // engine is cold, aiExposed stays null and the briefing shows a muted "not yet checked" line.
+        let aiExposed = null; const _cached = getAIImpactCached(_ddDays);
+        if (_cached) { try { const A = await _cached; if (A && A.classifyOk) aiExposed = A.exposed || []; } catch (e) {} }
+        const _gscOn = !!(window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected());
+        return { qrows: qrows, hasQueries: hasQueries, qidx: hasQueries ? buildQueryIndex(qrows, r) : [], urlCat: hasQueries ? _urlToCatMap(r) : null, urlToName: hasQueries ? _urlToPageName(r) : {}, prior: prior, aiExposed: aiExposed, aiChecked: aiExposed != null, gscOn: _gscOn };
     }
     function _sectionActions(c, r, ctx) {
         const pages = c ? catPages(c) : _allPages(r);
         const ctr = (c ? c.rollup.ctr : r.totals.ctr) || 0.02;
-        const actions = [];
+        // Common currency = clicks/mo at stake; everything with a magnitude is ranked on it. Magnitude-less
+        // findings (staleness) go to a fixed bottom slot below, never interleaved (that would imply a
+        // comparison we didn't compute). AI exposure enters here with its per-page floor as the score.
+        const ranked = [];
         if (ctx.hasQueries) {
             let opps = c ? ctx.qidx.filter(function (x) { return x.category === c.name; }) : ctx.qidx;
             opps = opps.filter(function (x) { return x.impressions >= 100 && x.potential >= 5; }).sort(function (a, b) { return b.potential - a.potential; }).slice(0, 3);
-            opps.forEach(function (o) { actions.push({ type: 'Opportunity', score: o.potential, title: 'Improve "' + o.query + '"', detail: '+' + fmt(Math.round(o.potential)) + ' clicks/mo potential - pos ' + (o.bestPos != null ? o.bestPos.toFixed(0) : '?') + ', ' + fmt(o.impressions) + ' impr', url: o.bestPage }); });
+            opps.forEach(function (o) { ranked.push({ type: 'Opportunity', score: o.potential, title: 'Improve "' + o.query + '"', detail: '+' + fmt(Math.round(o.potential)) + ' clicks/mo potential - pos ' + (o.bestPos != null ? o.bestPos.toFixed(0) : '?') + ', ' + fmt(o.impressions) + ' impr', url: o.bestPage }); });
             const cann = _cannibalisation(ctx.qrows, c ? c.name : null, ctx.urlCat, ctx.urlToName).slice(0, 2);
-            cann.forEach(function (k) { actions.push({ type: 'Cannibalisation', score: k.total * ctr * 0.3, title: 'Resolve competing pages for "' + k.query + '"', detail: k.competing + ' of your pages compete - ' + fmt(k.total) + ' impr at stake', url: (k.pages[0] && k.pages[0].url) || null }); });
+            cann.forEach(function (k) { ranked.push({ type: 'Cannibalisation', score: k.total * ctr * 0.3, title: 'Resolve competing pages for "' + k.query + '"', detail: k.competing + ' of your pages compete - ' + fmt(k.total) + ' impr at stake', url: (k.pages[0] && k.pages[0].url) || null }); });
         }
         if (ctx.prior) {
             let worst = null;
@@ -1964,15 +2302,27 @@
                 const prev = (p.urls || [p.url]).reduce(function (s, u) { const pr = ctx.prior.gscBy[normUrl(u)]; return s + (pr ? (pr.impressions || 0) : 0); }, 0);
                 if (prev >= 200) { const pct = (cur - prev) / prev * 100; if (pct <= -15 && (!worst || pct < worst.pct)) worst = { p: p, pct: pct, cur: cur, prev: prev }; }
             });
-            if (worst) actions.push({ type: 'Decline', score: (worst.prev - worst.cur) * ctr, title: 'Investigate ' + worst.p.name, detail: 'down ' + Math.round(Math.abs(worst.pct)) + '% - ' + fmt(worst.cur) + ' impr, was ' + fmt(worst.prev), url: worst.p.url });
+            if (worst) ranked.push({ type: 'Decline', score: (worst.prev - worst.cur) * ctr, title: 'Investigate ' + worst.p.name, detail: 'down ' + Math.round(Math.abs(worst.pct)) + '% - ' + fmt(worst.cur) + ' impr, was ' + fmt(worst.prev), url: worst.p.url });
         }
-        const now = Date.now();
+        // AI exposure (cache-only via ctx; the report is the full registry). Cap at 2 per briefing.
+        let exposedScoped = [];
+        if (ctx.aiExposed && ctx.aiExposed.length) {
+            if (c) { const set = Object.create(null); catPages(c).forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { set[normUrl(u)] = 1; }); }); exposedScoped = ctx.aiExposed.filter(function (x) { return set[normUrl(x.url)]; }); }
+            else exposedScoped = ctx.aiExposed;
+            exposedScoped.slice(0, 2).forEach(function (x) { ranked.push({ type: 'AI exposure', score: x.lost, title: 'Review ' + x.name, detail: '~' + fmt(x.lost) + ' clicks/mo, pattern consistent with AI answers (position held ' + x.pos.toFixed(1) + ', CTR ' + _aiCtr(x.ctrB) + ' to ' + _aiCtr(x.ctrN) + ')', url: x.url }); });
+        }
+        ranked.sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+        // Bottom slot: staleness (no clicks/mo magnitude), kept out of the ranked list on purpose.
+        const now = Date.now(); const fresh = [];
         pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; const m = isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44); return { p: p, m: m }; })
             .filter(function (x) { return x.m != null && x.m > 12 && (x.p.s.impressions || 0) >= 200; })
             .sort(function (a, b) { return (b.p.s.impressions || 0) - (a.p.s.impressions || 0); }).slice(0, 2)
-            .forEach(function (x) { actions.push({ type: 'Freshness', score: (x.p.s.clicks || 0) * 0.3, title: 'Refresh ' + x.p.name, detail: Math.round(x.m) + ' months old - still ' + fmt(x.p.s.impressions || 0) + ' impr', url: x.p.url }); });
-        actions.sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
-        return actions.slice(0, 8);
+            .forEach(function (x) { fresh.push({ type: 'Freshness', score: 0, title: 'Refresh ' + x.p.name, detail: Math.round(x.m) + ' months old - still ' + fmt(x.p.s.impressions || 0) + ' impr', url: x.p.url }); });
+        const out = ranked.slice(0, 6).concat(fresh);
+        out._rankedCount = Math.min(ranked.length, 6);
+        out._aiExposedTotal = exposedScoped.length;
+        out._aiChecked = !!ctx.aiChecked; out._gscOn = !!ctx.gscOn;
+        return out;
     }
     function _briefMarkdown(scope, rollup, actions) {
         let md = '## ' + scope + '\n\n';
@@ -2069,14 +2419,16 @@
             const avg = (c ? c.rollup.ctr : r.totals.ctr) || 0;
             const rows = pages.filter(function (p) { return (p.s.impressions || 0) >= 300 && p.s.ctr < Math.max(0.005, avg * 0.6); }).sort(function (a, b) { return b.s.impressions - a.s.impressions; }).slice(0, limit);
             const items = rows.map(function (p) { return { name: p.name, val: (p.s.ctr * 100).toFixed(1) + '%', bar: p.s.impressions, url: p.url }; });
-            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR' }), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' } } };
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR' }), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }, shareBase: (c ? c.rollup.impressions : r.totals.impressions) || 0, shareKey: 'impressions', shareNoun: 'impressions, barely clicked' } };
         }
         if (intent === 'stale') {
             const c = _catByName(cats, plan.category);
             const pages = c ? catPages(c) : _allPages(r);
             const now = Date.now();
             const rows = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12; }).sort(function (a, b) { return b.m - a.m; }).slice(0, limit);
-            const items = rows.map(function (x) { return { name: x.p.name, val: Math.round(x.m) + 'mo', bar: x.m, url: x.p.url }; });
+            let _staleTr = {};   // 6-month impression trajectory per row: a stale page that is ALSO fading is the urgent one
+            try { _staleTr = await _pageTrends(rows.map(function (x) { return x.p; }), 6, 30, 'impressions'); } catch (e) {}
+            const items = rows.map(function (x) { const sk = _staleTr[normUrl(x.p.url)]; return { name: x.p.name, val: Math.round(x.m) + 'mo', bar: x.m, url: x.p.url, spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });
             return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Age' }), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
         }
         if (intent === 'compare') {
@@ -2087,6 +2439,9 @@
                 summary: a.name + ' vs ' + b.name + ': impressions ' + fmt(a.rollup.impressions) + ' vs ' + fmt(b.rollup.impressions) + ', CTR ' + (a.rollup.ctr * 100).toFixed(1) + '% vs ' + (b.rollup.ctr * 100).toFixed(1) + '%.', data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'a', label: a.name }, { key: 'b', label: b.name }], rows: (function () { const ra = _metricRows(a.rollup, hasGA4), rb = _metricRows(b.rollup, hasGA4); return ra.map(function (x, i) { return { metric: x.metric, a: x.value, b: rb[i].value }; }); })(), chart: { type: 'smallmultiples', a: a.name, b: b.name } } };
         }
         if (intent === 'movers') {
+            // IDIOM (deliberate, do not "unify" with section_movers): page movers use the DUMBBELL (many
+            // pages, size-skewed, absolute levels matter) while section_movers keep DIVERGING bars (few,
+            // comparable, % change is the honest comparator). Two idioms, one question, two scales — chosen.
             const c = _catByName(cats, plan.category);
             const prior = await getPriorMaps(window.treeData, _ddDays);
             const useImp = (c ? c.rollup.impressions : r.totals.impressions) > 0;
@@ -2096,7 +2451,7 @@
             let rows = pages.map(function (p) {
                 const cur = p.s[mkey] || 0;
                 const prev = (p.urls || [p.url]).reduce(function (sum, u) { const pr = priorBy[normUrl(u)]; return sum + (pr ? (pr[mkey] || 0) : 0); }, 0);
-                return { name: p.name, url: p.url, cur: cur, pct: prev >= 100 ? (cur - prev) / prev * 100 : null };
+                return { name: p.name, url: p.url, cur: cur, prev: prev, pct: prev >= 100 ? (cur - prev) / prev * 100 : null };
             }).filter(function (x) { return x.pct != null; });
             const dir = plan.direction || 'both';
             if (dir === 'up') rows = rows.filter(function (x) { return x.pct > 0; });
@@ -2104,7 +2459,16 @@
             rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); });
             rows = rows.slice(0, limit).sort(function (a, b) { return b.pct - a.pct; });
             const items = rows.map(function (x) { const up = x.pct >= 0, pa = Math.abs(x.pct); return { name: x.name, val: (up ? '▲ ' : '▼ ') + (pa > 500 ? '500+' : pa.toFixed(0)) + '%', bar: Math.min(500, pa), col: up ? '#059669' : '#dc2626', valCol: up ? '#059669' : '#dc2626', url: x.url }; });
-            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Change %' }), summary: 'Biggest ' + (dir === 'down' ? 'fallers' : dir === 'up' ? 'risers' : 'movers') + (c ? ' in ' + c.name : ' across the site') + ' vs the previous ' + _ddDays + ' days: ' + rows.slice(0, 5).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'changePct', label: 'Change %' }, { key: 'current', label: 'Current' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, changePct: +x.pct.toFixed(1), current: x.cur, url: x.url }; }), chart: { type: 'diverging', x: 'page', y: 'changePct' } } };
+            const _nd = _netDelta(rows, 'cur', 'prev');   // weighted aggregate change across the shown movers (override path)
+            const _mword = mkey === 'pageViews' ? 'views' : 'impressions';
+            // direction rule: up/down have a real directional net; 'both' must NOT headline net (it cancels
+            // to a calm number over a churn story) — headline the movement (churn) instead, no delta chip.
+            const _mvHead = _nd.prev <= 0 ? null : (dir === 'both'
+                ? { value: _nd.churn, unit: _mword + ' moved across these pages', tier: 'measured' }
+                : { value: Math.abs(_nd.change), unit: (_nd.change >= 0 ? 'gained' : 'lost') + ' ' + _mword + ' across these movers', delta: { pct: _nd.pct }, tier: 'measured' });
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Change %' }),
+                headline: _mvHead,
+                summary: 'Biggest ' + (dir === 'down' ? 'fallers' : dir === 'up' ? 'risers' : 'movers') + (c ? ' in ' + c.name : ' across the site') + ' vs the previous ' + _ddDays + ' days: ' + rows.slice(0, 5).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'previous', label: 'Before' }, { key: 'current', label: 'After' }, { key: 'changePct', label: 'Change %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.name, previous: x.prev, current: x.cur, changePct: +x.pct.toFixed(1), url: x.url }; }), chart: { type: 'dumbbell', label: 'page', before: 'previous', after: 'current', url: 'url', shared: true } } };
         }
         if (intent === 'opportunities' || intent === 'top_queries') {
             let rows;
@@ -2124,15 +2488,16 @@
 
             if (intent === 'top_queries') {
                 const mkey = metric === 'clicks' ? 'clicks' : 'impressions';
-                qs = qs.filter(function (x) { return x[mkey] > 0; })
-                       .sort(function (a, b) { return b[mkey] - a[mkey]; }).slice(0, limit);
+                const _qf = qs.filter(function (x) { return x[mkey] > 0; });
+                const _qbase = _qf.reduce(function (s, x) { return s + (x[mkey] || 0); }, 0);   // scope total (all queries) -> the share is limit-stable in meaning
+                qs = _qf.sort(function (a, b) { return b[mkey] - a[mkey]; }).slice(0, limit);
                 if (!qs.length) return { html: '', summary: '', err: 'No search queries found' + (c ? ' for ' + c.name : '') + ' in this period.' };
                 const items = qs.map(function (x) {
                     return { name: x.query, val: fmt(x[mkey]) + (x.bestPos != null ? ' · #' + x.bestPos.toFixed(0) : ''), bar: x[mkey], url: x.bestPage };
                 });
                 return { html: _rankCard(items, { nameLabel: 'Query', valueLabel: mkey === 'clicks' ? 'Clicks' : 'Impressions' }),
                     summary: 'Top searches' + (c ? ' in ' + c.name : ' site-wide') + ' by ' + mkey + ' (' + periodLabel(_ddDays) + '): ' +
-                        qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x[mkey]) + (x.bestPos != null ? ' (best pos ' + x.bestPos.toFixed(0) + ')' : ''); }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' } } };
+                        qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x[mkey]) + (x.bestPos != null ? ' (best pos ' + x.bestPos.toFixed(0) + ')' : ''); }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' }, shareBase: _qbase, shareKey: mkey, shareNoun: mkey === 'clicks' ? 'search clicks' : 'search impressions' } };
             }
 
             // opportunities: rank by potential extra clicks; floors keep out noise.
@@ -2141,7 +2506,7 @@
             if (!qs.length) return { html: '', summary: '', err: 'No sizeable search opportunities found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + ' - CTR looks healthy on the big queries.' };
             return { html: _oppCard(qs),
                 summary: 'Biggest search opportunities' + (c ? ' in ' + c.name : '') + ' (potential extra clicks over ' + periodLabel(_ddDays) + ', if each performed like a top-3 result): ' +
-                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'potentialClicks', label: 'Potential clicks' } } };
+                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'impressions', url: 'bestPage' } } };
         }
         if (intent === 'international_queries' || intent === 'top_countries') {
             let rows;
@@ -2206,7 +2571,7 @@
             const curMetric = hasM(tmetric) ? tmetric : avail[0];   // requested metric if it has data, else the first that does
             const seriesFor = function (m) { return byMetric[m].map(function (v, ti) { return { name: names[ti], values: v }; }); };
             const viewFor = function (m) {
-                const ser = seriesFor(m), chart = { type: 'line', label: _MLABEL[m] };
+                const ser = seriesFor(m), chart = { type: 'line', label: _MLABEL[m], fillGap: targets.length === 2 };   // shade the lead between the two sections
                 const cols = [{ key: 'period', label: 'Period' }].concat(ser.map(function (s) { return { key: s.name || 'value', label: (s.name ? s.name + ' · ' : '') + _MLABEL[m] }; }));
                 const rws = periods.map(function (p, i) { const row = { period: p }; ser.forEach(function (s) { row[s.name || 'value'] = s.values[i]; }); return row; });
                 return { body: _renderChart({ periods: periods, series: ser, chart: chart }), columns: cols, rows: rws, chart: chart, series: ser };
@@ -2265,6 +2630,16 @@
             else if (impChg != null && impChg >= 20) signals.push({ sev: 'good', t: 'Growing', d: 'Impressions up ' + impChg + '% vs the previous period.' });
             if (s.engagementRate != null && (s.sessions || 0) >= 20 && s.engagementRate < 0.4) signals.push({ sev: 'warn', t: 'Low engagement', d: 'Only ' + Math.round(s.engagementRate * 100) + '% of visits are engaged - people arrive but leave without reading. Check the intro, layout and whether the page answers the search.' });
             if (_ci) _ci.findings.forEach(function (f) { signals.push({ sev: f.sev, t: f.t, d: f.d }); });
+            // AI-exposure hypothesis (ambient): pull the engine (wait once per period — a diagnosis must
+            // not silently omit its sharpest hypothesis). Findings rank by clicks/mo at stake; exposure
+            // carries the only magnitude here so it LEADS, artifact leads as the causal reframe, and an
+            // engine-fetch failure appends an honest "unavailable" note (distinct from "checked, clean").
+            if (window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected()) {
+                let _A; try { _A = await getAIImpact(_ddDays); } catch (e) {}
+                const _af = _aiFinding(page.urls || [page.url], _A);
+                if (_af && (_af.kind === 'exposed' || _af.kind === 'artifact')) signals.unshift({ sev: _af.sev, t: _af.t, d: _af.d });
+                else if (_af && _af.kind === 'unavailable') signals.push({ sev: _af.sev, t: _af.t, d: _af.d });
+            }
             if (!signals.length) signals.push({ sev: 'good', t: 'Looks healthy', d: 'No obvious problems - metrics are in a reasonable range.' });
             const sevCol = { warn: '#d97706', info: '#0369a1', good: '#059669' };
             const sigHtml = signals.map(function (x) { return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--color-border-primary);font-size:0.82rem;"><span style="width:7px;height:7px;border-radius:50%;background:' + sevCol[x.sev] + ';margin-top:5px;flex-shrink:0;"></span><span><span style="font-weight:700;color:var(--color-text-primary);">' + esc(x.t) + '</span> <span style="color:var(--color-text-secondary);">' + esc(x.d) + '</span></span></div>'; }).join('');
@@ -2375,7 +2750,12 @@
             const scorecard = '<div style="font-weight:700;margin-bottom:8px;">' + esc(scopeTitle) + '</div>' + _stripCard(rollup, hasGA4b);
             const md = '# Briefing: ' + scopeTitle + ' (' + periodLabel(_ddDays) + ')\n\n' + _briefMarkdown(scopeTitle, rollup, top);
             if (!top.length) return { html: scorecard + '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-top:12px;">No urgent priorities right now - ' + esc(scopeName) + ' looks healthy. Try "biggest search opportunities' + (c ? ' in ' + c.name : '') + '".</div>', summary: esc(scopeName) + ' has no urgent priorities right now.', data: { columns: [], rows: [] }, markdown: md };
-            const html = scorecard + '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 8px;">Your priorities (ranked by estimated impact)</div>' + _briefCard(top);
+            const _rk = top.slice(0, top._rankedCount || top.length), _fr = top.slice(top._rankedCount || top.length);
+            const _muted = 'font-size:0.68rem;color:var(--color-text-muted);margin-top:8px;';
+            const aiTail = (top._aiExposedTotal > 2) ? '<div style="' + _muted + '">+' + (top._aiExposedTotal - 2) + ' more exposed page' + (top._aiExposedTotal - 2 === 1 ? '' : 's') + ' in the AI Impact report.</div>' : '';
+            const coldLine = (!top._aiChecked && top._gscOn) ? '<div style="' + _muted + '">AI exposure not yet checked this period. Open the AI Impact report to include it.</div>' : '';
+            const html = scorecard + '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 8px;">Your priorities (ranked by estimated impact)</div>' + _briefCard(_rk) + aiTail +
+                (_fr.length ? '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 8px;">Also worth a look</div>' + _briefCard(_fr) : '') + coldLine;
             return {
                 html: html,
                 summary: 'Top priorities for ' + scopeName + ' (' + periodLabel(_ddDays) + '): ' + top.slice(0, 5).map(function (it, i) { return (i + 1) + ') ' + it.type + ' - ' + it.title.replace(/"/g, '') + ' (' + it.detail + ')'; }).join('; ') + '.',
@@ -2396,7 +2776,8 @@
             });
             if (!previews.length) return { html: '<div style="font-size:0.9rem;color:var(--color-text-secondary);">All categories look healthy - no urgent priorities across the site right now.</div>', summary: 'All categories look healthy - no urgent priorities.', data: { columns: [], rows: [] }, markdown: md };
             const html = '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:10px;">Weekly digest - ' + previews.length + ' section' + (previews.length === 1 ? '' : 's') + ' need attention</div>' +
-                previews.map(function (p) { return '<div style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:6px;font-size:0.9rem;">' + esc(p.name) + ' <span style="font-weight:400;font-size:0.68rem;color:var(--color-text-muted);">' + fmt(p.rollup.impressions) + ' impr</span></div>' + _briefCard(p.actions.slice(0, 3)) + '</div>'; }).join('');
+                previews.map(function (p) { return '<div style="margin-bottom:16px;"><div style="font-weight:700;margin-bottom:6px;font-size:0.9rem;">' + esc(p.name) + ' <span style="font-weight:400;font-size:0.68rem;color:var(--color-text-muted);">' + fmt(p.rollup.impressions) + ' impr</span></div>' + _briefCard(p.actions.slice(0, 3)) + '</div>'; }).join('') +
+                ((!ctx.aiChecked && ctx.gscOn) ? '<div style="font-size:0.68rem;color:var(--color-text-muted);">AI exposure not yet checked this period. Open the AI Impact report to include it across sections.</div>' : '');
             const rows = [];
             previews.forEach(function (p) { p.actions.forEach(function (it, i) { rows.push({ section: p.name, priority: i + 1, type: it.type, action: it.title.replace(/"/g, ''), detail: it.detail, url: it.url || '' }); }); });
             return {
@@ -2439,13 +2820,13 @@
             if (byPotential) {
                 return { html: head + _oppCard(qs) + footnote,
                     summary: 'Quick wins for "' + page.name + '" (biggest extra-clicks potential, ' + periodLabel(_ddDays) + '): ' + qs.slice(0, 6).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' (pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.',
-                    data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '' }; }), chart: { type: 'bar', x: 'query', y: 'potentialClicks', label: 'Potential clicks' } } };
+                    data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'impressions' } } };
             }
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x[by]) + (x.position != null ? ' · #' + x.position.toFixed(0) : ''), bar: x[by] }; });
             return {
                 html: head + _rankCard(items, { nameLabel: 'Query', valueLabel: by === 'clicks' ? 'Clicks' : 'Impressions' }) + footnote,
                 summary: 'Top search queries bringing people to "' + page.name + '" (' + periodLabel(_ddDays) + ', by ' + by + '): ' + qs.slice(0, 8).map(function (x) { return '"' + x.query + '" ' + fmt(x[by]) + (x.position != null ? ' (pos ' + x.position.toFixed(0) + ')' : ''); }).join(', ') + '.',
-                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'position', label: 'Position' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, position: x.position != null ? +x.position.toFixed(1) : '' }; }), chart: { type: 'bar', x: 'query', y: by, label: by === 'clicks' ? 'Clicks' : 'Impressions' } }
+                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'position', label: 'Position' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, position: x.position != null ? +x.position.toFixed(1) : '' }; }), chart: { type: 'ladder', label: 'query', pos: 'position', size: by } }
             };
         }
         if (intent === 'dead_pages') {
@@ -2477,6 +2858,9 @@
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
                 cell('Impressions', fmt(s.impressions || 0)) + cell('Clicks', fmt(s.clicks || 0)) + cell('CTR', ((s.ctr || 0) * 100).toFixed(1) + '%') + cell('Avg pos', s.position != null ? s.position.toFixed(1) : '-') +
                 (hasGA4p ? cell('Views', fmt(s.pageViews || 0)) : '') + (hasGA4p ? cell('Users', fmt(s.users || 0)) : '') + (s.engagementRate != null ? cell('Engaged', Math.round(s.engagementRate * 100) + '%') : '') + '</div>';
+            // Benchmark: CTR against the typical-for-its-position rate — a fact becomes a judgement.
+            const _bench = (s.position != null && (s.impressions || 0) >= 100) ? _ctrBenchmark(s.position) : 0;
+            const benchHtml = _bench > 0 ? _benchmarkBar(s.ctr || 0, _bench, { fmt: function (v) { return (v * 100).toFixed(1) + '%'; }, note: 'for position ' + s.position.toFixed(0) }) : '';
             const months = p.lm ? (Date.now() - Date.parse(p.lm)) / (1000 * 60 * 60 * 24 * 30.44) : null;
             const meta = '<div style="font-size:0.7rem;color:var(--color-text-muted);margin-top:8px;">' + (months != null ? ('Last updated ~' + Math.round(months) + ' months ago') : 'No last-modified date') + '</div>';
             const _ci = _contentIntel(p);
@@ -2495,8 +2879,15 @@
                 }
             } catch (e) {}
             const _ciRows = _ci ? [{ metric: 'Reading ease', value: _ci.readability != null ? Math.round(_ci.readability) : null }, { metric: 'Word count', value: _ci.words != null ? _ci.words : null }, { metric: 'Meta desc chars', value: _ci.metaLen != null ? _ci.metaLen : null }, { metric: 'Noindex', value: _ci.noindex ? 'yes' : 'no' }] : [];
+            // AI flag: only the CONFIRMED exposed case earns a line here (a scorecard is not a diagnosis).
+            let aiLine = '';
+            if (window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected()) {
+                let _A; try { _A = await getAIImpact(_ddDays); } catch (e) {}
+                const _af = _aiFinding(p.urls || [p.url], _A);
+                if (_af && _af.kind === 'exposed') aiLine = '<div style="font-size:0.72rem;color:#dc2626;margin-top:8px;padding:7px 10px;border:1px solid rgba(220,38,38,0.25);border-radius:8px;background:rgba(220,38,38,0.05);">' + esc(_af.d) + '</div>';
+            }
             return {
-                html: head + strip + meta + ciLine + topQ,
+                html: head + strip + benchHtml + meta + ciLine + aiLine + topQ,
                 summary: '"' + p.name + '" (' + periodLabel(_ddDays) + '): ' + fmt(s.impressions || 0) + ' impressions, ' + fmt(s.clicks || 0) + ' clicks, ' + ((s.ctr || 0) * 100).toFixed(1) + '% CTR, position ' + (s.position != null ? s.position.toFixed(1) : 'n/a') + (hasGA4p ? (', ' + fmt(s.pageViews || 0) + ' views') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + (_ci ? (' On-page: reading ease ' + (_ci.readability != null ? Math.round(_ci.readability) : 'n/a') + ', ' + fmt(_ci.words || 0) + ' words, meta ' + (_ci.metaLen || 0) + ' chars' + (_ci.noindex ? ', NOINDEX (hidden from search)' : '') + '.') : '') + '.',
                 data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'Impressions', value: s.impressions || 0 }, { metric: 'Clicks', value: s.clicks || 0 }, { metric: 'CTR %', value: +((s.ctr || 0) * 100).toFixed(2) }, { metric: 'Avg position', value: s.position != null ? +s.position.toFixed(1) : null }].concat(hasGA4p ? [{ metric: 'Views', value: s.pageViews || 0 }, { metric: 'Users', value: s.users || 0 }] : []).concat(_ciRows), chart: null }
             };
@@ -2593,10 +2984,31 @@
                 '</div>';
             const normNote = norm ? '<div style="font-size:0.62rem;color:#b45309;margin-top:8px;">The periods are different lengths (' + older.days + ' vs ' + newer.days + ' days), so counts are shown as <b>daily averages</b>.</div>' : '';
             const retNote = (!ga4both && (ga4o || ga4n)) ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">GA4 (views / engagement) isn&rsquo;t retained across both periods — showing search metrics only. GA4 keeps 2 or 14 months depending on the property.</div>' : '';
+            // headline (override path): the named count metric if any, else impressions — NEVER a synthesised
+            // "overall" score (that's a gauge in verdict clothing). Rate metrics fall back to impressions.
+            // Weighted count delta; direction-coloured; the per-day-normalisation caveat rides in the hover.
+            let _cpHead = null;
+            const _rateName = metric === 'ctr' ? 'CTR' : metric === 'position' ? 'Avg position' : null;
+            if (_rateName) {   // a NAMED rate headlines AS the rate, in POINTS (never percent-of-percent) — answer the question asked, don't fall back to impressions
+                const rr = rows.filter(function (r) { return r.metric === _rateName; })[0];
+                if (rr && rr.older != null && rr.newer != null && rr.delta != null) {
+                    const _imp = _deltaImproved(rr.dtype === 'ptpos' ? 'lower' : 'higher', rr.older, rr.newer);
+                    _cpHead = { value: rr.newer, pct: (rr.unit === '%'), unit: rr.metric + ' now', delta: { pts: rr.delta, improved: _imp }, tier: 'measured' };
+                }
+            }
+            if (!_cpHead) {   // unnamed metric -> impressions default; the /day marker rides on the NUMBER when normalised
+                const _wantM = metric === 'clicks' ? 'Clicks' : metric === 'pageViews' ? 'Views' : 'Impressions';
+                const _hlRow = rows.filter(function (r) { return r.metric === _wantM; })[0] || rows.filter(function (r) { return r.metric === 'Impressions'; })[0] || null;
+                if (_hlRow && _hlRow.dtype === 'pct' && _hlRow.older != null) {
+                    const _chg = (_hlRow.newer || 0) - (_hlRow.older || 0);
+                    _cpHead = { value: Math.abs(_chg), sfx: norm ? ' /day' : '', unit: (_chg >= 0 ? 'more ' : 'fewer ') + _hlRow.metric.toLowerCase(), delta: { pct: _hlRow.delta }, tier: 'measured', hover: norm ? ('Per-day averages; the two periods differ in length (' + older.days + ' vs ' + newer.days + ' days).') : '' };
+                }
+            }
             return {
                 html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">' + esc(scopeLabel === 'the whole site' ? 'Whole site' : scopeLabel) + ' &middot; ' + esc(older.label) + ' vs ' + esc(newer.label) + '</div>' + table + normNote + retNote,
-                summary: scopeLabel + ', ' + older.label + ' vs ' + newer.label + ': ' + rows.slice(0, 3).map(function (r) { return r.metric + ' ' + fmtCell(r.older, r) + '->' + fmtCell(r.newer, r) + (r.delta != null ? ' (' + (r.dtype === 'pct' ? (r.delta >= 0 ? '+' : '') + r.delta + '%' : (r.delta >= 0 ? '+' : '') + r.delta) + ')' : ''); }).join('; ') + '.' + (norm ? ' (daily averages — periods differ in length.)' : ''),
-                data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'older', label: older.label }, { key: 'newer', label: newer.label }, { key: 'change', label: 'Change' }], rows: rows.map(function (r) { return { metric: r.metric, older: r.older, newer: r.newer, change: r.delta }; }), chart: null }
+                headline: _cpHead,
+                summary: scopeLabel + ', ' + older.label + ' vs ' + newer.label + ': ' + rows.slice(0, 3).map(function (r) { return r.metric + ' ' + fmtCell(r.older, r) + ' to ' + fmtCell(r.newer, r) + (r.delta != null ? ' (' + (r.dtype === 'pct' ? (r.delta >= 0 ? '+' : '') + r.delta + '%' : (r.delta >= 0 ? '+' : '') + r.delta) + ')' : ''); }).join('; ') + '.' + (norm ? ' (daily averages, periods differ in length.)' : ''),
+                data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'older', label: older.label }, { key: 'newer', label: newer.label }, { key: 'change', label: 'Change' }], rows: rows.map(function (r) { return { metric: r.metric, older: r.older, newer: r.newer, change: r.delta, dtype: r.dtype, unit: r.unit, better: (r.dtype === 'ptpos' ? 'lower' : 'higher') }; }), chart: { type: 'minideltas', label: 'metric', before: 'older', after: 'newer' } }
             };
         }
         if (intent === 'traffic_sources') {
@@ -2691,7 +3103,7 @@
             const aiTotal = aiEntries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
             const aiHtml = (hasAI && aiEntries.length) ? '<div style="margin-top:10px;border-top:1px solid var(--color-border-primary);padding-top:8px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;">Which AI assistants (' + fmt(aiTotal) + ' AI sessions)</div>' + aiEntries.map(function (x) { return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:0.72rem;padding:2px 0;color:var(--color-text-primary);"><span>' + esc(x.name) + '</span><span style="color:var(--color-text-secondary);">' + fmt(x.sess) + ' &middot; ' + Math.round(x.sess / aiTotal * 100) + '%</span></div>'; }).join('') + '</div>' : '';
             return {
-                html: _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + aiHtml + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
+                html: _stackedBar(entries.map(function (x) { return { label: x.channel, value: x.sess }; }), {}) + _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + aiHtml + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
                 summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 6).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.' + (hasAI && aiEntries.length ? ' AI split: ' + aiEntries.slice(0, 3).map(function (x) { return x.name + ' ' + Math.round(x.sess / aiTotal * 100) + '%'; }).join(', ') + '.' : ''),
                 data: { columns: [{ key: 'source', label: 'Source' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { source: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'source', y: 'sessions', label: 'Sessions' } }
             };
@@ -2844,6 +3256,8 @@
             };
         }
         if (intent === 'section_movers') {
+            // DIVERGING bars (not dumbbell) on purpose: sections are few and comparable, so % change is the
+            // right comparator here. See the movers handler for the deliberate page-vs-section idiom split.
             let mrows;
             try { mrows = await computeMovers(window.treeData, cats, { days: _ddDays }); }
             catch (e) { return { html: '', summary: '', err: 'Could not compare categories: ' + (e && e.message ? e.message : String(e)) }; }
@@ -2860,6 +3274,72 @@
                 html: _rankCard(items, { nameLabel: 'Category', valueLabel: 'Change %' }),
                 summary: 'Biggest section ' + (dir === 'down' ? 'declines' : dir === 'up' ? 'risers' : 'movers') + ' vs the previous ' + _ddDays + ' days: ' + flt.slice(0, 6).map(function (x) { return x.name + ' ' + (x.pct >= 0 ? '+' : '') + x.pct.toFixed(0) + '%'; }).join(', ') + '.',
                 data: { columns: [{ key: 'page', label: 'Category' }, { key: 'changePct', label: 'Change %' }, { key: 'current', label: 'Current impr' }], rows: flt.map(function (x) { return { page: x.name, changePct: +x.pct.toFixed(1), current: x.curImp, url: null }; }), chart: { type: 'diverging', x: 'page', y: 'changePct' } }
+            };
+        }
+        if (intent === 'ai_exposed') {
+            // "Which of MY pages are losing clicks to AI?" the exposed list, filtered to the resolved
+            // scope. This is where the scope model pays off: a Health owner gets their exposure, sorted
+            // by loss, clickable to page reports. Reads the shared engine (getAIImpact), never re-derives.
+            const _g = window.GSCIntegration; const gscOn = !!(_g && _g.isConnected && _g.isConnected());
+            if (!gscOn) return { html: '', summary: '', err: 'The exposed-pages list needs a Search Console connection.' };
+            const A = await getAIImpact(_ddDays);
+            const viewBtn = '<button onclick="window.showAIImpact&&window.showAIImpact()" style="margin-top:10px;background:none;border:1px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:0.72rem;font-weight:600;color:var(--primary);cursor:pointer;font-family:inherit;">Open the full AI Impact report</button>';
+            let exp = A.exposed || [];
+            const c = _catByName(cats, plan.category);
+            let scopeLabel = 'across the site';
+            if (c) {
+                const inCat = Object.create(null); catPages(c).forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { inCat[normUrl(u)] = 1; }); });
+                exp = exp.filter(function (x) { return inCat[normUrl(x.url)]; });
+                scopeLabel = 'in ' + c.name;
+            }
+            if (!exp.length) {
+                const escapeChip = c ? '<div style="margin-top:8px;"><button class="sv-ask-chip sv-ask-chip-pill" data-q="Which pages is Google answering for?">Check the whole site</button></div>' : '';
+                return { html: '<div style="font-size:0.85rem;color:var(--color-text-secondary);">No pages ' + esc(scopeLabel) + ' match the AI exposure pattern this period (held rank on page 1, click through down 25% or more).</div>' + escapeChip + viewBtn, summary: 'No pages ' + scopeLabel + ' match the AI exposure pattern this period.', data: { columns: [], rows: [] } };
+            }
+            const floorScoped = exp.reduce(function (s, x) { return s + x.lost; }, 0);
+            const top = exp.slice(0, limit);
+            return {
+                html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:8px;">Pages exposed to AI ' + esc(scopeLabel) + '</div>' + _aiExposedCard(top) + viewBtn,
+                summary: 'Pages ' + scopeLabel + ' where Google appears to be answering for you (held rank, click through down sharply): ' + top.slice(0, 5).map(function (x) { return x.name + ' (~' + fmt(x.lost) + '/mo)'; }).join(', ') + '. ' + exp.length + ' exposed page' + (exp.length === 1 ? '' : 's') + ', an estimated floor of ~' + fmt(floorScoped) + ' clicks/mo.',
+                data: { columns: [{ key: 'page', label: 'Page' }, { key: 'position', label: 'Position' }, { key: 'ctrBefore', label: 'CTR before %' }, { key: 'ctrNow', label: 'CTR now %' }, { key: 'lostClicks', label: 'Lost clicks/mo' }], rows: exp.map(function (x) { return { page: x.name, position: +x.pos.toFixed(1), ctrBefore: +(x.ctrB * 100).toFixed(1), ctrNow: +(x.ctrN * 100).toFixed(1), lostClicks: x.lost, url: x.url }; }), chart: { type: 'bar', x: 'page', y: 'lostClicks', label: 'Lost clicks/mo' } }
+            };
+        }
+        if (intent === 'ai_impact') {
+            // Queryable slices of the site-level AI Impact report. Reads the SAME shared engine as the
+            // report (getAIImpact -> _classifyExposure), so counts/floor never drift between chat and
+            // report. aspect: overview|takes|pages|ctr; a button opens the full visual report.
+            const A = await getAIImpact(_ddDays);
+            if (!A.gscOn && !A.ga4On) return { html: '', summary: '', err: 'AI-impact answers need a Search Console and/or GA4 connection.' };
+            const aspect = plan.aspect || 'overview';
+            const viewBtn = '<button onclick="window.showAIImpact&&window.showAIImpact()" style="margin-top:10px;background:none;border:1px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:0.72rem;font-weight:600;color:var(--primary);cursor:pointer;font-family:inherit;">Open the full AI Impact report</button>';
+
+            if (aspect === 'ctr') {
+                if (!A.gscOn) return { html: '', summary: '', err: 'The click-through trend needs a Search Console connection.' };
+                const trend = A.trend, div = A.div;
+                if (!div) return { html: '', summary: '', err: 'Not enough Search Console history yet to read the click-through trend.' };
+                return {
+                    html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">Click through rate over ' + trend.length + ' months</div>' + _aiCtrChart(trend) + viewBtn,
+                    summary: 'Google click through rate went from ' + _aiCtr(div.eCtr) + ' to ' + _aiCtr(div.lCtr) + ' over ' + div.months + ' months (clicks ' + _aiPct(div.clkChange) + ' on impressions ' + _aiPct(div.imprChange) + '). Falling CTR at steady impressions is the see but don’t click signal.',
+                    data: { columns: [{ key: 'period', label: 'Month' }, { key: 'ctr', label: 'CTR %' }], rows: trend.map(function (x) { return { period: _aiYm(x.ym), ctr: x.impressions > 0 ? +(x.clicks / x.impressions * 100).toFixed(2) : 0 }; }), chart: { type: 'line', x: 'period', y: 'ctr', label: 'CTR %' } }
+                };
+            }
+            // overview / takes
+            const gscOn = A.gscOn, ga4On = A.ga4On, div = A.div, exposed = A.exposed, sends = A.sends;
+            const takesMo = gscOn ? A.floor : null;
+            const showSends = aspect !== 'takes';
+            const sendsMo = (showSends && ga4On && sends && sends.ai > 0) ? Math.round(sends.ai * 30 / (_ddDays || 30)) : ((showSends && ga4On) ? 0 : null);
+            const cell = function (l, v, col) { return '<div style="flex:1;min-width:96px;padding:9px 11px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.1rem;font-weight:700;color:' + (col || 'var(--color-text-primary)') + ';">' + v + '</div></div>'; };
+            const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);margin-bottom:8px;">' +
+                cell('AI takes', takesMo == null ? 'n/a' : '~' + fmt(takesMo) + ' clicks/mo', '#dc2626') +
+                (sendsMo != null ? cell('AI sends', fmt(sendsMo) + ' sess/mo', '#059669') : '') + '</div>';
+            const verdictTxt = div ? ('Over ' + div.months + ' months, Google clicks ' + _aiPct(div.clkChange) + ' and CTR fell ' + _aiCtr(div.eCtr) + ' to ' + _aiCtr(div.lCtr) + ((div.read === 'mixed' || div.read === 'clean') ? ', consistent with AI answers taking clicks in the results page.' : '.')) : '';
+            const takesTxt = takesMo == null ? '' : ' An estimated floor of ~' + fmt(takesMo) + ' clicks/mo is lost across ' + exposed.length + ' exposed page' + (exposed.length === 1 ? '' : 's') + '.';
+            const sendsTxt = (sendsMo != null && sendsMo > 0) ? ' AI assistants send about ' + fmt(sendsMo) + ' sessions/mo' + (sends && sends.growth != null ? ' (' + (sends.growth >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(sends.growth * 100)) + '%)' : '') + (sends && sends.named && sends.named.length ? ', mostly ' + sends.named.slice(0, 3).map(function (x) { return x.name; }).join(', ') : '') + '.' : (sendsMo === 0 ? ' No measurable AI-assistant referrals this period.' : '');
+            const summary = (verdictTxt + takesTxt + sendsTxt).trim() || 'Connect Search Console and GA4 to measure both sides of AI impact.';
+            return {
+                html: strip + '<div style="font-size:0.82rem;line-height:1.5;color:var(--color-text-secondary);">' + esc((verdictTxt + takesTxt + sendsTxt).trim()) + '</div>' + viewBtn,
+                summary: summary,
+                data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'AI takes (clicks/mo, est floor)', value: takesMo }, { metric: 'Exposed pages', value: exposed.length }, { metric: 'AI sends (sessions/mo)', value: sendsMo }], chart: null }
             };
         }
         return { html: '', summary: '', unknown: true };
@@ -2994,6 +3474,15 @@
                 if (plan.page) add('How is the ' + plan.page + ' page performing?');
                 add('Where are our biggest search opportunities?'); add('What should I focus on' + (cat ? ' in ' + cat : '') + '?');
                 break;
+            case 'ai_impact':
+                add('Which pages is Google answering for?');
+                if (plan.aspect !== 'ctr') add('Is our click through rate falling?');
+                add('Is AI traffic growing?');
+                break;
+            case 'ai_exposed':
+                if (topRow && topRow.page) addWhy(topRow.page);
+                add('What is AI doing to us?'); add('Is AI traffic growing?');
+                break;
             case 'seasonal':
                 add('How has ' + (plan.category || plan.page || 'the site') + ' trended?');
                 add('What should I focus on' + (plan.category ? ' in ' + plan.category : '') + '?');
@@ -3046,7 +3535,8 @@
             ['How is the ' + P0 + ' page performing?', 'What queries bring people to the ' + P1 + ' page?', 'What do people search for in ' + A + '?'],
             ['Which ' + B + ' pages lost traffic?', 'What is stale in ' + C + '?', 'Which pages get no search traffic?', 'Which pages do people leave quickly?', 'Any pages competing for the same search?'],
             ['What do people abroad search us for?', 'Which countries search us the most?', 'Where does the Irish version underperform?'],
-            ["What's newly trending in search?", 'How are pages we updated recently doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'Compare ' + A + ' and ' + B]
+            ["What's newly trending in search?", 'How are pages we updated recently doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'Compare ' + A + ' and ' + B],
+            ['What is AI doing to us?', 'Which pages is Google answering for?', 'Is our click through rate falling?']
         ];
     }
     function _shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
@@ -3092,6 +3582,82 @@
             '</div>';
     }
 
+    // ── Answer anatomy (Wave 1 chassis): verdict-first headline + honest tier + motion-flagged count-up ──
+    // The headline is DERIVED from the rendered rows by the renderer (not emitted per-handler), so the
+    // big-type number is the sum of the rows shown BY CONSTRUCTION — it cannot drift. Handlers may still
+    // set res.headline explicitly when the number needs data not in the rows (e.g. a period delta).
+    // A big number is a real property of the data (a sum) or an honest share, never a top-N accident;
+    // absent when neither fits. Delta-shaped verdicts come via the res.headline override, not here.
+    function _headlineFor(intent, data) {
+        if (!data || !data.rows || !data.rows.length) return null;
+        const rows = data.rows;
+        const sum = function (k) { return rows.reduce(function (s, r) { return s + (Number(r[k]) || 0); }, 0); };
+        // REAL QUANTITIES: the sum is the finding, not a display artifact (a floor / potential is a property of the data).
+        if (intent === 'opportunities') return { value: sum('potentialClicks'), unit: 'clicks/mo on the table', tier: 'estimated' };
+        if (intent === 'ai_exposed') return { value: sum('lostClicks'), unit: 'clicks/mo at stake', tier: 'estimated' };
+        // RANKED LISTS: a top-N sum changes with the display limit, so it's an artifact, not a verdict. The
+        // honest headline is the SHARE of the scope total (limit-stable in MEANING). A handler opts in by
+        // attaching shareBase (its rollup total) + shareKey + shareNoun; the renderer reacts to the contract.
+        if (data.shareBase != null && data.shareKey) {
+            const base = Number(data.shareBase) || 0; if (base <= 0) return null;
+            return { value: Math.round(sum(data.shareKey) / base * 100), pct: true, unit: 'of ' + (data.shareNoun || 'the total'), tier: 'measured' };
+        }
+        return null;
+    }
+    // Weighted aggregate change (NOT a mean of per-row percentages): (Sum cur - Sum prev)/Sum prev. Also
+    // `churn` = Sum|cur-prev| — because for a two-directional set, NET cancels (5 up 6K + 5 down 6K = ~0%),
+    // and a calm net over a churn story is the limit-artifact bug in delta clothing. selfTest pins both.
+    function _netDelta(rows, curKey, prevKey) {
+        let c = 0, p = 0, ch = 0; (rows || []).forEach(function (r) { const cv = Number(r[curKey]) || 0, pv = Number(r[prevKey]) || 0; c += cv; p += pv; ch += Math.abs(cv - pv); });
+        return { cur: c, prev: p, change: c - p, churn: ch, pct: p > 0 ? (c - p) / p * 100 : null };
+    }
+    // Direction of GOODNESS per metric: position improves by going DOWN (6.4 -> 5.1 is better), everything
+    // else by going up. Drives both colour and arrow SENTIMENT so the position mini never paints good news red.
+    function _deltaImproved(betterDirection, before, after) { return betterDirection === 'lower' ? (+after < +before) : (+after >= +before); }
+    // Motion is separable from anatomy: one flag (localStorage svAskMotion='off') + prefers-reduced-motion
+    // both disable it, and the number always RENDERS as its true value — count-up only animates toward it.
+    function _askMotionOn() {
+        try { if (localStorage.getItem('svAskMotion') === 'off') return false; } catch (e) {}
+        try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch (e) {}
+        return true;
+    }
+    function _headlineHtml(h) {
+        if (!h || h.value == null || !isFinite(h.value)) return '';
+        const tier = h.tier || 'measured', pfx = tier === 'estimated' ? '~' : '';
+        const numStyle = 'font-size:2rem;font-weight:800;line-height:1;color:var(--color-text-heading);' + (tier === 'inferred' ? 'border-bottom:2px dashed var(--color-text-muted);padding-bottom:1px;' : '');
+        const tierT = tier === 'estimated' ? 'Estimated: a modelled figure, not a direct measurement.' : tier === 'inferred' ? 'Inferred: a bound, not a measurement.' : '';
+        const title = [tierT, h.hover].filter(Boolean).join('  ');   // extra caveats (e.g. per-day normalisation) ride in the hover
+        const sfx = (h.sfx != null) ? h.sfx : (h.pct ? '%' : '');   // e.g. ' /day' rides ON the number (crop-proof), not just the hover
+        const numCls = 'sv-ask-hnum' + (_askMotionOn() ? ' sv-countup' : '');
+        let chip = '';
+        if (h.delta && (h.delta.pct != null || h.delta.pts != null)) {
+            const hasPts = h.delta.pts != null;                     // POINTS for rates (CTR 1.7->1.4 is -0.3pts, NOT -18%)
+            const good = (h.delta.improved != null) ? h.delta.improved : ((hasPts ? h.delta.pts : h.delta.pct) >= 0);   // sentiment, not raw sign (position inverts)
+            const col = good ? '#059669' : '#dc2626';
+            const mag = hasPts ? (Math.abs(h.delta.pts) + 'pts') : (Math.abs(Math.round(h.delta.pct)) + '%');
+            chip = '<span data-sentiment="' + (good ? 'good' : 'bad') + '" style="font-size:0.75rem;font-weight:700;color:' + col + ';background:' + (good ? 'rgba(5,150,105,0.12)' : 'rgba(220,38,38,0.12)') + ';padding:2px 8px;border-radius:20px;align-self:center;">' + (good ? '▲' : '▼') + ' ' + mag + '</span>';
+        }
+        return '<div class="sv-ask-headline" style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 10px;">' +
+            '<span class="' + numCls + '" data-to="' + h.value + '" data-pfx="' + pfx + '" data-sfx="' + esc(sfx) + '"' + (title ? ' title="' + esc(title) + '"' : '') + ' style="' + numStyle + '">' + esc(pfx + fmt(h.value) + sfx) + '</span>' +
+            '<span style="font-size:0.8rem;color:var(--color-text-secondary);">' + esc(h.unit || '') + '</span>' + chip + '</div>';
+    }
+    function _animateCountups(root) {
+        if (!root || !root.querySelectorAll) return;
+        const els = root.querySelectorAll('.sv-countup');
+        for (let i = 0; i < els.length; i++) {
+            (function (el) {
+                const to = Number(el.getAttribute('data-to')); if (!isFinite(to)) return;
+                const pfx = el.getAttribute('data-pfx') || '', sfx = el.getAttribute('data-sfx') || '', dur = 420, t0 = Date.now();
+                el.setAttribute('data-to', '');   // guard against a re-run double-animating
+                const step = function () {
+                    const p = Math.min(1, (Date.now() - t0) / dur), eased = 1 - Math.pow(1 - p, 3);
+                    el.textContent = pfx + fmt(Math.round(to * eased)) + sfx;
+                    if (p < 1) requestAnimationFrame(step); else el.textContent = pfx + fmt(to) + sfx;   // land EXACTLY on the true value
+                };
+                requestAnimationFrame(step);
+            })(els[i]);
+        }
+    }
     // ── export helpers (CSV + AI brief) — consume the runIntent data contract ──
     function _csvCell(v) {
         if (v == null) return '';
@@ -3161,6 +3727,8 @@
         const s = String(q || '').trim();
         const m = /^why is (?:the\s+)?(.+?)(?:\s+page)?\s+(?:underperforming|not getting clicks|not ranking|down)\??$/i.exec(s);
         if (m && m[1]) return { intent: 'diagnose', page: m[1].trim() };
+        const m2 = /^(?:what(?:'s| is) wrong with|what(?:'s| is) the problem with|diagnose)\s+(?:the\s+)?(.+?)(?:\s+page)?\??$/i.exec(s);
+        if (m2 && m2[1]) return { intent: 'diagnose', page: m2[1].trim() };
         // "what does <country> search (us) for" / "what do people in <country> search for"
         // Only fires when the term resolves to a real country (so it can't hijack
         // "what do people search for in Health").
@@ -3180,8 +3748,9 @@
             const _mvWord = /\b(?:trending|rising|growing|gaining|gained|climbing|surging|falling|dropping|declining|sinking|losing|lost|moving|gone up|gone down)\b/i.test(s);
             const _mvPages = /\bpages?\b/.test(s) && _mvWord;
             const _mvNamed = /\b(?:biggest|top|page) movers?\b/i.test(s);
-            // don't steal "biggest SECTION movers" (that's section_movers) or query-level "newly trending" (emerging)
-            if ((_mvPages || _mvNamed) && !/\bsection movers?\b/i.test(s) && !/\bnewly (?:trending|rising)\b/i.test(s)) {
+            // don't steal "biggest SECTION movers" (section_movers), "newly trending" (emerging), or
+            // AI-exposure phrasings like "losing clicks to AI" (ai_exposed, routed just below).
+            if ((_mvPages || _mvNamed) && !/\bsection movers?\b/i.test(s) && !/\bnewly (?:trending|rising)\b/i.test(s) && !/\b(?:to|by) (?:ai|overviews?)\b/i.test(s)) {
                 let _dir = 'both';
                 if (/\b(?:trending|rising|growing|gaining|gained|climbing|surging|gone up)\b/i.test(s)) _dir = 'up';
                 else if (/\b(?:falling|dropping|declining|sinking|losing|lost|gone down)\b/i.test(s)) _dir = 'down';
@@ -3197,6 +3766,17 @@
                 return { intent: 'compare_periods', page: _pm ? _pm[1].trim() : null, periodA: _fab[1].trim(), periodB: _fab[2].trim() };
             }
         }
+        // ── AI Impact routes: the holistic AI report (takes / exposed pages / CTR divergence). Kept
+        //    ahead of traffic_sources; "traffic from AI" / "is AI traffic growing" still fall through to it. ──
+        if (/\bwhich pages (?:is|are) (?:google|ai|overviews?) answering\b/i.test(s) || /\bwhere (?:is|are) google answering for (?:us|me|the site)\b/i.test(s) || /\bpages\b[^?]*\b(?:losing|lost|leaking) clicks to (?:ai|google|overviews?)\b/i.test(s) || /\b(?:ai[\s-]?)?exposed pages\b/i.test(s) || /\bpages (?:hit|affected|hurt) by (?:ai|overviews?)\b/i.test(s) || /\b(?:ai|overview) exposure\b/i.test(s) || /\bwhich of (?:my|our) pages (?:are )?(?:exposed|losing clicks to ai)\b/i.test(s) || /\bexposed to ai\b/i.test(s)) {
+            const _ec = / (?:in|for) (.+?)\??$/i.exec(s); return { intent: 'ai_exposed', category: _ec ? _ec[1].trim() : null };
+        }
+        if (/\b(?:is|has|our|the)\b[^?]*\b(?:click[\s-]?through(?: rate)?|ctr)\b[^?]*\b(?:falling|fallen|dropping|dropped|declining|going down|collapsing|collapsed|down|worse)\b/i.test(s) || /\bctr trend\b|\bclick[\s-]?through trend\b/i.test(s))
+            return { intent: 'ai_impact', aspect: 'ctr' };
+        if (/\bhow (?:much|many)(?: clicks?)?\b[^?]*\b(?:ai|google|overviews?)\b[^?]*\b(?:taking|taken|stealing|stolen|costing|lost)\b/i.test(s) || /\bclicks?\b[^?]*\b(?:lost|taken|stolen)\b[^?]*\bto (?:ai|google|overviews?)\b/i.test(s) || /\bai overviews?\b[^?]*\b(?:cost|costing|impact|effect|taking|taken)\b/i.test(s))
+            return { intent: 'ai_impact', aspect: 'takes' };
+        if (/\bai impact\b|\bimpact of ai\b|\bhow (?:is|are|much)\s+ai\b[^?]*\b(?:affecting|impacting|hurting|hitting|costing)\b|\bwhat(?:'s| is)\s+ai\b[^?]*\b(?:doing|costing|taking)\b|\bzero[\s-]?click\b|\bsee but (?:don'?t|not) click\b|\bare we losing (?:traffic|clicks) to ai\b/i.test(s))
+            return { intent: 'ai_impact', aspect: 'overview' };
         // ── traffic_sources routes: growth / "which pages does X send" / "from X" / breakdown ──
         {
             const _srcCat = / (?:in|for) (.+?)\??$/i.exec(s);
@@ -3605,6 +4185,10 @@
                 if (plan.intent === 'trend') { resp.innerHTML = _thinkingHtml('Building a 6-month trend (fetching several periods)'); }
                 if (plan.intent === 'seasonal') { resp.innerHTML = _thinkingHtml('Comparing to last period and the same period last year'); }
                 if (plan.intent === 'traffic_sources') { resp.innerHTML = _thinkingHtml('Fetching traffic sources from GA4'); }
+                if (plan.intent === 'ai_impact') { resp.innerHTML = _thinkingHtml('Measuring AI impact (Search Console + GA4)'); }
+                if (plan.intent === 'ai_exposed') { resp.innerHTML = _thinkingHtml('Finding the pages Google answers for'); }
+                if (plan.intent === 'diagnose') { resp.innerHTML = _thinkingHtml('Diagnosing the page (checking AI exposure, may fetch a comparison window)'); }
+                if (plan.intent === 'stale') { resp.innerHTML = _thinkingHtml('Fetching 6-month trajectories for the stale pages'); }
                 if (plan.intent === 'compare_periods') { resp.innerHTML = _thinkingHtml('Fetching both periods'); }
                 const res = await runIntent(plan, r);
                 if (res.unknown) {
@@ -3656,7 +4240,9 @@
                 const _segNames = r.categories.map(function (c) { return c.name; }).concat([plan.category, plan.page]).concat(plan.categories || []);
                 const _segNote = plan.intent === 'traffic_sources' ? '' : _segmentNote(q, _segNames);
                 const _segHtml = _segNote ? '<div style="font-size:0.7rem;color:#b45309;background:var(--color-bg-tertiary);border-radius:7px;padding:7px 10px;margin-bottom:10px;">' + esc(_segNote) + '</div>' : '';
-                resp.innerHTML = interp + _segHtml + '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;border-left:3px solid var(--primary);padding-left:11px;">' + esc(res.summary || '') + '</div>' + _metricTgl + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
+                const _hlHtml = _headlineHtml(res.headline || _headlineFor(plan.intent, res.data));   // verdict-first: the one number, big, above the sentence
+                resp.innerHTML = interp + _segHtml + _hlHtml + '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;border-left:3px solid var(--primary);padding-left:11px;">' + esc(res.summary || '') + '</div>' + _metricTgl + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
+                _animateCountups(resp);
                 if (_exports[eid]) {
                     const _abtn = 'display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;';
                     const _hasMemo = _exports[eid] && _exports[eid].markdown;
@@ -3722,7 +4308,7 @@
     // guard) and exposed as SVRollup.clearCaches() for manual use. Also nudges the GSC/GA4 modules'
     // own caches so a new site never inherits the old site's fetched maps.
     function clearCaches() {
-        [_priorCache, _queryCache, _priorQueryCache, _countryQueryCache, _sourcesCache, _trendCache, _gscTrendCache]
+        [_priorCache, _queryCache, _priorQueryCache, _countryQueryCache, _sourcesCache, _trendCache, _gscTrendCache, _aiImpactCache]
             .forEach(function (c) { for (const k in c) delete c[k]; });
         try { if (window.GSCIntegration && window.GSCIntegration.clearCache) window.GSCIntegration.clearCache(); } catch (e) {}
         try { if (window.GA4Integration && window.GA4Integration.clearCache) window.GA4Integration.clearCache(); } catch (e) {}
@@ -3769,6 +4355,19 @@
             { q: 'is AI traffic growing', intent: 'traffic_sources', source: 'AI' },
             { q: 'how many to the medical card page from askci', intent: 'traffic_sources', source: 'askci', page: 'medical card' },
             { q: 'traffic sources in Health', intent: 'traffic_sources', category: 'health' },
+            // ai_impact (holistic verdict) + ai_exposed (scoped page list). Collision-prone cluster:
+            // "is AI traffic growing" must stay traffic_sources; "exposed to AI" must be ai_exposed.
+            { q: 'what is AI doing to us', intent: 'ai_impact', aspect: 'overview' },
+            { q: 'are we losing clicks to AI', intent: 'ai_impact', aspect: 'overview' },
+            { q: 'how many clicks is Google taking', intent: 'ai_impact', aspect: 'takes' },
+            { q: 'is our click through rate falling', intent: 'ai_impact', aspect: 'ctr' },
+            { q: 'which pages is Google answering for', intent: 'ai_exposed' },
+            { q: 'which pages are exposed to AI', intent: 'ai_exposed' },
+            { q: 'which pages are losing clicks to AI', intent: 'ai_exposed' },
+            { q: 'what is wrong with the Fuel Allowance page', intent: 'diagnose', page: 'fuel allowance' },
+            { q: 'AI exposure in Health', intent: 'ai_exposed', category: 'health' },
+            { q: 'which of our pages are losing clicks to AI', intent: 'ai_exposed' },
+            { q: 'is AI traffic growing', intent: 'traffic_sources', source: 'AI' },   // NOT ai_impact/ai_exposed
             // seasonal / recently updated
             { q: 'is the recent drop seasonal', intent: 'seasonal' },
             { q: 'what pages were updated recently', intent: 'recently_updated' },
@@ -3800,7 +4399,7 @@
                 // case-insensitive substring. This is where quickParse's regexes are most fragile
                 // ("the Fuel" vs "Fuel Allowance", a section name landing in the page slot) — and
                 // intent-only assertions would sail green straight through every one of them.
-                ['page', 'category', 'source'].forEach(function (slot) {
+                ['page', 'category', 'source', 'aspect'].forEach(function (slot) {
                     if (ok && c[slot] != null && !inc(p[slot], c[slot])) { ok = false; why = slot + '="' + (p ? p[slot] : '') + '" (want "' + c[slot] + '")'; }
                 });
             }
@@ -4224,11 +4823,11 @@
         const cur = await getSourcesByPage(_ddDays);
         if (!cur || !cur.byPage) return null;
         let prev = null; try { prev = await getSourcesByPage(_ddDays, _ddDays); } catch (e) {}
-        let ai = 0, askci = 0, total = 0, prevAI = 0; const named = Object.create(null);
+        let ai = 0, askci = 0, prevAskci = 0, total = 0, prevAI = 0; const named = Object.create(null), prevNamed = Object.create(null);
         cur.byPage.forEach(function (rows) { rows.forEach(function (rw) { total += rw.sessions; const b = classifySource(rw.source, rw.channel); if (b === 'AI assistants') { ai += rw.sessions; const nm = _aiName(rw.source); named[nm] = (named[nm] || 0) + rw.sessions; } else if (b === 'AskCI chatbot') { askci += rw.sessions; } }); });
-        if (prev && prev.byPage) prev.byPage.forEach(function (rows) { rows.forEach(function (rw) { if (classifySource(rw.source, rw.channel) === 'AI assistants') prevAI += rw.sessions; }); });
-        const namedArr = Object.keys(named).map(function (k) { return { name: k, sess: named[k] }; }).sort(function (a, b) { return b.sess - a.sess; });
-        return { ai: ai, askci: askci, total: total, named: namedArr, growth: prevAI > 0 ? (ai - prevAI) / prevAI : null };
+        if (prev && prev.byPage) prev.byPage.forEach(function (rows) { rows.forEach(function (rw) { const b = classifySource(rw.source, rw.channel); if (b === 'AI assistants') { prevAI += rw.sessions; const nm = _aiName(rw.source); prevNamed[nm] = (prevNamed[nm] || 0) + rw.sessions; } else if (b === 'AskCI chatbot') { prevAskci += rw.sessions; } }); });
+        const namedArr = Object.keys(named).map(function (k) { return { name: k, sess: named[k], growth: prevNamed[k] > 0 ? (named[k] - prevNamed[k]) / prevNamed[k] : null }; }).sort(function (a, b) { return b.sess - a.sess; });
+        return { ai: ai, askci: askci, total: total, named: namedArr, growth: prevAI > 0 ? (ai - prevAI) / prevAI : null, askciGrowth: prevAskci > 0 ? (askci - prevAskci) / prevAskci : null };
     }
     function _aiDivergence(trend) {                              // the wedge read from GSC monthly trend (evidence)
         if (!trend || trend.length < 4) return null;
@@ -4247,33 +4846,42 @@
         else read = 'flat';                                                       // CTR steady = click change tracks visibility, not AI
         return { months: n, eCtr: eCtr, lCtr: lCtr, imprChange: imprChange, clkChange: clkChange, ctrChange: ctrChange, read: read };
     }
-    function _aiWedgeSvg(trend) {                                // indexed impressions vs clicks (both start=100); shade the gap
+    // Click-through rate over time = the honest "see but don't click" signal (clicks/impressions per
+    // month). One line, no indexing, no coincident start, no possible inversion. Rendered with the
+    // polished _chartLine engine (smooth curve, gradient, hover tooltips) via a % value formatter.
+    function _aiCtrChart(trend) {
         if (!trend || trend.length < 2) return '';
-        const W = 560, H = 170, P = 26, n = trend.length;
-        const idx = function (key) { const b = trend[0][key] || 1; return trend.map(function (x) { return b > 0 ? x[key] / b * 100 : 0; }); };
-        const iI = idx('impressions'), iC = idx('clicks'); const all = iI.concat(iC);
-        const mx = Math.max.apply(null, all) * 1.05, mn = Math.min.apply(null, all) * 0.9;
-        const X = function (i) { return P + (W - 2 * P) * (n > 1 ? i / (n - 1) : 0); };
-        const Y = function (v) { return H - P - (H - 2 * P) * ((v - mn) / (mx - mn || 1)); };
-        const line = function (a) { return a.map(function (v, i) { return X(i) + ',' + Y(v); }).join(' '); };
-        const gap = line(iI) + ' ' + iC.map(function (v, i) { return X(n - 1 - i) + ',' + Y(iC[n - 1 - i]); }).join(' ');
-        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;font-family:inherit;">' +
-            '<polygon points="' + gap + '" fill="rgba(220,38,38,0.10)"/>' +
-            '<polyline points="' + line(iI) + '" fill="none" stroke="#007cb6" stroke-width="2"/>' +
-            '<polyline points="' + line(iC) + '" fill="none" stroke="#dc2626" stroke-width="2"/>' +
-            '<text x="' + (X(n - 1) - 2) + '" y="' + (Y(iI[n - 1]) - 5) + '" font-size="10" fill="#007cb6" text-anchor="end">Impressions</text>' +
-            '<text x="' + (X(n - 1) - 2) + '" y="' + (Y(iC[n - 1]) + 12) + '" font-size="10" fill="#dc2626" text-anchor="end">Clicks</text>' +
-            '<text x="' + P + '" y="' + (H - 6) + '" font-size="9" fill="var(--color-text-muted)">indexed to 100 at ' + esc(_aiYm(trend[0].ym)) + ' (the widening red gap is the see but don’t click divergence)</text>' +
-            '</svg>';
+        const periods = trend.map(function (x, i) {                                    // month labels; year tag at the start and each January so the boundary is clear
+            const ym = String(x.ym), mo = parseInt(ym.slice(4, 6), 10), mlab = (_RPT_MONTHS[mo - 1] || '').slice(0, 3);
+            return (i === 0 || mo === 1) ? mlab + " '" + ym.slice(2, 4) : mlab;
+        });
+        const values = trend.map(function (x) { return x.impressions > 0 ? x.clicks / x.impressions * 100 : 0; });
+        return _chartLine({ series: [{ name: '', values: values }], periods: periods }, { w: 560, h: 180, valFmt: function (v) { return v.toFixed(1) + '%'; } });
     }
     function _aiYm(ym) { const y = String(ym).slice(0, 4), m = parseInt(String(ym).slice(4, 6), 10); return (_RPT_MONTHS[m - 1] || '').slice(0, 3) + ' ' + y; }
-    function _aiImpactBody(trend, sends, div, gscOn, ga4On, hitRows) {
+    // Two-line exposed card for the Ask tool (the _oppCard idiom): page + ~lost/mo on top, the why
+    // subline beneath (position held · CTR before to after · impressions), clickable to the page report.
+    function _aiExposedCard(rows) {
+        const max = Math.max.apply(null, rows.map(function (x) { return x.lost || 0; }).concat([1]));   // scale bars to the biggest loser
+        return '<div style="border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
+            rows.map(function (x) {
+                const bw = Math.min(100, (x.lost || 0) / max * 100);
+                return '<div class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(x.url) + '" style="cursor:pointer;padding:8px 12px;border-bottom:1px solid var(--color-border-primary);" onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'">' +
+                    '<div style="display:flex;align-items:center;gap:10px;"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.85rem;font-weight:600;color:var(--color-text-primary);">' + esc(x.name) + '</span>' +
+                    '<span style="flex-shrink:0;text-align:right;font-weight:700;font-size:0.85rem;color:#dc2626;">~' + fmt(x.lost) + ' clicks/mo</span></div>' +
+                    '<div style="height:5px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;margin:5px 0 4px;"><span class="sv-ask-bar" style="display:block;height:100%;width:' + bw + '%;background:#dc2626;border-radius:3px;"></span></div>' +
+                    '<div style="font-size:0.7rem;color:var(--color-text-muted);">position held ' + x.pos.toFixed(1) + ' &middot; CTR ' + _aiCtr(x.ctrB) + ' to ' + _aiCtr(x.ctrN) + ' &middot; ' + fmt(Math.round(x.impr)) + ' impressions</div>' +
+                '</div>';
+            }).join('') + '</div>';
+    }
+    function _aiImpactBody(A) {
         const S = 'font-size:0.72rem;color:var(--color-text-secondary);';
         const MUT = 'color:var(--color-text-muted);';
         const RED = '#dc2626', GRN = '#059669';
+        const trend = A.trend, sends = A.sends, div = A.div, gscOn = A.gscOn, ga4On = A.ga4On;
         // ── derive the two headline flows, both normalised to per-month so they are comparable ──
-        const exposed = (hitRows || []).filter(function (x) { return x.tier === 'exposed'; });
-        const takesMo = (!gscOn || hitRows == null) ? null : exposed.reduce(function (s, x) { return s + x.lost; }, 0);   // estimated floor (0 = none cleared the bar)
+        const exposed = A.exposed || [];
+        const takesMo = gscOn ? A.floor : null;                                                    // estimated floor (0 = none cleared the bar)
         const sendsMo = (ga4On && sends && sends.ai > 0) ? Math.round(sends.ai * 30 / (_ddDays || 30)) : 0;               // measured, normalised to /mo
         // ── KPI cards ──
         const kpi = function (label, big, unit, sub, accent) {
@@ -4284,7 +4892,7 @@
         };
         const takesBig = takesMo == null ? _epi('pending', 'pending') : _epi(fmt(takesMo), 'estimated');
         const takesSub = takesMo == null ? (gscOn ? 'reading the pages…' : 'connect Search Console')
-            : (takesMo > 0 ? 'lost to Google search, a floor from ' + exposed.length + ' exposed page' + (exposed.length === 1 ? '' : 's') + ' below' : 'no pages cleared the strict bar this period');
+            : (takesMo > 0 ? 'pattern consistent with AI answers in results, a floor from ' + exposed.length + ' page' + (exposed.length === 1 ? '' : 's') + ' below' : 'no pages cleared the strict bar this period');
         const sendsBig = ga4On ? _epi(fmt(sendsMo), 'measured') : _epi('n/a', 'pending');
         const sendsSub = !ga4On ? 'connect GA4 to measure' : (sends && sends.growth != null ? (sends.growth >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(sends.growth * 100)) + '% vs the prior period' : 'AI assistant referrals');
         const kpiRow = '<div style="display:flex;gap:10px;margin:14px 0 10px;">' +
@@ -4299,7 +4907,8 @@
                 : '<div style="height:15px;width:40%;border:1px dashed var(--color-border-primary);border-radius:3px 0 0 3px;"></div>') + '</div>' +
             '<div style="width:2px;height:22px;background:var(--color-text-muted);"></div>' +
             '<div style="flex:1;"><div style="height:15px;width:' + rw + '%;background:' + GRN + ';border-radius:0 3px 3px 0;"></div></div></div>' +
-            '<div style="display:flex;justify-content:space-between;' + S + 'margin-top:4px;"><span style="color:' + RED + ';font-weight:700;">takes</span><span style="' + MUT + '">monthly, same scale</span><span style="color:' + GRN + ';font-weight:700;">sends</span></div></div>';
+            '<div style="display:flex;justify-content:space-between;' + S + 'margin-top:4px;"><span style="color:' + RED + ';font-weight:700;">takes</span><span style="' + MUT + '">per month</span><span style="color:' + GRN + ';font-weight:700;">sends</span></div>' +
+            '<div style="' + S + 'text-align:center;margin-top:2px;">clicks (GSC) vs sessions (GA4): closely comparable, not identical units</div></div>';
         // ── verdict sentence (the divergence read) ──
         let verdict;
         if (!gscOn) verdict = '<div style="' + S + '">Connect Search Console to read the AI Overviews divergence.</div>';
@@ -4315,10 +4924,17 @@
         }
         const legend = '<div style="' + S + 'margin-top:12px;display:flex;gap:14px;flex-wrap:wrap;"><span>' + _epi('measured', 'measured') + ' direct figure</span><span>' + _epi('estimated', 'estimated') + ' modelled</span><span>' + _epi('inferred', 'inferred') + ' a bound, not a measurement</span></div>';
         const fresh = '<div style="' + S + 'margin-top:5px;">' + (gscOn && trend && trend.length ? 'GSC through ~' + esc(_aiYm(trend[trend.length - 1].ym)) + ' (Google lags ~3 days). ' : '') + (ga4On ? 'GA4 through ~yesterday.' : '') + '</div>';
-        // ── sends detail: who is sending ──
-        const sendsDetail = (ga4On && sends && sends.named && sends.named.length)
-            ? '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:6px;">AI assistants (who is sending)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-                sends.named.slice(0, 6).map(function (x) { return '<span style="' + S + 'border:1px solid var(--color-border-primary);border-radius:20px;padding:3px 11px;">' + esc(x.name) + ' ' + _epi(fmt(x.sess), 'measured') + ' <span style="' + MUT + '">(' + Math.round(x.sess / (sends.ai || 1) * 100) + '%)</span></span>'; }).join('') + '</div></div>'
+        // ── sends detail: who is sending (per-assistant share + growth), plus the AskCI bucket ──
+        const chip = function (x) {
+            const g = x.growth != null ? ', ' + (x.growth >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(x.growth * 100)) + '%' : '';
+            return '<span style="' + S + 'border:1px solid var(--color-border-primary);border-radius:20px;padding:3px 11px;">' + esc(x.name) + ' ' + _epi(fmt(x.sess), 'measured') + ' <span style="' + MUT + '">(' + Math.round(x.sess / (sends.ai || 1) * 100) + '%' + g + ')</span></span>';
+        };
+        const sendsDetail = (ga4On && sends)
+            ? '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:6px;">AI assistants (who is sending)</div>' +
+                (sends.named && sends.named.length
+                    ? '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + sends.named.slice(0, 6).map(chip).join('') + '</div>'
+                    : '<div style="' + S + '">No measurable AI assistant referrals this period.</div>') +
+                '<div style="' + S + 'margin-top:8px;">AskCI, our own chatbot: ' + (sends.askci > 0 ? _epi(fmt(sends.askci), 'measured') + ' sessions' + (sends.askciGrowth != null ? ' (' + (sends.askciGrowth >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(sends.askciGrowth * 100)) + '%)' : '') : 'none measured this period') + '.</div></div>'
             : '';
         return '<div id="sv-ai-verdict" style="border:1px solid var(--color-border-primary);border-radius:14px;padding:18px 20px;background:var(--color-bg-primary);">' +
             '<div style="font-weight:800;font-size:1.1rem;color:var(--color-text-heading);line-height:1.2;">AI Impact: the whole site</div>' +
@@ -4326,9 +4942,9 @@
             kpiRow + bar +
             '<div style="margin-top:12px;">' + verdict + '</div>' +
             legend + fresh + '</div>' +
-            (gscOn && trend && trend.length >= 2 ? '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:6px;">12 month divergence</div>' + _aiWedgeSvg(trend) + '</div>' : '') +
-            (gscOn ? _aiHitListHtml(hitRows) : '') +
-            (gscOn && hitRows ? _aiExcludedNote(hitRows._artifactRows) : '') +
+            (gscOn && trend && trend.length >= 2 ? '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:2px;">Click through rate over ' + trend.length + ' months</div><div style="' + S + 'margin-bottom:6px;">Of everyone who saw you in Google, the share who clicked (' + esc(_aiYm(trend[0].ym)) + ' to ' + esc(_aiYm(trend[trend.length - 1].ym)) + '). Falling is the see but don’t click signal.</div>' + _aiCtrChart(trend) + '</div>' : '') +
+            (gscOn ? _aiHitListHtml(A.exposed, A.cited) : '') +
+            (gscOn ? _aiExcludedNote(A.excluded) : '') +
             sendsDetail +
             '<div style="' + S + 'margin-top:16px;padding-top:10px;border-top:1px solid var(--color-border-primary);">Search Console only sees Google, so this catches Google’s AI Overviews; losses to ChatGPT/Perplexity etc. are invisible here (they show up as GA4 down while GSC holds steady). For a public service body, being the source an AI answer cites can be mission success even without the click.</div>';
     }
@@ -4345,40 +4961,84 @@
     //              don't zero out a rank-3 page) — it is a redirect/tracking artifact; set aside, not counted.
     const _HL_WIN = 90, _HL_FLOOR = 2000, _HL_POS = 1.0, _HL_CTRDROP = 0.75, _HL_TOP = 15;
     const _HL_POSMAX = 10, _HL_CTRBASE = 0.02, _HL_CLIFFPOS = 5, _HL_CLIFFCTR = 0.005;
-    async function _aiHitList(tree, r) {
-        let now, base;
-        try { const pair = await Promise.all([fetchTrendWindow(tree, _HL_WIN, 0), fetchTrendWindow(tree, _HL_WIN, 365)]); now = pair[0].gscBy; base = pair[1].gscBy; }
-        catch (e) { return null; }
-        if (!now || !base) return null;
+    // Pure, testable per-page verdict from two GSC windows: now `a`, ~1yr ago `b`, each {impr, clk, pos}.
+    // The ONE place the exposure thresholds are applied — selfTest asserts this directly, and because
+    // diagnose / briefing now lean on it, a threshold change is a single, tested edit here.
+    function _classifyExposure(a, b) {
+        const cN = a.impr > 0 ? a.clk / a.impr : 0, cB = b.impr > 0 ? b.clk / b.impr : 0;
+        const base = { ctrN: cN, ctrB: cB, pos: a.pos, impr: a.impr };
+        if (a.impr < _HL_FLOOR || b.impr <= 0) return Object.assign({ keep: false, reason: 'floor' }, base);
+        if (cB < _HL_CTRBASE) return Object.assign({ keep: false, reason: 'baseCTR' }, base);      // never converted -> noisy
+        if (Math.abs(a.pos - b.pos) > _HL_POS) return Object.assign({ keep: false, reason: 'rankslip' }, base);   // rank slip, not AI
+        if (a.pos > _HL_POSMAX) return Object.assign({ keep: false, reason: 'page2' }, base);       // page 2, not the Overview zone
+        if (cN >= cB * _HL_CTRDROP) return Object.assign({ keep: false, reason: 'ctrheld' }, base); // CTR held
+        if (a.pos <= _HL_CLIFFPOS && cN < _HL_CLIFFCTR) return Object.assign({ keep: false, reason: 'artifact', artifact: true }, base);   // ~0 clicks at a top rank = redirect/tracking artifact
+        return Object.assign({ keep: true, tier: a.pos <= 2.0 ? 'cited' : 'exposed', lost: Math.max(0, Math.round(a.impr * (cB - cN) / 3)) }, base);
+    }
+    // Classify every English page into exposed / cited / excluded from two cached GSC windows.
+    // The report AND the Ask tool both read this via getAIImpact — one engine, two views, no drift.
+    async function _aiClassifyPages(tree, r) {
+        const pair = await Promise.all([fetchTrendWindow(tree, _HL_WIN, 0), fetchTrendWindow(tree, _HL_WIN, 365)]);
+        const now = pair[0].gscBy, base = pair[1].gscBy;
+        const out = { exposed: [], cited: [], excluded: [] };
+        if (!now || !base) return out;
         const agg = function (maps, urls) {
             let i = 0, c = 0, pw = 0;
             urls.forEach(function (u) { const g = maps[normUrl(u)]; if (g) { const gi = g.impressions || 0; i += gi; c += g.clicks || 0; pw += (g.position || 0) * gi; } });
             return { impr: i, clk: c, pos: i > 0 ? pw / i : 0 };
         };
-        const rows = []; const arts = [];
         _allPages(r).forEach(function (p) {
             const urls = p.urls || [p.url];
-            if (!urls.some(function (u) { return String(u).indexOf('/en/') >= 0; })) return;     // English pages only
-            const a = agg(now, urls), b = agg(base, urls);
-            if (a.impr < _HL_FLOOR || b.impr <= 0) return;                                        // impressions floor
-            const cN = a.impr > 0 ? a.clk / a.impr : 0, cB = b.impr > 0 ? b.clk / b.impr : 0;
-            if (cB < _HL_CTRBASE) return;                                                         // needed a real baseline CTR
-            if (Math.abs(a.pos - b.pos) > _HL_POS) return;                                        // position held
-            if (a.pos > _HL_POSMAX) return;                                                       // page 1 only
-            if (cN >= cB * _HL_CTRDROP) return;                                                   // CTR fell >= 25% relative
-            if (a.pos <= _HL_CLIFFPOS && cN < _HL_CLIFFCTR) { arts.push({ name: p.name || urls[0], url: p.url || urls[0], pos: a.pos, ctrN: cN, ctrB: cB, impr: a.impr }); return; }   // ~0 clicks at a top rank = artifact, not AI
-            const lostMo = Math.max(0, Math.round(a.impr * (cB - cN) / 3));                       // 90-day window to per-month
-            rows.push({ name: p.name || urls[0], url: p.url || urls[0], tier: a.pos <= 2.0 ? 'cited' : 'exposed', pos: a.pos, ctrN: cN, ctrB: cB, impr: a.impr, lost: lostMo });
+            if (!urls.some(function (u) { return String(u).indexOf('/en/') >= 0; })) return;       // English pages only
+            const v = _classifyExposure(agg(now, urls), agg(base, urls));
+            const nm = p.name || urls[0], url = p.url || urls[0];
+            if (v.artifact) { out.excluded.push({ name: nm, url: url, pos: v.pos, ctrN: v.ctrN, ctrB: v.ctrB, impr: v.impr }); return; }
+            if (!v.keep) return;
+            (v.tier === 'cited' ? out.cited : out.exposed).push({ name: nm, url: url, tier: v.tier, pos: v.pos, ctrN: v.ctrN, ctrB: v.ctrB, impr: v.impr, lost: v.lost });
         });
-        rows.sort(function (a, b) { if (a.tier !== b.tier) return a.tier === 'exposed' ? -1 : 1; return b.lost - a.lost; });   // exposed first, then by lost clicks
-        arts.sort(function (a, b) { return b.impr - a.impr; });                                    // biggest leak first
-        rows._artifacts = arts.length; rows._artifactRows = arts;
-        return rows;
+        out.exposed.sort(function (a, b) { return b.lost - a.lost; });
+        out.cited.sort(function (a, b) { return b.lost - a.lost; });
+        out.excluded.sort(function (a, b) { return b.impr - a.impr; });
+        return out;
     }
-    function _aiHitListHtml(rows) {
+    // ── The shared engine: one cached compute the report and Ask both read (registered in clearCaches) ──
+    const _aiImpactCache = {};   // days -> Promise<{trend,div,exposed,cited,excluded,floor,sends,gscOn,ga4On,r}>
+    function getAIImpact(days) {
+        days = days || _ddDays || 30;
+        if (_aiImpactCache[days]) return _aiImpactCache[days];
+        _aiImpactCache[days] = (async function () {
+            const g = window.GSCIntegration, a = window.GA4Integration;
+            const gscOn = !!(g && g.isConnected && g.isConnected()), ga4On = !!(a && a.isConnected && a.isConnected());
+            const tree = window.treeData, r = tree ? build(tree) : { categories: [] };
+            let trend = [], cls = { exposed: [], cited: [], excluded: [] }, sends = null, classifyOk = false;
+            if (gscOn) { try { trend = await getGscSiteTrend(12); } catch (e) {} try { cls = await _aiClassifyPages(tree, r); classifyOk = true; } catch (e) {} }   // classifyOk=false => fetch failed, distinct from "clean"
+            if (ga4On) { try { sends = await _aiSends(); } catch (e) {} }
+            const floor = cls.exposed.reduce(function (s, x) { return s + x.lost; }, 0);
+            return { trend: trend, div: _aiDivergence(trend), exposed: cls.exposed, cited: cls.cited, excluded: cls.excluded, floor: floor, sends: sends, gscOn: gscOn, ga4On: ga4On, classifyOk: classifyOk, r: r };
+        })().catch(function (e) { delete _aiImpactCache[days]; throw e; });
+        return _aiImpactCache[days];
+    }
+    // Read the engine ONLY if already cached (never triggers the expensive two-window fetch). The
+    // briefing/hero uses this to stay free on panel-open; diagnose uses getAIImpact() to pull-and-wait.
+    function getAIImpactCached(days) { return _aiImpactCache[days || _ddDays || 30] || null; }
+    // Pure finding assembly (selfTest asserts this): given a page's urls and an engine result, return
+    // the AI finding for that page, or null. exposed => the "consistent with AI" flag with its floor
+    // magnitude; excluded => the redirect/artifact reframe; not found (incl. rank slip) => null.
+    function _aiFinding(urls, A) {
+        if (!A || !A.gscOn) return null;
+        if (!A.classifyOk) return { kind: 'unavailable', sev: 'info', score: 0, t: 'AI check unavailable', d: 'The AI exposure comparison could not run this period (Search Console history or fetch).' };
+        const keys = Object.create(null); (urls || []).forEach(function (u) { keys[normUrl(u)] = 1; });
+        const find = function (arr) { for (let i = 0; i < (arr || []).length; i++) if (keys[normUrl(arr[i].url)]) return arr[i]; return null; };
+        const ex = find(A.exposed);
+        if (ex) return { kind: 'exposed', sev: 'warn', score: ex.lost, t: 'AI exposure', d: 'Position held at ' + ex.pos.toFixed(1) + ' but CTR fell ' + _aiCtr(ex.ctrB) + ' to ' + _aiCtr(ex.ctrN) + ', a pattern consistent with AI answers in the results page (~' + fmt(ex.lost) + ' clicks/mo at stake). See the AI Impact report.' };
+        const art = find(A.excluded);
+        if (art) return { kind: 'artifact', sev: 'warn', score: 0, t: 'Data artifact', d: 'Click through collapsed to near zero at a strong rank (position ' + art.pos.toFixed(1) + ', ' + fmt(Math.round(art.impr)) + ' impressions), which looks like a redirect or attribution issue, not AI or content.' };
+        return null;
+    }
+    function _aiHitListHtml(exposed, cited) {
         const S = 'font-size:0.72rem;color:var(--color-text-secondary);';
         const head = '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:2px;">Where Google is answering for you</div>';
-        if (rows == null) return '';                                                              // GSC off or fetch failed: section stays absent
+        const rows = (exposed || []).concat(cited || []);                                         // exposed first (each already sorted by lost)
         if (!rows.length) return head + '<div style="' + S + '">No pages cleared the bar this period (page 1, ' + fmt(_HL_FLOOR) + ' or more impressions, baseline CTR ' + Math.round(_HL_CTRBASE * 100) + '% or more, position held, CTR down 25% or more). That is a good sign, or the two windows are too close to separate the signal.</div></div>';
         const top = rows.slice(0, _HL_TOP);
         const row = function (x) {
@@ -4393,9 +5053,18 @@
                 '<div style="font-size:0.7rem;color:var(--color-text-secondary);margin-top:2px;">' + why + '</div></div>' +
                 '<div style="flex-shrink:0;text-align:right;"><div style="font-weight:700;font-size:0.78rem;color:#dc2626;">' + _epi(fmt(x.lost), 'estimated') + '</div><div style="font-size:0.62rem;color:var(--color-text-muted);">clicks/mo</div></div></div>';
         };
+        const exp = exposed || [];
+        const citedN = (cited || []).length;
+        let cluster = '';                                                                          // the finding the data already holds: where the losses sit
+        if (exp.length >= 3) {
+            const ps = exp.map(function (x) { return x.pos; }), lo = Math.min.apply(null, ps), hi = Math.max.apply(null, ps);
+            if (lo > 3) cluster = '<div style="' + S + 'margin-bottom:8px;"><strong>Exposed pages cluster at positions ' + Math.floor(lo) + ' to ' + Math.ceil(hi) + '</strong>, none in the top 3, so your top rankings appear to be keeping their clicks. Defending positions 1 to 2 matters more than ever.</div>';
+        }
         return head +
             '<div style="' + S + 'margin-bottom:8px;">Pages still ranking as well as a year ago, but with click through down sharply. ' + _epi('Exposed', 'measured') + ' pages lead (losing clicks, act on these). ' + _epi('Likely cited', 'inferred') + ' pages are inferred: still at the top, so the citizen may be getting your answer inside the result.</div>' +
+            cluster +
             '<div style="display:flex;flex-direction:column;gap:7px;">' + top.map(row).join('') + '</div>' +
+            (citedN === 0 ? '<div style="' + S + 'margin-top:6px;">No pages matched the likely cited pattern this period.</div>' : '') +
             (rows.length > top.length ? '<div style="' + S + 'margin-top:6px;">Showing top ' + top.length + ' of ' + rows.length + ', by estimated lost clicks.</div>' : '') +
             '</div>';
     }
@@ -4408,47 +5077,46 @@
         const names = arts.slice(0, 10).map(function (x) {
             return '<span class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(x.url) + '" style="cursor:pointer;border-bottom:1px dotted var(--color-text-muted);" title="' + esc(fmt(Math.round(x.impr)) + ' impressions at position ' + x.pos.toFixed(1) + ', but CTR ' + _aiCtr(x.ctrB) + ' to ' + _aiCtr(x.ctrN)) + '">' + esc(x.name) + '</span>';
         }).join(', ');
-        return '<div style="' + S + 'margin-top:12px;line-height:1.45;"><strong>' + arts.length + ' page' + (arts.length === 1 ? '' : 's') + ' excluded from the takes number:</strong> click through fell to near zero at a strong rank, which is a data pattern (a redirect or attribution gap) rather than AI: ' + names + (arts.length > 10 ? ', and ' + (arts.length - 10) + ' more' : '') + '.</div>';
+        return '<div style="' + S + 'margin-top:12px;line-height:1.45;"><strong>' + arts.length + ' page' + (arts.length === 1 ? '' : 's') + ' excluded from the takes number:</strong> click through fell below ' + (_HL_CLIFFCTR * 100) + '% at a top-' + _HL_CLIFFPOS + ' rank, which is a data pattern (a redirect or attribution gap) rather than AI: ' + names + (arts.length > 10 ? ', and ' + (arts.length - 10) + ' more' : '') + '.</div>';
     }
-    // ── Export the verdict card as a PNG ─────────────────────────────────────────
-    // The existing _svgToPng path is SVG-only; the verdict card is HTML, so lazy-load html2canvas
-    // (same on-demand-CDN spirit as the report libs) and rasterise #sv-ai-verdict. Button lives in
-    // the modal header, OUTSIDE the card, so it is never captured in the shot.
-    let _h2cPromise = null;
-    function _ensureHtml2Canvas() {
-        if (window.html2canvas) return Promise.resolve(window.html2canvas);
-        if (_h2cPromise) return _h2cPromise;
-        _h2cPromise = new Promise(function (resolve, reject) {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            s.onload = function () { window.html2canvas ? resolve(window.html2canvas) : reject(new Error('not present after load')); };
-            s.onerror = function () { _h2cPromise = null; reject(new Error('script load failed')); };
-            document.head.appendChild(s);
-        });
-        return _h2cPromise;
+    // ── Export the report to PDF ─────────────────────────────────────────────────
+    // Rather than rasterise HTML (html2canvas was flaky), clone the report body into a print root and
+    // use the browser's own print -> Save as PDF. Same document, so CSS vars + SVG charts resolve; a
+    // print stylesheet hides everything else and forces a clean light theme regardless of app theme.
+    function _ensurePrintStyle() {
+        if (document.getElementById('sv-print-style')) return;
+        const st = document.createElement('style'); st.id = 'sv-print-style';
+        st.textContent =
+            '#sv-print-root{display:none;}' +
+            '@media print{' +
+                'body.sv-printing>*:not(#sv-print-root){display:none !important;}' +
+                'body.sv-printing #sv-print-root{display:block !important;margin:0 auto;max-width:720px;padding:6px 2px;' +
+                    'color:#111 !important;background:#fff !important;' +
+                    '--color-bg-primary:#ffffff;--color-bg-secondary:#ffffff;--color-bg-elevated:#ffffff;' +
+                    '--color-text-primary:#111111;--color-text-heading:#000000;--color-text-secondary:#444444;--color-text-muted:#777777;' +
+                    '--color-border-primary:#dddddd;--primary:#007cb6;}' +
+                '#sv-print-root *{animation:none !important;transition:none !important;}' +
+                '#sv-print-root .sv-ask-page{cursor:default;}' +
+                '@page{margin:14mm;}' +
+            '}';
+        document.head.appendChild(st);
     }
-    async function _exportVerdictPng(btn) {
-        const el = document.getElementById('sv-ai-verdict');
-        if (!el) return;
-        const old = btn ? btn.innerHTML : null;
-        if (btn) { btn.innerHTML = 'Rendering…'; btn.disabled = true; }
-        try {
-            const h2c = await _ensureHtml2Canvas();
-            const cs = getComputedStyle(document.body);
-            const bg = (cs.getPropertyValue('--color-bg-primary').trim()) || '#ffffff';
-            const canvas = await h2c(el, { backgroundColor: bg, scale: 2, useCORS: true, logging: false });
-            canvas.toBlob(function (blob) {
-                if (!blob) { alert('Export failed to render.'); return; }
-                const site = (window.treeData && (window.treeData.name || 'site')) || 'site';
-                const fn = 'AI-Impact-' + String(site).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') + '.png';
-                const u = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = u; a.download = fn;
-                document.body.appendChild(a); a.click();
-                setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 150);
-            }, 'image/png');
-        } catch (e) {
-            alert('Could not load the image export library. It needs an internet connection the first time. ' + (e && e.message ? '(' + e.message + ')' : ''));
-        } finally { if (btn) { btn.innerHTML = old; btn.disabled = false; } }
+    // Clone the modal content (minus its header/buttons) into the print root, print, then clean up.
+    function _exportVerdictPdf(content) {
+        if (!content) return;
+        _ensurePrintStyle();
+        const old = document.getElementById('sv-print-root'); if (old) old.remove();
+        const root = document.createElement('div'); root.id = 'sv-print-root';
+        const clone = content.cloneNode(true);
+        if (clone.firstElementChild) clone.removeChild(clone.firstElementChild);   // drop the breadcrumb + close/export buttons
+        root.appendChild(clone);
+        document.body.appendChild(root);
+        document.body.classList.add('sv-printing');
+        let done = false;
+        const cleanup = function () { if (done) return; done = true; document.body.classList.remove('sv-printing'); root.remove(); window.removeEventListener('afterprint', cleanup); };
+        window.addEventListener('afterprint', cleanup);
+        setTimeout(function () { window.print(); }, 80);
+        setTimeout(cleanup, 60000);   // fallback if afterprint never fires
     }
     async function showAIImpact(days) {
         const tree = window.treeData;
@@ -4464,21 +5132,15 @@
         content.className = 'sv-dd-modal';
         content.style.cssText = 'background:var(--color-bg-secondary);border-radius:14px;max-width:640px;width:100%;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
         const stage = function (txt) { content.innerHTML = '<div style="display:flex;justify-content:flex-end;"><button id="sv-ai-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div><div style="text-align:center;padding:30px 0;color:var(--color-text-secondary);font-size:0.85rem;">' + esc(txt) + '</div>'; const c = content.querySelector('#sv-ai-close'); if (c) c.addEventListener('click', function () { overlay.remove(); }); };
-        stage('Fetching the 12 month Search Console trend…');
+        stage('Measuring AI impact (Search Console + GA4)…');
         overlay.appendChild(content); document.body.appendChild(overlay);
-        let trend = [], sends = null;
-        if (gscOn) { try { trend = await getGscSiteTrend(12); } catch (e) {} }
-        stage('Classifying AI assistant traffic…');
-        if (ga4On) { try { sends = await _aiSends(); } catch (e) {} }
-        const div = _aiDivergence(trend);
-        let hitRows = null;
-        if (gscOn) { stage('Finding the pages Google answers for…'); try { hitRows = await _aiHitList(tree, build(tree)); } catch (e) {} }
+        let A; try { A = await getAIImpact(_ddDays); } catch (e) { A = { trend: [], div: null, exposed: [], cited: [], excluded: [], floor: 0, sends: null, gscOn: gscOn, ga4On: ga4On }; }
         const hasCard = gscOn || ga4On;
-        const exportBtn = hasCard ? '<button id="sv-ai-export" title="Save the verdict card as a PNG" style="background:none;border:1px solid var(--color-border-primary);border-radius:7px;padding:5px 11px;font-size:0.72rem;color:var(--color-text-secondary);cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export as image</button>' : '';
+        const exportBtn = hasCard ? '<button id="sv-ai-export" title="Open the print dialog to save the report as a PDF" style="background:none;border:1px solid var(--color-border-primary);border-radius:7px;padding:5px 11px;font-size:0.72rem;color:var(--color-text-secondary);cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Export as PDF</button>' : '';
         content.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:0.72rem;color:var(--color-text-muted);">Reports → AI Impact</div><div style="display:flex;align-items:center;gap:10px;">' + exportBtn + '<button id="sv-ai-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div></div>' +
-            (!hasCard ? '<div style="text-align:center;padding:24px;color:var(--color-text-secondary);font-size:0.85rem;">Connect Search Console and GA4 to measure AI impact.</div>' : _aiImpactBody(trend, sends, div, gscOn, ga4On, hitRows));
+            (!hasCard ? '<div style="text-align:center;padding:24px;color:var(--color-text-secondary);font-size:0.85rem;">Connect Search Console and GA4 to measure AI impact.</div>' : _aiImpactBody(A));
         const c2 = content.querySelector('#sv-ai-close'); if (c2) c2.addEventListener('click', function () { overlay.remove(); });
-        const ex = content.querySelector('#sv-ai-export'); if (ex) ex.addEventListener('click', function () { _exportVerdictPng(ex); });
+        const ex = content.querySelector('#sv-ai-export'); if (ex) ex.addEventListener('click', function () { _exportVerdictPdf(content); });
     }
 
     window.SVRollup = {
