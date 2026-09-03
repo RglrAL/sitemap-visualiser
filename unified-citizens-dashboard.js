@@ -21832,11 +21832,18 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
         rowCount: gscData?.rows?.length || 0
     });
     
-    // Calculate divergence metrics using real data
-    const impactMetrics = calculateAIOverviewImpact(gscData, url);
-    
-    // Store timeline data globally for chart creation
-    window.currentAITimelineData = impactMetrics.timelineData || [];
+    // Honest model: render a neutral "analysing" state, then fill in from REAL 12-month GSC
+    // time-series (fetched below). No estimation/synthetic fallback — if the real fetch returns
+    // nothing, we show "insufficient data", never fabricated numbers.
+    const canFetch = !!(window.GSCIntegration && window.GSCIntegration.fetch12MonthTimeSeriesData);
+    const impactMetrics = getDefaultImpactMetrics();
+    if (canFetch) {
+        impactMetrics.severityIcon = '⏳'; impactMetrics.severityText = 'Analysing…';
+        impactMetrics.keyInsight = 'Analysing this page’s real Search Console history (up to 12 months) to measure the clicks-vs-impressions divergence…';
+    } else {
+        impactMetrics.keyInsight = 'Connect Google Search Console to measure this page’s AI Overview impact from its real click/impression history.';
+    }
+    window.currentAITimelineData = [];
     window.currentGSCData = gscData;
     window.currentPageUrl = url;
     
@@ -21864,13 +21871,12 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
                 createAIDivergenceChart(result.timelineData, dashboardId);
                 
             } else {
-                console.warn('⚠️ No time-series data available, keeping estimated metrics');
+                updateAIImpactDisplay(dashboardId, getDefaultImpactMetrics());   // honest: not enough GSC history — no fabrication
             }
         }).catch(error => {
             console.error('❌ Failed to fetch 12-month time-series data:', error);
+            updateAIImpactDisplay(dashboardId, getDefaultImpactMetrics());
         });
-    } else {
-        console.warn('⚠️ GSC time-series integration not available, using estimated metrics');
     }
     
     return `
@@ -22022,7 +22028,10 @@ function findPeakDivergenceMonthFromAggregated(currentClicks, currentImpressions
 }
 
 function calculateImpactFromAggregatedData(gscData, url) {
-    
+    return getDefaultImpactMetrics();   // DEPRECATED/UNREACHABLE: aggregated totals can't measure AI impact —
+    // that needs a real time-series. Short-circuited to the honest "insufficient data" state so the old
+    // estimation (Math.random impression growth, bucketed CTR decline, synthetic timeline) can never run.
+    // eslint-disable-next-line no-unreachable
     // Extract current metrics
     const currentClicks = gscData.clicks || 0;
     const currentImpressions = gscData.impressions || 0;
@@ -22228,6 +22237,8 @@ function calculateImpactFromTimeSeriesData(processedData, gscData, url) {
 }
 
 function generateSyntheticTimeline(currentClicks, currentImpressions, currentCTR) {
+    return [];   // DEPRECATED/UNREACHABLE: never fabricate a chart — the AI-impact chart uses only real GSC time-series.
+    // eslint-disable-next-line no-unreachable
     
     const timeline = [];
     const now = new Date();
