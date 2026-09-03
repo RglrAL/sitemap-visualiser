@@ -22,13 +22,13 @@
 <script async defer src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="gsc-integration-module.js"></script>
-<script src="standalone-ga4-integration.js?v=20260903a"></script>
-<script src="unified-citizens-dashboard.js?v=20260903a"></script>
+<script src="standalone-ga4-integration.js?v=20260903d"></script>
+<script src="unified-citizens-dashboard.js?v=20260903d"></script>
 <script src="combined-tooltip-integration.js"></script>
 <script src="enhanced-url-matching.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
-<script src="sitemap-rollup.js?v=20260903a"></script>
+<script src="sitemap-rollup.js?v=20260903d"></script>
 <script src="sitemap-geomap.js"></script>
 <script src="groq-integration-module.js"></script>
 
@@ -5576,6 +5576,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
                 <div class="nav-dropdown-item" onclick="downloadMonthlyReport(); closeReportsDropdown();">
                     Monthly Report (.xlsx)
                 </div>
+                <div class="nav-dropdown-item" onclick="showAIImpact(); closeReportsDropdown();">
+                    AI Impact
+                </div>
             </div>
         </div>
         <!-- Ask moved to a bottom-right FAB (#sv-ask-fab, created in sitemap-rollup.js) -->
@@ -5643,6 +5646,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             </button>
             <button class="mobile-nav-item" onclick="downloadMonthlyReport(); closeMobileMenu();">
                 Monthly Report (.xlsx)
+            </button>
+            <button class="mobile-nav-item" onclick="showAIImpact(); closeMobileMenu();">
+                AI Impact
             </button>
         </div>
         
