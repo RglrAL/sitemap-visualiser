@@ -3820,9 +3820,9 @@
         const range = XLSX.utils.decode_range(ws['!ref']);
         for (let R = 1; R <= range.e.r; R++) {
             headers.forEach(function (h, C) {
-                if (pctKeys.indexOf(h.key) < 0) return;
                 const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-                if (cell && typeof cell.v === 'number') cell.z = '0.0%';
+                if (!cell || typeof cell.v !== 'number') return;
+                cell.z = pctKeys.indexOf(h.key) >= 0 ? '0.0%' : '#,##0';   // % for deltas, thousands-comma for counts
             });
         }
         ws['!cols'] = headers.map(function (h) { return { wch: h.key === 'path' ? 60 : h.key === 'title' ? 40 : 12 }; });
@@ -3921,10 +3921,36 @@
                     (opts.summary.dataBars || []).forEach(function (sq) { const b = _cfDataBar(sq, prio++); scf += b.cf; sext += b.ext; });
                     (opts.summary.colorScales || []).forEach(function (sq) { scf += _cfColorScale(sq, prio++).cf; });
                     if (scf) xml = xml.replace('</sheetData>', '</sheetData>' + scf);
-                    if (sext) xml = xml.replace('</worksheet>', '<extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:conditionalFormattings>' + sext + '</x14:conditionalFormattings></ext></extLst></worksheet>');
+                    // The worksheet extLst can hold two exts: conditional formatting AND sparklines.
+                    let exts = '';
+                    if (sext) exts += '<ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:conditionalFormattings>' + sext + '</x14:conditionalFormattings></ext>';
+                    const sp = opts.summary.sparkline;
+                    if (sp && sp.dataRef && sp.locRef) {
+                        exts += '<ext uri="{05C60535-1F16-4fd2-B633-F4F36F0B64E0}" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"><x14:sparklineGroups xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main"><x14:sparklineGroup type="line" displayEmptyCellsAs="gap"><x14:colorSeries rgb="FF007CB6"/><x14:colorNegative rgb="FFFF0000"/><x14:colorMarkers rgb="FF007CB6"/><x14:colorHigh rgb="FF63BE7B"/><x14:colorLow rgb="FFF8696B"/><x14:sparklines><x14:sparkline><xm:f>' + sp.dataRef + '</xm:f><xm:sqref>' + sp.locRef + '</xm:sqref></x14:sparkline></x14:sparklines></x14:sparklineGroup></x14:sparklineGroups></ext>';
+                    }
+                    if (exts) xml = xml.replace('</worksheet>', '<extLst>' + exts + '</extLst></worksheet>');
                     zip.file(names[i], xml);
                     break;
                 }
+            }
+            // KPI big-number styling: bold+large font on the summary's "This month" value cells.
+            // SheetJS (free) won't write fonts, so inject a font+xf into styles.xml and repoint the cells' s.
+            if (opts && opts.summary && opts.summary.kpiCells && opts.summary.kpiCells.length) {
+                try {
+                    let styles = await zip.file('xl/styles.xml').async('string');
+                    const fc = +((/<fonts count="(\d+)"/.exec(styles) || [])[1] || 1);   // new font index = old count
+                    const xc = +((/<cellXfs count="(\d+)"/.exec(styles) || [])[1] || 1);  // new xf index  = old count
+                    styles = styles.replace('</fonts>', '<font><b/><sz val="16"/><color rgb="FF1F4E79"/><name val="Calibri"/></font></fonts>').replace(/<fonts count="\d+"/, '<fonts count="' + (fc + 1) + '"');
+                    styles = styles.replace('</cellXfs>', '<xf numFmtId="3" fontId="' + fc + '" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/></cellXfs>').replace(/<cellXfs count="\d+"/, '<cellXfs count="' + (xc + 1) + '"');
+                    zip.file('xl/styles.xml', styles);
+                    for (let i = 0; i < names.length; i++) {
+                        let xml = await zip.file(names[i]).async('string');
+                        const fr = /<row[^>]*>[\s\S]*?<\/row>/.exec(xml);
+                        if (!fr || fr[0].indexOf('Monthly Summary') < 0) continue;
+                        opts.summary.kpiCells.forEach(function (ref) { xml = xml.replace(new RegExp('<c r="' + ref + '"( s="\\d+")?'), '<c r="' + ref + '" s="' + xc + '"'); });
+                        zip.file(names[i], xml); break;
+                    }
+                } catch (se) { if (typeof console !== 'undefined') console.error('[SVRollup] KPI styling failed (kept content):', se); }
             }
             // Tables pass: wrap each sheet's data as an Excel Table (TableStyleMedium20). Touches 3
             // parts per table — the table XML, the worksheet <tableParts>+rels, and [Content_Types].
@@ -3967,10 +3993,9 @@
     // Exec-summary sheet (this-month-vs-last): site KPI band + category league table (data bars +
     // colour scale) + biggest risers/fallers site-wide. Returns {ws, dataBars, colorScales}; the CF
     // ranges are applied by _decorateXlsx (the summary isn't a uniform table, so CF is explicit).
-    function _summarySheet(rows, title) {
-        let cv = 0, pv = 0, cu = 0, pu = 0; const byCat = {};
+    function _summarySheet(rows, tot, trend, title) {
+        const byCat = {};
         rows.forEach(function (r) {
-            cv += r.views; pv += (r.pViews || 0); cu += r.users; pu += (r.pUsers || 0);
             const c = byCat[r.category] || (byCat[r.category] = { cat: r.category, v: 0, pv: 0, u: 0, pu: 0 });
             c.v += r.views; c.pv += (r.pViews || 0); c.u += r.users; c.pu += (r.pUsers || 0);
         });
@@ -3981,9 +4006,13 @@
         const fallers = movable.slice().sort(function (a, b) { return a.dViews - b.dViews; }).slice(0, 5);
         const aoa = [], pct = []; const push = function (a) { aoa.push(a); return aoa.length - 1; };
         push([title]); push([]);
-        let r0;
-        r0 = push(['Total views', cv, 'vs last month', _pctDelta(cv, pv)]); pct.push([r0, 3]);
-        r0 = push(['Active users', cu, 'vs last month', _pctDelta(cu, pu)]); pct.push([r0, 3]);
+        // KPI table: three headline metrics × this-month / vs-last-month / vs-last-year (YoY blank if
+        // beyond GA4 retention). Value column gets comma format; the two delta columns get %.
+        push(['', 'This month', 'vs last month', 'vs last year']);
+        let kr; const kpiCells = [];
+        kr = push(['Total views', tot.v, _pctDelta(tot.v, tot.pv), _pctDelta(tot.v, tot.yv)]); pct.push([kr, 2]); pct.push([kr, 3]); kpiCells.push('B' + (kr + 1));
+        kr = push(['Active users', tot.u, _pctDelta(tot.u, tot.pu), _pctDelta(tot.u, tot.yu)]); pct.push([kr, 2]); pct.push([kr, 3]); kpiCells.push('B' + (kr + 1));
+        kr = push(['Sessions', tot.s, _pctDelta(tot.s, tot.ps), _pctDelta(tot.s, tot.ys)]); pct.push([kr, 2]); pct.push([kr, 3]); kpiCells.push('B' + (kr + 1));
         push([]);
         push(['Category performance']);
         const hdr = push(['Category', 'Views', '% Δ', 'Active users', '% Δ2']);
@@ -3997,13 +4026,27 @@
         push(['Biggest fallers this month (pages with ' + FLOOR + '+ views)']);
         push(['Page', 'Category', '% Δ', 'Views']);
         fallers.forEach(function (x) { const rr = push([x.title, x.category, x.dViews, x.views]); pct.push([rr, 2]); });
+        // 6-month site-views trend + a line sparkline in the cell after the values row.
+        let sparkline = null;
+        if (trend && trend.length && trend.some(function (t) { return t.value; })) {
+            push([]);
+            push(['Site views — last ' + trend.length + ' months']);
+            push([''].concat(trend.map(function (t) { return t.label; })));            // month labels, B..
+            const vr = push([''].concat(trend.map(function (t) { return t.value; })));  // values, B..
+            const lastCol = String.fromCharCode(66 + trend.length - 1);                 // B + (n-1)
+            const locCol = String.fromCharCode(66 + trend.length);                      // the cell right after the values
+            sparkline = { dataRef: 'Summary!B' + (vr + 1) + ':' + lastCol + (vr + 1), locRef: locCol + (vr + 1) };
+        }
         const ws = XLSX.utils.aoa_to_sheet(aoa);
-        pct.forEach(function (rc) { const ref = XLSX.utils.encode_cell({ r: rc[0], c: rc[1] }); if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].z = '0.0%'; });
+        const pctSet = {}; pct.forEach(function (rc) { pctSet[rc[0] + ',' + rc[1]] = 1; });
+        aoa.forEach(function (row, R) { row.forEach(function (val, C) { if (typeof val !== 'number') return; const ref = XLSX.utils.encode_cell({ r: R, c: C }); if (ws[ref]) ws[ref].z = pctSet[R + ',' + C] ? '0.0%' : '#,##0'; }); });   // % for deltas, thousands-comma for counts
         ws['!cols'] = [{ wch: 40 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 10 }];
         return {
             ws: ws,
             dataBars: cats.length ? ['B' + leagueStart + ':B' + leagueEnd] : [],
-            colorScales: cats.length ? ['C' + leagueStart + ':C' + leagueEnd, 'E' + leagueStart + ':E' + leagueEnd] : []
+            colorScales: cats.length ? ['C' + leagueStart + ':C' + leagueEnd, 'E' + leagueStart + ':E' + leagueEnd] : [],
+            kpiCells: kpiCells,
+            sparkline: sparkline
         };
     }
     async function buildMonthlyReport(year, month) {
@@ -4015,16 +4058,21 @@
         const cur = _monthRange(year, month);
         const pm = month === 1 ? 12 : month - 1, py = month === 1 ? year - 1 : year;
         const prev = _monthRange(py, pm);
+        const yr = _monthRange(year - 1, month);                         // same month last year (YoY; blank if beyond GA4 retention)
+        let _tsM = month - 5, _tsY = year; while (_tsM < 1) { _tsM += 12; _tsY -= 1; }
+        const trendStart = _monthRange(_tsY, _tsM).start;                // first day of the 6-month trend window
         let pair;
-        try { pair = await Promise.all([_fetchGA4Range(tree, cur.start, cur.end), _fetchGA4Range(tree, prev.start, prev.end)]); }
+        try { pair = await Promise.all([_fetchGA4Range(tree, cur.start, cur.end), _fetchGA4Range(tree, prev.start, prev.end), _fetchGA4Range(tree, yr.start, yr.end)]); }
         catch (e) { alert('Could not fetch GA4 data: ' + (e && e.message ? e.message : String(e))); return; }
-        const curBy = pair[0], prevBy = pair[1];
+        const curBy = pair[0], prevBy = pair[1], yearBy = pair[2];
         const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
         const rc = build(tree, { statsFor: statsForMaps({}, curBy) });   // categories, merged by name
         build(tree);                                                     // restore current-period annotations
         const catOrder = {};                                          // sitemap category name (lc) -> tab order
         _RPT_CATS.forEach(function (name, i) { catOrder[String(name).toLowerCase()] = i; });
         const rows = [];
+        const tot = { v: 0, pv: 0, yv: 0, u: 0, pu: 0, yu: 0, s: 0, ps: 0, ys: 0 };   // site totals cur/prev/year for the KPI band
+        const uOf = function (x) { return x ? ((x.activeUsers != null ? x.activeUsers : x.users) || 0) : 0; };
         rc.categories.forEach(function (cat) {
             const ord = catOrder[String(cat.name || '').toLowerCase()];
             if (ord === undefined) return;                            // excludes non-content / uncurated sections
@@ -4033,11 +4081,12 @@
                     if (n.url) {
                         const p = toPath(n.url);
                         if (p.indexOf('/en/') === 0) {          // English pages only — the report is EN; excludes /ga/ (Irish) versions
-                            const k = normUrl(n.url), a = curBy[k], b = prevBy[k];
-                            // "Active users" column uses GA4 activeUsers (matches the manual export);
-                            // falls back to users(=totalUsers) if an older cached fetch lacks the field.
-                            const v = a ? (a.pageViews || 0) : 0, u = a ? ((a.activeUsers != null ? a.activeUsers : a.users) || 0) : 0;
-                            const pv = b ? (b.pageViews || 0) : 0, pu = b ? ((b.activeUsers != null ? b.activeUsers : b.users) || 0) : 0;
+                            const k = normUrl(n.url), a = curBy[k], b = prevBy[k], c = yearBy[k];
+                            // "Active users" uses GA4 activeUsers (matches the manual export); falls back to users(=totalUsers).
+                            const v = a ? (a.pageViews || 0) : 0, pv = b ? (b.pageViews || 0) : 0, yv = c ? (c.pageViews || 0) : 0;
+                            const u = uOf(a), pu = uOf(b), yu = uOf(c);
+                            tot.v += v; tot.pv += pv; tot.yv += yv; tot.u += u; tot.pu += pu; tot.yu += yu;       // site totals (all EN pages)
+                            tot.s += a ? (a.sessions || 0) : 0; tot.ps += b ? (b.sessions || 0) : 0; tot.ys += c ? (c.sessions || 0) : 0;
                             if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: p, views: v, pViews: pv, dViews: _pctDelta(v, pv), users: u, pUsers: pu, dUsers: _pctDelta(u, pu) });
                         }
                     }
@@ -4046,8 +4095,16 @@
             });
         });
         if (!rows.length) { alert('No GA4 page data for ' + _RPT_MONTHS[month - 1] + ' ' + year + '. (GA4 retention is ~2-14 months; the month may be out of range.)'); return; }
+        let monthly = [];
+        try { if (ga4.fetchMonthlyViews) monthly = await ga4.fetchMonthlyViews({ startDate: trendStart, endDate: cur.end }); } catch (e) { monthly = []; }
+        const trend6 = [];                                               // 6 months of EN site views, oldest→newest
+        for (let k = 5; k >= 0; k--) {
+            let mm = month - k, yy = year; while (mm < 1) { mm += 12; yy -= 1; }
+            const ym = yy + ('0' + mm).slice(-2), hit = monthly.filter(function (x) { return x.ym === ym; })[0];
+            trend6.push({ label: _RPT_MONTHS[mm - 1].slice(0, 3), value: hit ? hit.views : 0 });
+        }
         const wb = XLSX.utils.book_new();
-        const summary = _summarySheet(rows, 'Monthly Summary — ' + _RPT_MONTHS[month - 1] + ' ' + year);
+        const summary = _summarySheet(rows, tot, trend6, 'Monthly Summary — ' + _RPT_MONTHS[month - 1] + ' ' + year);
         XLSX.utils.book_append_sheet(wb, summary.ws, 'Summary');                                        // exec summary = first tab
         const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ2' }];   // 2nd %Δ deduped for Excel-table column-name uniqueness (matches original)
         const catH = siteH.slice(1);                                    // per-category sheets drop the Category column
@@ -4065,7 +4122,7 @@
             if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, ['dViews', 'dUsers']), _xlSheetName(name));
         });
         const _fname = 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
-        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales } });   // write + inject formatting/tables
+        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales, kpiCells: summary.kpiCells, sparkline: summary.sparkline } });   // write + inject formatting/tables/sparkline
     }
     function promptMonthlyReport() {
         const now = new Date();
