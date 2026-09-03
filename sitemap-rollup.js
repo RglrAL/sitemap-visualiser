@@ -890,6 +890,10 @@
 .sv-ask-list{border:none;border-radius:var(--sv-r-md);overflow:hidden;background:var(--color-bg-primary);}
 .sv-ask-list>*:last-child>div{border-bottom:none;}
 .sv-ask-bar{transform-origin:left center;animation:sv-growx .5s cubic-bezier(.22,.61,.36,1) both;}
+/* Epistemic grammar — measured (plain), estimated (~, muted), inferred/pending (dashed "bound"). */
+.sv-epi-meas{font-weight:700;}
+.sv-epi-est{color:var(--color-text-secondary);}
+.sv-epi-inf{border:1px dashed var(--color-border-primary);border-radius:4px;padding:0 4px;color:var(--color-text-muted);cursor:help;}
 @media(prefers-reduced-motion:reduce){#sv-ask-panel,#sv-ask-panel *{animation:none !important;transition:none !important;}.sv-chart svg .sv-cline,.sv-chart svg .sv-carea,.sv-chart svg .sv-cdot,.sv-chart .sv-cbar{animation:none !important;}}
 `;
         document.head.appendChild(st);
@@ -1314,6 +1318,12 @@
         { name: 'Copilot', re: /copilot/i }, { name: 'DeepSeek', re: /deepseek/i },
         { name: 'Meta AI', re: /meta\.ai/i }, { name: 'Grok', re: /(grok|x\.ai)/i }
     ];
+    // Specific assistant name for a source already classified as 'AI assistants' (else 'Other AI').
+    function _aiName(source) {
+        const s = String(source || '');
+        for (let i = 0; i < AI_ASSISTANTS.length; i++) { if (AI_ASSISTANTS[i].re.test(s)) return AI_ASSISTANTS[i].name; }
+        return 'Other AI';
+    }
     function classifySource(source, channel) {
         const s = String(source || '').toLowerCase(), ch = String(channel || '');
         if (/ask[\s_-]?ci/.test(s)) return 'AskCI chatbot';
@@ -1885,6 +1895,30 @@
         if (_trendCache[key]) return _trendCache[key];
         _trendCache[key] = fetchPeriodMaps(tree, days, offset).catch(function (e) { delete _trendCache[key]; throw e; });
         return _trendCache[key];
+    }
+    // GSC site-wide monthly trend (impressions/clicks/ctr/position), cached per window. For the
+    // AI-Impact report's divergence wedge. REGISTERED in clearCaches (cross-period cache read).
+    const _gscTrendCache = {};   // months -> Promise<[{ym,impressions,clicks,ctr,position}]>
+    function getGscSiteTrend(months) {
+        const gsc = window.GSCIntegration;
+        if (!(gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchSiteTrend)) return Promise.resolve([]);
+        const key = String(months || 12);
+        if (_gscTrendCache[key]) return _gscTrendCache[key];
+        _gscTrendCache[key] = gsc.fetchSiteTrend({ months: months || 12 })
+            .then(function (rows) { if (!rows || !rows.length) delete _gscTrendCache[key]; return rows || []; })
+            .catch(function (e) { delete _gscTrendCache[key]; throw e; });
+        return _gscTrendCache[key];
+    }
+    // Epistemic grammar (design principle #1): render a FIGURE with its evidence tier — the apparatus
+    // attaches to numbers, never sentences. tier: 'measured' (plain, confident — no apparatus),
+    // 'estimated' (~ prefix, muted), 'inferred' (dashed chip, "bound not measurement"). Tier is passed
+    // at call time (a property of the datum), so a value can be promoted across tiers without redesign.
+    function _epi(text, tier, title) {
+        const t = esc(String(text));
+        if (tier === 'estimated') return '<span class="sv-epi sv-epi-est" title="' + esc(title || 'Estimated — a modelled figure, not a direct measurement.') + '">~' + t + '</span>';
+        if (tier === 'inferred') return '<span class="sv-epi sv-epi-inf" title="' + esc(title || 'Inferred — a bound from triangulating two data sources, not a measurement.') + '">' + t + '</span>';
+        if (tier === 'pending') return '<span class="sv-epi sv-epi-inf" title="Not yet computed — lands with the per-page classification (Phase 2).">' + t + '</span>';
+        return '<span class="sv-epi sv-epi-meas">' + t + '</span>';   // measured: plain, confident
     }
 
     // Ranked action-card list for the section briefing (numbered, colour-tagged by type).
@@ -2645,16 +2679,20 @@
                 if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '" - pick one.', data: { columns: [], rows: [] } };
                 pages = [_res.page]; scopeLabel = _res.page.name;
             } else { const c = _catByName(cats, plan.category); pages = c ? catPages(c) : _allPages(r); scopeLabel = c ? c.name : 'the whole site'; }
-            const buckets = Object.create(null);
-            pages.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rs = data.byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { const b = classifySource(rw.source, rw.channel); buckets[b] = (buckets[b] || 0) + rw.sessions; }); }); });
+            const buckets = Object.create(null), aiB = Object.create(null);
+            pages.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rs = data.byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { const b = classifySource(rw.source, rw.channel); buckets[b] = (buckets[b] || 0) + rw.sessions; if (b === 'AI assistants') { const n = _aiName(rw.source); aiB[n] = (aiB[n] || 0) + rw.sessions; } }); }); });
             const entries = Object.keys(buckets).map(function (k) { return { channel: k, sess: buckets[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
             if (!entries.length) return { html: '', summary: '', err: 'No traffic-source data for ' + scopeLabel + ' in ' + periodLabel(_ddDays) + '.' };
             const total = entries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
             const items = entries.slice(0, limit).map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + Math.round(x.sess / total * 100) + '%)', bar: x.sess }; });
             const hasAI = entries.some(function (x) { return x.channel === 'AI assistants'; });
+            // Break the single "AI assistants" bucket out by named assistant (ChatGPT/Perplexity/…).
+            const aiEntries = Object.keys(aiB).map(function (k) { return { name: k, sess: aiB[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
+            const aiTotal = aiEntries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
+            const aiHtml = (hasAI && aiEntries.length) ? '<div style="margin-top:10px;border-top:1px solid var(--color-border-primary);padding-top:8px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;">Which AI assistants (' + fmt(aiTotal) + ' AI sessions)</div>' + aiEntries.map(function (x) { return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:0.72rem;padding:2px 0;color:var(--color-text-primary);"><span>' + esc(x.name) + '</span><span style="color:var(--color-text-secondary);">' + fmt(x.sess) + ' &middot; ' + Math.round(x.sess / aiTotal * 100) + '%</span></div>'; }).join('') + '</div>' : '';
             return {
-                html: _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
-                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 6).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.',
+                html: _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + aiHtml + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
+                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 6).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.' + (hasAI && aiEntries.length ? ' AI split: ' + aiEntries.slice(0, 3).map(function (x) { return x.name + ' ' + Math.round(x.sess / aiTotal * 100) + '%'; }).join(', ') + '.' : ''),
                 data: { columns: [{ key: 'source', label: 'Source' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { source: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'source', y: 'sessions', label: 'Sessions' } }
             };
         }
@@ -3684,7 +3722,7 @@
     // guard) and exposed as SVRollup.clearCaches() for manual use. Also nudges the GSC/GA4 modules'
     // own caches so a new site never inherits the old site's fetched maps.
     function clearCaches() {
-        [_priorCache, _queryCache, _priorQueryCache, _countryQueryCache, _sourcesCache, _trendCache]
+        [_priorCache, _queryCache, _priorQueryCache, _countryQueryCache, _sourcesCache, _trendCache, _gscTrendCache]
             .forEach(function (c) { for (const k in c) delete c[k]; });
         try { if (window.GSCIntegration && window.GSCIntegration.clearCache) window.GSCIntegration.clearCache(); } catch (e) {}
         try { if (window.GA4Integration && window.GA4Integration.clearCache) window.GA4Integration.clearCache(); } catch (e) {}
@@ -4135,9 +4173,120 @@
         buildMonthlyReport(parseInt(mm[1], 10), parseInt(mm[2], 10));
     }
 
+    // ── Site-level AI Impact report (Phase 1) ────────────────────────────────────
+    // Honest whole-site picture: measured SENDS (AI-assistant referrals) + the 12-month GSC
+    // divergence WEDGE (evidence, not estimate). TAKES is a pending placeholder until the Phase 2
+    // per-page classifier (position discipline can't run at site aggregate). Epistemic grammar via _epi.
+    const _aiPct = function (x) { return (x >= 0 ? '+' : '−') + Math.abs(Math.round(x * 100)) + '%'; };
+    const _aiCtr = function (x) { return (x * 100).toFixed(1) + '%'; };
+    async function _aiSends() {                                   // site-wide AI-assistant sends (measured), cur + prior for growth
+        const cur = await getSourcesByPage(_ddDays);
+        if (!cur || !cur.byPage) return null;
+        let prev = null; try { prev = await getSourcesByPage(_ddDays, _ddDays); } catch (e) {}
+        let ai = 0, askci = 0, total = 0, prevAI = 0; const named = Object.create(null);
+        cur.byPage.forEach(function (rows) { rows.forEach(function (rw) { total += rw.sessions; const b = classifySource(rw.source, rw.channel); if (b === 'AI assistants') { ai += rw.sessions; const nm = _aiName(rw.source); named[nm] = (named[nm] || 0) + rw.sessions; } else if (b === 'AskCI chatbot') { askci += rw.sessions; } }); });
+        if (prev && prev.byPage) prev.byPage.forEach(function (rows) { rows.forEach(function (rw) { if (classifySource(rw.source, rw.channel) === 'AI assistants') prevAI += rw.sessions; }); });
+        const namedArr = Object.keys(named).map(function (k) { return { name: k, sess: named[k] }; }).sort(function (a, b) { return b.sess - a.sess; });
+        return { ai: ai, askci: askci, total: total, named: namedArr, growth: prevAI > 0 ? (ai - prevAI) / prevAI : null };
+    }
+    function _aiDivergence(trend) {                              // the wedge read from GSC monthly trend (evidence)
+        if (!trend || trend.length < 4) return null;
+        const n = trend.length, k = Math.max(1, Math.min(3, Math.floor(n / 3)));
+        const slice = function (arr) { const s = { impr: 0, clk: 0 }; arr.forEach(function (x) { s.impr += x.impressions; s.clk += x.clicks; }); return { impr: s.impr / arr.length, clk: s.clk / arr.length }; };
+        const e = slice(trend.slice(0, k)), l = slice(trend.slice(n - k));
+        const eCtr = e.impr > 0 ? e.clk / e.impr : 0, lCtr = l.impr > 0 ? l.clk / l.impr : 0;
+        const imprChange = e.impr > 0 ? (l.impr - e.impr) / e.impr : 0;
+        const clkChange = e.clk > 0 ? (l.clk - e.clk) / e.clk : 0;
+        const ctrChange = eCtr > 0 ? (lCtr - eCtr) / eCtr : 0;
+        return { months: n, eCtr: eCtr, lCtr: lCtr, imprChange: imprChange, clkChange: clkChange, ctrChange: ctrChange, consistentWithAI: imprChange > -0.1 && ctrChange < -0.1 };
+    }
+    function _aiWedgeSvg(trend) {                                // indexed impressions vs clicks (both start=100); shade the gap
+        if (!trend || trend.length < 2) return '';
+        const W = 560, H = 170, P = 26, n = trend.length;
+        const idx = function (key) { const b = trend[0][key] || 1; return trend.map(function (x) { return b > 0 ? x[key] / b * 100 : 0; }); };
+        const iI = idx('impressions'), iC = idx('clicks'); const all = iI.concat(iC);
+        const mx = Math.max.apply(null, all) * 1.05, mn = Math.min.apply(null, all) * 0.9;
+        const X = function (i) { return P + (W - 2 * P) * (n > 1 ? i / (n - 1) : 0); };
+        const Y = function (v) { return H - P - (H - 2 * P) * ((v - mn) / (mx - mn || 1)); };
+        const line = function (a) { return a.map(function (v, i) { return X(i) + ',' + Y(v); }).join(' '); };
+        const gap = line(iI) + ' ' + iC.map(function (v, i) { return X(n - 1 - i) + ',' + Y(iC[n - 1 - i]); }).join(' ');
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;font-family:inherit;">' +
+            '<polygon points="' + gap + '" fill="rgba(220,38,38,0.10)"/>' +
+            '<polyline points="' + line(iI) + '" fill="none" stroke="#007cb6" stroke-width="2"/>' +
+            '<polyline points="' + line(iC) + '" fill="none" stroke="#dc2626" stroke-width="2"/>' +
+            '<text x="' + (X(n - 1) - 2) + '" y="' + (Y(iI[n - 1]) - 5) + '" font-size="10" fill="#007cb6" text-anchor="end">Impressions</text>' +
+            '<text x="' + (X(n - 1) - 2) + '" y="' + (Y(iC[n - 1]) + 12) + '" font-size="10" fill="#dc2626" text-anchor="end">Clicks</text>' +
+            '<text x="' + P + '" y="' + (H - 6) + '" font-size="9" fill="var(--color-text-muted)">indexed to 100 at ' + esc(_aiYm(trend[0].ym)) + ' — the widening red gap is the see-but-don’t-click divergence</text>' +
+            '</svg>';
+    }
+    function _aiYm(ym) { const y = String(ym).slice(0, 4), m = parseInt(String(ym).slice(4, 6), 10); return (_RPT_MONTHS[m - 1] || '').slice(0, 3) + ' ' + y; }
+    function _aiImpactBody(trend, sends, div, gscOn, ga4On) {
+        const S = 'font-size:0.72rem;color:var(--color-text-secondary);';
+        // SENDS (measured, confident)
+        let sendsHtml;
+        if (!ga4On) sendsHtml = '<div style="' + S + '">Connect GA4 to measure what AI assistants send back.</div>';
+        else if (!sends || sends.ai <= 0) sendsHtml = '<div style="' + S + '">No measurable AI-assistant referrals in ' + esc(periodLabel(_ddDays)) + ' yet.</div>';
+        else {
+            const share = sends.total > 0 ? Math.round(sends.ai / sends.total * 100) : null;
+            sendsHtml = '<div style="font-size:0.9rem;">AI assistants sent ' + _epi(fmt(sends.ai), 'measured') + ' sessions' +
+                (share != null ? ' (' + _epi(share + '%', 'measured') + ' of traffic)' : '') +
+                (sends.growth != null ? ', ' + (sends.growth >= 0 ? 'up ' : 'down ') + _epi(Math.abs(Math.round(sends.growth * 100)) + '%', 'measured') + ' vs the prior period' : '') + '.' +
+                (sends.named.length ? ' <span style="' + S + '">Mostly ' + sends.named.slice(0, 3).map(function (x) { return esc(x.name) + ' ' + Math.round(x.sess / (sends.ai || 1) * 100) + '%'; }).join(', ') + '.</span>' : '') + '</div>';
+        }
+        // TAKES — the divergence evidence + pending page number
+        let takesHtml;
+        if (!gscOn) takesHtml = '<div style="' + S + '">Connect Search Console to see the AI-Overviews divergence.</div>';
+        else if (!div) takesHtml = '<div style="' + S + '">Not enough Search Console history yet to read the divergence (needs a few months).</div>';
+        else takesHtml = '<div style="font-size:0.9rem;">Over the last ' + div.months + ' months, Google impressions ' + _epi(_aiPct(div.imprChange), 'measured') + ' while clicks ' + _epi(_aiPct(div.clkChange), 'measured') + ' (CTR ' + _aiCtr(div.eCtr) + '→' + _aiCtr(div.lCtr) + ') — ' +
+            (div.consistentWithAI ? 'a pattern <strong>consistent with AI Overviews</strong> taking clicks.' : 'this is <strong>not</strong> the AI-Overviews signature (clicks and impressions moved together).') +
+            ' The per-page figure — which pages, how many clicks — lands with the next phase: ' + _epi('pending page analysis', 'pending') + '.</div>';
+        // Takes-vs-sends bar: measured sends (right, green) + pending takes (left, dashed)
+        const sendVal = sends ? sends.ai : 0, barMax = Math.max(sendVal, 1);
+        const bar = '<div style="margin:10px 0;"><div style="display:flex;align-items:center;gap:6px;">' +
+            '<div style="flex:1;text-align:right;"><div style="display:inline-block;height:14px;border:1px dashed var(--color-border-primary);border-radius:3px;width:40%;"></div></div>' +
+            '<div style="width:1px;height:22px;background:var(--color-text-muted);"></div>' +
+            '<div style="flex:1;"><div style="height:14px;background:#059669;border-radius:3px;width:' + Math.min(100, sendVal / barMax * 60) + '%;"></div></div></div>' +
+            '<div style="display:flex;justify-content:space-between;' + S + 'margin-top:3px;"><span>← Takes (' + _epi('pending', 'pending') + ')</span><span>Sends: ' + _epi(fmt(sendVal), 'measured') + ' →</span></div></div>';
+        const legend = '<div style="' + S + 'margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;"><span>' + _epi('measured', 'measured') + ' direct figure</span><span>' + _epi('~estimated', 'estimated') + ' modelled</span><span>' + _epi('inferred', 'inferred') + ' a bound, not a measurement</span></div>';
+        const fresh = '<div style="' + S + 'margin-top:6px;">' + (gscOn && trend && trend.length ? 'GSC through ~' + esc(_aiYm(trend[trend.length - 1].ym)) + ' (Google lags ~3 days). ' : '') + (ga4On ? 'GA4 through ~yesterday.' : '') + '</div>';
+        return '<div id="sv-ai-verdict" style="border:1px solid var(--color-border-primary);border-radius:12px;padding:16px 18px;background:var(--color-bg-primary);">' +
+            '<div style="font-weight:700;font-size:1.05rem;color:var(--color-text-heading);margin-bottom:2px;">AI Impact — the whole site</div>' +
+            '<div style="' + S + 'margin-bottom:12px;">' + esc(periodLabel(_ddDays)) + ' · ' + esc(window.treeData && (window.treeData.name || 'site')) + '</div>' +
+            '<div style="font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);margin-bottom:4px;">What AI sends back</div>' + sendsHtml +
+            '<div style="font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);margin:12px 0 4px;">What AI takes (Google Overviews)</div>' + takesHtml + bar + legend + fresh + '</div>' +
+            (gscOn && trend && trend.length >= 2 ? '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:6px;">12-month divergence</div>' + _aiWedgeSvg(trend) + '</div>' : '') +
+            '<div style="' + S + 'margin-top:14px;padding-top:10px;border-top:1px solid var(--color-border-primary);">Search Console only sees Google, so this catches Google’s AI Overviews; losses to ChatGPT/Perplexity etc. are invisible here (they show as GA4-down / GSC-steady). For a public-service body, being the source an AI answer cites can be mission success even without the click.</div>';
+    }
+    async function showAIImpact(days) {
+        const tree = window.treeData;
+        if (!tree) { alert('Load a sitemap first.'); return; }
+        ensureDDStyle(); ensureAskStyle();
+        if (days) _ddDays = days;
+        const gsc = window.GSCIntegration, ga4 = window.GA4Integration;
+        const gscOn = !!(gsc && gsc.isConnected && gsc.isConnected()), ga4On = !!(ga4 && ga4.isConnected && ga4.isConnected());
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow:auto;backdrop-filter:blur(3px);';
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+        const content = document.createElement('div');
+        content.className = 'sv-dd-modal';
+        content.style.cssText = 'background:var(--color-bg-secondary);border-radius:14px;max-width:640px;width:100%;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+        const stage = function (txt) { content.innerHTML = '<div style="display:flex;justify-content:flex-end;"><button id="sv-ai-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div><div style="text-align:center;padding:30px 0;color:var(--color-text-secondary);font-size:0.85rem;">' + esc(txt) + '</div>'; const c = content.querySelector('#sv-ai-close'); if (c) c.addEventListener('click', function () { overlay.remove(); }); };
+        stage('Fetching the 12-month Search Console trend…');
+        overlay.appendChild(content); document.body.appendChild(overlay);
+        let trend = [], sends = null;
+        if (gscOn) { try { trend = await getGscSiteTrend(12); } catch (e) {} }
+        stage('Classifying AI-assistant traffic…');
+        if (ga4On) { try { sends = await _aiSends(); } catch (e) {} }
+        const div = _aiDivergence(trend);
+        content.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:0.72rem;color:var(--color-text-muted);">Reports → AI Impact</div><button id="sv-ai-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div>' +
+            (!gscOn && !ga4On ? '<div style="text-align:center;padding:24px;color:var(--color-text-secondary);font-size:0.85rem;">Connect Search Console and GA4 to measure AI impact.</div>' : _aiImpactBody(trend, sends, div, gscOn, ga4On));
+        const c2 = content.querySelector('#sv-ai-close'); if (c2) c2.addEventListener('click', function () { overlay.remove(); });
+    }
+
     window.SVRollup = {
         build: build,
         clearCaches: clearCaches,
+        showAIImpact: showAIImpact,
         buildMonthlyReport: buildMonthlyReport,
         downloadMonthlyReport: promptMonthlyReport,
         statsForUrl: statsForUrl,
@@ -4159,6 +4308,7 @@
     window.showCategoryPerformance = showPanel;
     window.showAskData = showAsk;
     window.downloadMonthlyReport = promptMonthlyReport;
+    window.showAIImpact = function () { showAIImpact(); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _ensureAskFab);
     else _ensureAskFab();
 })();
