@@ -4162,15 +4162,56 @@
         const _fname = 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
         await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales, kpiCells: summary.kpiCells, sparkline: summary.sparkline } });   // write + inject formatting/tables/sparkline
     }
+    // Month picker modal for the .xlsx report: year stepper + a 4-col month grid. Future (incomplete)
+    // months are disabled; clicking a month generates the report. Replaces the old YYYY-MM prompt().
     function promptMonthlyReport() {
+        if (typeof XLSX === 'undefined') { alert('Spreadsheet library not loaded. Hard-refresh (index.html must include xlsx.full.min.js).'); return; }
+        if (typeof ensureDDStyle === 'function') ensureDDStyle();
         const now = new Date();
-        let m = now.getMonth(), y = now.getFullYear();       // getMonth() 0-11 == last-completed month as 1-12
-        if (m === 0) { m = 12; y -= 1; }
-        const inp = prompt('Monthly report — which month? (YYYY-MM)', y + '-' + ('0' + m).slice(-2));
-        if (!inp) return;
-        const mm = /^(\d{4})-(\d{1,2})$/.exec(inp.trim());
-        if (!mm) { alert('Please enter the month as YYYY-MM, e.g. 2026-06.'); return; }
-        buildMonthlyReport(parseInt(mm[1], 10), parseInt(mm[2], 10));
+        let lm = now.getMonth(), ly = now.getFullYear();     // getMonth() 0-11 == last-completed month as 1-12
+        if (lm === 0) { lm = 12; ly -= 1; }
+        const curY = now.getFullYear(), curM = now.getMonth() + 1;   // this calendar month (1-12), not yet complete
+        const minY = curY - 2, maxY = curY;
+        let viewY = ly;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow:auto;backdrop-filter:blur(3px);';
+        const close = function () { overlay.remove(); document.removeEventListener('keydown', onKey); };
+        const onKey = function (e) { if (e.key === 'Escape') close(); };
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+        document.addEventListener('keydown', onKey);
+        const modal = document.createElement('div');
+        modal.className = 'sv-dd-modal';
+        modal.style.cssText = 'background:var(--color-bg-secondary);border-radius:14px;max-width:380px;width:100%;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+        const stepBtn = function (id, glyph, disabled) {
+            return '<button id="' + id + '"' + (disabled ? ' disabled' : '') + ' style="background:none;border:1px solid var(--color-border-primary);border-radius:8px;width:34px;height:34px;font-size:17px;line-height:1;color:var(--color-text-primary);cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';opacity:' + (disabled ? '0.35' : '1') + ';">' + glyph + '</button>';
+        };
+        const render = function () {
+            const isFuture = function (m) { return viewY > curY || (viewY === curY && m >= curM); };
+            const btns = _RPT_MONTHS.map(function (name, i) {
+                const m = i + 1, fut = isFuture(m), sel = (viewY === ly && m === lm);
+                const bd = sel ? 'var(--primary)' : 'var(--color-border-primary)';
+                const bg = sel ? 'var(--primary)' : 'var(--color-bg-primary)';
+                const fg = fut ? 'var(--color-text-muted)' : (sel ? '#fff' : 'var(--color-text-primary)');
+                const hov = (!fut && !sel) ? ' onmouseover="this.style.borderColor=\'var(--primary)\';this.style.color=\'var(--primary)\'" onmouseout="this.style.borderColor=\'var(--color-border-primary)\';this.style.color=\'var(--color-text-primary)\'"' : '';
+                return '<button class="sv-mp-m" data-m="' + m + '"' + (fut ? ' disabled' : '') + hov +
+                    ' style="padding:10px 0;border:1px solid ' + bd + ';border-radius:8px;background:' + bg + ';color:' + fg + ';font-size:0.8rem;font-weight:600;cursor:' + (fut ? 'not-allowed' : 'pointer') + ';opacity:' + (fut ? '0.4' : '1') + ';transition:border-color 0.12s,color 0.12s;">' + name.slice(0, 3) + '</button>';
+            }).join('');
+            modal.innerHTML =
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><div style="font-weight:800;font-size:1.05rem;color:var(--color-text-heading);">Monthly pageview report</div><button id="sv-mp-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div>' +
+                '<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-bottom:16px;">Pick a month to generate the spreadsheet. GA4 data covers roughly the last 14 months.</div>' +
+                '<div style="display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:14px;">' +
+                    stepBtn('sv-mp-prev', '‹', viewY <= minY) +
+                    '<div style="font-weight:800;font-size:1.15rem;color:var(--color-text-heading);min-width:64px;text-align:center;">' + viewY + '</div>' +
+                    stepBtn('sv-mp-next', '›', viewY >= maxY) +
+                '</div>' +
+                '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">' + btns + '</div>';
+            modal.querySelector('#sv-mp-close').addEventListener('click', close);
+            const pv = modal.querySelector('#sv-mp-prev'); if (pv && viewY > minY) pv.addEventListener('click', function () { viewY--; render(); });
+            const nx = modal.querySelector('#sv-mp-next'); if (nx && viewY < maxY) nx.addEventListener('click', function () { viewY++; render(); });
+            modal.querySelectorAll('.sv-mp-m').forEach(function (b) { if (!b.disabled) b.addEventListener('click', function () { const m = parseInt(b.getAttribute('data-m'), 10); close(); buildMonthlyReport(viewY, m); }); });
+        };
+        render();
+        overlay.appendChild(modal); document.body.appendChild(overlay);
     }
 
     // ── Site-level AI Impact report (Phase 1) ────────────────────────────────────
@@ -4287,6 +4328,7 @@
             legend + fresh + '</div>' +
             (gscOn && trend && trend.length >= 2 ? '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:6px;">12 month divergence</div>' + _aiWedgeSvg(trend) + '</div>' : '') +
             (gscOn ? _aiHitListHtml(hitRows) : '') +
+            (gscOn && hitRows ? _aiExcludedNote(hitRows._artifactRows) : '') +
             sendsDetail +
             '<div style="' + S + 'margin-top:16px;padding-top:10px;border-top:1px solid var(--color-border-primary);">Search Console only sees Google, so this catches Google’s AI Overviews; losses to ChatGPT/Perplexity etc. are invisible here (they show up as GA4 down while GSC holds steady). For a public service body, being the source an AI answer cites can be mission success even without the click.</div>';
     }
@@ -4295,7 +4337,14 @@
     // A page is flagged ONLY when position held (controls for rank slip) AND impressions clear a
     // floor AND CTR fell hard: that is the zero-click fingerprint, not demand or ranking loss.
     // Pre-committed discipline (a tight, real list beats a long mixed one):
+    //  _HL_POSMAX  page-1 only — AI Overviews/rich results sit at the top; a page at rank 12 losing CTR
+    //              is a ranking/depth story, not an Overviews one.
+    //  _HL_CTRBASE the page needed a real baseline CTR to have meaningful clicks to lose (a page that
+    //              never converted shows noisy relative drops).
+    //  cliff guard near-zero CTR *at a top rank* (pos<=5) is implausible from AI (Overviews reduce, they
+    //              don't zero out a rank-3 page) — it is a redirect/tracking artifact; set aside, not counted.
     const _HL_WIN = 90, _HL_FLOOR = 2000, _HL_POS = 1.0, _HL_CTRDROP = 0.75, _HL_TOP = 15;
+    const _HL_POSMAX = 10, _HL_CTRBASE = 0.02, _HL_CLIFFPOS = 5, _HL_CLIFFCTR = 0.005;
     async function _aiHitList(tree, r) {
         let now, base;
         try { const pair = await Promise.all([fetchTrendWindow(tree, _HL_WIN, 0), fetchTrendWindow(tree, _HL_WIN, 365)]); now = pair[0].gscBy; base = pair[1].gscBy; }
@@ -4306,27 +4355,31 @@
             urls.forEach(function (u) { const g = maps[normUrl(u)]; if (g) { const gi = g.impressions || 0; i += gi; c += g.clicks || 0; pw += (g.position || 0) * gi; } });
             return { impr: i, clk: c, pos: i > 0 ? pw / i : 0 };
         };
-        const rows = [];
+        const rows = []; const arts = [];
         _allPages(r).forEach(function (p) {
             const urls = p.urls || [p.url];
             if (!urls.some(function (u) { return String(u).indexOf('/en/') >= 0; })) return;     // English pages only
             const a = agg(now, urls), b = agg(base, urls);
             if (a.impr < _HL_FLOOR || b.impr <= 0) return;                                        // impressions floor
             const cN = a.impr > 0 ? a.clk / a.impr : 0, cB = b.impr > 0 ? b.clk / b.impr : 0;
-            if (cB <= 0) return;
+            if (cB < _HL_CTRBASE) return;                                                         // needed a real baseline CTR
             if (Math.abs(a.pos - b.pos) > _HL_POS) return;                                        // position held
+            if (a.pos > _HL_POSMAX) return;                                                       // page 1 only
             if (cN >= cB * _HL_CTRDROP) return;                                                   // CTR fell >= 25% relative
+            if (a.pos <= _HL_CLIFFPOS && cN < _HL_CLIFFCTR) { arts.push({ name: p.name || urls[0], url: p.url || urls[0], pos: a.pos, ctrN: cN, ctrB: cB, impr: a.impr }); return; }   // ~0 clicks at a top rank = artifact, not AI
             const lostMo = Math.max(0, Math.round(a.impr * (cB - cN) / 3));                       // 90-day window to per-month
             rows.push({ name: p.name || urls[0], url: p.url || urls[0], tier: a.pos <= 2.0 ? 'cited' : 'exposed', pos: a.pos, ctrN: cN, ctrB: cB, impr: a.impr, lost: lostMo });
         });
         rows.sort(function (a, b) { if (a.tier !== b.tier) return a.tier === 'exposed' ? -1 : 1; return b.lost - a.lost; });   // exposed first, then by lost clicks
+        arts.sort(function (a, b) { return b.impr - a.impr; });                                    // biggest leak first
+        rows._artifacts = arts.length; rows._artifactRows = arts;
         return rows;
     }
     function _aiHitListHtml(rows) {
         const S = 'font-size:0.72rem;color:var(--color-text-secondary);';
         const head = '<div style="margin-top:16px;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:2px;">Where Google is answering for you</div>';
         if (rows == null) return '';                                                              // GSC off or fetch failed: section stays absent
-        if (!rows.length) return head + '<div style="' + S + '">No pages cleared the bar this period (' + fmt(_HL_FLOOR) + ' or more impressions, position held within ' + _HL_POS + ', CTR down 25% or more). That is a good sign, or the two windows are too close to separate the signal.</div></div>';
+        if (!rows.length) return head + '<div style="' + S + '">No pages cleared the bar this period (page 1, ' + fmt(_HL_FLOOR) + ' or more impressions, baseline CTR ' + Math.round(_HL_CTRBASE * 100) + '% or more, position held, CTR down 25% or more). That is a good sign, or the two windows are too close to separate the signal.</div></div>';
         const top = rows.slice(0, _HL_TOP);
         const row = function (x) {
             const cited = x.tier === 'cited';
@@ -4345,6 +4398,17 @@
             '<div style="display:flex;flex-direction:column;gap:7px;">' + top.map(row).join('') + '</div>' +
             (rows.length > top.length ? '<div style="' + S + 'margin-top:6px;">Showing top ' + top.length + ' of ' + rows.length + ', by estimated lost clicks.</div>' : '') +
             '</div>';
+    }
+    // Provenance note (NOT a content-ops panel): the AI report owns the disclosure of what was excluded
+    // from the takes number and why, so the figure is honest, but the remediation ("fix your redirects")
+    // is site-health work that belongs elsewhere. Compact, muted, no call-to-action; names link out.
+    function _aiExcludedNote(arts) {
+        if (!arts || !arts.length) return '';
+        const S = 'font-size:0.72rem;color:var(--color-text-secondary);';
+        const names = arts.slice(0, 10).map(function (x) {
+            return '<span class="sv-ask-page" role="button" tabindex="0" data-url="' + esc(x.url) + '" style="cursor:pointer;border-bottom:1px dotted var(--color-text-muted);" title="' + esc(fmt(Math.round(x.impr)) + ' impressions at position ' + x.pos.toFixed(1) + ', but CTR ' + _aiCtr(x.ctrB) + ' to ' + _aiCtr(x.ctrN)) + '">' + esc(x.name) + '</span>';
+        }).join(', ');
+        return '<div style="' + S + 'margin-top:12px;line-height:1.45;"><strong>' + arts.length + ' page' + (arts.length === 1 ? '' : 's') + ' excluded from the takes number:</strong> click through fell to near zero at a strong rank, which is a data pattern (a redirect or attribution gap) rather than AI: ' + names + (arts.length > 10 ? ', and ' + (arts.length - 10) + ' more' : '') + '.</div>';
     }
     // ── Export the verdict card as a PNG ─────────────────────────────────────────
     // The existing _svgToPng path is SVG-only; the verdict card is HTML, so lazy-load html2canvas
