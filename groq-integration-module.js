@@ -146,6 +146,9 @@
     // ─── HTTP error mapping ───────────────────────────────────────────────────
 
     function _handleHttpError(status) {
+        // 400 is the one status that means OUR code built a bad request, not a Groq outage: a deterministic
+        // 400 will 400 forever, so "try again" is false hope. Own it honestly and point at a bug report.
+        if (status === 400) throw new Error('The request we built was rejected (HTTP 400, bad request). This is a bug worth reporting, not something a retry will fix.');
         if (status === 401) throw new Error('Invalid API key. Check your key at console.groq.com');
         if (status === 404) throw new Error('The selected AI model is unavailable — Groq may have retired it. Pick a current model in Settings (see console.groq.com/docs/models).');
         if (status === 429) throw new Error('Rate limit reached. Please wait a moment and try again.');
@@ -168,6 +171,9 @@
             stream:      false,
         };
         if (options && options.response_format) payload.response_format = options.response_format;
+        // Reasoning models (gpt-oss) accept a reasoning-effort hint: 'low' keeps a classification task from
+        // spending its whole token budget deliberating (the A6 empty-generation root cause). Passed through only when set.
+        if (options && options.reasoning_effort) payload.reasoning_effort = options.reasoning_effort;
 
         let response;
         try {
@@ -191,6 +197,19 @@
                 await new Promise(function (r) { setTimeout(r, 1600); });
                 const opts2 = {}; for (const k in options) opts2[k] = options[k]; opts2._retried = true;
                 return _rawComplete(messages, opts2, overrideKey);
+            }
+            // A 400 means we sent something Groq rejected. Capture the exact request payload AND Groq's own reason
+            // to the console BEFORE throwing, so the root cause is diagnosable from evidence (house rule), not guessed.
+            if (response.status === 400) {
+                let _errBody = '';
+                try { _errBody = await response.text(); } catch (e) {}
+                if (typeof console !== 'undefined') console.error('[GroqAI] HTTP 400 (bad request). Request payload:', payload, '\nGroq response body:', _errBody);
+                // json_validate_failed = the model emitted empty/unparseable content under JSON mode (typically
+                // max_tokens exhausted inside the reasoning channel), NOT a malformed request. Name it honestly;
+                // the parser caller degrades this to the unknown path and logs the miss.
+                if (_errBody && _errBody.indexOf('json_validate_failed') >= 0) {
+                    throw new Error('The model could not produce a valid answer to this phrasing (json_validate_failed). A retry will not fix it.');
+                }
             }
             _handleHttpError(response.status);
         }
