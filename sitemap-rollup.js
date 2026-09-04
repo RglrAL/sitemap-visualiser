@@ -433,6 +433,11 @@
         mk('overlap.now_disjoint', _periodsOverlap({ offset: 0, days: 30 }, _ovlP90), false);      // and no longer overlaps
         mk('overlap.discloses', _ovlR.note.indexOf('overlap') >= 0, true);
         mk('overlap.none_when_disjoint', _disjoinOverlap({ offset: 0, days: 90 }, { offset: 90, days: 90 }), null);
+        // Refusal-template split: an ANCHORED "before/after a date" ask must NOT be mis-redirected to seasonal (it is change_impact,
+        // not year-over-year); a calendar quarter pair IS year-over-year and keeps the seasonal redirect.
+        mk('anchored.before_after', _isAnchoredPeriods('before May 12', 'after May 12'), true);
+        mk('anchored.since', _isAnchoredPeriods('since May 12', ''), true);
+        mk('anchored.calendar_quarters_not', _isAnchoredPeriods('q1 2025', 'q1 2024'), false);
         // B8 navigational queries: a service/brand name is demand for ANOTHER site, not content upside.
         mk('nav.mywelfare', _isNavigational('mywelfare'), true);
         mk('nav.my_welfare_spaced', _isNavigational('my welfare'), true);
@@ -1093,6 +1098,10 @@
         shift.label = 'the ' + shift.days + ' days before ' + ((keep.offset || 0) ? 'that' : 'it');
         return { note: 'The windows you named overlap (' + keep.label + ' sits inside the other), which would flatten every change toward zero, so I compared ' + keep.label + ' vs ' + shift.label + '.' };
     }
+    // "before/after/since a date" = the ANCHORED change_impact shape, NOT a year-over-year calendar comparison. The
+    // discriminator the change_impact brief pinned; used to split the calendar-period refusal so an anchored ask is not
+    // mis-redirected to seasonal (which can't isolate a mid-period change).
+    function _isAnchoredPeriods(a, b) { return /\b(before|after|since)\b/i.test(String(a || '') + ' ' + String(b || '')); }
     // Combine finalized per-URL stats into one, re-weighting rates correctly (point 5): CTR by
     // impressions, position by impressions, engagement/duration/bounce by sessions.
     function _combineStats(arr) {
@@ -1832,7 +1841,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z28';
+    const _BUILD = '20260904z29';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -3524,9 +3533,16 @@
             // A calendar/anchored-date comparison ("before and after May 12", "q1 vs q2") is exactly the change_impact
             // demand signal: refuse gracefully AND log it (missTag) so the err path captures the demand the crash used to eat.
             if ((pa0 && pa0.calendar) || (pb0 && pb0.calendar)) {
-                // Teach the nearest CAPABLE intent, not just the nearest phrasing of this incapable one (B9): a calendar
-                // quarter-vs-quarter is a YEAR-OVER-YEAR question, which `seasonal` already answers. Route there. No product
-                // promise ("coming"), and no scope-escape chip (broadening scope does not make a calendar period parseable).
+                // TWO unsupported shapes share this refusal, and they need DIFFERENT copy - conflating them relocates the
+                // A11 force-match failure into the apology (a fixed refusal that misdirects). Split by what was detected:
+                //  ANCHORED ("before/after/since a date") = change_impact territory; seasonal (now vs last year) canNOT
+                //   isolate a mid-period change, so DO NOT redirect there - name the limitation honestly (the A6 spec copy).
+                //  CALENDAR quarter/month ("Q1 2025 vs Q1 2024") = year-over-year, which `seasonal` genuinely answers.
+                if (_isAnchoredPeriods(plan.periodA, plan.periodB)) {
+                    return { html: '', summary: '', err: 'I can’t compare around a specific date yet. Relative periods are available ("this month vs last month", "last 90 days vs the previous 90 days"), but if the change happened partway through a period they will not isolate it.', missTag: 'change_impact', noScopeEscape: true };
+                }
+                // Teach the nearest CAPABLE intent (B9): a calendar quarter-vs-quarter IS year-over-year -> seasonal. No product
+                // promise ("coming"), no scope-escape chip.
                 const _scH = plan.category || plan.page;
                 const _seas = _scH ? ('is ' + _scH + ' seasonal') : 'is this drop seasonal';
                 const _vsyr = _scH ? (_scH + ' vs last year') : 'how does this compare to last year';
