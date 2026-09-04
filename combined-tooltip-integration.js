@@ -69,8 +69,8 @@
                 padding: 0;
                 box-shadow: var(--shadow-xl);
                 z-index: 10000;
-                max-width: 480px;
-                width: 480px;
+                max-width: 540px;
+                width: 540px;
                 opacity: 0;
                 transform: translateY(12px) scale(0.94);
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -84,9 +84,17 @@
 
         tooltip.innerHTML = createTabbedContent(data);
 
-        // Ask-the-tree menu: append the "Ask about this" block to the tooltip body (its own surface, so no fighting the
-        // tabs). Null for nodes with no honest menu (mid-tree/language branch).
-        try { const _askMenu = _buildTreeAskMenu(data); if (_askMenu) tooltip.appendChild(_askMenu); } catch (e) {}
+        // Ask-the-tree menu: the "Ask about this" block on its own surface (no fighting the tabs). Null for nodes with no
+        // honest menu (mid-tree/language branch). Insert it ABOVE the FULL REPORT action row so the report button stays at
+        // the very bottom of the popup (owner request); fall back to appending if the button isn't present.
+        try {
+            const _askMenu = _buildTreeAskMenu(data);
+            if (_askMenu) {
+                const _btn = tooltip.querySelector('.full-width-report'), _row = _btn ? _btn.parentNode : null;
+                if (_row && _row.parentNode) _row.parentNode.insertBefore(_askMenu, _row);
+                else tooltip.appendChild(_askMenu);
+            }
+        } catch (e) {}
 
         // Initialize tabs after content is created
         setTimeout(() => initializeTabs(tooltip), 50);
@@ -134,7 +142,7 @@
             ? '<div style="font-size:0.66rem;color:var(--color-text-muted);padding:6px 10px 0;">Open <strong>Reports › Category Performance</strong> to load search &amp; analytics for this section.</div>'
             : '';
         return '<div style="padding:12px 20px 0;">' +
-            '<div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">This section — ' + _svFmt(r.leafCount != null ? r.leafCount : r.pageCount) + ' content pages</div>' +
+            '<div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:5px;">This section · ' + _svFmt(r.leafCount != null ? r.leafCount : r.pageCount) + ' content pages</div>' +
             '<div style="display:flex;border:1px solid var(--color-border-primary);border-radius:8px;overflow:hidden;background:var(--color-bg-primary);">' + cells + '</div>' +
             note +
         '</div>';
@@ -168,8 +176,8 @@
             items = [
                 { label: 'How is ' + nm + ' doing?', plan: { intent: 'page_summary', url: u } },
                 { label: 'Diagnose ' + nm, plan: { intent: 'diagnose', url: u } },
-                { label: 'What brings people to ' + nm + '?', plan: { intent: 'page_queries', url: u } },
-                { label: 'Where does ' + nm + ' traffic come from?', plan: { intent: 'traffic_sources', url: u } },
+                { label: 'What do people search to find ' + nm + '?', plan: { intent: 'page_queries', url: u } },
+                { label: 'Which channels bring people to ' + nm + '?', plan: { intent: 'traffic_sources', url: u } },
                 { label: nm + ': this month vs last', plan: { intent: 'compare_periods', url: u, periodA: 'this month', periodB: 'last month' } }
             ];
         } else if (data === window.treeData) {                // ROOT -> whole-site questions
@@ -529,24 +537,6 @@ onmouseout="
                 <div class="tab-panel active" data-panel="analytics">
                     <div id="ga4-metrics-container" style="margin-bottom: 20px;">
                         ${createAdvancedLoadingGrid()}
-                    </div>
-
-                    <!-- Additional Analytics Insights -->
-                    <div style="
-                        background: var(--color-bg-tertiary);
-                        border-radius: 12px;
-                        padding: 16px;
-                        border: 1px solid var(--color-border-primary);
-                    ">
-                        <div style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink: 0;">
-                                <path fill="#ff6b35" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                            </svg>
-                            <span>Performance Insights</span>
-                        </div>
-                        <div id="ga4-insights" style="font-size: 0.8rem; color: var(--color-text-secondary); opacity: 0.8;">
-                            Connect GA4 for performance insights
-                        </div>
                     </div>
                 </div>
             </div>
