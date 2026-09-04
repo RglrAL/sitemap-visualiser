@@ -83,10 +83,14 @@
         }
 
         tooltip.innerHTML = createTabbedContent(data);
-        
+
+        // Ask-the-tree menu: append the "Ask about this" block to the tooltip body (its own surface, so no fighting the
+        // tabs). Null for nodes with no honest menu (mid-tree/language branch).
+        try { const _askMenu = _buildTreeAskMenu(data); if (_askMenu) tooltip.appendChild(_askMenu); } catch (e) {}
+
         // Initialize tabs after content is created
         setTimeout(() => initializeTabs(tooltip), 50);
-        
+
         return tooltip;
     }
 
@@ -134,6 +138,78 @@
             '<div style="display:flex;border:1px solid var(--color-border-primary);border-radius:8px;overflow:hidden;background:var(--color-bg-primary);">' + cells + '</div>' +
             note +
         '</div>';
+    }
+
+    // ── Ask the tree: an "Ask about this" menu in the tooltip body. Each row fires SVRollup.askWithPlan with the node's
+    // exact URL (page) or name (section), so there is no typing and no name-matching. Namespaced sv-tree-ask-* styles,
+    // design tokens only (light+dark), real buttons with focus-visible. Node-type -> fixed <=5 items.
+    function _ensureTreeAskStyle() {
+        if (document.getElementById('sv-tree-ask-style')) return;
+        const st = document.createElement('style'); st.id = 'sv-tree-ask-style';
+        st.textContent =
+            '.sv-tree-ask{border-top:1px solid var(--color-border-primary);padding:8px 8px 10px;background:var(--color-bg-primary);}' +
+            '.sv-tree-ask-hd{font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);padding:2px 8px 6px;}' +
+            '.sv-tree-ask-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;background:none;border:none;text-align:left;font-family:var(--font-family);font-size:0.8rem;color:var(--color-text-primary);padding:7px 9px;border-radius:8px;cursor:pointer;}' +
+            '.sv-tree-ask-row:hover{background:var(--color-bg-tertiary);}' +
+            '.sv-tree-ask-row:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;}' +
+            '.sv-tree-ask-row .sv-tree-ask-arw{color:var(--color-text-muted);flex-shrink:0;}' +
+            '.sv-tree-ask-else{color:var(--color-text-secondary);font-size:0.74rem;}';
+        document.head.appendChild(st);
+    }
+    // The one place a node becomes a set of questions. Returns a menu element, or null for nodes with no honest menu
+    // (mid-tree / language branch that is not a real category - do NOT fake subtree scoping).
+    function _buildTreeAskMenu(data) {
+        if (!window.SVRollup || typeof window.SVRollup.askWithPlan !== 'function' || !data) return null;
+        const kids = data.children || data._children || [];
+        const nm = data.name || '';
+        let items = null;
+        if (data.url && !kids.length) {                       // PAGE node -> page questions, resolved by exact URL
+            const u = data.url;
+            items = [
+                { label: 'How is ' + nm + ' doing?', plan: { intent: 'page_summary', url: u } },
+                { label: 'Why is ' + nm + ' underperforming?', plan: { intent: 'diagnose', url: u } },
+                { label: 'What brings people to ' + nm + '?', plan: { intent: 'page_queries', url: u } },
+                { label: 'Where does ' + nm + ' traffic come from?', plan: { intent: 'traffic_sources', url: u } },
+                { label: nm + ': this month vs last', plan: { intent: 'compare_periods', url: u, periodA: 'this month', periodB: 'last month' } }
+            ];
+        } else if (data === window.treeData) {                // ROOT -> whole-site questions
+            items = [
+                { label: 'How is the whole site doing?', plan: { intent: 'site_summary' } },
+                { label: 'Which sections perform best?', plan: { intent: 'rank_categories' } },
+                { label: 'What is AI doing to us?', plan: { intent: 'ai_impact' } },
+                { label: 'Generate a weekly digest', plan: { intent: 'digest' } }
+            ];
+        } else if (kids.length) {                             // SECTION -> only if the name is a REAL category (build merges En+Ga sections by name)
+            let isCat = false;
+            try { isCat = (window.SVRollup.build(window.treeData).categories || []).some(function (c) { return String(c.name).toLowerCase() === String(nm).toLowerCase(); }); } catch (e) {}
+            if (isCat) items = [
+                { label: 'How is ' + nm + ' doing?', plan: { intent: 'section_summary', category: nm } },
+                { label: 'What should I focus on in ' + nm + '?', plan: { intent: 'briefing', category: nm } },
+                { label: 'Biggest opportunities in ' + nm, plan: { intent: 'opportunities', category: nm } },
+                { label: 'Which ' + nm + ' pages lost traffic?', plan: { intent: 'movers', category: nm, direction: 'down' } },
+                { label: 'AI exposure in ' + nm, plan: { intent: 'ai_exposed', category: nm } }
+            ];
+        }
+        if (!items) return null;
+        _ensureTreeAskStyle();
+        const closeTip = function () { try { if (window.currentEnhancedTooltip) { window.currentEnhancedTooltip.remove(); window.currentEnhancedTooltip = null; } } catch (e) {} };
+        const wrap = document.createElement('div');
+        wrap.className = 'sv-tree-ask';
+        const hd = document.createElement('div'); hd.className = 'sv-tree-ask-hd'; hd.textContent = 'Ask about this'; wrap.appendChild(hd);
+        items.slice(0, 5).forEach(function (it) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'sv-tree-ask-row';
+            const t = document.createElement('span'); t.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'; t.textContent = it.label;
+            const a = document.createElement('span'); a.className = 'sv-tree-ask-arw'; a.textContent = '›';   // ›
+            b.appendChild(t); b.appendChild(a);
+            b.addEventListener('click', function (e) { e.stopPropagation(); closeTip(); window.SVRollup.askWithPlan(Object.assign({ _src: 'tree' }, it.plan), it.label); });
+            wrap.appendChild(b);
+        });
+        const other = document.createElement('button'); other.type = 'button'; other.className = 'sv-tree-ask-row sv-tree-ask-else'; other.textContent = 'Ask something else…';
+        other.addEventListener('click', function (e) { e.stopPropagation(); closeTip(); try { window.SVRollup.showAsk(); } catch (er) {} setTimeout(function () { const inp = document.getElementById('sv-ask-input'); if (inp) { inp.value = nm + ' '; inp.focus(); } }, 60); });
+        wrap.appendChild(other);
+        // Clicks inside the menu must never bubble to the node (expand/collapse) behind it.
+        wrap.addEventListener('click', function (e) { e.stopPropagation(); });
+        return wrap;
     }
 
     function createTabbedContent(data) {
