@@ -390,6 +390,14 @@
         mk('ladder.renders', _chartLadder({ rows: [{ q: 'a', p: 2, i: 900 }, { q: 'b', p: 8, i: 400 }], chart: { type: 'ladder', label: 'q', pos: 'p', size: 'i' } }, {}).indexOf('<svg') === 0, true);
         mk('ladder.skips_zeropos', _chartLadder({ rows: [{ q: 'x', p: 0, i: 100 }], chart: { type: 'ladder', label: 'q', pos: 'p', size: 'i' } }, {}), '');   // pos 0 -> no valid rows -> empty
         mk('dumbbell.renders', _chartDumbbell({ rows: [{ n: 'p', was: 1000, now: 600 }], chart: { type: 'dumbbell', label: 'n', before: 'was', after: 'now', shared: true } }, {}).indexOf('<svg') === 0, true);
+        mk('ellip.adds_ellipsis', _ellip('Local Authority Mortgages', 22).slice(-1), '…');   // no mid-word truncation
+        mk('ellip.short_untouched', _ellip('Stamp Duty', 22), 'Stamp Duty');
+        // middle-truncation keeps the DISCRIMINATING tail so common-prefix names stay distinct
+        mk('ellipmid.keeps_tail', _ellipMid('Local Authority Purchase And Renovation Loan', 22).indexOf('Loan') >= 0, true);
+        mk('ellipmid.distinct', _ellipMid('Local Authority Mortgages', 22) !== _ellipMid('Local Authority Purchase And Renovation Loan', 22), true);
+        mk('ellipmid.short_untouched', _ellipMid('Stamp Duty', 22), 'Stamp Duty');
+        // single-series line chart carries its endpoint values on the line, not just in the sentence
+        mk('chartline.endpoint_labels', (function () { const t = _chartLine({ periods: ['a', 'b', 'c', 'd', 'e', 'f'], series: [{ name: '', values: [1200000, 1100000, 1000000, 950000, 880000, 829300] }], chart: { type: 'line' } }, {}); return t.indexOf('829.3K') >= 0 && t.indexOf('1.2M') >= 0; })(), true);
         // compare_periods small-multiples: position INVERTS. The classic once-per-tool bug, pinned both ways.
         mk('deltaimproved.pos_down_good', _deltaImproved('lower', 6.4, 5.1), true);      // position 6.4 -> 5.1 is an improvement
         mk('deltaimproved.pos_up_bad', _deltaImproved('lower', 5.1, 6.4), false);
@@ -459,6 +467,12 @@
         if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
         return String(Math.round(n));
     }
+    // Truncate with an ellipsis so a chart label never cuts mid-word ("Local Authority Mortga").
+    function _ellip(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+    // MIDDLE truncation keeps BOTH ends, so common-prefix names ("Local Authority Mortgages" vs "…Purchase
+    // And Renovation Loan") stay distinguishable — the discriminating word survives (the full name lives in
+    // the row's hover title). End-ellipsis fails exactly this case, which is the one that matters in a compare.
+    function _ellipMid(s, n) { s = String(s); if (s.length <= n) return s; const head = Math.ceil((n - 1) / 2), tail = n - 1 - head; return s.slice(0, head) + '…' + (tail > 0 ? s.slice(s.length - tail) : ''); }
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
             return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -1883,8 +1897,8 @@
             const link = (urlK && r[urlK]);
             const pct = b > 0 ? (a - b) / b * 100 : null;
             const pctTxt = pct != null ? '  ' + (pct >= 0 ? '▲' : '▼') + Math.abs(Math.round(pct)) + '%' : '';   // the delta rides on every row, legible even when the dots collapse to a smudge
-            body += '<g' + (link ? ' class="sv-ask-page" data-url="' + esc(r[urlK]) + '" style="cursor:pointer;"' : '') + '>' +
-                '<text x="' + labelW + '" y="' + (y + 3) + '" font-size="' + (opts.big ? 12 : 10) + '" text-anchor="end" fill="var(--color-text-primary)">' + esc(String(r[labK]).slice(0, opts.big ? 40 : 22)) + '</text>' +
+            body += '<g' + (link ? ' class="sv-ask-page" data-url="' + esc(r[urlK]) + '" style="cursor:pointer;"' : '') + '><title>' + esc(String(r[labK])) + '</title>' +
+                '<text x="' + labelW + '" y="' + (y + 3) + '" font-size="' + (opts.big ? 12 : 10) + '" text-anchor="end" fill="var(--color-text-primary)">' + esc(_ellipMid(r[labK], opts.big ? 40 : 22)) + '</text>' +
                 '<line x1="' + Math.min(bx, ax).toFixed(1) + '" y1="' + y + '" x2="' + Math.max(bx, ax).toFixed(1) + '" y2="' + y + '" stroke="' + col + '" stroke-width="2" opacity="0.45"/>' +
                 '<circle cx="' + bx.toFixed(1) + '" cy="' + y + '" r="4.5" fill="var(--color-bg-primary)" stroke="var(--color-text-muted)" stroke-width="2"/>' +
                 '<circle cx="' + ax.toFixed(1) + '" cy="' + y + '" r="5" fill="' + col + '"/>' +
@@ -2184,10 +2198,21 @@
                 gapFill = '<path class="sv-carea"' + sent + ' d="' + gd + '" fill="' + fCol + '" fill-opacity="' + fOp + '" fill-rule="evenodd" stroke="none"/>';
             }
         }
+        // Endpoint value labels (single series): the start/end values ride ON the line, so the story ("1.2M
+        // to 829.3K") is visible in the chart, not only in the sentence — same idiom as the sparkline's last dot.
+        let endLabels = '';
+        if (series.length === 1) {
+            const s0 = series[0], v0 = s0.values || [], nn = v0.length;
+            if (nn >= 2) {
+                const fv = s0.raw ? s0.raw[0] : v0[0], lv = s0.raw ? s0.raw[nn - 1] : v0[nn - 1];
+                endLabels = '<text x="' + (x(0) + 2).toFixed(1) + '" y="' + (y(v0[0]) - 6).toFixed(1) + '" font-size="8.5" font-weight="700" text-anchor="start" fill="var(--color-text-secondary)">' + esc(vf(fv)) + '</text>' +
+                    '<text x="' + (x(nn - 1) - 2).toFixed(1) + '" y="' + (y(v0[nn - 1]) - 6).toFixed(1) + '" font-size="8.5" font-weight="700" text-anchor="end" fill="var(--color-text-primary)">' + esc(vf(lv)) + '</text>';
+            }
+        }
         let legend = '';
         if (series.length > 1) { let lx = padL; series.forEach(function (s, si) { const col = colors[si % colors.length]; legend += '<rect x="' + lx + '" y="2" width="9" height="9" rx="2" fill="' + col + '"/><text x="' + (lx + 12) + '" y="10" font-size="9" fill="var(--color-text-secondary)">' + esc(s.name) + '</text>'; lx += 12 + Math.min(120, String(s.name).length * 6) + 18; }); }
         const cap = (data.chart && data.chart.label) ? '<text x="' + (W - padR) + '" y="9" font-size="8" text-anchor="end" fill="var(--color-text-muted)">' + esc(data.chart.label) + '</text>' : '';
-        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);"><defs>' + defs + '</defs>' + grid + areas + gapFill + lines + dots + xl + legend + cap + '</svg>';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);"><defs>' + defs + '</defs>' + grid + areas + gapFill + lines + dots + endLabels + xl + legend + cap + '</svg>';
     }
 
     // Diverging horizontal bars (movers): green right / red left from a centre axis.
