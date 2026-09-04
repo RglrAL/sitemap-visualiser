@@ -438,6 +438,13 @@
         mk('anchored.before_after', _isAnchoredPeriods('before May 12', 'after May 12'), true);
         mk('anchored.since', _isAnchoredPeriods('since May 12', ''), true);
         mk('anchored.calendar_quarters_not', _isAnchoredPeriods('q1 2025', 'q1 2024'), false);
+        // B10 follow-on: seasonal no-data state (0/0) redirects, never "stable"; thin-nonzero keeps "indicative"; a 0-now collapse is not no-data.
+        mk('seasonal.nodata_not_stable', _seasonalVerdict(0, 0, null, null, 'Contact Tracing').text.indexOf('stable') < 0, true);
+        mk('seasonal.nodata_flagged', _seasonalVerdict(0, 0, null, null, 'Contact Tracing').noData, true);
+        mk('seasonal.nodata_no_only_zero', _seasonalVerdict(0, 0, null, null, 'X').text.indexOf('only 0') < 0, true);   // never "based on only 0 impressions"
+        mk('seasonal.thin_nonzero_indicative', _seasonalVerdict(120, 400, -70, null, 'X').text.indexOf('indicative') >= 0, true);
+        mk('seasonal.collapse_not_nodata', _seasonalVerdict(0, 5000, -100, null, 'X').noData, false);   // 0 now but prior>0 = real -100% collapse, not absence
+        mk('seasonal.real_decline', _seasonalVerdict(9000, 20000, -55, -60, 'X').text.indexOf('REAL decline') >= 0, true);
         // B8 navigational queries: a service/brand name is demand for ANOTHER site, not content upside.
         mk('nav.mywelfare', _isNavigational('mywelfare'), true);
         mk('nav.my_welfare_spaced', _isNavigational('my welfare'), true);
@@ -493,6 +500,13 @@
         mk('merge.en_only_lang', mergePages([{ name: 'X', url: 'https://x/en/z', s: { impressions: 100 } }])[0].lang, 'en');           // EN with no GA twin = coverage gap
         mk('merge.ga_only_lang', mergePages([{ name: 'Comhairle', url: 'https://x/ga/z', s: { impressions: 5 } }])[0].lang, 'ga');    // GA-only (translated slug / orphan) = the unpaired-GA state
         mk('merge.ie_not_stripped', mergePages([{ name: 'A', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'B', url: 'https://x/ie/a', s: { impressions: 50 } }]).length, 2);   // /ie/ is NOT a merge-key locale (unverified) -> stays separate, no silent collision
+        // Ask-the-tree: _pageByUrl keys by _langKey (the merge seam), so a /ga/ twin URL resolves to the same logical page
+        // as its /en/ twin; a URL plan resolves exactly and NEVER shows did-you-mean (the acceptance test).
+        mk('pagebyurl.resolves', (_pageByUrl(r, 'https://x/a/1') || {}).name, 'A1');
+        mk('pagebyurl.unknown_null', _pageByUrl(r, 'https://x/nope'), null);
+        mk('pagebyurl.langkey_twins_same', _langKey('https://x/en/z') === _langKey('https://x/ga/z'), true);
+        mk('planpage.url_never_candidates', (function () { const res = _planPage(r, { url: 'https://x/a/1' }); return !!res.page && !res.candidates; })(), true);
+        mk('planpage.url_unknown_none', _planPage(r, { url: 'https://x/nope' }).none, true);
         // P1.10 v1: coverage-gap INFERRED bracket - engages the "needs positional" objection (ships a bounded number, not a re-defer).
         mk('coverage.bracket_typical', (function () { const b = _coverageBracket(500, 103); return b.lo + '-' + b.hi + '/' + b.width; })(), '397-500/103');
         mk('coverage.bracket_no_unmatched_is_point', (function () { const b = _coverageBracket(500, 0); return b.lo === 500 && b.hi === 500 && b.width === 0; })(), true);   // no unmatched GA -> exact, not a bracket
@@ -524,6 +538,11 @@
         mk('movers.headline_magnitude', Math.round(_mvH.value), 34700);
         mk('movers.headline_no_pct', _mvH.delta == null, true);   // the misleading down-98% chip must NOT exist (semantic, not arithmetic, error)
         mk('movers.both_churn_no_pct', (function () { const h = _moversHeadline({ prev: 100, change: 0, pct: 0, churn: 500 }, 'both', 'impressions'); return h.value === 500 && h.delta == null; })(), true);
+        // C-era P0: fallers rank by ABSOLUTE loss, so the biggest loser leads (was signed-pct: least-severe first + biggest-absolute missed).
+        const _mvFix = [{ name: 'Tenancy', prev: 201100, cur: 68300, pct: -66 }, { name: 'Repossession', prev: 5000, cur: 17, pct: -100 }, { name: 'Riser', prev: 100, cur: 500, pct: 400 }];
+        mk('movers.down_biggest_loss_first', _rankMovers(_mvFix, 'down', 6)[0].name, 'Tenancy');   // -133K loss leads -5K, despite smaller %
+        mk('movers.down_order_by_loss', _rankMovers(_mvFix, 'down', 6).map(function (x) { return x.name; }).join('>'), 'Tenancy>Repossession');
+        mk('movers.up_biggest_gain_first', _rankMovers(_mvFix, 'up', 6)[0].name, 'Riser');
         // A8 did-you-mean click CONTRACT: a candidate re-runs the SAME intent with the RESOLVED page, dispatched
         // structurally - a page_summary disambig must NOT emit a diagnose question (the shipped-un-exercised crash path).
         const _disPS = _disambig('page_summary', [{ name: 'Disability Payments And Work', url: 'https://x/d', s: { impressions: 100000 } }], 'payments');
@@ -1102,6 +1121,27 @@
     // discriminator the change_impact brief pinned; used to split the calendar-period refusal so an anchored ask is not
     // mis-redirected to seasonal (which can't isolate a mid-period change).
     function _isAnchoredPeriods(a, b) { return /\b(before|after|since)\b/i.test(String(a || '') + ' ' + String(b || '')); }
+    // Seasonal verdict as a pure, testable function with THREE states (B10 follow-on):
+    //  no-data (0 impressions both windows) -> ABSENCE, not "stable": replace the verdict with a trend redirect (the user
+    //   asked about "the drop"; "broadly stable" on 0/0 contradicts what they know). A 0-now-but-prior>0 is a real collapse.
+    //  thin (0 < cur < floor) -> the real verdict + an "indicative" footnote. normal -> the verdict.
+    function _seasonalVerdict(curImp, prevImp, prevPct, yoyPct, scopeLabel) {
+        if (curImp === 0 && (prevImp || 0) === 0) return { noData: true, text: 'No search impressions this period or last, so there is no drop to assess here. Ask "how has ' + scopeLabel + ' trended" to see when it last had traffic and when it fell away.' };
+        let v;
+        if (prevPct != null && prevPct <= -10) {
+            if (yoyPct != null && yoyPct >= -5) v = 'This dip looks SEASONAL - down vs the previous period, but level with or above the same time last year.';
+            else if (yoyPct != null) v = 'This looks like a REAL decline - down both vs the previous period AND vs the same time last year.';
+            else v = 'Down vs the previous period; last-year data is unavailable, so I cannot confirm whether it is seasonal.';
+        } else if (prevPct != null && prevPct >= 10) {
+            if (yoyPct != null && yoyPct >= 10) v = 'Genuine growth - up vs both the previous period and the same time last year.';
+            else if (yoyPct != null && yoyPct < -5) v = 'Up vs last period but still below the same time last year - a partial recovery.';
+            else v = 'Up vs the previous period.';
+        } else {
+            v = yoyPct != null ? ('Broadly stable vs the previous period; ' + (yoyPct >= 0 ? 'up ' + yoyPct : 'down ' + Math.abs(yoyPct)) + '% vs last year.') : 'Broadly stable vs the previous period.';
+        }
+        if (curImp > 0 && curImp < _SEASONAL_MIN_IMPR) v += ' (Based on only ' + fmt(curImp) + ' impressions this period, so treat this as indicative, not a firm read.)';
+        return { noData: false, text: v };
+    }
     // Combine finalized per-URL stats into one, re-weighting rates correctly (point 5): CTR by
     // impressions, position by impressions, engagement/duration/bounce by sessions.
     function _combineStats(arr) {
@@ -1841,7 +1881,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z29';
+    const _BUILD = '20260904z32';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -1985,6 +2025,18 @@
         if (dir === 'both') return { value: nd.churn, unit: mword + ' moved across these pages', tier: 'measured' };
         return { value: Math.abs(nd.change), unit: (nd.change >= 0 ? 'gained' : 'lost') + ' ' + mword + ' across these movers', tier: 'measured' };
     }
+    // "which pages lost/gained/moved traffic" ranks by ABSOLUTE change (impressions lost/gained), matching the absolute
+    // headline and the literal question. The C-era bug: down sorted by SIGNED pct (b.pct-a.pct), putting the LEAST-severe
+    // faller first (-66% above -100%) under the label "biggest fallers", AND selected by |pct| so the biggest ABSOLUTE
+    // losers were missed entirely (a -66%/-133K page ranked below a -100%/-5K page, or dropped off). Filter by direction,
+    // then biggest absolute movement first - one order for select AND display, every direction. rows carry .prev/.cur/.pct.
+    function _rankMovers(rows, dir, limit) {
+        let f = rows;
+        if (dir === 'up') f = rows.filter(function (x) { return x.pct > 0; });
+        else if (dir === 'down') f = rows.filter(function (x) { return x.pct < 0; });
+        const mv = function (x) { return Math.abs((x.cur || 0) - (x.prev || 0)); };
+        return f.slice().sort(function (a, b) { return mv(b) - mv(a); }).slice(0, limit);
+    }
     // Two-line row card for query opportunities: query + potential on top,
     // position/impressions/CTR/action label beneath. Rows click through to the
     // best-ranking page's report via the existing sv-ask-page handler.
@@ -2103,6 +2155,20 @@
         const top = scored[0], second = scored[1];
         if (top.score >= 100 || (top.score - second.score) >= 25) return { page: top.page };
         return { candidates: scored.slice(0, 6).map(function (x) { return x.page; }) };
+    }
+    // Resolve a page by URL (Ask-the-tree): keyed by _langKey so a /ga/ twin's URL lands on the SAME merged logical page as
+    // its /en/ twin (the merge seam - a raw-normUrl lookup would miss every Ga-node click). No fuzzy scoring, no candidates.
+    function _pageByUrl(r, url) {
+        const k = _langKey(url); if (!k) return null;
+        const pgs = _allPages(r);
+        for (let i = 0; i < pgs.length; i++) { const us = pgs[i].urls || [pgs[i].url]; for (let j = 0; j < us.length; j++) { if (_langKey(us[j]) === k) return pgs[i]; } }
+        return null;
+    }
+    // One page resolver for the whole pipeline: by URL when the plan carries one (tree asks -> exact, NEVER did-you-mean),
+    // else by name (typed / chip asks). Same return shape either way ({page} / {none} / {candidates}).
+    function _planPage(r, plan, ref) {
+        if (plan && plan.url) { const p = _pageByUrl(r, plan.url); return p ? { page: p } : { none: true }; }
+        return _resolvePage(r, ref);
     }
     // "Did you mean:" list - a question PAUSED mid-resolution, not an answer. Each candidate re-runs the SAME intent
     // (data-intent) with the RESOLVED page (data-page), dispatched STRUCTURALLY by the .sv-ask-disambig handler - so a
@@ -2967,14 +3033,9 @@
                 return { name: p.name, url: p.url, cur: cur, prev: prev, pct: prev >= 100 ? (cur - prev) / prev * 100 : null };
             }).filter(function (x) { return x.pct != null; });
             const dir = plan.direction || 'both';
-            if (dir === 'up') rows = rows.filter(function (x) { return x.pct > 0; });
-            else if (dir === 'down') rows = rows.filter(function (x) { return x.pct < 0; });
-            // "which pages are MOVING" (both) literally asks for the biggest MOVEMENT -> sort by absolute change, not by
-            // %, so a 101K->1 page outranks a 175->543 page (B2: pct-sort buried the two six-figure events at ranks 5-6).
-            // up/down keep %-sort (biggest proportional riser/faller is the honest read there).
-            const _mv = function (x) { return Math.abs((x.cur || 0) - (x.prev || 0)); };
-            if (dir === 'both') { rows.sort(function (a, b) { return _mv(b) - _mv(a); }); rows = rows.slice(0, limit); }
-            else { rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); }); rows = rows.slice(0, limit).sort(function (a, b) { return b.pct - a.pct; }); }
+            // Rank by ABSOLUTE change, every direction (fixes the C-era fallers-sort inversion; see _rankMovers): biggest
+            // loss/gain/movement first, so "biggest fallers" leads with the page that actually lost the most impressions.
+            rows = _rankMovers(rows, dir, limit);
             const items = rows.map(function (x) { const up = x.pct >= 0, pa = Math.abs(x.pct); return { name: x.name, val: (up ? '▲ ' : '▼ ') + (pa > 500 ? '500+' : pa.toFixed(0)) + '%', bar: Math.min(500, pa), col: up ? '#059669' : '#dc2626', valCol: up ? '#059669' : '#dc2626', url: x.url, artifact: _imprCliff(x.prev, x.cur) }; });
             const _vanished = rows.filter(function (x) { return _imprCliff(x.prev, x.cur); });
             // Count, list and naming must agree (C2): name up to 3 (biggest first, rows are movement-sorted) then say how many more.
@@ -3151,7 +3212,7 @@
         }
         if (intent === 'diagnose') {
             const _ref = plan.page || plan.category || '';
-            const _res = _resolvePage(r, _ref);
+            const _res = _planPage(r, plan, _ref);
             if (_res.none) return _pageNotFound(_ref, r);
             if (_res.candidates) return { html: _disambig('diagnose', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
             const page = _res.page;
@@ -3351,7 +3412,7 @@
         }
         if (intent === 'page_queries') {
             const _ref = plan.page || plan.category || '';
-            const _res = _resolvePage(r, _ref);
+            const _res = _planPage(r, plan, _ref);
             if (_res.none) return _pageNotFound(_ref, r);
             if (_res.candidates) return { html: _disambig('page_queries', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
             const page = _res.page;
@@ -3441,7 +3502,7 @@
         }
         if (intent === 'page_summary') {
             const _ref = plan.page || plan.category || '';
-            const _res = _resolvePage(r, _ref);
+            const _res = _planPage(r, plan, _ref);
             if (_res.none) return _pageNotFound(_ref, r);
             if (_res.candidates) return { html: _disambig('page_summary', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
             const p = _res.page, s = p.s || {};
@@ -3562,7 +3623,7 @@
             const _scopeTerm = plan.page || plan.category;
             if (_scopeTerm && _catByName(cats, _scopeTerm)) { catNode = _catByName(cats, _scopeTerm); scopeLabel = catNode.name; }
             else if (plan.page) {
-                const _res = _resolvePage(r, plan.page);
+                const _res = _planPage(r, plan, plan.page);
                 if (_res.candidates) return { html: _disambig('compare_periods', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
                 if (_res.none) return _pageNotFound(plan.page, r);
                 page = _res.page; scopeLabel = page.name;
@@ -3688,7 +3749,7 @@
             // ── Named source / bucket: rank pages (or a single page's count + share) ──
             if (m) {
                 if (plan.page) {
-                    const _res = _resolvePage(r, plan.page);
+                    const _res = _planPage(r, plan, plan.page);
                     if (_res.none) return _pageNotFound(plan.page, r);
                     if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
                     const pg = _res.page, sess = sumScope(data.byPage, [pg], m.pred), pgSess = (pg.s && pg.s.sessions) || 0, share = pgSess > 0 ? Math.round(sess / pgSess * 100) : null;
@@ -3723,7 +3784,7 @@
             // ── Bucket breakdown for a page / section / whole site ──
             let scopeLabel, pages;
             if (plan.page) {
-                const _res = _resolvePage(r, plan.page);
+                const _res = _planPage(r, plan, plan.page);
                 if (_res.none) return _pageNotFound(plan.page, r);
                 if (_res.candidates) return { html: _disambig('traffic_sources', _res.candidates, plan.page), summary: 'Several pages match "' + plan.page + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
                 pages = [_res.page]; scopeLabel = _res.page.name;
@@ -3775,7 +3836,7 @@
             const _term = plan.page || plan.category;
             if (_term && _catByName(cats, _term)) { catNode = _catByName(cats, _term); scopeLabel = catNode.name; }
             else if (_term) {
-                const _res = _resolvePage(r, _term);
+                const _res = _planPage(r, plan, _term);
                 if (_res.candidates) return { html: _disambig('seasonal', _res.candidates, _term), summary: 'Several pages match "' + _term + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
                 if (_res.page) { page = _res.page; scopeLabel = page.name; }
                 else scopeLabel = 'the whole site';   // named term is neither a section nor a page: fall to site, but the chip (res.scope) will say so honestly
@@ -3796,21 +3857,7 @@
             const prevPct = (pv && pv.imp > 0) ? Math.round((curImp - pv.imp) / pv.imp * 100) : null;
             const yoyOk = !!(yv && yv.imp > 0);
             const yoyPct = yoyOk ? Math.round((curImp - yv.imp) / yv.imp * 100) : null;
-            let verdict;
-            if (prevPct != null && prevPct <= -10) {
-                if (yoyPct != null && yoyPct >= -5) verdict = 'This dip looks SEASONAL - down vs the previous period, but level with or above the same time last year.';
-                else if (yoyPct != null) verdict = 'This looks like a REAL decline - down both vs the previous period AND vs the same time last year.';
-                else verdict = 'Down vs the previous period; last-year data is unavailable, so I cannot confirm whether it is seasonal.';
-            } else if (prevPct != null && prevPct >= 10) {
-                if (yoyPct != null && yoyPct >= 10) verdict = 'Genuine growth - up vs both the previous period and the same time last year.';
-                else if (yoyPct != null && yoyPct < -5) verdict = 'Up vs last period but still below the same time last year - a partial recovery.';
-                else verdict = 'Up vs the previous period.';
-            } else {
-                verdict = yoyPct != null ? ('Broadly stable vs the previous period; ' + (yoyPct >= 0 ? 'up ' + yoyPct : 'down ' + Math.abs(yoyPct)) + '% vs last year.') : 'Broadly stable vs the previous period.';
-            }
-            // Small-sample honesty (B10): a near-collapsed page has too few current impressions for the % swings to mean much.
-            const _thin = curImp < _SEASONAL_MIN_IMPR;
-            if (_thin) verdict += ' (Based on only ' + fmt(curImp) + ' impressions this period, so treat this as indicative, not a firm read.)';
+            const verdict = _seasonalVerdict(curImp, pv ? pv.imp : 0, prevPct, yoyPct, scopeLabel).text;
             const dlt = function (p) { return p == null ? { txt: 'n/a', col: 'var(--color-text-muted)' } : { txt: (p >= 0 ? '+' : '') + p + '%', col: p >= 0 ? '#059669' : '#dc2626' }; };
             const cell = function (l, v, sub) { return '<div style="flex:1;min-width:92px;padding:9px 11px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div>' + (sub ? '<div style="font-size:0.62rem;color:' + sub.col + ';font-weight:700;">' + sub.txt + '</div>' : '') + '</div>'; };
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);margin-bottom:10px;">' +
@@ -4581,6 +4628,16 @@
         return null;
     }
 
+    // Structured-entry hook (Ask the tree): showAsk registers a dispatcher into its closure (ask/input/_forcedPlan);
+    // askWithPlan opens the panel then calls it. One rail - the tree fires the SAME ask() a typed question does, just
+    // starting from a resolved plan instead of text.
+    let _askDispatch = null;
+    // A pre-built plan (from a tree-node menu) -> the pipeline, skipping parse AND name resolution (the plan carries the
+    // node's exact URL). `label` is the human-readable question echoed in the transcript.
+    async function askWithPlan(plan, label) {
+        await showAsk();
+        if (_askDispatch) _askDispatch(plan, label);
+    }
     async function showAsk() {
         const tree = window.treeData;
         if (!tree) { alert('Load a sitemap first.'); return; }
@@ -4662,7 +4719,9 @@
             }
         }
         let _forceSite = false;   // set by the "check whole site" escape chip; consumed once by ask()
-        let _forcedPlan = null;   // set by a did-you-mean candidate click: re-run the SAME intent with the RESOLVED page, structurally (consumed once by ask())
+        let _forcedPlan = null;   // set by a did-you-mean candidate click OR askWithPlan: run the given plan structurally (consumed once by ask())
+        // Expose this closure's dispatcher so askWithPlan (module scope) can fire a resolved plan into THIS ask().
+        _askDispatch = function (plan, label) { _forcedPlan = plan; input.value = label || ''; ask(); };
 
         // Scope pill: persist the owner's section and re-render the hero (only while the intro shows).
         const _scopeSel = panel.querySelector('#sv-ask-scope');
@@ -4982,6 +5041,7 @@
                 // (res.scope) over what the plan requested, so a scope-ignoring handler can't leave a false category chip.
                 _interpScope(plan, _sc, res).forEach(function (b) { interpBits.push(b); });
                 interpBits.push(periodLabel(_ddDays));
+                if (plan._src === 'tree') interpBits.push('from the tree');   // provenance: a menu click is as auditable as a typed question (rides the same interp rail)
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span><span style="opacity:0.4;margin-left:6px;" title="Build stamp: which deploy produced this answer">build ' + esc(_BUILD) + '</span></div>';
                 const _metricTgl = (res.data && res.data.availableMetrics && res.data.availableMetrics.length > 1 && res.data.metricViews) ? _metricToggleHtml(eid, res.data.availableMetrics, res.data.metric) : '';
                 // Chart/card body only — the metric toggle sits OUTSIDE .sv-ask-rich so the handler's
@@ -5941,6 +6001,7 @@
         computeMovers: computeMovers,
         showPanel: showPanel,
         showAsk: showAsk,
+        askWithPlan: askWithPlan,   // Ask the tree: fire a resolved {intent, url|category, _src} plan into the panel
         showDeepDive: showDeepDive,
         selfTest: selfTest,
         selfTestRouting: selfTestRouting,
