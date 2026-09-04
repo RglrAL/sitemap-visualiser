@@ -476,9 +476,22 @@
         mk('followup.seasonal_cat_keeps_briefing', _followups({ intent: 'seasonal', category: 'Health' }, { scope: { label: 'Health', isPage: false }, data: { rows: [] } }, r).join(' | ').indexOf('What should I focus on in Health?') >= 0, true);
         // B11 merge contract: pages merge by NAME (same name -> one page, summed); a different-language name does NOT pair
         // (the EN/GA twin leak - an Irish page whose English twin is named differently surfaces solo).
-        mk('merge.same_name_pairs', mergePages([{ name: 'X', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'X', url: 'https://x/ga/a', s: { impressions: 50 } }]).length, 1);
-        mk('merge.same_name_sums', mergePages([{ name: 'X', url: 'a', s: { impressions: 100 } }, { name: 'X', url: 'b', s: { impressions: 50 } }])[0].s.impressions, 150);
-        mk('merge.diff_language_name_solo', mergePages([{ name: 'Civil Legal Aid', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'Comhairle Dhlí', url: 'https://x/ga/a', s: { impressions: 0, pageViews: 14 } }]).length, 2);
+        // Cross-language merge (v1): EN/GA twins pair by locale-stripped URL even when names differ by language (B11 leak fixed).
+        mk('merge.twin_pairs_by_url', mergePages([{ name: 'X', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'X', url: 'https://x/ga/a', s: { impressions: 50 } }]).length, 1);
+        mk('merge.twin_sums', mergePages([{ name: 'X', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'X', url: 'https://x/ga/a', s: { impressions: 50 } }])[0].s.impressions, 150);
+        // THE fix: an Irish-NAMED GA twin now pairs with its English twin (was solo in dead_pages) - one page, lang 'paired', English name shown.
+        const _mgTwin = mergePages([{ name: 'Civil Legal Aid', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'Comhairle Dhlí', url: 'https://x/ga/a', s: { impressions: 0, pageViews: 14 } }]);
+        mk('merge.diff_language_name_pairs', _mgTwin.length, 1);
+        mk('merge.paired_lang', _mgTwin[0].lang, 'paired');
+        mk('merge.english_name_shown', _mgTwin[0].name, 'Civil Legal Aid');
+        mk('merge.distinct_slugs_stay_separate', mergePages([{ name: 'X', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'X', url: 'https://x/en/b', s: { impressions: 50 } }]).length, 2);   // different pages, same name -> NOT merged (URL is the identity)
+        mk('merge.en_only_lang', mergePages([{ name: 'X', url: 'https://x/en/z', s: { impressions: 100 } }])[0].lang, 'en');           // EN with no GA twin = coverage gap
+        mk('merge.ga_only_lang', mergePages([{ name: 'Comhairle', url: 'https://x/ga/z', s: { impressions: 5 } }])[0].lang, 'ga');    // GA-only (translated slug / orphan) = the unpaired-GA state
+        mk('merge.ie_not_stripped', mergePages([{ name: 'A', url: 'https://x/en/a', s: { impressions: 100 } }, { name: 'B', url: 'https://x/ie/a', s: { impressions: 50 } }]).length, 2);   // /ie/ is NOT a merge-key locale (unverified) -> stays separate, no silent collision
+        // P1.10 v1: coverage-gap INFERRED bracket - engages the "needs positional" objection (ships a bounded number, not a re-defer).
+        mk('coverage.bracket_typical', (function () { const b = _coverageBracket(500, 103); return b.lo + '-' + b.hi + '/' + b.width; })(), '397-500/103');
+        mk('coverage.bracket_no_unmatched_is_point', (function () { const b = _coverageBracket(500, 0); return b.lo === 500 && b.hi === 500 && b.width === 0; })(), true);   // no unmatched GA -> exact, not a bracket
+        mk('coverage.bracket_lo_floors_at_zero', _coverageBracket(50, 103).lo, 0);   // more unmatched GA than EN-only -> lower bound floors at 0
         // CTR formatter: sub-0.1% renders '<0.1%' everywhere (tile, sentence, table) via the ONE shared _ctrTxt, so no surface can round a real-but-tiny CTR to a self-contradicting '0.0%'
         mk('ctrtxt.subdecimal', _ctrTxt(0.0004), '<0.1%');
         mk('ctrtxt.zero_plain', _ctrTxt(0), '0.0%');           // an actual zero stays 0.0% (not '<0.1%' - reserve that for the non-zero-but-tiny case)
@@ -978,13 +991,28 @@
         for (let i = 0; i < kids.length; i++) collectPages(kids[i], out);
     }
     // Merge same-named pages (e.g. EN + GA versions) into one logical page.
+    // MERGE key locales = en|ga ONLY, deliberately narrower than the GSC module's matching list (en|ga|ie|uk). In a matching
+    // normaliser over-stripping is harmless; in a MERGE key it is how two distinct pages silently collide into one. The
+    // diagnostic confirmed only en/ga twins on this site; ie/uk are unverified, so they are NOT stripped here (an /ie/ page
+    // keys by its full URL and stays separate). If a site has real /ie/ or /uk/ TWINS that should pair, widen here knowingly.
+    function _localeOf(u) { const m = /\/(en|ga)(\/|$)/i.exec(String(u || '')); return m ? m[1].toLowerCase() : null; }
+    // Locale-stripped page key: /en/x and /ga/x collapse to the same key, so EN/GA TWINS pair by URL even when their node
+    // NAMES differ by language (the B11 leak: GA pages carry Irish names, so name-keying never paired them; 94% of GA slugs
+    // mirror EN under /ga/). Retires the double-count / dead-page / cannibalisation class.
+    function _langKey(u) { return u ? normUrl(String(u).replace(/\/(en|ga)(\/|$)/i, '/$2')) : null; }
+    // Coverage-gap inferred bracket (P1.10 v1): given EN-only and GA-only slug-swap counts, the count of EN pages with truly
+    // no Irish version is bounded [max(0, enOnly-gaOnly), enOnly] - width = min(enOnly, gaOnly) (each translated-slug twin
+    // consumes one from each side; genuine GA orphans don't inflate the EN side). Positional (v2) would collapse it to a point.
+    function _coverageBracket(enOnly, gaOnly) { return { lo: Math.max(0, enOnly - gaOnly), hi: enOnly, width: Math.min(enOnly, gaOnly) }; }
     function mergePages(raw) {
         const map = new Map();
         raw.forEach(function (p) {
-            const k = String(p.name || '').toLowerCase();
-            if (!map.has(k)) map.set(k, { name: p.name, url: p.url, urls: [], lm: p.lm, _maxImp: -1, imp: 0, clk: 0, pv: 0, us: 0, posSum: 0, posW: 0, ses: 0, engSum: 0, durSum: 0, bounceSum: 0 });
-            const m = map.get(k), sp = p.s || {};
+            const k = _langKey(p.url) || ('name:' + String(p.name || '').toLowerCase());   // pair EN/GA twins by slug; urlless -> name
+            if (!map.has(k)) map.set(k, { name: p.name, url: p.url, urls: [], lm: p.lm, _maxImp: -1, hasEn: false, hasGa: false, _enName: null, _enUrl: null, imp: 0, clk: 0, pv: 0, us: 0, posSum: 0, posW: 0, ses: 0, engSum: 0, durSum: 0, bounceSum: 0 });
+            const m = map.get(k), sp = p.s || {}, loc = _localeOf(p.url);
             m.urls.push(p.url);
+            if (loc === 'ga') m.hasGa = true; else if (loc === 'en') m.hasEn = true;
+            if (loc !== 'ga' && !m._enName) { m._enName = p.name; m._enUrl = p.url; }   // prefer the English (non-GA) name/url for display (GA names are Irish)
             m.imp += sp.impressions || 0; m.clk += sp.clicks || 0; m.pv += sp.pageViews || 0; m.us += sp.users || 0;
             if ((sp.impressions || 0) > 0 && sp.position != null) { m.posSum += sp.position * sp.impressions; m.posW += sp.impressions; }
             const ses = sp.sessions || 0;
@@ -993,7 +1021,8 @@
             if (p.lm && (!m.lm || Date.parse(p.lm) > Date.parse(m.lm))) m.lm = p.lm;
         });
         return Array.from(map.values()).map(function (m) {
-            return { name: m.name, url: m.url, urls: m.urls, lm: m.lm,
+            return { name: m._enName || m.name, url: m._enUrl || m.url, urls: m.urls, lm: m.lm,
+                lang: (m.hasEn && m.hasGa) ? 'paired' : (m.hasGa ? 'ga' : (m.hasEn ? 'en' : null)),   // three-state (B11): paired / GA-only (unpaired) / EN-only
                 s: { impressions: m.imp, clicks: m.clk, pageViews: m.pv, users: m.us, sessions: m.ses,
                      ctr: m.imp > 0 ? m.clk / m.imp : 0, position: m.posW > 0 ? m.posSum / m.posW : null,
                      engagementRate: m.ses > 0 ? m.engSum / m.ses : null, avgSessionDuration: m.ses > 0 ? m.durSum / m.ses : null, bounceRate: m.ses > 0 ? m.bounceSum / m.ses : null } };
@@ -1803,7 +1832,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z26';
+    const _BUILD = '20260904z28';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -3222,11 +3251,23 @@
             gaps.sort(function (a, b) { return b.gap - a.gap; });
             const top = gaps.slice(0, limit);
             const metL = useImp ? 'impressions' : 'views';
-            if (!top.length) return { html: '', summary: '', err: 'No clear English/Irish gaps found (needs paired /en/ and /ga/ pages with English ' + metL + ' of at least 50).' };
+            // Coverage gap as an INFERRED BRACKET (v1, engaging the "needs positional" objection instead of re-deferring):
+            // an EN page with no slug-matched GA twin is either untranslated (a real gap) or has a translated-slug twin (a
+            // false gap). Each translated twin consumes one EN-only AND one GA-only, so false <= min(enOnly, gaOnly), and
+            // genuine GA orphans do not inflate the EN side. Honest bound: [max(0, enOnly - gaOnly), enOnly]. Positional (v2)
+            // would collapse the bracket to a point; the width IS the argument for whether v2 is worth building.
+            let _enOnly = 0, _gaOnly = 0;
+            Object.keys(byKey).forEach(function (k) { const p = byKey[k]; if (p.en && !p.ga) _enOnly++; else if (p.ga && !p.en) _gaOnly++; });
+            const _cg = _coverageBracket(_enOnly, _gaOnly), _cgLo = _cg.lo, _cgHi = _cg.hi, _cgW = _cg.width;
+            const _cgTxt = _enOnly > 0 ? ('Coverage gap (inferred bound): ' + (_cgLo === _cgHi ? _cgHi : _cgLo + ' to ' + _cgHi) + ' English page' + (_cgHi === 1 ? '' : 's') + ' appear to have no Irish version' + (_cgW > 0 ? ' (up to ' + _cgW + ' of the unmatched pages may be twins with a translated slug, not true gaps)' : '') + '.') : '';
+            const _cgNote = _cgTxt ? '<div style="font-size:0.72rem;color:var(--color-text-muted);border-left:2px dashed var(--color-border-primary);padding:4px 0 4px 9px;margin-top:8px;">' + esc(_cgTxt) + '</div>' : '';
+            if (!top.length) return (_cgTxt
+                ? { html: _cgNote, summary: 'No page where a present Irish version underperforms its English twin. ' + _cgTxt, data: { columns: [], rows: [] } }
+                : { html: '', summary: '', err: 'No clear English/Irish gaps found (needs paired /en/ and /ga/ pages with English ' + metL + ' of at least 50).' });
             const items = top.map(function (x) { return { name: x.name, val: fmt(x.en) + ' vs ' + fmt(x.ga), bar: x.gap, url: x.enUrl }; });
             return {
-                html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'English vs Irish' }),
-                summary: 'Pages where the Irish version most underperforms its English twin (English ' + metL + ' vs Irish, ' + periodLabel(_ddDays) + '): ' + top.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.en) + ' vs ' + fmt(x.ga) + ')'; }).join('; ') + '.',
+                html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'English vs Irish' }) + _cgNote,
+                summary: 'Pages where the Irish version most underperforms its English twin (English ' + metL + ' vs Irish, ' + periodLabel(_ddDays) + '): ' + top.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.en) + ' vs ' + fmt(x.ga) + ')'; }).join('; ') + '.' + (_cgTxt ? ' ' + _cgTxt : ''),
                 data: { columns: [{ key: 'page', label: 'Page' }, { key: 'english', label: 'English ' + metL }, { key: 'irish', label: 'Irish ' + metL }, { key: 'gap', label: 'Gap' }, { key: 'enUrl', label: 'EN URL' }, { key: 'gaUrl', label: 'GA URL' }], rows: top.map(function (x) { return { page: x.name, english: x.en, irish: x.ga, gap: x.gap, enUrl: x.enUrl, gaUrl: x.gaUrl }; }), chart: { type: 'bar', x: 'page', y: 'gap', label: 'Gap' } }
             };
         }
