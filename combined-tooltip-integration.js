@@ -167,7 +167,7 @@
             const u = data.url;
             items = [
                 { label: 'How is ' + nm + ' doing?', plan: { intent: 'page_summary', url: u } },
-                { label: 'Why is ' + nm + ' underperforming?', plan: { intent: 'diagnose', url: u } },
+                { label: 'Diagnose ' + nm, plan: { intent: 'diagnose', url: u } },
                 { label: 'What brings people to ' + nm + '?', plan: { intent: 'page_queries', url: u } },
                 { label: 'Where does ' + nm + ' traffic come from?', plan: { intent: 'traffic_sources', url: u } },
                 { label: nm + ': this month vs last', plan: { intent: 'compare_periods', url: u, periodA: 'this month', periodB: 'last month' } }
@@ -205,7 +205,11 @@
             wrap.appendChild(b);
         });
         const other = document.createElement('button'); other.type = 'button'; other.className = 'sv-tree-ask-row sv-tree-ask-else'; other.textContent = 'Ask something else…';
-        other.addEventListener('click', function (e) { e.stopPropagation(); closeTip(); try { window.SVRollup.showAsk(); } catch (er) {} setTimeout(function () { const inp = document.getElementById('sv-ask-input'); if (inp) { inp.value = nm + ' '; inp.focus(); } }, 60); });
+        // Option A: prefill NOTHING - an empty focused box means "I'll ask my own thing". Prefilling the node name
+        // re-opened the two traps the tree menu exists to kill: name-resolution (did-you-mean) and a FALSE scope promise
+        // (a page name + a scope-none keyword like "ai impact" silently drops the page). The fixed rows carry the
+        // page-scoped cases; the escape hatch is a clean free-text detour.
+        other.addEventListener('click', function (e) { e.stopPropagation(); closeTip(); try { window.SVRollup.showAsk(); } catch (er) {} setTimeout(function () { const inp = document.getElementById('sv-ask-input'); if (inp) { inp.value = ''; inp.focus(); } }, 60); });
         wrap.appendChild(other);
         // Clicks inside the menu must never bubble to the node (expand/collapse) behind it.
         wrap.addEventListener('click', function (e) { e.stopPropagation(); });
