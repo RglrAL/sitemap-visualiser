@@ -430,6 +430,23 @@
         mk('stacked.empty', _stackedBar([{ label: 'x', value: 0 }], {}), '');
         mk('bench.below_bad', _benchmarkBar(0.017, 0.024, {}).indexOf('data-sentiment="bad"') >= 0, true);    // CTR below typical-for-position
         mk('bench.above_good', _benchmarkBar(0.030, 0.024, {}).indexOf('data-sentiment="good"') >= 0, true);
+        // CTR cliff guard: a near-zero CTR at a strong rank on real impressions is an artifact, not a grade
+        mk('ctrcliff.fuel', _ctrCliff(2.7, 0.0004, 137900), true);   // Fuel Allowance's real numbers: 137.9K impr, ~0 clicks at pos 2.7
+        mk('ctrcliff.real_lowctr', _ctrCliff(3, 0.05, 10000), false);   // a genuinely low but real CTR is NOT an artifact
+        mk('ctrcliff.below_floor', _ctrCliff(2.7, 0.0004, 500), false);   // too few impressions to call it
+        // sub-decimal CTR must not read as a literal 0.0%
+        mk('aictr.subdecimal', _aiCtr(0.0004), '<0.1%');
+        mk('aictr.normal', _aiCtr(0.017), '1.7%');
+        // the SHARED verdict sentence: a MIXED decline is DECOMPOSED (visibility vs AI), AI is the REMAINDER not the whole
+        const _vs = _aiVerdictSentence({ months: 14, read: 'mixed', clkChange: -0.62, imprChange: -0.41, eCtr: 0.017, lCtr: 0.011 });
+        mk('verdict.carries_visibility', _vs.indexOf('reduced visibility') >= 0 && _vs.indexOf('41 points') >= 0, true);
+        mk('verdict.ai_is_remainder', _vs.indexOf('remainder consistent with AI') >= 0, true);   // NOT "clicks down 62% consistent with AI" (the over-claim)
+        mk('verdict.clean_case', _aiVerdictSentence({ months: 12, read: 'clean', clkChange: -0.3, imprChange: -0.02, eCtr: 0.02, lCtr: 0.014 }).indexOf('roughly steady impressions') >= 0, true);
+        // FIXED-WINDOW comparability: exactly N complete months, partial current month dropped, INVARIANT as GSC accrues
+        const _tmRows = ['202407', '202408', '202409', '202410', '202411', '202412', '202501', '202502', '202503', '202504', '202505', '202506', '202507', '202508', '202509'].map(function (y) { return { ym: y, impressions: 100 }; });
+        mk('trend.fixed_len', _capTrendMonths(_tmRows, 12, 202509).length, 12);
+        mk('trend.drops_partial_current', _capTrendMonths(_tmRows, 12, 202509).filter(function (x) { return x.ym === '202509'; }).length, 0);
+        mk('trend.invariant_on_accrual', _capTrendMonths(_tmRows.concat([{ ym: '202510', impressions: 5 }]), 12, 202510).length, 12);   // next month accrues -> STILL 12 (the drift bug class cannot return)
 
         const passed = results.every(r => r.ok);
         return { passed, results };
@@ -1568,8 +1585,9 @@
         const es = (entries || []).filter(function (x) { return (x.value || 0) > 0; });
         if (!es.length) return '';
         const total = es.reduce(function (s, x) { return s + x.value; }, 0) || 1;
-        const seg = es.map(function (x, i) { const pct = x.value / total * 100; return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' (' + Math.round(pct) + '%)') + '" style="width:' + pct.toFixed(2) + '%;background:' + _stackColor(x.label, i) + ';height:100%;"></div>'; }).join('');
-        const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + _stackColor(x.label, i) + ';"></span>' + esc(x.label) + ' ' + Math.round(x.value / total * 100) + '%</span>'; }).join('');
+        const pctTxt = function (v) { const p = v / total * 100; return p > 0 && p < 1 ? '<1%' : Math.round(p) + '%'; };   // a nonzero sliver reads '<1%', never a misleading '0%'
+        const seg = es.map(function (x, i) { const pct = x.value / total * 100; return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' (' + pctTxt(x.value) + ')') + '" style="width:' + pct.toFixed(2) + '%;background:' + _stackColor(x.label, i) + ';height:100%;"></div>'; }).join('');
+        const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + _stackColor(x.label, i) + ';"></span>' + esc(x.label) + ' ' + pctTxt(x.value) + '</span>'; }).join('');
         return '<div style="margin-bottom:12px;"><div style="display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--color-bg-tertiary);">' + seg + '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:7px;">' + legend + '</div></div>';
     }
@@ -1587,6 +1605,13 @@
             '</div>' +
             '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:4px;">yours <span style="color:' + col + ';font-weight:700;">' + esc(vf(a)) + '</span> &middot; typical ' + esc(vf(e)) + ' ' + esc(opts.note || 'for this position') + '</div>' +
         '</div>';
+    }
+    // A near-zero CTR at a strong rank on real impressions is a DATA artifact (redirect / attribution gap),
+    // not a content verdict — the AI classifier's cliff vocabulary (_HL_CLIFF*). The benchmark/scorecard must
+    // NOT paint it 'below typical' (that judges a tracking bug as the writer's fault). Same pattern the AI
+    // Impact report excludes; surfaced here as 'investigate', not a failing grade.
+    function _ctrCliff(position, ctr, impressions) {
+        return position != null && position <= _HL_CLIFFPOS && (impressions || 0) >= _HL_FLOOR && (ctr || 0) < _HL_CLIFFCTR;
     }
     // Two-line row card for query opportunities: query + potential on top,
     // position/impressions/CTR/action label beneath. Rows click through to the
@@ -2228,13 +2253,21 @@
     // GSC site-wide monthly trend (impressions/clicks/ctr/position), cached per window. For the
     // AI-Impact report's divergence wedge. REGISTERED in clearCaches (cross-period cache read).
     const _gscTrendCache = {};   // months -> Promise<[{ym,impressions,clicks,ctr,position}]>
+    // FIXED-WINDOW invariant: the trend must be EXACTLY N COMPLETE months, or every conclusion drawn from it
+    // (the divergence %, "is it accelerating?", the deck screenshot) drifts silently as GSC accrues months and
+    // the current partial month deflates the late third. Drop the partial current month, keep the last N. The
+    // fetch over-fetches a buffer; this is the ONE place the window is pinned — selfTest asserts N is invariant.
+    function _capTrendMonths(rows, months, curYm) {
+        curYm = curYm || (function () { const d = new Date(); return d.getFullYear() * 100 + (d.getMonth() + 1); })();
+        return (rows || []).filter(function (x) { return parseInt(x.ym, 10) < curYm; }).slice(-months);
+    }
     function getGscSiteTrend(months) {
         const gsc = window.GSCIntegration;
         if (!(gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchSiteTrend)) return Promise.resolve([]);
-        const key = String(months || 12);
+        const n = months || 12, key = String(n);
         if (_gscTrendCache[key]) return _gscTrendCache[key];
-        _gscTrendCache[key] = gsc.fetchSiteTrend({ months: months || 12 })
-            .then(function (rows) { if (!rows || !rows.length) delete _gscTrendCache[key]; return rows || []; })
+        _gscTrendCache[key] = gsc.fetchSiteTrend({ months: n })
+            .then(function (rows) { rows = _capTrendMonths(rows || [], n); if (!rows.length) delete _gscTrendCache[key]; return rows; })
             .catch(function (e) { delete _gscTrendCache[key]; throw e; });
         return _gscTrendCache[key];
     }
@@ -2418,7 +2451,9 @@
             const pages = c ? catPages(c) : _allPages(r);
             const avg = (c ? c.rollup.ctr : r.totals.ctr) || 0;
             const rows = pages.filter(function (p) { return (p.s.impressions || 0) >= 300 && p.s.ctr < Math.max(0.005, avg * 0.6); }).sort(function (a, b) { return b.s.impressions - a.s.impressions; }).slice(0, limit);
-            const items = rows.map(function (p) { return { name: p.name, val: (p.s.ctr * 100).toFixed(1) + '%', bar: p.s.impressions, url: p.url }; });
+            let _lcTr = {};   // these are high-impression pages, so their impression trajectories actually populate (unlike stale's dead pages)
+            try { _lcTr = await _pageTrends(rows, 6, 30, 'impressions'); } catch (e) {}
+            const items = rows.map(function (p) { const sk = _lcTr[normUrl(p.url)]; return { name: p.name, val: (p.s.ctr * 100).toFixed(1) + '%', bar: p.s.impressions, url: p.url, spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });
             return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR' }), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }, shareBase: (c ? c.rollup.impressions : r.totals.impressions) || 0, shareKey: 'impressions', shareNoun: 'impressions, barely clicked' } };
         }
         if (intent === 'stale') {
@@ -2858,9 +2893,16 @@
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
                 cell('Impressions', fmt(s.impressions || 0)) + cell('Clicks', fmt(s.clicks || 0)) + cell('CTR', ((s.ctr || 0) * 100).toFixed(1) + '%') + cell('Avg pos', s.position != null ? s.position.toFixed(1) : '-') +
                 (hasGA4p ? cell('Views', fmt(s.pageViews || 0)) : '') + (hasGA4p ? cell('Users', fmt(s.users || 0)) : '') + (s.engagementRate != null ? cell('Engaged', Math.round(s.engagementRate * 100) + '%') : '') + '</div>';
-            // Benchmark: CTR against the typical-for-its-position rate — a fact becomes a judgement.
+            // Benchmark: CTR against the typical-for-its-position rate — a fact becomes a judgement. BUT a
+            // near-zero CTR at a strong rank is a data artifact (redirect/attribution), not a low grade, so
+            // surface it as 'investigate' rather than paint it stark red against typical.
             const _bench = (s.position != null && (s.impressions || 0) >= 100) ? _ctrBenchmark(s.position) : 0;
-            const benchHtml = _bench > 0 ? _benchmarkBar(s.ctr || 0, _bench, { fmt: function (v) { return (v * 100).toFixed(1) + '%'; }, note: 'for position ' + s.position.toFixed(0) }) : '';
+            const _cliff = _ctrCliff(s.position, s.ctr, s.impressions);
+            // GA4-corroborated framing: views >> clicks says real people reach the page, so GSC clicks is the broken figure.
+            const _viewsCorrob = (hasGA4p && (s.pageViews || 0) > (s.clicks || 0) * 10) ? ' GA4 shows ' + fmt(s.pageViews || 0) + ' views, so people are reaching it;' : '';
+            const benchHtml = _cliff
+                ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">' + fmt(s.impressions || 0) + ' impressions at position ' + s.position.toFixed(1) + ' but only ' + fmt(s.clicks || 0) + ' clicks (' + _aiCtr(s.ctr || 0) + ' CTR), implausibly low for a top rank.' + _viewsCorrob + ' this looks like a measurement artifact (clicks likely attributed to another URL), not performance: check the page URL and canonical.</div>'
+                : (_bench > 0 ? _benchmarkBar(s.ctr || 0, _bench, { fmt: function (v) { return (v * 100).toFixed(1) + '%'; }, note: 'for position ' + s.position.toFixed(0) }) : '');
             const months = p.lm ? (Date.now() - Date.parse(p.lm)) / (1000 * 60 * 60 * 24 * 30.44) : null;
             const meta = '<div style="font-size:0.7rem;color:var(--color-text-muted);margin-top:8px;">' + (months != null ? ('Last updated ~' + Math.round(months) + ' months ago') : 'No last-modified date') + '</div>';
             const _ci = _contentIntel(p);
@@ -2887,6 +2929,7 @@
                 if (_af && _af.kind === 'exposed') aiLine = '<div style="font-size:0.72rem;color:#dc2626;margin-top:8px;padding:7px 10px;border:1px solid rgba(220,38,38,0.25);border-radius:8px;background:rgba(220,38,38,0.05);">' + esc(_af.d) + '</div>';
             }
             return {
+                ctrArtifact: _cliff,   // so the follow-ups don't offer "why underperforming" on a measurement artifact
                 html: head + strip + benchHtml + meta + ciLine + aiLine + topQ,
                 summary: '"' + p.name + '" (' + periodLabel(_ddDays) + '): ' + fmt(s.impressions || 0) + ' impressions, ' + fmt(s.clicks || 0) + ' clicks, ' + ((s.ctr || 0) * 100).toFixed(1) + '% CTR, position ' + (s.position != null ? s.position.toFixed(1) : 'n/a') + (hasGA4p ? (', ' + fmt(s.pageViews || 0) + ' views') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + (_ci ? (' On-page: reading ease ' + (_ci.readability != null ? Math.round(_ci.readability) : 'n/a') + ', ' + fmt(_ci.words || 0) + ' words, meta ' + (_ci.metaLen || 0) + ' chars' + (_ci.noindex ? ', NOINDEX (hidden from search)' : '') + '.') : '') + '.',
                 data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'Impressions', value: s.impressions || 0 }, { metric: 'Clicks', value: s.clicks || 0 }, { metric: 'CTR %', value: +((s.ctr || 0) * 100).toFixed(2) }, { metric: 'Avg position', value: s.position != null ? +s.position.toFixed(1) : null }].concat(hasGA4p ? [{ metric: 'Views', value: s.pageViews || 0 }, { metric: 'Users', value: s.users || 0 }] : []).concat(_ciRows), chart: null }
@@ -3332,12 +3375,13 @@
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);margin-bottom:8px;">' +
                 cell('AI takes', takesMo == null ? 'n/a' : '~' + fmt(takesMo) + ' clicks/mo', '#dc2626') +
                 (sendsMo != null ? cell('AI sends', fmt(sendsMo) + ' sess/mo', '#059669') : '') + '</div>';
-            const verdictTxt = div ? ('Over ' + div.months + ' months, Google clicks ' + _aiPct(div.clkChange) + ' and CTR fell ' + _aiCtr(div.eCtr) + ' to ' + _aiCtr(div.lCtr) + ((div.read === 'mixed' || div.read === 'clean') ? ', consistent with AI answers taking clicks in the results page.' : '.')) : '';
             const takesTxt = takesMo == null ? '' : ' An estimated floor of ~' + fmt(takesMo) + ' clicks/mo is lost across ' + exposed.length + ' exposed page' + (exposed.length === 1 ? '' : 's') + '.';
             const sendsTxt = (sendsMo != null && sendsMo > 0) ? ' AI assistants send about ' + fmt(sendsMo) + ' sessions/mo' + (sends && sends.growth != null ? ' (' + (sends.growth >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(sends.growth * 100)) + '%)' : '') + (sends && sends.named && sends.named.length ? ', mostly ' + sends.named.slice(0, 3).map(function (x) { return x.name; }).join(', ') : '') + '.' : (sendsMo === 0 ? ' No measurable AI-assistant referrals this period.' : '');
-            const summary = (verdictTxt + takesTxt + sendsTxt).trim() || 'Connect Search Console and GA4 to measure both sides of AI impact.';
+            const summary = ((A.verdict || '') + takesTxt + sendsTxt).trim() || 'Connect Search Console and GA4 to measure both sides of AI impact.';   // A.verdict = the SHARED sentence (with the decomposition); one builder
+            // Crop rule: the takes number is a crop unit, so the "consistent with" framing rides WITH the card.
+            const takesCaveat = takesMo != null ? '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:8px;">AI takes is an estimated floor, a pattern consistent with AI answers in results, not a measured "AI took" figure.</div>' : '';
             return {
-                html: strip + '<div style="font-size:0.82rem;line-height:1.5;color:var(--color-text-secondary);">' + esc((verdictTxt + takesTxt + sendsTxt).trim()) + '</div>' + viewBtn,
+                html: strip + takesCaveat + viewBtn,   // the verdict sentence lives in the summary (one-liner); do NOT repeat it in the body (was the duplication bug)
                 summary: summary,
                 data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'AI takes (clicks/mo, est floor)', value: takesMo }, { metric: 'Exposed pages', value: exposed.length }, { metric: 'AI sends (sessions/mo)', value: sendsMo }], chart: null }
             };
@@ -3447,7 +3491,7 @@
                 else { add('What is stale across the site?'); add('Which categories get the most traffic?'); }
                 break;
             case 'page_summary':
-                if (plan.page) { add('What queries bring people to ' + plan.page + '?'); add('Why is ' + plan.page + ' underperforming?'); }
+                if (plan.page) { add('What queries bring people to ' + plan.page + '?'); if (!(res && res.ctrArtifact)) add('Why is ' + plan.page + ' underperforming?'); if (res && res.ctrArtifact) add('How has ' + plan.page + ' trended?'); }
                 else add('Where are our biggest search opportunities?');
                 break;
             case 'content_gaps':
@@ -4189,6 +4233,7 @@
                 if (plan.intent === 'ai_exposed') { resp.innerHTML = _thinkingHtml('Finding the pages Google answers for'); }
                 if (plan.intent === 'diagnose') { resp.innerHTML = _thinkingHtml('Diagnosing the page (checking AI exposure, may fetch a comparison window)'); }
                 if (plan.intent === 'stale') { resp.innerHTML = _thinkingHtml('Fetching 6-month trajectories for the stale pages'); }
+                if (plan.intent === 'low_ctr') { resp.innerHTML = _thinkingHtml('Fetching 6-month trajectories for the under-clicked pages'); }
                 if (plan.intent === 'compare_periods') { resp.innerHTML = _thinkingHtml('Fetching both periods'); }
                 const res = await runIntent(plan, r);
                 if (res.unknown) {
@@ -4818,7 +4863,21 @@
     // divergence WEDGE (evidence, not estimate). TAKES is a pending placeholder until the Phase 2
     // per-page classifier (position discipline can't run at site aggregate). Epistemic grammar via _epi.
     const _aiPct = function (x) { return (x >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(x * 100)) + '%'; };
-    const _aiCtr = function (x) { return (x * 100).toFixed(1) + '%'; };
+    const _aiCtr = function (x) { const p = (x || 0) * 100; return (p > 0 && p < 0.1) ? '<0.1%' : p.toFixed(1) + '%'; };   // 0.04% must not render as a literal '0.0%'
+    // THE verdict sentence — built ONCE here, consumed verbatim by the report AND the ai_impact chat answer
+    // (one engine, two views includes the WORDS). Plain text (measured numbers render plain per the grammar).
+    // For the MIXED read it carries the DECOMPOSITION: since clicks = impressions x CTR, a clicks decline is
+    // part visibility (impressions) and part CTR (AI) — attributing the whole fall to AI is the over-claim.
+    function _aiVerdictSentence(div) {
+        if (!div) return '';
+        const n = div.months, clk = _aiPct(div.clkChange), a = _aiCtr(div.eCtr), b = _aiCtr(div.lCtr);
+        if (div.read === 'improving') return 'Over the last ' + n + ' months, Google click through actually rose (' + a + ' to ' + b + '), so you are capturing more of your impressions, not losing them to AI.';
+        if (div.read === 'flat') return 'Over the last ' + n + ' months, Google clicks ' + clk + ' but click through held roughly steady (' + a + ' to ' + b + '), so this reads as a visibility or demand change, not the AI zero click signature.';
+        if (div.read === 'clean') return 'Over the last ' + n + ' months, Google clicks ' + clk + ' on roughly steady impressions, with CTR falling ' + a + ' to ' + b + ', a pattern consistent with AI answers taking clicks in the results page.';
+        // mixed: split the clicks decline into its visibility component (impressions) and the CTR/AI remainder
+        const visPts = Math.abs(Math.round(div.imprChange * 100));
+        return 'Over the last ' + n + ' months, Google clicks ' + clk + ', roughly ' + visPts + ' points of that from reduced visibility (impressions ' + _aiPct(div.imprChange) + '), the remainder consistent with AI answers taking clicks in the results page (CTR ' + a + ' to ' + b + ').';
+    }
     async function _aiSends() {                                   // site-wide AI-assistant sends (measured), cur + prior for growth
         const cur = await getSourcesByPage(_ddDays);
         if (!cur || !cur.byPage) return null;
@@ -4914,13 +4973,8 @@
         if (!gscOn) verdict = '<div style="' + S + '">Connect Search Console to read the AI Overviews divergence.</div>';
         else if (!div) verdict = '<div style="' + S + '">Not enough Search Console history yet to read the divergence (needs a few months).</div>';
         else {
-            const _rd = {
-                clean: 'a pattern <strong>consistent with AI Overviews</strong> taking clicks: impressions held while click through collapsed.',
-                mixed: '<strong>consistent with clicks being taken in the results page</strong> (AI Overviews or rich results), though impressions also fell ' + Math.abs(Math.round(div.imprChange * 100)) + '%, so part of this is reduced visibility, not only zero click.',
-                improving: 'click through actually <strong>rose</strong>, you’re capturing more of your impressions, not losing them to AI.',
-                flat: 'click through held roughly steady, clicks tracked impressions, so this reads as a <strong>visibility or demand</strong> change, not the AI zero click signature.'
-            }[div.read];
-            verdict = '<div style="font-size:0.86rem;line-height:1.5;">Over the last ' + div.months + ' months, Google impressions ' + _epi(_aiPct(div.imprChange), 'measured') + ' while clicks ' + _epi(_aiPct(div.clkChange), 'measured') + ' (CTR ' + _aiCtr(div.eCtr) + ' to ' + _aiCtr(div.lCtr) + '), ' + _rd + (takesMo ? ' The exposed pages are listed below.' : '') + '</div>';
+            // ONE sentence-builder: the SAME _aiVerdictSentence the chat uses (via A.verdict). No second copy here.
+            verdict = '<div style="font-size:0.86rem;line-height:1.5;">' + esc(A.verdict || '') + (takesMo ? ' The exposed pages are listed below.' : '') + '</div>';
         }
         const legend = '<div style="' + S + 'margin-top:12px;display:flex;gap:14px;flex-wrap:wrap;"><span>' + _epi('measured', 'measured') + ' direct figure</span><span>' + _epi('estimated', 'estimated') + ' modelled</span><span>' + _epi('inferred', 'inferred') + ' a bound, not a measurement</span></div>';
         const fresh = '<div style="' + S + 'margin-top:5px;">' + (gscOn && trend && trend.length ? 'GSC through ~' + esc(_aiYm(trend[trend.length - 1].ym)) + ' (Google lags ~3 days). ' : '') + (ga4On ? 'GA4 through ~yesterday.' : '') + '</div>';
@@ -5014,7 +5068,8 @@
             if (gscOn) { try { trend = await getGscSiteTrend(12); } catch (e) {} try { cls = await _aiClassifyPages(tree, r); classifyOk = true; } catch (e) {} }   // classifyOk=false => fetch failed, distinct from "clean"
             if (ga4On) { try { sends = await _aiSends(); } catch (e) {} }
             const floor = cls.exposed.reduce(function (s, x) { return s + x.lost; }, 0);
-            return { trend: trend, div: _aiDivergence(trend), exposed: cls.exposed, cited: cls.cited, excluded: cls.excluded, floor: floor, sends: sends, gscOn: gscOn, ga4On: ga4On, classifyOk: classifyOk, r: r };
+            const div = _aiDivergence(trend);
+            return { trend: trend, div: div, verdict: _aiVerdictSentence(div), exposed: cls.exposed, cited: cls.cited, excluded: cls.excluded, floor: floor, sends: sends, gscOn: gscOn, ga4On: ga4On, classifyOk: classifyOk, r: r };
         })().catch(function (e) { delete _aiImpactCache[days]; throw e; });
         return _aiImpactCache[days];
     }
