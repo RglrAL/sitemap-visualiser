@@ -4444,7 +4444,7 @@ window.GSCIntegration.fetchSiteTrend = async function(opts) {
     const months = opts.months || 12;
     const today = new Date();
     const endDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));          // GSC ~3-day processing lag
-    const startDate = new Date(endDate.getTime() - (months * 31 * 24 * 60 * 60 * 1000));
+    const startDate = new Date(endDate.getTime() - ((months + 2) * 31 * 24 * 60 * 60 * 1000));   // over-fetch a buffer; the rollup caps to EXACTLY `months` COMPLETE months (getGscSiteTrend -> _capTrendMonths), so the window can't grow/drift month-over-month
     try {
         const result = await robustGSCApiCall(async () => gapi.client.request({
             path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
