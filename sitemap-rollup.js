@@ -1,5 +1,5 @@
 /*
- * sitemap-rollup.js — Category/branch-level analytics rollup engine.
+ * sitemap-rollup.js · Category/branch-level analytics rollup engine.
  *
  * The sitemap tree IS the category taxonomy: any node's stats = the sum of its
  * subtree's page stats. This engine walks the tree once and attaches, to every
@@ -15,11 +15,11 @@
  *   selfTest()           → runs synthetic assertions, returns {passed, results}.
  *
  * Data sourcing today:
- *   - GSC: window.GSCIntegration.getData(url) — already a full per-URL map after
+ *   - GSC: window.GSCIntegration.getData(url) · already a full per-URL map after
  *     the module's bulk fetch. No extra calls needed.
  *   - GA4: exposes only per-page fetchData; prefetchGA4() fills a map from it.
- *     (A single runReport with dimensions:[pagePath] would be ideal — TODO in the
- *     GA4 module — but the engine is agnostic to how the map gets filled.)
+ *     (A single runReport with dimensions:[pagePath] would be ideal · TODO in the
+ *     GA4 module · but the engine is agnostic to how the map gets filled.)
  */
 (function () {
     'use strict';
@@ -41,7 +41,7 @@
     }
 
     // ── aggregation accumulator ──
-    // pageCount = every URL-bearing node (incl. section/landing pages — needed so analytics tally).
+    // pageCount = every URL-bearing node (incl. section/landing pages · needed so analytics tally).
     // leafCount = leaf pages only (matches the Content-by-Category report's "Pages").
     function emptyAgg() {
         return { impressions: 0, clicks: 0, pageViews: 0, users: 0,
@@ -148,7 +148,7 @@
         opts = opts || {};
         // Cache invalidation: every period-keyed cache below is module-scoped and survives a
         // sitemap swap. Without this, loading CI then MABS would serve CI's cached data against
-        // MABS's tree — wrong numbers, no error, and the interpretation chip would vouch for them.
+        // MABS's tree · wrong numbers, no error, and the interpretation chip would vouch for them.
         // If the sitemap root changed since the last build, wipe them all. (Same tree re-built =
         // a refresh; caches are kept.)
         const _sig = String((tree && (tree.url || tree.name)) || '') + '|' + ((tree && (tree.children || tree._children) || []).length);
@@ -218,7 +218,7 @@
             return _ga4Map;
         }
 
-        // Fallback: per-page (slower) — used only if the bulk method isn't present.
+        // Fallback: per-page (slower) · used only if the bulk method isn't present.
         if (typeof ga4.fetchData !== 'function') return _ga4Map;
         const limit = opts.limit || urls.length;
         const conc = opts.concurrency || 4;
@@ -382,7 +382,7 @@
         mk('netdelta.change', _netDelta([{ c: 900, p: 1000 }, { c: 100, p: 500 }], 'c', 'p').change, -500);
         mk('netdelta.weighted', Math.round(_netDelta([{ c: 900, p: 1000 }, { c: 100, p: 500 }], 'c', 'p').pct * 10) / 10, -33.3);
         mk('netdelta.zeroprev', _netDelta([{ c: 5, p: 0 }], 'c', 'p').pct, null);
-        // 'both' churn: net cancels to 0 but 12K actually moved — why a two-directional movers answer headlines churn, not net
+        // 'both' churn: net cancels to 0 but 12K actually moved · why a two-directional movers answer headlines churn, not net
         mk('netdelta.churn', _netDelta([{ c: 6000, p: 0 }, { c: 0, p: 6000 }], 'c', 'p').churn, 12000);
         mk('netdelta.churn_net_cancels', _netDelta([{ c: 6000, p: 0 }, { c: 0, p: 6000 }], 'c', 'p').change, 0);
 
@@ -438,6 +438,20 @@
         mk('anchored.before_after', _isAnchoredPeriods('before May 12', 'after May 12'), true);
         mk('anchored.since', _isAnchoredPeriods('since May 12', ''), true);
         mk('anchored.calendar_quarters_not', _isAnchoredPeriods('q1 2025', 'q1 2024'), false);
+        // Calendar-period resolution ((a)+(b)): absolute terms -> {days,offset} relative to an injected NOW (2026-09-04).
+        // Same-year quarter-vs-quarter now RESOLVES (no false year-over-year refusal); unfetchable ones name WHY.
+        (function () {
+            const NOW = Date.UTC(2026, 8, 4);   // 2026-09-04, injected so the test is deterministic (no wall clock)
+            mk('cal.q1_2026_resolves', (function () { const w = _calendarWindow('q1 2026', NOW); return w.label + '/' + w.days + '/' + w.offset; })(), 'Q1 2026/90/156');
+            mk('cal.q2_2026_resolves', (function () { const w = _calendarWindow('q2 2026', NOW); return w.label + '/' + w.days + '/' + w.offset; })(), 'Q2 2026/91/65');
+            mk('cal.q1_2024_too_old', _calendarWindow('q1 2024', NOW).reason, 'too_old');
+            mk('cal.q4_2026_future', _calendarWindow('q4 2026', NOW).reason, 'future');
+            mk('cal.q3_2026_partial_clamped', (function () { const w = _calendarWindow('q3 2026', NOW); return w.partial === true && w.label === 'Q3 2026 (so far)' && w.offset === 0; })(), true);
+            mk('cal.month_march_2026', (function () { const w = _calendarWindow('march 2026', NOW); return w.label + '/' + w.days; })(), 'March 2026/31');
+            mk('cal.bare_q_uses_current_year', _calendarWindow('q1', NOW).label, 'Q1 2026');
+            mk('cal.not_calendar_is_null', _calendarWindow('this month', NOW), null);
+            mk('cal.market_not_a_month', _calendarWindow('market', NOW), null);   // 'mar\\w*' false-positive guard: 'market' is not March
+        })();
         // B10 follow-on: seasonal no-data state (0/0) redirects, never "stable"; thin-nonzero keeps "indicative"; a 0-now collapse is not no-data.
         mk('seasonal.nodata_not_stable', _seasonalVerdict(0, 0, null, null, 'Contact Tracing').text.indexOf('stable') < 0, true);
         mk('seasonal.nodata_flagged', _seasonalVerdict(0, 0, null, null, 'Contact Tracing').noData, true);
@@ -467,6 +481,16 @@
         mk('followup.traffic_sources_has_chips', _followups({ intent: 'traffic_sources' }, { data: { rows: [] } }, r).length > 0, true);   // C5: the answer grew no chips; now it does
         mk('followup.traffic_sources_source_growth', _followups({ intent: 'traffic_sources', source: 'Facebook' }, { data: { rows: [] } }, r).join(' | ').indexOf('Facebook traffic growing') >= 0, true);
         mk('followup.traffic_sources_page_scoped', _followups({ intent: 'traffic_sources', page: 'Water Charges' }, { data: { rows: [] } }, r).join(' | ').indexOf('How is the Water Charges page performing?') >= 0, true);   // page-scoped (tree) answer leads with the page chip - guards the merged-duplicate-case fix
+        // Narrative list: structured lines carry tier '~' + flag '⚠' to where reading happens first; the portable one-liner
+        // DERIVES from the same lines (one source), leading N + honest truncation.
+        mk('narr.value_plain', _narrLineValue({ text: 'q', value: '82 impr · pos 8' }), '82 impr · pos 8');
+        mk('narr.value_estimated_tilde', _narrLineValue({ text: 'q', value: '120 clicks/mo', tier: 'estimated' }), '~120 clicks/mo');
+        mk('narr.value_flag', _narrLineValue({ text: 'q', value: '5', flag: '⚠' }), '5 ⚠');
+        mk('narr.value_empty_stays_empty', _narrLineValue({ text: 'q' }), '');
+        mk('narr.summary_derives_and_truncates', _narrative('Lead', [{ text: 'a', value: '1' }, { text: 'b', value: '2' }, { text: 'c', value: '3' }, { text: 'd', value: '4' }]).summary, 'Lead: a (1); b (2); c (3) + 1 more.');
+        mk('narr.summary_no_more_when_short', _narrative('Lead', [{ text: 'a', value: '1' }]).summary, 'Lead: a (1).');
+        mk('narr.lines_passthrough', _narrative('L', [{ text: 'a', value: '1' }]).summaryLines.length, 1);
+        mk('narr.estimated_tilde_in_summary', _narrative('L', [{ text: '"q"', value: '450 clicks/mo, pos 8', tier: 'estimated' }]).summary, 'L: "q" (~450 clicks/mo, pos 8).');   // opportunities: the estimate marker survives into the portable one-liner, not just the bullets
         // Chips-as-plans refactor: (a) a category-template can NEVER embed a non-category (a page/garbage in the category slot
         // is nulled), so no case can generate a "briefing scoped to a page" chip; a REAL category still gets its scoped chip.
         mk('followup.typevalid_drops_noncategory', _followups({ intent: 'briefing', category: 'Nonexistent Page' }, { data: { rows: [] } }, r, '').join(' | ').indexOf('Nonexistent') < 0, true);
@@ -693,7 +717,7 @@
     // Truncate with an ellipsis so a chart label never cuts mid-word ("Local Authority Mortga").
     function _ellip(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
     // MIDDLE truncation keeps BOTH ends, so common-prefix names ("Local Authority Mortgages" vs "…Purchase
-    // And Renovation Loan") stay distinguishable — the discriminating word survives (the full name lives in
+    // And Renovation Loan") stay distinguishable · the discriminating word survives (the full name lives in
     // the row's hover title). End-ellipsis fails exactly this case, which is the one that matters in a compare.
     function _ellipMid(s, n) { s = String(s); if (s.length <= n) return s; const head = Math.ceil((n - 1) / 2), tail = n - 1 - head; return s.slice(0, head) + '…' + (tail > 0 ? s.slice(s.length - tail) : ''); }
     // THE CTR formatter (one place, all consumers): a sub-decimal rate must not render as a literal '0.0%'.
@@ -878,7 +902,7 @@
             const sub = f.light ? 'rgba(255,255,255,0.85)' : 'var(--color-text-secondary)';
             const showName = pxW > 64 && pxH > 30;
             const showVal = pxW > 64 && pxH > 46;
-            const title = leaf.data.name + ' — ' + fmt(c.impressions) + ' impressions · ' +
+            const title = leaf.data.name + ' · ' + fmt(c.impressions) + ' impressions · ' +
                 fmt(c.clicks) + ' clicks · ' + _ctrTxt(c.ctr) + ' CTR · pos ' +
                 (c.position != null ? c.position.toFixed(1) : '—') + ' · ' + fmt(c.pageCount) + ' pages';
             return '<div data-cat="' + esc(leaf.data.name) + '" title="' + esc(title) + '" style="cursor:pointer;position:absolute;left:' + (leaf.x0 / W * 100) +
@@ -979,7 +1003,7 @@
                 '</div>' +
                 // treemap hero
                 '<div style="margin-bottom:20px;">' + renderTreemap(r.categories, t, hasGA4) + '</div>' +
-                // movers (filled async — needs the prior-period fetch)
+                // movers (filled async · needs the prior-period fetch)
                 '<div id="sv-movers-slot"><div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:16px;">Comparing with previous 30 days…</div></div>' +
                 '<div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:10px;">Sections, by search impressions</div>' +
                 r.categories.map(cardFor).join('') +
@@ -1089,15 +1113,51 @@
     const PERIODS = [ { d: 7, label: 'Last 7 days' }, { d: 30, label: 'Last 30 days' }, { d: 90, label: 'Last 3 months' }, { d: 180, label: 'Last 6 months' }, { d: 365, label: 'Last 12 months' } ];
     function periodLabel(days) { const p = PERIODS.find(function (x) { return x.d === days; }); return p ? p.label.toLowerCase() : ('last ' + days + ' days'); }
     // ── Period comparison (compare_periods) ──────────────────────────────────────────────
-    // Canonical cache key for ANY period (relative or, in stage 2, absolute) — every cache
+    // Canonical cache key for ANY period (relative or, in stage 2, absolute) · every cache
     // should key on this so two different absolute ranges can never collide (point 1).
     function periodKey(p) { return (p && p.startDate && p.endDate) ? (p.startDate + '|' + p.endDate) : ('d' + ((p && p.days) || 30) + 'o' + ((p && p.offset) || 0)); }
     // Resolve a period phrase. Stage 1 = RELATIVE windows only (map to days+offset). Calendar
     // terms (q1-q4, month names, years) return {calendar:true} so the intent can say "coming".
+    // ── Calendar-period resolution: turn an ABSOLUTE calendar term ("Q1 2026", "March 2026", bare "Q2" = this year's Q2,
+    // bare "2025" = the full year) into the tool's RELATIVE fetch model {days, offset} = "a span of `days` ending `offset`
+    // days ago". `now` is injected (ms) so this is pure + testable; _resolvePeriod passes Date.now() in the browser.
+    // Returns: {days, offset, label} when fetchable; {calendar:true, reason} when NOT (future/partial-not-done/too_old);
+    // null when the term isn't a calendar shape at all (so _resolvePeriod falls through to relative parsing).
+    const _MS_DAY = 86400000;
+    const _MONTH3 = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const _MONTHNM = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    function _calendarRange(term) {
+        // -> { start, end, label } absolute UTC ms with end EXCLUSIVE (first day after the period), or null.
+        const t = String(term || '').trim().toLowerCase();
+        if (!t) return null;
+        const my = /\b(20\d\d)\b/.exec(t), yr = my ? parseInt(my[1], 10) : null;
+        const mq = /\bq([1-4])\b/.exec(t);
+        if (mq) { const q = parseInt(mq[1], 10), y = yr, sM = (q - 1) * 3; if (y == null) return { _needYear: true, q: q }; return { start: Date.UTC(y, sM, 1), end: Date.UTC(y, sM + 3, 1), label: 'Q' + q + ' ' + y }; }
+        const mm = /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/.exec(t);
+        if (mm) { const idx = _MONTH3[mm[1].slice(0, 3)]; if (idx == null) return null; const y = yr; if (y == null) return { _needYear: true, m: idx }; return { start: Date.UTC(y, idx, 1), end: Date.UTC(y, idx + 1, 1), label: _MONTHNM[idx] + ' ' + y }; }
+        if (yr != null) return { start: Date.UTC(yr, 0, 1), end: Date.UTC(yr + 1, 0, 1), label: String(yr) };
+        return null;
+    }
+    function _calendarWindow(term, now) {
+        let rng = _calendarRange(term);
+        if (!rng) return null;
+        const d = new Date(now), curY = d.getUTCFullYear();
+        if (rng._needYear) rng = _calendarRange((rng.q ? ('q' + rng.q) : _MONTHNM[rng.m]) + ' ' + curY);   // bare "Q2"/"March" -> current year
+        if (!rng || rng._needYear) return null;
+        const todayStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+        if (rng.start >= todayStart) return { calendar: true, reason: 'future', label: rng.label };   // whole period still ahead
+        let end = rng.end, partial = false;
+        if (end > todayStart) { end = todayStart; partial = true; }   // current, incomplete period -> clamp to today
+        const days = Math.round((end - rng.start) / _MS_DAY), offset = Math.round((todayStart - end) / _MS_DAY);
+        if (days < 1) return { calendar: true, reason: 'future', label: rng.label };
+        if (offset + days > 490) return { calendar: true, reason: 'too_old', label: rng.label };   // beyond GSC's ~16 months
+        return { days: days, offset: offset, label: rng.label + (partial ? ' (so far)' : ''), partial: partial };
+    }
     function _resolvePeriod(term) {
         const t = String(term || '').trim().toLowerCase().replace(/\bthe\b/g, '').replace(/\s+/g, ' ').trim();
         if (!t) return null;
-        if (/\b(?:q[1-4]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\b/.test(t) || /\b20\d\d\b/.test(t)) return { calendar: true, raw: term };
+        const _cw = _calendarWindow(term, Date.now());   // absolute calendar terms (Q1 2026 / March 2026 / 2025) resolve to {days,offset}; null falls through to relative
+        if (_cw) return _cw;
         if (/^(?:this|current|last 30 days?|past 30 days?|this month|current month)$/.test(t) || t === 'month' || t === 'this month') return { label: 'the last 30 days', days: 30, offset: 0 };
         if (/\b(?:last|previous|prior) month\b|\bmonth before\b|\bprevious 30 days?\b/.test(t)) return { label: 'the previous 30 days', days: 30, offset: 30 };
         if (/\b(?:this|current|past|last) week\b|\blast 7 days?\b/.test(t) || t === 'week') return { label: 'the last 7 days', days: 7, offset: 0 };
@@ -1175,7 +1235,7 @@
         return null;
     }
     // The tool has no traffic-source (paid/organic/social) split yet. If the question asks for
-    // one, say so honestly. BUT don't fire on a word that's part of a section/page NAME — e.g.
+    // one, say so honestly. BUT don't fire on a word that's part of a section/page NAME · e.g.
     // "social" in "Social Welfare", "direct" in "Direct Provision", "paid" in "Paid leave".
     function _segmentNote(q, names) {
         const s = String(q || '');
@@ -1214,7 +1274,7 @@
 
     // ── Category scope (for category owners) ──────────────────────────────────────────
     // A sticky, per-sitemap default that scopes the hero, examples and bare questions to the
-    // owner's section — but never walls them in. The five rules live here, not in judgement.
+    // owner's section · but never walls them in. The five rules live here, not in judgement.
     const _SCOPE_PAGE_INTENTS = { diagnose: 1, page_summary: 1, page_queries: 1 };            // rule 2: resolve site-wide
     const _SCOPE_NONE_INTENTS = { rank_categories: 1, compare: 1, site_summary: 1, digest: 1, ai_impact: 1 }; // rule 3: ignore scope
     // Namespace the stored scope per sitemap (rule 4) so a "Health" from CI isn't applied to MABS.
@@ -1226,7 +1286,7 @@
     }
     function _scopeKey() { return 'sv:askScope:' + _scopeRootId(); }
     // Deduped by the SAME key build() merges categories with (trim+lowercase), so the pill lists
-    // each section once — matching r.categories — instead of the raw /en/ + /ga/ copies.
+    // each section once · matching r.categories · instead of the raw /en/ + /ga/ copies.
     function _scopeCatNames() {
         try {
             const seen = Object.create(null), out = [];
@@ -1257,7 +1317,7 @@
         if (!forceSite && sticky) { plan.category = sticky; out.resolvedScope = sticky; }         // silent default to the owner's section
         return out;
     }
-    // Proactive hero findings — computed from the ALREADY-BUILT rollup only (no fetch on open).
+    // Proactive hero findings · computed from the ALREADY-BUILT rollup only (no fetch on open).
     function _heroFindings(r, scopeName) {
         const c = scopeName ? _catByName(r.categories, scopeName) : null;
         const pages = c ? catPages(c) : _allPages(r);
@@ -1268,7 +1328,7 @@
         const stale = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12 && (x.p.s.impressions || 0) >= 200; }).sort(function (a, b) { return b.m - a.m; })[0];
         if (stale) out.push({ icon: _ficon('edit'), text: '“' + stale.p.name + '” is ~' + Math.round(stale.m) + ' months old and still gets ' + fmt(stale.p.s.impressions) + ' impressions', q: 'What is stale' + (scopeName ? ' in ' + scopeName : '') + '?' });
         const eng = pages.filter(function (p) { return p.s.engagementRate != null && (p.s.sessions || 0) >= 20; }).sort(function (a, b) { return a.s.engagementRate - b.s.engagementRate; })[0];
-        if (eng && eng.s.engagementRate < 0.5) out.push({ icon: _ficon('activity'), text: '“' + eng.name + '” — only ' + Math.round(eng.s.engagementRate * 100) + '% of visits are engaged', q: 'Which pages do people leave quickly' + (scopeName ? ' in ' + scopeName : '') + '?' });
+        if (eng && eng.s.engagementRate < 0.5) out.push({ icon: _ficon('activity'), text: '“' + eng.name + '” · only ' + Math.round(eng.s.engagementRate * 100) + '% of visits are engaged', q: 'Which pages do people leave quickly' + (scopeName ? ' in ' + scopeName : '') + '?' });
         const dead = pages.filter(function (p) { return (p.s.impressions || 0) === 0; }).length;
         if (dead > 0) out.push({ icon: _ficon('circle'), text: dead + ' page' + (dead === 1 ? '' : 's') + (scopeName ? ' in ' + scopeName : '') + ' get no search traffic', q: 'Which pages get no search traffic' + (scopeName ? ' in ' + scopeName : '') + '?' });
         if (!out.length) { const top = pages.slice().sort(function (a, b) { return (b.s.pageViews || b.s.impressions || 0) - (a.s.pageViews || a.s.impressions || 0); })[0]; if (top && (top.s.pageViews || top.s.impressions)) out.push({ icon: _ficon('star'), text: 'Most-viewed' + (scopeName ? ' in ' + scopeName : '') + ': “' + top.name + '”', q: 'How is the ' + top.name + ' page performing?' }); }
@@ -1284,7 +1344,7 @@
         const head = '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:8px;">What stands out &middot; ' + esc(scopeLbl) + '</div>';
         const body = findings.length
             ? '<div style="display:flex;flex-direction:column;gap:6px;">' + findings.map(function (f) { return '<button class="sv-ask-chip sv-ask-chip-row" data-q="' + esc(f.q) + '" style="display:flex;gap:9px;align-items:flex-start;font-size:0.8rem;padding:9px 11px;line-height:1.4;"><span style="flex-shrink:0;display:inline-flex;align-items:center;color:var(--primary);">' + f.icon + '</span><span>' + esc(f.text) + '</span></button>'; }).join('') + '</div>'
-            : '<div style="font-size:0.82rem;color:var(--color-text-secondary);margin-bottom:6px;">Nothing jumps out' + (scopeName ? ' in ' + esc(scopeName) : '') + ' right now — ask a question below to dig in.</div>';
+            : '<div style="font-size:0.82rem;color:var(--color-text-secondary);margin-bottom:6px;">Nothing jumps out' + (scopeName ? ' in ' + esc(scopeName) : '') + ' right now · ask a question below to dig in.</div>';
         const pickHint = !scopeName ? '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:11px;">Owner of a section? <button class="sv-ask-scope-open" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;font-size:0.68rem;">Pick your section</button> to make this yours.</div>' : '';
         const more = '<button class="sv-ask-help" style="margin-top:12px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">See what you can ask</button>';
         return '<div class="sv-ask-intro">' + head + body + pickHint + more + '</div>';
@@ -1302,7 +1362,7 @@
             '.sv-dd-page{cursor:pointer;border-radius:5px;transition:background .12s;margin:0 -8px;padding-left:8px;padding-right:8px;}',
             '.sv-dd-page:hover{background:var(--color-bg-tertiary);}',
             '@keyframes sv-bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}',
-            // Chart entrances — base state is the FINAL state (so PNG export, which doesn\'t run these, stays correct).
+            // Chart entrances · base state is the FINAL state (so PNG export, which doesn\'t run these, stays correct).
             '@keyframes sv-draw{from{stroke-dashoffset:3000}to{stroke-dashoffset:0}}',
             '@keyframes sv-fadein{from{opacity:0}to{opacity:1}}',
             '@keyframes sv-growx{from{transform:scaleX(0)}to{transform:scaleX(1)}}',
@@ -1313,7 +1373,7 @@
         ].join('');
         document.head.appendChild(st);
     }
-    // Ask-panel stylesheet — committed radius (6/10/14), type (0.72/0.8/0.9rem, weight carries the
+    // Ask-panel stylesheet · committed radius (6/10/14), type (0.72/0.8/0.9rem, weight carries the
     // rest) and spacing (8/12/16/20) scales, plus the :hover / :focus-visible states that inline
     // styles literally cannot express (so this doubles as the accessibility fix). Injected once.
     function ensureAskStyle() {
@@ -1348,7 +1408,7 @@
 .sv-ask-list{border:none;border-radius:var(--sv-r-md);overflow:hidden;background:var(--color-bg-primary);}
 .sv-ask-list>*:last-child>div{border-bottom:none;}
 .sv-ask-bar{transform-origin:left center;animation:sv-growx .5s cubic-bezier(.22,.61,.36,1) both;}
-/* Epistemic grammar — measured (plain), estimated (~, muted), inferred/pending (dashed "bound"). */
+/* Epistemic grammar · measured (plain), estimated (~, muted), inferred/pending (dashed "bound"). */
 .sv-epi-meas{font-weight:700;}
 .sv-epi-est{color:var(--color-text-secondary);}
 .sv-epi-inf{border:1px dashed var(--color-border-primary);border-radius:4px;padding:0 4px;color:var(--color-text-muted);cursor:help;}
@@ -1356,7 +1416,7 @@
 `;
         document.head.appendChild(st);
     }
-    // Feather-style icon (SVG via currentColor) for the hero findings — replaces emoji, which
+    // Feather-style icon (SVG via currentColor) for the hero findings · replaces emoji, which
     // violate the design language and render inconsistently across the colleagues' machines.
     function _ficon(n) {
         const p = {
@@ -1893,7 +1953,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z35';
+    const _BUILD = '20260904z39';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -1905,7 +1965,7 @@
         return null;
     }
 
-    // Ask parse system prompt — STATIC (built once, so it caches on Groq and never varies per call).
+    // Ask parse system prompt · STATIC (built once, so it caches on Groq and never varies per call).
     const _ASK_SYS_PROMPT = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
                     'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","artifact_pages","unknown"], ' +
                     '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
@@ -1964,7 +2024,7 @@
             }).join('') + '</div>';
     }
     // Stacked proportion bar (Wave 3): a source split reads in half a second as one 100%-stacked bar
-    // (pie/donut refused — the bar wins). Semantic colours per bucket so the language is consistent.
+    // (pie/donut refused · the bar wins). Semantic colours per bucket so the language is consistent.
     const _SOURCE_COLORS = { 'Organic Search': '#4285F4', 'Google': '#4285F4', 'AI assistants': '#7c3aed', 'AskCI chatbot': '#0ea5e9', 'Direct': '#9ca3af', 'Social': '#ec4899', 'Email': '#14b8a6', 'Referral': '#f59e0b', 'Paid Search': '#16a34a', 'Paid': '#16a34a', 'Other': '#94a3b8' };
     const _STACK_PALETTE = ['#4285F4', '#7c3aed', '#ec4899', '#14b8a6', '#f59e0b', '#16a34a', '#9ca3af', '#0ea5e9'];
     function _stackColor(name, i) { return _SOURCE_COLORS[name] || _STACK_PALETTE[i % _STACK_PALETTE.length]; }
@@ -1995,7 +2055,7 @@
         '</div>';
     }
     // A near-zero CTR at a strong rank on real impressions is a DATA artifact (redirect / attribution gap),
-    // not a content verdict — the AI classifier's cliff vocabulary (_HL_CLIFF*). The benchmark/scorecard must
+    // not a content verdict · the AI classifier's cliff vocabulary (_HL_CLIFF*). The benchmark/scorecard must
     // NOT paint it 'below typical' (that judges a tracking bug as the writer's fault). Same pattern the AI
     // Impact report excludes; surfaced here as 'investigate', not a failing grade.
     function _ctrCliff(position, ctr, impressions) {
@@ -2254,6 +2314,38 @@
     function _interpPeriodLabel(res, fallbackLabel) {
         return (res && res.period) ? res.period : fallbackLabel;
     }
+    // ── Narrative list: the "two kinds of narrative" split. A LIST answer (queries, opportunities) whose narrative is a
+    // list-flattened-into-prose declares res.summaryLines - STRUCTURED rows {text, value, tier?, flag?}, never strings, so
+    // the honest marks (estimated '~', artifact '⚠') survive to where reading happens FIRST. The on-screen narrative
+    // renders res.summaryLead + bullets in the row idiom (text left, figures right). res.summary (the portable one-liner
+    // for PNG export / Groq context / the no-lines fallback) is DERIVED from the SAME lines by _narrative() - one source,
+    // never hand-authored alongside the lines (the two-builders rule applied at birth). Verdict/prose answers set neither
+    // and render exactly as before. A line's display value carries its tier/flag: estimated -> '~value', flag -> 'value ⚠'.
+    function _narrLineValue(l) {
+        let v = (l.value == null || l.value === '') ? '' : String(l.value);
+        if (l.tier === 'estimated' && v) v = '~' + v;
+        if (l.flag) v = (v ? v + ' ' : '') + l.flag;
+        return v;
+    }
+    function _narrative(lead, lines, opts) {
+        opts = opts || {};
+        const topN = opts.summaryTop || 3;
+        const shown = lines.slice(0, topN).map(function (l) { const v = _narrLineValue(l); return l.text + (v ? ' (' + v + ')' : ''); });
+        const more = lines.length > topN ? ' + ' + (lines.length - topN) + ' more' : '';
+        return { summaryLead: lead, summaryLines: lines, summary: (lead ? lead + ': ' : '') + shown.join('; ') + more + '.' };
+    }
+    function _narrativeHtml(lead, lines) {
+        const rows = lines.map(function (l) {
+            const v = _narrLineValue(l);
+            return '<div style="display:flex;align-items:baseline;gap:10px;padding:3px 0;line-height:1.4;">' +
+                '<span style="color:var(--primary);flex-shrink:0;font-weight:700;">&bull;</span>' +
+                '<span style="flex:1;min-width:0;color:var(--color-text-heading);">' + esc(l.text) + '</span>' +
+                (v ? '<span style="flex-shrink:0;color:var(--color-text-secondary);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">' + esc(v) + '</span>' : '') +
+            '</div>';
+        }).join('');
+        const leadHtml = lead ? '<div style="font-size:0.86rem;color:var(--color-text-secondary);font-weight:600;margin-bottom:6px;">' + esc(lead) + '</div>' : '';
+        return '<div class="sv-ask-narrlist" style="border-left:3px solid var(--primary);padding-left:11px;margin:0 0 13px;">' + leadHtml + rows + '</div>';
+    }
 
     // ── keyword cannibalisation: 2+ of your own pages competing for one query ──
     function _shortUrl(u) { return String(u || '').replace(/^https?:\/\/[^/]+/, '').replace(/\/$/, '') || '/'; }
@@ -2408,7 +2500,7 @@
         return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);max-width:' + W + 'px;">' + body + leg + '</svg>';
     }
     // ── Small-multiples of before/after deltas (Wave 3): one self-scaled mini per metric (mixed units, so
-    // NO shared axis — that would be the dial problem). Each mini is a labelled mini-dumbbell + a delta
+    // NO shared axis · that would be the dial problem). Each mini is a labelled mini-dumbbell + a delta
     // chip whose colour/arrow come from _deltaImproved(better,...), so position (lower=better) reads green
     // when it drops. Rates arrive PRE-WEIGHTED from the rollup (Σclicks/Σimpr); the mini never averages. ──
     function _chartMiniDeltas(data, opts) {
@@ -2477,7 +2569,7 @@
         return svg ? '<div class="sv-chart">' + svg + '</div>' : '';
     }
     function _isChart(data) { return !!(data && data.chart && ['diverging', 'smallmultiples', 'line', 'ladder', 'dumbbell', 'minideltas'].indexOf(data.chart.type) >= 0); }
-    // Segmented metric toggle for charts that carry data.metricSeries (currently trend) — switches
+    // Segmented metric toggle for charts that carry data.metricSeries (currently trend) · switches
     // impressions/clicks/views/users live, no re-fetch (all metrics were computed up front).
     function _metricToggleHtml(eid, avail, current) {
         if (!avail || avail.length < 2) return '';
@@ -2607,7 +2699,7 @@
     // Line chart: single or multi-series, smooth curves, gradient area fill, animated draw-in, hover.
     // Sparkline-in-row (Wave 3). PER-ROW scale: a sparkline is a SHAPE visualisation (the trajectory is the
     // payload; magnitude is already the number's job), so the dumbbell's shared-scale / label-carries rule
-    // — which only holds where number and geometry encode the SAME quantity — INVERTS here (see the flip
+    // · which only holds where number and geometry encode the SAME quantity · INVERTS here (see the flip
     // exchange). Two guards against per-row's mirror bug, MANUFACTURED DRAMA: (1) a min-range clamp so a
     // low-variance series renders flat (stable looks stable, the drama is earned); (2) a sentiment deadband
     // so a tiny drift is noise, not a red dot. Trend uses first/last PAIR averages (sturdier vs endpoint noise).
@@ -2694,7 +2786,7 @@
                     '<circle class="sv-cdot" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="var(--color-bg-primary)" stroke="' + col + '" stroke-width="2" style="pointer-events:none;animation-delay:' + (0.5 + i * 0.06).toFixed(2) + 's;"/>';
             });
         });
-        // Gap fill (Wave 3): shade the wedge BETWEEN two series — the area between the lines is the story
+        // Gap fill (Wave 3): shade the wedge BETWEEN two series · the area between the lines is the story
         // (generalises the AI divergence wedge). Neutral tint for a two-entity compare; fillGap:'sentiment'
         // tints by which line ends on top (growth green / decline red) for a future trend-vs-prior overlay.
         let gapFill = '';
@@ -2708,7 +2800,7 @@
                 if (data.chart.fillGap === 'sentiment') {
                     // CROSSING RULE (decided in the contract, not left to the consumer): tinting by the FINAL
                     // state lies about the segments before a crossover (trailing then overtaking would paint
-                    // the whole wedge green). If the series CROSS, drop to NEUTRAL — the cheap option that
+                    // the whole wedge green). If the series CROSS, drop to NEUTRAL · the cheap option that
                     // never lies. Per-segment tinting (each inter-crossing region by who leads there) is the
                     // fuller fix; add it only when a consumer needs the expressiveness.
                     const v0 = series[0].values, v1 = series[1].values;
@@ -2723,7 +2815,7 @@
             }
         }
         // Endpoint value labels (single series): the start/end values ride ON the line, so the story ("1.2M
-        // to 829.3K") is visible in the chart, not only in the sentence — same idiom as the sparkline's last dot.
+        // to 829.3K") is visible in the chart, not only in the sentence · same idiom as the sparkline's last dot.
         let endLabels = '';
         if (series.length === 1) {
             const s0 = series[0], v0 = s0.values || [], nn = v0.length;
@@ -2806,7 +2898,7 @@
     // FIXED-WINDOW invariant: the trend must be EXACTLY N COMPLETE months, or every conclusion drawn from it
     // (the divergence %, "is it accelerating?", the deck screenshot) drifts silently as GSC accrues months and
     // the current partial month deflates the late third. Drop the partial current month, keep the last N. The
-    // fetch over-fetches a buffer; this is the ONE place the window is pinned — selfTest asserts N is invariant.
+    // fetch over-fetches a buffer; this is the ONE place the window is pinned · selfTest asserts N is invariant.
     function _capTrendMonths(rows, months, curYm) {
         curYm = curYm || (function () { const d = new Date(); return d.getFullYear() * 100 + (d.getMonth() + 1); })();
         return (rows || []).filter(function (x) { return parseInt(x.ym, 10) < curYm; }).slice(-months);
@@ -2821,15 +2913,15 @@
             .catch(function (e) { delete _gscTrendCache[key]; throw e; });
         return _gscTrendCache[key];
     }
-    // Epistemic grammar (design principle #1): render a FIGURE with its evidence tier — the apparatus
-    // attaches to numbers, never sentences. tier: 'measured' (plain, confident — no apparatus),
+    // Epistemic grammar (design principle #1): render a FIGURE with its evidence tier · the apparatus
+    // attaches to numbers, never sentences. tier: 'measured' (plain, confident · no apparatus),
     // 'estimated' (~ prefix, muted), 'inferred' (dashed chip, "bound not measurement"). Tier is passed
     // at call time (a property of the datum), so a value can be promoted across tiers without redesign.
     function _epi(text, tier, title) {
         const t = esc(String(text));
         if (tier === 'estimated') return '<span class="sv-epi sv-epi-est" title="' + esc(title || 'Estimated: a modelled figure, not a direct measurement.') + '">~' + t + '</span>';
         if (tier === 'inferred') return '<span class="sv-epi sv-epi-inf" title="' + esc(title || 'Inferred: a bound from triangulating two data sources, not a measurement.') + '">' + t + '</span>';
-        if (tier === 'pending') return '<span class="sv-epi sv-epi-inf" title="Not yet computed — lands with the per-page classification (Phase 2).">' + t + '</span>';
+        if (tier === 'pending') return '<span class="sv-epi sv-epi-inf" title="Not yet computed · lands with the per-page classification (Phase 2).">' + t + '</span>';
         return '<span class="sv-epi sv-epi-meas">' + t + '</span>';   // measured: plain, confident
     }
 
@@ -2993,7 +3085,7 @@
             const desc = plan.direction !== 'up';
             const TM = ['impressions', 'clicks', 'pageViews', 'users'];
             const availTP = TM.filter(function (m) { return pages.some(function (p) { return _mval(p.s, m) > 0; }); });
-            if (!availTP.length) return { html: '', err: 'No pages with ' + _MLABEL[metric] + ' data found' + (c ? ' in ' + c.name : '') + '. (' + pages.length + ' pages checked — is GA4 connected for views/users?)', summary: '' };
+            if (!availTP.length) return { html: '', err: 'No pages with ' + _MLABEL[metric] + ' data found' + (c ? ' in ' + c.name : '') + '. (' + pages.length + ' pages checked · is GA4 connected for views/users?)', summary: '' };
             const curTP = availTP.indexOf(metric) >= 0 ? metric : availTP[0];
             const viewTP = function (m) {
                 const sorted = pages.filter(function (p) { return _mval(p.s, m) > 0; }).sort(function (a, b) { const av = _mval(a.s, m), bv = _mval(b.s, m); return desc ? bv - av : av - bv; }).slice(0, limit);
@@ -3051,7 +3143,7 @@
         if (intent === 'movers') {
             // IDIOM (deliberate, do not "unify" with section_movers): page movers use the DUMBBELL (many
             // pages, size-skewed, absolute levels matter) while section_movers keep DIVERGING bars (few,
-            // comparable, % change is the honest comparator). Two idioms, one question, two scales — chosen.
+            // comparable, % change is the honest comparator). Two idioms, one question, two scales · chosen.
             const c = _catByName(cats, plan.category);
             const prior = await getPriorMaps(window.treeData, _ddDays);
             const useImp = (c ? c.rollup.impressions : r.totals.impressions) > 0;
@@ -3104,9 +3196,11 @@
                 const items = qs.map(function (x) {
                     return { name: x.query, val: fmt(x[mkey]) + (x.bestPos != null ? ' · #' + x.bestPos.toFixed(0) : ''), bar: x[mkey], url: x.bestPage };
                 });
+                // Body is a rank card (already the separated list), so DON'T bullet - just shorten the run-on recap to a
+                // crisp lead + top 3 (the card carries the full list; note #1 swap = list once, in the card).
+                const _tqNarr = _narrative('Top searches' + (c ? ' in ' + c.name : ' site-wide') + ' by ' + mkey + ' (' + periodLabel(_ddDays) + ')', qs.map(function (x) { return { text: '"' + x.query + '"', value: fmt(x[mkey]) + (mkey === 'clicks' ? ' clicks' : ' impr') + (x.bestPos != null ? ' · pos ' + x.bestPos.toFixed(0) : '') }; }));
                 return { html: _rankCard(items, { nameLabel: 'Query', valueLabel: mkey === 'clicks' ? 'Clicks' : 'Impressions' }),
-                    summary: 'Top searches' + (c ? ' in ' + c.name : ' site-wide') + ' by ' + mkey + ' (' + periodLabel(_ddDays) + '): ' +
-                        qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x[mkey]) + (x.bestPos != null ? ' (best pos ' + x.bestPos.toFixed(0) + ')' : ''); }).join(', ') + _sentenceCap(Math.min(6, qs.length), qs.length), data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' }, shareBase: _qbase, shareKey: mkey, shareNoun: mkey === 'clicks' ? 'search clicks' : 'search impressions' } };
+                    summary: _tqNarr.summary, data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: mkey, label: mkey === 'clicks' ? 'Clicks' : 'Impressions' }, shareBase: _qbase, shareKey: mkey, shareNoun: mkey === 'clicks' ? 'search clicks' : 'search impressions' } };
             }
 
             // opportunities: rank by potential extra clicks; floors keep out noise.
@@ -3141,9 +3235,12 @@
             if (!qs.length) return (_oppArts.length || _oppNav.length || _oppFor.length)
                 ? { html: _artNote, summary: 'No winnable content opportunities' + (c ? ' in ' + c.name : '') + ': the big low-CTR queries here are ' + [(_oppArts.length ? 'measurement artifacts' : ''), (_oppNav.length ? 'navigational' : ''), (_oppFor.length ? 'mostly foreign demand' : '')].filter(Boolean).join(' or ') + ', not content upside. See the notes.', data: { columns: [], rows: [] } }
                 : { html: '', summary: '', err: 'No sizeable search opportunities found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + ', CTR looks healthy on the big queries.' };
+            // Bullets: the ladder body truncates the query text, so the readable list lives in the narrative. Potential is
+            // an ESTIMATE -> tier:'estimated' renders the '~' on every value (the structured-line honesty, note #2).
+            const _oppLines = qs.map(function (x) { return { text: '"' + x.query + '"', value: fmt(Math.round(x.potential)) + ' clicks/mo, pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?'), tier: 'estimated' }; });
+            const _oppNarr = _narrative('Biggest search opportunities' + (c ? ' in ' + c.name : '') + ' (extra clicks/mo if each ranked top 3, ' + periodLabel(_ddDays) + ')', _oppLines);
             return { html: _oppCard(qs) + _artNote,
-                summary: 'Biggest search opportunities' + (c ? ' in ' + c.name : '') + ' (potential extra clicks over ' + periodLabel(_ddDays) + ', if each performed like a top-3 result): ' +
-                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.' + _oppMore, data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'potentialClicks', sizeLabel: 'potential clicks/mo', url: 'bestPage' } } };
+                summary: _oppNarr.summary + _oppMore, summaryLead: _oppNarr.summaryLead, summaryLines: _oppNarr.summaryLines, data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'potentialClicks', sizeLabel: 'potential clicks/mo', url: 'bestPage' } } };
         }
         if (intent === 'international_queries' || intent === 'top_countries') {
             let rows;
@@ -3178,8 +3275,9 @@
                 .sort(function (a, b) { return b.impressions - a.impressions; }).slice(0, limit);
             if (!qs.length) return { html: '', summary: '', err: 'No searches found from ' + scopeName + ' for ' + periodLabel(_ddDays) + '.' + (plan.country && !code ? ' (I didn\'t recognise that country.)' : '') };
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions }; });
+            const _iqNarr = _narrative('Top searches from ' + scopeName + ' (' + periodLabel(_ddDays) + ')', qs.map(function (x) { return { text: '"' + x.query + '"', value: fmt(x.impressions) + ' impr' + (!code && x.topCountry ? ' · mostly ' + _countryName(x.topCountry) : '') }; }));   // rank-card body already separates the list -> shorten the recap, don't bullet
             return { html: _rankCard(items, { nameLabel: 'Query', valueLabel: 'Impressions' }),
-                summary: 'Top searches from ' + scopeName + ' (' + periodLabel(_ddDays) + '): ' + qs.slice(0, 6).map(function (x) { return '"' + x.query + '" ' + fmt(x.impressions) + ' impr' + (!code && x.topCountry ? ' (mostly ' + _countryName(x.topCountry) + ')' : ''); }).join(', ') + '.',
+                summary: _iqNarr.summary,
                 scope: { label: null, country: code ? _countryName(code) : null },   // scope-ignoring by design (v1): country queries are site-wide, so the chip shows the RESOLVED country (America -> United States), never a section (A10)
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }].concat(code ? [] : [{ key: 'topCountry', label: 'Top country' }]), rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, topCountry: _countryName(x.topCountry) }; }), chart: { type: 'bar', x: 'query', y: 'impressions', label: 'Impressions' } } };
         }
@@ -3224,7 +3322,7 @@
                     const mx = Math.max.apply(null, vals.concat([1]));
                     return { name: _MLABEL[m], values: vals.map(function (v) { return mx > 0 ? Math.round(v / mx * 1000) / 10 : 0; }), raw: vals };
                 });
-                const ovChart = { type: 'line', label: 'indexed 0–100 (each metric to its own peak)' };
+                const ovChart = { type: 'line', label: 'indexed 0 to 100 (each metric to its own peak)' };
                 metricViews.__overlay = {
                     body: _renderChart({ periods: periods, series: ovSeries, chart: ovChart }),
                     columns: [{ key: 'period', label: 'Period' }].concat(avail.map(function (m) { return { key: m, label: _MLABEL[m] }; })),
@@ -3271,7 +3369,7 @@
             else if (impChg != null && impChg >= 20) signals.push({ sev: 'good', t: 'Growing', d: 'Impressions up ' + impChg + '% vs the previous period.' });
             if (s.engagementRate != null && (s.sessions || 0) >= 20 && s.engagementRate < 0.4) signals.push({ sev: 'warn', t: 'Low engagement', d: 'Only ' + Math.round(s.engagementRate * 100) + '% of visits are engaged - people arrive but leave without reading. Check the intro, layout and whether the page answers the search.' });
             if (_ci) _ci.findings.forEach(function (f) { signals.push({ sev: f.sev, t: f.t, d: f.d }); });
-            // AI-exposure hypothesis (ambient): pull the engine (wait once per period — a diagnosis must
+            // AI-exposure hypothesis (ambient): pull the engine (wait once per period · a diagnosis must
             // not silently omit its sharpest hypothesis). Findings rank by clicks/mo at stake; exposure
             // carries the only magnitude here so it LEADS, artifact leads as the causal reframe, and an
             // engine-fetch failure appends an honest "unavailable" note (distinct from "checked, clean").
@@ -3318,9 +3416,12 @@
             const qs = Object.keys(byQ).map(function (q) { return byQ[q]; }).filter(function (x) { return x.impressions > 0; }).sort(function (a, b) { return b.impressions - a.impressions; }).slice(0, Math.max(limit, 10));
             if (!qs.length) return { html: '', summary: '', err: 'No question-style searches found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + '.' };
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions, url: x.bestPage }; });
+            // Rank-card body already separates the list -> shorten the recap to a lead + top 3 (was a 10-item run-on that
+            // also LEAKED an LLM prompt fragment - "name the 2-3 themes" - into the displayed narrative; dropped).
+            const _qNarr = _narrative('Question-style searches' + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '), most-searched first', qs.map(function (x) { return { text: '"' + x.query + '"', value: fmt(x.impressions) + ' impr' }; }));
             return {
                 html: _rankCard(items, { nameLabel: 'Question', valueLabel: 'Impressions' }),
-                summary: 'Question-style searches' + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '), most-searched first: ' + qs.slice(0, 10).map(function (x) { return '"' + x.query + '" ' + fmt(x.impressions); }).join(', ') + '. In one sentence, name the 2-3 themes people are asking about.',
+                summary: _qNarr.summary,
                 data: { columns: [{ key: 'question', label: 'Question' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { question: x.query, impressions: x.impressions, clicks: x.clicks, bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'question', y: 'impressions', label: 'Impressions' } }
             };
         }
@@ -3400,7 +3501,7 @@
             const top = _sectionActions(c, r, ctx);
             const rollup = c ? c.rollup : r.totals;
             const hasGA4b = r.totals.pageViews > 0 || r.totals.users > 0;
-            // Compact one-line context (NOT the full section strip — that's the section_summary answer; the
+            // Compact one-line context (NOT the full section strip · that's the section_summary answer; the
             // briefing's job is priorities, and its most action-dense answer shouldn't open with its least).
             const statsLine = '<div style="font-weight:700;font-size:0.95rem;color:var(--color-text-heading);">' + esc(scopeTitle) + '</div><div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:12px;">' + fmt(rollup.impressions) + ' impr &middot; ' + _ctrTxt(rollup.ctr) + ' CTR' + (hasGA4b ? ' &middot; ' + fmt(rollup.pageViews) + ' views' : '') + ' &middot; ' + fmt(rollup.leafCount || 0) + ' pages</div>';
             const md = '# Briefing: ' + scopeTitle + ' (' + periodLabel(_ddDays) + ')\n\n' + _briefMarkdown(scopeTitle, rollup, top);
@@ -3478,9 +3579,15 @@
                     data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'potentialClicks', sizeLabel: 'potential clicks/mo' } } };
             }
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x[by]) + (x.position != null ? ' · #' + x.position.toFixed(0) : ''), bar: x[by] }; });
+            // Narrative as a LIST, not prose crammed into one line (the query text is only readable here + the hidden
+            // table; the ladder truncates labels). Structured lines -> res.summaryLines renders bullets; res.summary is
+            // DERIVED from the same lines for the portable consumers.
+            const _unit = by === 'clicks' ? ' clicks' : ' impr';
+            const _lines = qs.map(function (x) { return { text: '"' + x.query + '"', value: fmt(x[by]) + _unit + (x.position != null ? ' · pos ' + x.position.toFixed(0) : '') }; });
+            const _narr = _narrative('Top queries bringing people to ' + page.name + ' (' + periodLabel(_ddDays) + ', by ' + by + ')', _lines);
             return {
                 html: head + _rankCard(items, { nameLabel: 'Query', valueLabel: by === 'clicks' ? 'Clicks' : 'Impressions' }) + footnote,
-                summary: 'Top search queries bringing people to "' + page.name + '" (' + periodLabel(_ddDays) + ', by ' + by + '): ' + qs.slice(0, 8).map(function (x) { return '"' + x.query + '" ' + fmt(x[by]) + (x.position != null ? ' (pos ' + x.position.toFixed(0) + ')' : ''); }).join(', ') + '.',
+                summary: _narr.summary, summaryLead: _narr.summaryLead, summaryLines: _narr.summaryLines,
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'position', label: 'Position' }], rows: qs.map(function (x) { return { query: x.query, impressions: x.impressions, clicks: x.clicks, position: x.position != null ? +x.position.toFixed(1) : '' }; }), chart: { type: 'ladder', label: 'query', pos: 'position', size: by } }
             };
         }
@@ -3543,7 +3650,7 @@
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
                 cell('Impressions', fmt(s.impressions || 0)) + cell('Clicks', fmt(s.clicks || 0)) + cell('CTR', _ctrTxt(s.ctr)) + cell('Avg pos', s.position != null ? s.position.toFixed(1) : '-') +
                 (hasGA4p ? cell('Views', fmt(s.pageViews || 0)) : '') + (hasGA4p ? cell('Users', fmt(s.users || 0)) : '') + (s.engagementRate != null ? cell('Engaged', Math.round(s.engagementRate * 100) + '%') : '') + '</div>';
-            // Benchmark: CTR against the typical-for-its-position rate — a fact becomes a judgement. BUT a
+            // Benchmark: CTR against the typical-for-its-position rate · a fact becomes a judgement. BUT a
             // near-zero CTR at a strong rank is a data artifact (redirect/attribution), not a low grade, so
             // surface it as 'investigate' rather than paint it stark red against typical.
             const _bench = (s.position != null && (s.impressions || 0) >= 100) ? _ctrBenchmark(s.position) : 0;
@@ -3623,23 +3730,19 @@
         }
         if (intent === 'compare_periods') {
             const pa0 = _resolvePeriod(plan.periodA), pb0 = _resolvePeriod(plan.periodB);
-            // A calendar/anchored-date comparison ("before and after May 12", "q1 vs q2") is exactly the change_impact
-            // demand signal: refuse gracefully AND log it (missTag) so the err path captures the demand the crash used to eat.
+            // Calendar periods now RESOLVE to {days,offset} (Q1 2026, March 2026, 2025), so a same-year quarter-vs-quarter
+            // just runs. Only two shapes still refuse here, each with its OWN honest copy (a shared refusal misdirects):
+            //  ANCHORED ("before/after/since a date") = change_impact, which no period pair can isolate (the A6/z29 split).
+            //  UNFETCHABLE calendar: a period that's too old (beyond GSC's ~16mo) or not finished yet - name WHICH and why,
+            //   NOT a false "year over year, try seasonal" redirect (Q1 vs Q2 same year is NOT year-over-year - the bug).
             if ((pa0 && pa0.calendar) || (pb0 && pb0.calendar)) {
-                // TWO unsupported shapes share this refusal, and they need DIFFERENT copy - conflating them relocates the
-                // A11 force-match failure into the apology (a fixed refusal that misdirects). Split by what was detected:
-                //  ANCHORED ("before/after/since a date") = change_impact territory; seasonal (now vs last year) canNOT
-                //   isolate a mid-period change, so DO NOT redirect there - name the limitation honestly (the A6 spec copy).
-                //  CALENDAR quarter/month ("Q1 2025 vs Q1 2024") = year-over-year, which `seasonal` genuinely answers.
                 if (_isAnchoredPeriods(plan.periodA, plan.periodB)) {
                     return { html: '', summary: '', err: 'I can’t compare around a specific date yet. Relative periods are available ("this month vs last month", "last 90 days vs the previous 90 days"), but if the change happened partway through a period they will not isolate it.', missTag: 'change_impact', noScopeEscape: true };
                 }
-                // Teach the nearest CAPABLE intent (B9): a calendar quarter-vs-quarter IS year-over-year -> seasonal. No product
-                // promise ("coming"), no scope-escape chip.
-                const _scH = plan.category || plan.page;
-                const _seas = _scH ? ('is ' + _scH + ' seasonal') : 'is this drop seasonal';
-                const _vsyr = _scH ? (_scH + ' vs last year') : 'how does this compare to last year';
-                return { html: '', summary: '', err: 'I can compare relative periods (for example "this month vs last month" or "last 90 days vs the previous 90 days"), but not specific calendar quarters or months. For a year over year comparison like this, try "' + _seas + '" or "' + _vsyr + '", which compares the same period against last year.', missTag: 'calendar_period', noScopeEscape: true };
+                const _bad = (pa0 && pa0.calendar) ? pa0 : pb0, _lbl = _bad.label || 'that period';
+                if (_bad.reason === 'too_old') return { html: '', summary: '', err: 'I can’t pull ' + _lbl + ' - it’s older than the roughly 16 months of history Search Console keeps. I can compare anything inside that window (for example "Q2 2026 vs Q1 2026", or "this month vs last month").', missTag: 'calendar_out_of_range', noScopeEscape: true };
+                if (_bad.reason === 'future') return { html: '', summary: '', err: _lbl + ' hasn’t finished yet, so there’s no complete period to compare. Try a quarter or month that has ended (for example "Q2 2026 vs Q1 2026").', missTag: 'calendar_future', noScopeEscape: true };
+                return { html: '', summary: '', err: 'I couldn’t read that as a period. Try a calendar quarter or month like "Q1 2026" or "March 2026", or relative periods like "this month vs last month".', missTag: 'calendar_period', noScopeEscape: true };
             }
             if (!pa0 || !pb0) return { html: '', summary: '', err: 'I could not read those two periods. Try "this month vs last month" or "last 90 days vs the previous 90 days".' };
             // Never compare OVERLAPPING windows silently (B5): auto-disjoint with disclosure so the delta measures a real change.
@@ -3650,7 +3753,7 @@
             let page = null, catNode = null, scopeLabel;
             // Scope resolution. quickParse can't tell a section from a page by syntax, so a section
             // name ("compare Health…") lands in `page`. Prefer an exact SECTION match first, then
-            // resolve as a page — otherwise a section-scoped period comparison would dead-end on
+            // resolve as a page · otherwise a section-scoped period comparison would dead-end on
             // "I could not find that page" (the intent used to error on _resolvePage .none here).
             const _scopeTerm = plan.page || plan.category;
             if (_scopeTerm && _catByName(cats, _scopeTerm)) { catNode = _catByName(cats, _scopeTerm); scopeLabel = catNode.name; }
@@ -3699,13 +3802,13 @@
                 '</div>';
             const ovlNote = _ovl ? '<div style="font-size:0.62rem;color:#b45309;margin-top:8px;">' + esc(_ovl.note) + '</div>' : '';
             const normNote = norm ? '<div style="font-size:0.62rem;color:#b45309;margin-top:8px;">The periods are different lengths (' + older.days + ' vs ' + newer.days + ' days), so counts are shown as <b>daily averages</b>.</div>' : '';
-            const retNote = (!ga4both && (ga4o || ga4n)) ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">GA4 (views / engagement) isn&rsquo;t retained across both periods — showing search metrics only. GA4 keeps 2 or 14 months depending on the property.</div>' : '';
-            // headline (override path): the named count metric if any, else impressions — NEVER a synthesised
+            const retNote = (!ga4both && (ga4o || ga4n)) ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">GA4 (views / engagement) isn&rsquo;t retained across both periods · showing search metrics only. GA4 keeps 2 or 14 months depending on the property.</div>' : '';
+            // headline (override path): the named count metric if any, else impressions · NEVER a synthesised
             // "overall" score (that's a gauge in verdict clothing). Rate metrics fall back to impressions.
             // Weighted count delta; direction-coloured; the per-day-normalisation caveat rides in the hover.
             let _cpHead = null;
             const _rateName = metric === 'ctr' ? 'CTR' : metric === 'position' ? 'Avg position' : null;
-            if (_rateName) {   // a NAMED rate headlines AS the rate, in POINTS (never percent-of-percent) — answer the question asked, don't fall back to impressions
+            if (_rateName) {   // a NAMED rate headlines AS the rate, in POINTS (never percent-of-percent) · answer the question asked, don't fall back to impressions
                 const rr = rows.filter(function (r) { return r.metric === _rateName; })[0];
                 if (rr && rr.older != null && rr.newer != null && rr.delta != null) {
                     const _imp = _deltaImproved(rr.dtype === 'ptpos' ? 'lower' : 'higher', rr.older, rr.newer);
@@ -3750,12 +3853,12 @@
             const toPath = (ga4 && typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
             const rowsFor = function (p, byPage) { const out = []; (p.urls || [p.url]).forEach(function (u) { const rs = byPage.get(toPath(u)); if (rs) rs.push.apply(out, [].concat(rs)); }); return out; };
             const sumScope = function (byPage, pgs, pred) { let s = 0; pgs.forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { const rs = byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { if (!pred || pred(rw)) s += rw.sessions; }); }); }); return s; };
-            const AI_FLOOR = 'Note: this is a floor, not a ceiling — AI-Overview clicks are counted as Organic Search, and AI visits with no referrer fall into Direct, so real AI traffic is higher than shown.';
-            const truncNote = data.truncated ? ' <span style="color:#b45309;">(source list truncated at the cap — long-tail sources may be undercounted).</span>' : '';
+            const AI_FLOOR = 'Note: this is a floor, not a ceiling · AI-Overview clicks are counted as Organic Search, and AI visits with no referrer fall into Direct, so real AI traffic is higher than shown.';
+            const truncNote = data.truncated ? ' <span style="color:#b45309;">(source list truncated at the cap · long-tail sources may be undercounted).</span>' : '';
             const m = plan.source ? _sourceMatcher(plan.source) : (plan.channel ? _sourceMatcher(plan.channel) : null);
             const _mVerb = (m && /s$/i.test(m.label) && !/\bsearch$/i.test(m.label)) ? 'are' : 'is';   // "AI assistants ARE", "Google IS" (C1 subject-verb slip); "Paid Search IS" stays singular
 
-            // ── Growth: "is AI traffic growing?" — current vs previous period vs same period last year ──
+            // ── Growth: "is AI traffic growing?" · current vs previous period vs same period last year ──
             if (m && plan.growth) {
                 const cats2 = cats; const c = _catByName(cats2, plan.category);
                 const pgs = c ? catPages(c) : _allPages(r);
@@ -3798,8 +3901,8 @@
                 const pages = c ? catPages(c) : _allPages(r);
                 const scored = pages.map(function (p) { return { name: p.name, url: p.url, sess: sumScope(data.byPage, [p], m.pred) }; }).filter(function (x) { return x.sess > 0; });
                 const total = scored.reduce(function (s, x) { return s + x.sess; }, 0);
-                if (!scored.length) return { html: '', summary: '', err: 'No pages' + (c ? ' in ' + c.name : '') + ' got traffic from ' + m.label + ' in ' + periodLabel(_ddDays) + '.' + (data.truncated ? ' (Source data was truncated — a rare source may be missing.)' : '') };
-                // Share of ALL sessions in scope — answers "what percentage of traffic is from X".
+                if (!scored.length) return { html: '', summary: '', err: 'No pages' + (c ? ' in ' + c.name : '') + ' got traffic from ' + m.label + ' in ' + periodLabel(_ddDays) + '.' + (data.truncated ? ' (Source data was truncated · a rare source may be missing.)' : '') };
+                // Share of ALL sessions in scope · answers "what percentage of traffic is from X".
                 const allTotal = pages.reduce(function (s, p) { let ps = 0; (p.urls || [p.url]).forEach(function (u) { const rs = data.byPage.get(toPath(u)); if (rs) rs.forEach(function (rw) { ps += rw.sessions; }); }); return s + ps; }, 0);
                 const share = allTotal > 0 ? total / allTotal * 100 : null;
                 const shareTxt = share != null ? (share < 1 ? '<1' : Math.round(share)) + '% of all traffic' : '';
@@ -3942,7 +4045,7 @@
             // Resolve each query's ranking page URL back to a name so the row can say WHERE you rank, not just that demand rose.
             const _u2n = Object.create(null); _allPages(r).forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { if (u) _u2n[normUrl(u)] = p.name; }); });
             // Richer than the generic rank card: query + a muted stat line (impressions · clicks · CTR · rank · page)
-            // so it reads as a work list, not a news bulletin — position is what turns "demand rose" into a to-do. Borderless .sv-ask-list.
+            // so it reads as a work list, not a news bulletin · position is what turns "demand rose" into a to-do. Borderless .sv-ask-list.
             const _emRow = function (o) {
                 const x = o.x;
                 const badge = o.isNew
@@ -3959,7 +4062,8 @@
             const _emHead = '<div style="display:flex;align-items:center;gap:10px;padding:5px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);background:var(--color-bg-secondary);"><span style="flex:1;">Emerging query</span><span style="flex-shrink:0;">Impressions gained</span></div>';
             return {
                 html: '<div class="sv-ask-list">' + _emHead + em.map(_emRow).join('') + '</div><div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">New or fast-rising searches vs the previous ' + _ddDays + ' days (current impressions vs prior). Ride the demand while it is fresh.</div>',
-                summary: 'Emerging searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days: ' + em.slice(0, 6).map(function (o) { return '"' + o.x.query + '" ' + fmt(o.x.impressions) + ' impressions' + (o.isNew ? ' (new)' : ' (was ' + fmt(o.prior) + ')'); }).join('; ') + '.',
+                // Rich _emRow body already separates the list (badge + stat line) -> shorten the recap, don't bullet (would double).
+                summary: _narrative('Emerging searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days', em.map(function (o) { return { text: '"' + o.x.query + '"', value: fmt(o.x.impressions) + ' impr' + (o.isNew ? ' · new' : ' · was ' + fmt(o.prior)) }; })).summary,
                 data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR %' }, { key: 'bestPosition', label: 'Best position' }, { key: 'priorImpressions', label: 'Prior impressions' }, { key: 'gain', label: 'Impressions gained' }, { key: 'status', label: 'Status' }, { key: 'category', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: em.map(function (o) { return { query: o.x.query, impressions: o.x.impressions, clicks: o.x.clicks, ctr: +(((o.x.ctr) || 0) * 100).toFixed(2), bestPosition: o.x.bestPos != null ? +o.x.bestPos.toFixed(1) : null, priorImpressions: o.prior, gain: o.gain, status: o.isNew ? 'new' : 'rising', category: o.x.category || '', bestPage: o.x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'gain', label: 'Impressions gained' } }
             };
         }
@@ -4344,11 +4448,11 @@
         const cc = _exampleCats(3), ll = _exampleLeaves(2);
         const A = cc[0], B = cc[1], C = cc[2], P0 = ll[0], P1 = ll[1];
         const JOBS = [
-            { t: 'Triage — what needs attention', items: ['What should I focus on in ' + A + '?', 'Which ' + A + ' pages lost traffic?', 'Pages with high impressions but low clicks', 'What is stale in ' + A + '?', 'Which pages get no search traffic?', 'Which pages do people leave quickly?', 'Any pages competing for the same search?'] },
-            { t: 'Discover — new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What do people search for in ' + A + '?', 'What questions do people ask?', 'Where do visitors to ' + A + ' come from?', 'How much traffic comes from AI?', 'Is AI traffic growing?', 'What do people abroad search us for?', 'Which countries search us the most?'] },
-            { t: 'Improve — fix a page', items: ['Why is the ' + P0 + ' page underperforming?', 'How is the ' + P1 + ' page performing?', 'What queries bring people to the ' + P0 + ' page?', 'Where does traffic to the ' + P0 + ' page come from?', 'Quick wins for the ' + P0 + ' page', 'Where does the Irish version underperform?'] },
-            { t: 'Verify — did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B, 'Compare ' + A + ': this month vs last month'] },
-            { t: 'Report — roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which categories get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
+            { t: 'Triage · what needs attention', items: ['What should I focus on in ' + A + '?', 'Which ' + A + ' pages lost traffic?', 'Pages with high impressions but low clicks', 'What is stale in ' + A + '?', 'Which pages get no search traffic?', 'Which pages do people leave quickly?', 'Any pages competing for the same search?'] },
+            { t: 'Discover · new demand & questions', items: ['Where are our biggest search opportunities?', 'What content should we create?', "What's newly trending in search?", 'What do people search for in ' + A + '?', 'What questions do people ask?', 'Where do visitors to ' + A + ' come from?', 'How much traffic comes from AI?', 'Is AI traffic growing?', 'What do people abroad search us for?', 'Which countries search us the most?'] },
+            { t: 'Improve · fix a page', items: ['Why is the ' + P0 + ' page underperforming?', 'How is the ' + P1 + ' page performing?', 'What queries bring people to the ' + P0 + ' page?', 'Where does traffic to the ' + P0 + ' page come from?', 'Quick wins for the ' + P0 + ' page', 'Where does the Irish version underperform?'] },
+            { t: 'Verify · did it work / is it normal', items: ['How are pages we updated in the last 90 days doing?', 'Is the recent change in ' + A + ' seasonal?', 'How has ' + A + ' trended?', 'What pages are trending in ' + A + '?', 'Compare ' + A + ' and ' + B, 'Compare ' + A + ': this month vs last month'] },
+            { t: 'Report · roll up & share', items: ['How is the whole site doing?', 'Generate a weekly digest', 'Which categories get the most traffic?', 'How is ' + A + ' doing?', 'Top pages in ' + A, 'Which sections are declining?'] }
         ];
         const grp = function (j) {
             return '<div class="sv-pal-group" style="margin-bottom:13px;">' +
@@ -4361,14 +4465,14 @@
             '<div style="font-size:0.9rem;font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">What you can ask</div>' +
             '<input id="sv-ask-pal-search" type="text" placeholder="Filter capabilities…" autocomplete="off" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:0.82rem;padding:8px 11px;border:1px solid var(--color-border-primary);border-radius:9px;background:var(--color-bg-primary);color:var(--color-text-primary);margin-bottom:14px;" />' +
             '<div class="sv-pal-body">' + JOBS.map(grp).join('') + '</div>' +
-            '<div class="sv-pal-empty" style="display:none;font-size:0.8rem;color:var(--color-text-muted);">No preset matches — just type your question in the box below; I understand plain English.</div>' +
-            '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;line-height:1.5;">These are <b>examples</b> spanning what the tool can do — you’re not limited to them. Phrase questions in your own words, and name a country, a page, a section or a time window (“this week”, “last 90 days”). You can also ask by voice.</div>' +
+            '<div class="sv-pal-empty" style="display:none;font-size:0.8rem;color:var(--color-text-muted);">No preset matches · just type your question in the box below; I understand plain English.</div>' +
+            '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;line-height:1.5;">These are <b>examples</b> spanning what the tool can do · you’re not limited to them. Phrase questions in your own words, and name a country, a page, a section or a time window (“this week”, “last 90 days”). You can also ask by voice.</div>' +
             '</div>';
     }
 
     // ── Answer anatomy (Wave 1 chassis): verdict-first headline + honest tier + motion-flagged count-up ──
     // The headline is DERIVED from the rendered rows by the renderer (not emitted per-handler), so the
-    // big-type number is the sum of the rows shown BY CONSTRUCTION — it cannot drift. Handlers may still
+    // big-type number is the sum of the rows shown BY CONSTRUCTION · it cannot drift. Handlers may still
     // set res.headline explicitly when the number needs data not in the rows (e.g. a period delta).
     // A big number is a real property of the data (a sum) or an honest share, never a top-N accident;
     // absent when neither fits. Delta-shaped verdicts come via the res.headline override, not here.
@@ -4389,7 +4493,7 @@
         return null;
     }
     // Weighted aggregate change (NOT a mean of per-row percentages): (Sum cur - Sum prev)/Sum prev. Also
-    // `churn` = Sum|cur-prev| — because for a two-directional set, NET cancels (5 up 6K + 5 down 6K = ~0%),
+    // `churn` = Sum|cur-prev| · because for a two-directional set, NET cancels (5 up 6K + 5 down 6K = ~0%),
     // and a calm net over a churn story is the limit-artifact bug in delta clothing. selfTest pins both.
     function _netDelta(rows, curKey, prevKey) {
         let c = 0, p = 0, ch = 0; (rows || []).forEach(function (r) { const cv = Number(r[curKey]) || 0, pv = Number(r[prevKey]) || 0; c += cv; p += pv; ch += Math.abs(cv - pv); });
@@ -4399,7 +4503,7 @@
     // else by going up. Drives both colour and arrow SENTIMENT so the position mini never paints good news red.
     function _deltaImproved(betterDirection, before, after) { return betterDirection === 'lower' ? (+after < +before) : (+after >= +before); }
     // Motion is separable from anatomy: one flag (localStorage svAskMotion='off') + prefers-reduced-motion
-    // both disable it, and the number always RENDERS as its true value — count-up only animates toward it.
+    // both disable it, and the number always RENDERS as its true value · count-up only animates toward it.
     function _askMotionOn() {
         try { if (localStorage.getItem('svAskMotion') === 'off') return false; } catch (e) {}
         try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch (e) {}
@@ -4442,7 +4546,7 @@
             })(els[i]);
         }
     }
-    // ── export helpers (CSV + AI brief) — consume the runIntent data contract ──
+    // ── export helpers (CSV + AI brief) · consume the runIntent data contract ──
     function _csvCell(v) {
         if (v == null) return '';
         const s = String(v);
@@ -4577,7 +4681,7 @@
             // "how many from X" / "traffic from X" / "how many to the Y page from X"
             const _fromAsk = /\bfrom\s+(ask[\s_-]?ci\w*)/i.exec(s);
             // Don't treat "from X" as a source when it's a period comparison ("compare … from q1 and q2")
-            // or a time token (q1-q4, a month, a year) — those are periods, not traffic sources.
+            // or a time token (q1-q4, a month, a year) · those are periods, not traffic sources.
             const _isCmp = /\bcompare\b/i.test(s) || /\bfrom\s+q[1-4]\b/i.test(s) || /\bfrom\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(s) || /\bfrom\s+20\d\d\b/i.test(s);
             const _fromGen = (!_fromAsk && !_isCmp && /\b(?:how many|how much|traffic|sessions|visits?|visitors)\b/i.test(s)) ? /\bfrom\s+([a-z][\w.\-]{1,30})\b/i.exec(s) : null;
             const _fm = _fromAsk || _fromGen;
@@ -4714,7 +4818,7 @@
                     '<div style="font-size:0.66rem;color:var(--color-text-muted);">AI phrases &middot; code computes &middot; real GSC/GA4</div>' +
                 '</div>' +
                 '<select id="sv-ask-period" class="sv-ask-ctl" title="Time window for answers">' + PERIODS.map(function (p) { return '<option value="' + p.d + '"' + (p.d === _ddDays ? ' selected' : '') + '>' + p.label.replace(/^Last /, '') + '</option>'; }).join('') + '</select>' +
-                '<select id="sv-ask-scope" class="sv-ask-ctl" title="Your section — scopes answers, one tap to broaden" style="max-width:124px;">' + _scopeOptions(_getScopeName()) + '</select>' +
+                '<select id="sv-ask-scope" class="sv-ask-ctl" title="Your section · scopes answers, one tap to broaden" style="max-width:124px;">' + _scopeOptions(_getScopeName()) + '</select>' +
                 '<button class="sv-ask-clear sv-ask-iconbtn-muted" title="Clear session" aria-label="Clear session"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>' +
                 '<button class="sv-ask-close sv-ask-iconbtn-muted" title="Close (Esc)" aria-label="Close" style="font-size:22px;line-height:1;padding:0 4px;">&times;</button>' +
             '</div>' +
@@ -4737,7 +4841,7 @@
         const _exports = Object.create(null);
         let _entryN = 0;
         // Session-memory cap. _exports (rows/markdown/chart data per answer) and the transcript DOM
-        // (charts, tables, SVGs) grow unboundedly until "clear" or close — a 40-question morning
+        // (charts, tables, SVGs) grow unboundedly until "clear" or close · a 40-question morning
         // would eventually feel it, and per house rule that "panel got slow" report arrives with NO
         // console error. Past ~30 answers, collapse the oldest to just its headline: free its export
         // record and swap its heavy body for the one-liner. Cheap, and history stays readable.
@@ -4768,7 +4872,7 @@
             if (intro) transcript.innerHTML = _buildIntro();
         });
         // Period pill: sets the base window for subsequent questions (a typed "this week" still
-        // overrides per-question). No fetch here — the next question fetches for the new window.
+        // overrides per-question). No fetch here · the next question fetches for the new window.
         const _perSel = panel.querySelector('#sv-ask-period');
         if (_perSel) _perSel.addEventListener('change', function () { const d = parseInt(this.value, 10); if (d) _ddDays = d; });
 
@@ -4791,7 +4895,7 @@
             input.focus();
         });
 
-        // Keep wheel/touch scrolling inside the panel — never let it reach the D3 tree zoom behind it.
+        // Keep wheel/touch scrolling inside the panel · never let it reach the D3 tree zoom behind it.
         panel.addEventListener('wheel', function (e) { e.stopPropagation(); }, { passive: true });
         panel.addEventListener('touchmove', function (e) { e.stopPropagation(); }, { passive: true });
         panel.addEventListener('mousemove', _chartTipMove);
@@ -4914,7 +5018,7 @@
             if (e.key === 'Enter') { if (open && _sugIdx >= 0) { input.value = _sugItems[_sugIdx]; } _hideSuggest(); ask(); }
         });
         suggestBox.addEventListener('click', function (e) { const b = e.target.closest('.sv-ask-sug'); if (b) { input.value = b.getAttribute('data-q'); _hideSuggest(); ask(); } });
-        // Voice input via the Web Speech API — feature-detected; the mic stays hidden otherwise.
+        // Voice input via the Web Speech API · feature-detected; the mic stays hidden otherwise.
         const _mic = panel.querySelector('#sv-ask-mic');
         const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (_mic && _SR) {
@@ -4973,10 +5077,10 @@
                 const r = await refreshForPeriod(tree, _ddDays).catch(function () { return build(tree); });
                 const catNames = r.categories.map(function (c) { return c.name; });
                 // Prompt-caching: keep the system prompt 100% STATIC (identical every request) so Groq
-                // caches this ~3k-token prefix — cached tokens don't count toward rate limits. The
+                // caches this ~3k-token prefix · cached tokens don't count toward rate limits. The
                 // per-session section list is dynamic, so it goes in the USER message (the tail), NOT here.
                 const sys = _ASK_SYS_PROMPT;
-                // Deterministic parser FIRST — only fall back to the LLM (a Groq call) when it
+                // Deterministic parser FIRST · only fall back to the LLM (a Groq call) when it
                 // can't handle the phrasing. Cuts ~1 Groq call per question for common queries.
                 // A did-you-mean click supplies a structured plan directly (resolved page + original intent): use it as-is
                 // and skip parsing entirely, so the same intent re-runs and the exact name resolves uniquely.
@@ -5081,7 +5185,7 @@
                 if (plan._src === 'tree') interpBits.push('from the tree');   // provenance: a menu click is as auditable as a typed question (rides the same interp rail)
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span><span style="opacity:0.4;margin-left:6px;" title="Build stamp: which deploy produced this answer">build ' + esc(_BUILD) + '</span></div>';
                 const _metricTgl = (res.data && res.data.availableMetrics && res.data.availableMetrics.length > 1 && res.data.metricViews) ? _metricToggleHtml(eid, res.data.availableMetrics, res.data.metric) : '';
-                // Chart/card body only — the metric toggle sits OUTSIDE .sv-ask-rich so the handler's
+                // Chart/card body only · the metric toggle sits OUTSIDE .sv-ask-rich so the handler's
                 // innerHTML swap (which replaces .sv-ask-rich) doesn't delete the toggle buttons.
                 const _bodyHtml = (res.data && res.data.metricViews) ? res.data.metricViews[res.data.metric].body : (_renderChart(res.data) || res.html);
                 const _tblHtml = _exports[eid] ? '<div class="sv-ask-tbl" style="display:none;">' + _dataTable(res.data) + '</div>' : '';
@@ -5089,7 +5193,12 @@
                 const _segNote = plan.intent === 'traffic_sources' ? '' : _segmentNote(q, _segNames);
                 const _segHtml = _segNote ? '<div style="font-size:0.7rem;color:#b45309;background:var(--color-bg-tertiary);border-radius:7px;padding:7px 10px;margin-bottom:10px;">' + esc(_segNote) + '</div>' : '';
                 const _hlHtml = _headlineHtml(res.headline || _headlineFor(plan.intent, res.data));   // verdict-first: the one number, big, above the sentence
-                resp.innerHTML = interp + _segHtml + _hlHtml + '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;border-left:3px solid var(--primary);padding-left:11px;">' + esc(res.summary || '') + '</div>' + _metricTgl + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
+                // Narrative: a LIST answer (res.summaryLines) renders lead + bullets (the row idiom); a verdict/prose
+                // answer renders the one-liner exactly as before. res.summary stays the portable text for export/Groq.
+                const _narrBlock = (res.summaryLines && res.summaryLines.length)
+                    ? _narrativeHtml(res.summaryLead || '', res.summaryLines)
+                    : '<div class="sv-ask-oneliner" style="font-size:0.95rem;color:var(--color-text-heading);font-weight:700;line-height:1.5;margin:0 0 13px;border-left:3px solid var(--primary);padding-left:11px;">' + esc(res.summary || '') + '</div>';
+                resp.innerHTML = interp + _segHtml + _hlHtml + _narrBlock + _metricTgl + '<div class="sv-ask-rich">' + _bodyHtml + '</div>' + _tblHtml;
                 _animateCountups(resp);
                 if (_exports[eid]) {
                     const _abtn = 'display:inline-flex;align-items:center;font-size:0.72rem;padding:5px 11px;border-radius:8px;border:1px solid var(--color-border-primary);background:var(--color-bg-primary);color:var(--color-text-secondary);cursor:pointer;font-family:inherit;font-weight:600;';
@@ -5214,7 +5323,7 @@
             { q: 'which pages lost traffic', intent: 'movers' },
             { q: 'how has Health trended', intent: null },                      // trend -> LLM
             { q: 'which sections are declining', intent: 'section_movers' },
-            // traffic sources / AI — assert the SOURCE slot (extraction is the fragile bit)
+            // traffic sources / AI · assert the SOURCE slot (extraction is the fragile bit)
             { q: 'how much traffic from askci', intent: 'traffic_sources', source: 'askci' },
             { q: 'how much traffic from AI', intent: 'traffic_sources', source: 'AI' },
             { q: 'which pages does ChatGPT send', intent: 'traffic_sources', source: 'ChatGPT' },
@@ -5239,7 +5348,7 @@
             { q: 'is the Health drop seasonal', intent: 'seasonal', category: 'health' },   // the section slot must survive (A2 scope bug)
             { q: 'what pages were updated recently', intent: 'recently_updated' },
             { q: 'pages updated in the last 30 days in Health', intent: 'recently_updated', category: 'health' },
-            // compare_periods — assert the scope slot. quickParse can't tell a section from a page by
+            // compare_periods · assert the scope slot. quickParse can't tell a section from a page by
             // syntax, so a section name lands in `page` ("Health"); the intent reconciles that to a
             // category downstream (see the compare_periods branch). This case pins the parse so the
             // reconciliation stays honest.
@@ -5265,7 +5374,7 @@
                 ok = !!p && p.intent === c.intent; if (!ok) why = 'intent';
                 // Slot assertions (subset): only the slots a case names are checked, via
                 // case-insensitive substring. This is where quickParse's regexes are most fragile
-                // ("the Fuel" vs "Fuel Allowance", a section name landing in the page slot) — and
+                // ("the Fuel" vs "Fuel Allowance", a section name landing in the page slot) · and
                 // intent-only assertions would sail green straight through every one of them.
                 ['page', 'category', 'source', 'aspect'].forEach(function (slot) {
                     if (ok && c[slot] != null && !inc(p[slot], c[slot])) { ok = false; why = slot + '="' + (p ? p[slot] : '') + '" (want "' + c[slot] + '")'; }
@@ -5284,7 +5393,7 @@
     // ── Monthly report (.xlsx) ────────────────────────────────────────────────────
     // Automates the manual GA4 monthly spreadsheet. Tree-driven, and clean BY CONSTRUCTION:
     // the GA4 fetch is keyed by pagePath only, so translated-title duplicate rows never exist
-    // (that's the manual "drop rows that aren't real page titles" step — gone); titles come from
+    // (that's the manual "drop rows that aren't real page titles" step · gone); titles come from
     // the sitemap (always real); non-content artifacts (e.g. .../search_wagtail/) aren't in the
     // tree, so they drop out. Output: Top Views + Trends + one sheet per category, this month vs
     // the prior month. GA4-only for now (matches the current workflow; GSC columns can come later).
@@ -5415,7 +5524,7 @@
                 zip.file(names[i], xml); injected++;
             }
             if (typeof console !== 'undefined') console.log('[SVRollup] monthly report: conditional formatting injected into ' + injected + '/' + names.length + ' sheets.');
-            // Summary sheet: explicit CF (it isn't a uniform table) — data bars on the league Views
+            // Summary sheet: explicit CF (it isn't a uniform table) · data bars on the league Views
             // column, colour scale on its %Δ columns; ranges come from _summarySheet via opts.
             if (opts && opts.summary) {
                 for (let i = 0; i < names.length; i++) {
@@ -5458,7 +5567,7 @@
                 } catch (se) { if (typeof console !== 'undefined') console.error('[SVRollup] KPI styling failed (kept content):', se); }
             }
             // Tables pass: wrap each sheet's data as an Excel Table (TableStyleMedium20). Touches 3
-            // parts per table — the table XML, the worksheet <tableParts>+rels, and [Content_Types].
+            // parts per table · the table XML, the worksheet <tableParts>+rels, and [Content_Types].
             // Own try so a table hiccup never loses the conditional formatting already applied.
             try {
                 const ct = await zip.file('[Content_Types].xml').async('string'); let ctAdd = '', tabled = 0;
@@ -5535,7 +5644,7 @@
         let sparkline = null;
         if (trend && trend.length && trend.some(function (t) { return t.value; })) {
             push([]);
-            push(['Site views — last ' + trend.length + ' months']);
+            push(['Site views · last ' + trend.length + ' months']);
             push([''].concat(trend.map(function (t) { return t.label; })));            // month labels, B..
             const vr = push([''].concat(trend.map(function (t) { return t.value; })));  // values, B..
             const lastCol = String.fromCharCode(66 + trend.length - 1);                 // B + (n-1)
@@ -5585,7 +5694,7 @@
                 (function walk(n) {
                     if (n.url) {
                         const p = toPath(n.url);
-                        if (p.indexOf('/en/') === 0) {          // English pages only — the report is EN; excludes /ga/ (Irish) versions
+                        if (p.indexOf('/en/') === 0) {          // English pages only · the report is EN; excludes /ga/ (Irish) versions
                             const k = normUrl(n.url), a = curBy[k], b = prevBy[k], c = yearBy[k];
                             // "Active users" uses GA4 activeUsers (matches the manual export); falls back to users(=totalUsers).
                             const v = a ? (a.pageViews || 0) : 0, pv = b ? (b.pageViews || 0) : 0, yv = c ? (c.pageViews || 0) : 0;
@@ -5609,12 +5718,12 @@
             trend6.push({ label: _RPT_MONTHS[mm - 1].slice(0, 3), value: hit ? hit.views : 0 });
         }
         const wb = XLSX.utils.book_new();
-        const summary = _summarySheet(rows, tot, trend6, 'Monthly Summary — ' + _RPT_MONTHS[month - 1] + ' ' + year);
+        const summary = _summarySheet(rows, tot, trend6, 'Monthly Summary · ' + _RPT_MONTHS[month - 1] + ' ' + year);
         XLSX.utils.book_append_sheet(wb, summary.ws, 'Summary');                                        // exec summary = first tab
         const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ2' }];   // 2nd %Δ deduped for Excel-table column-name uniqueness (matches original)
         const catH = siteH.slice(1);                                    // per-category sheets drop the Category column
         const byViews = function (a, b) { return b.views - a.views; };
-        // %Δ descending, new pages (null delta) last — matches the hand-made Trends + category tabs.
+        // %Δ descending, new pages (null delta) last · matches the hand-made Trends + category tabs.
         const byDelta = function (a, b) { return (b.dViews == null ? -Infinity : b.dViews) - (a.dViews == null ? -Infinity : a.dViews); };
         const topViews = rows.filter(function (r) { return r.views >= _RPT_TOPVIEWS_MIN; }).sort(byViews);
         XLSX.utils.book_append_sheet(wb, _reportWs(siteH, topViews, ['dViews', 'dUsers']), 'Top Views');                         // views >= floor
@@ -5687,10 +5796,10 @@
     // per-page classifier (position discipline can't run at site aggregate). Epistemic grammar via _epi.
     const _aiPct = function (x) { return (x >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(x * 100)) + '%'; };
     const _aiCtr = _ctrTxt;   // unified: the shared CTR formatter (sub-decimal '<0.1%' rule lives in one place)
-    // THE verdict sentence — built ONCE here, consumed verbatim by the report AND the ai_impact chat answer
+    // THE verdict sentence · built ONCE here, consumed verbatim by the report AND the ai_impact chat answer
     // (one engine, two views includes the WORDS). Plain text (measured numbers render plain per the grammar).
     // For the MIXED read it carries the DECOMPOSITION: since clicks = impressions x CTR, a clicks decline is
-    // part visibility (impressions) and part CTR (AI) — attributing the whole fall to AI is the over-claim.
+    // part visibility (impressions) and part CTR (AI) · attributing the whole fall to AI is the over-claim.
     function _aiVerdictSentence(div) {
         if (!div) return '';
         const n = div.months, clk = _aiPct(div.clkChange), a = _aiCtr(div.eCtr), b = _aiCtr(div.lCtr);
@@ -5825,17 +5934,17 @@
             sendsDetail +
             '<div style="' + S + 'margin-top:16px;padding-top:10px;border-top:1px solid var(--color-border-primary);">Search Console only sees Google, so this catches Google’s AI Overviews; losses to ChatGPT/Perplexity etc. are invisible here (they show up as GA4 down while GSC holds steady). For a public service body, being the source an AI answer cites can be mission success even without the click.</div>';
     }
-    // ── Phase 2: the hit-list — per-page, position-controlled ────────────────────
+    // ── Phase 2: the hit-list · per-page, position-controlled ────────────────────
     // TWO GSC windows (now vs ~1yr back), reusing the cached fetchTrendWindow machinery.
     // A page is flagged ONLY when position held (controls for rank slip) AND impressions clear a
     // floor AND CTR fell hard: that is the zero-click fingerprint, not demand or ranking loss.
     // Pre-committed discipline (a tight, real list beats a long mixed one):
-    //  _HL_POSMAX  page-1 only — AI Overviews/rich results sit at the top; a page at rank 12 losing CTR
+    //  _HL_POSMAX  page-1 only · AI Overviews/rich results sit at the top; a page at rank 12 losing CTR
     //              is a ranking/depth story, not an Overviews one.
     //  _HL_CTRBASE the page needed a real baseline CTR to have meaningful clicks to lose (a page that
     //              never converted shows noisy relative drops).
     //  cliff guard near-zero CTR *at a top rank* (pos<=5) is implausible from AI (Overviews reduce, they
-    //              don't zero out a rank-3 page) — it is a redirect/tracking artifact; set aside, not counted.
+    //              don't zero out a rank-3 page) · it is a redirect/tracking artifact; set aside, not counted.
     const _HL_WIN = 90, _HL_FLOOR = 2000, _HL_POS = 1.0, _HL_CTRDROP = 0.75, _HL_TOP = 15;
     const _HL_POSMAX = 10, _HL_CTRBASE = 0.02, _HL_CLIFFPOS = 5, _HL_CLIFFCTR = 0.005;
     // _HL_AIMINCTR: the "near zero needs a number" line (C1). Below this CURRENT CTR, a held-rank page-1 collapse is an
@@ -5843,7 +5952,7 @@
     // real exposed CTRs (~2 to 3%) and the artifact floor (Construction: 0.5%), so 0.8% cleanly separates them. Tune on data.
     const _HL_AIMINCTR = 0.008;
     // Pure, testable per-page verdict from two GSC windows: now `a`, ~1yr ago `b`, each {impr, clk, pos}.
-    // The ONE place the exposure thresholds are applied — selfTest asserts this directly, and because
+    // The ONE place the exposure thresholds are applied · selfTest asserts this directly, and because
     // diagnose / briefing now lean on it, a threshold change is a single, tested edit here.
     function _classifyExposure(a, b) {
         const cN = a.impr > 0 ? a.clk / a.impr : 0, cB = b.impr > 0 ? b.clk / b.impr : 0;
@@ -5857,7 +5966,7 @@
         return Object.assign({ keep: true, tier: a.pos <= 2.0 ? 'cited' : 'exposed', lost: Math.max(0, Math.round(a.impr * (cB - cN) / 3)) }, base);
     }
     // Classify every English page into exposed / cited / excluded from two cached GSC windows.
-    // The report AND the Ask tool both read this via getAIImpact — one engine, two views, no drift.
+    // The report AND the Ask tool both read this via getAIImpact · one engine, two views, no drift.
     async function _aiClassifyPages(tree, r) {
         const pair = await Promise.all([fetchTrendWindow(tree, _HL_WIN, 0), fetchTrendWindow(tree, _HL_WIN, 365)]);
         const now = pair[0].gscBy, base = pair[1].gscBy;
