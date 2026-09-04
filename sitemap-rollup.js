@@ -345,6 +345,8 @@
         mk('classify.rankslip_reason', _ce({ impr: 10000, clk: 200, pos: 6.0 }, { impr: 10000, clk: 520, pos: 3.0 }).reason, 'rankslip');  // rank slipped 3 places
         mk('classify.rankslip_notkept', _ce({ impr: 10000, clk: 200, pos: 6.0 }, { impr: 10000, clk: 520, pos: 3.0 }).keep, false);
         mk('classify.artifact', _ce({ impr: 166000, clk: 0, pos: 3.7 }, { impr: 166000, clk: 13778, pos: 3.7 }).artifact, true);   // ~0 clicks at rank 3.7 = artifact
+        mk('classify.deep_nearzero_artifact', _ce({ impr: 11600, clk: 58, pos: 9.3 }, { impr: 11600, clk: 963, pos: 9.3 }).reason, 'artifact');   // C1: Construction 8.3%->0.5% at pos 9.3 (page 1, deeper than 5) is now caught as artifact, not exposed
+        mk('classify.exposed_not_overcaught', _ce({ impr: 10000, clk: 260, pos: 5.1 }, { impr: 10000, clk: 520, pos: 5.0 }).tier, 'exposed');   // 2.6% CTR is a real exposed page, NOT swept up by the near-zero floor
         mk('classify.baseCTR', _ce({ impr: 1200000, clk: 6000, pos: 6.2 }, { impr: 1200000, clk: 8400, pos: 6.0 }).reason, 'baseCTR');   // never converted
         mk('classify.page2', _ce({ impr: 72000, clk: 720, pos: 14.6 }, { impr: 72000, clk: 2448, pos: 14.5 }).reason, 'page2');   // rank 14 = not the Overview zone
         mk('classify.floor', _ce({ impr: 500, clk: 20, pos: 4.0 }, { impr: 500, clk: 40, pos: 4.0 }).reason, 'floor');            // too few impressions
@@ -415,6 +417,12 @@
         mk('minideltas.pos_rose_says_worse', _cpMini(5.1, 6.4).indexOf('worse') >= 0, true);
         mk('minideltas.pos_fell_says_better', _cpMini(6.4, 5.1).indexOf('better') >= 0, true);
         mk('minideltas.impr_down_no_cue', _chartMiniDeltas({ rows: [{ metric: 'Impressions', older: 781500, newer: 698500, change: -11, dtype: 'pct', better: 'higher' }], chart: { type: 'minideltas' } }, {}).indexOf('worse') < 0, true);
+        // C6 min-separation clamp: a small delta still renders two visibly separate dots; a zero delta stays coincident (single).
+        const _mdCx = function (svg) { return (svg.match(/cx="[\d.]+"/g) || []).map(function (m) { return parseFloat(m.replace(/[^\d.]/g, '')); }); };
+        const _mdSmall = _mdCx(_chartMiniDeltas({ rows: [{ metric: 'Impr', older: 781500, newer: 728000, change: -7, dtype: 'pct', better: 'higher' }], chart: { type: 'minideltas' } }, {}));
+        mk('minideltas.small_delta_dots_separate', _mdSmall.length >= 2 && Math.abs(_mdSmall[1] - _mdSmall[0]) >= 15, true);
+        const _mdZero = _mdCx(_chartMiniDeltas({ rows: [{ metric: 'V', older: 57000, newer: 57000, change: 0, dtype: 'pct', better: 'higher' }], chart: { type: 'minideltas' } }, {}));
+        mk('minideltas.zero_dots_coincide', _mdZero.length >= 2 && Math.abs(_mdZero[1] - _mdZero[0]) < 2, true);
         // B5 overlap: "this month" inside "last 90 days" must be auto-disjointed, never compared raw (deltas drag to zero).
         mk('overlap.subset_detected', _periodsOverlap({ offset: 0, days: 30 }, { offset: 0, days: 90 }), true);
         mk('overlap.previous_disjoint', _periodsOverlap({ offset: 0, days: 90 }, { offset: 90, days: 90 }), false);
@@ -433,6 +441,15 @@
         mk('nav.fuel_allowance_no', _isNavigational('fuel allowance 2026'), false);
         mk('nav.coru', _isNavigational('coru'), true);                          // B12: CORU is the health regulator (coru.ie), brand-navigation
         mk('nav.coru_wholeword', _isNavigational('corundum hardness'), false);  // bare short token must not substring-match
+        mk('nav.eircode', _isNavigational('eircode finder'), true);              // C4: Eircode's own tool, navigational exhibit #5
+        // C4 ladder: dot size is the RANKED quantity, labelled so it is not misread (size=potential in an opportunities ladder)
+        mk('ladder.size_labelled', _chartLadder({ rows: [{ q: 'a', p: 2, pot: 900 }, { q: 'b', p: 8, pot: 400 }], chart: { type: 'ladder', label: 'q', pos: 'p', size: 'pot', sizeLabel: 'potential clicks/mo' } }, {}).indexOf('potential clicks/mo') >= 0, true);
+        // C5 shared percent formatter: a nonzero sliver reads "<1%" everywhere, never "0%".
+        mk('pcttxt.sliver', _pctTxt(0.003), '<1%');
+        mk('pcttxt.exact_zero', _pctTxt(0), '0%');
+        mk('pcttxt.normal', _pctTxt(0.82), '82%');
+        mk('followup.traffic_sources_has_chips', _followups({ intent: 'traffic_sources' }, { data: { rows: [] } }, r).length > 0, true);   // C5: the answer grew no chips; now it does
+        mk('followup.traffic_sources_source_growth', _followups({ intent: 'traffic_sources', source: 'Facebook' }, { data: { rows: [] } }, r).join(' | ').indexOf('Facebook traffic growing') >= 0, true);
         // B8 diagnose chip only where warranted: opportunities offers a NEUTRAL page look, never "why underperforming" (its best page may be winning).
         const _fOpp = _followups({ intent: 'opportunities', category: 'Health' }, { data: { rows: [{ query: 'q', bestPage: 'https://x/a/1' }] } }, r);
         mk('followup.opps_no_diagnose', _fOpp.join(' | ').indexOf('underperforming') < 0, true);
@@ -521,6 +538,11 @@
         // and a low_ctr list topped by an artifact drops the wrong "why underperforming" chip, pointing at the artifact list.
         mk('rankcard.artifact_marker', _rankCard([{ name: 'Medical Card', val: '<0.1%', bar: 34000, artifact: true }], { nameLabel: 'Page', valueLabel: 'CTR' }).indexOf('&#9888;') >= 0, true);
         mk('rankcard.no_marker_when_clean', _rankCard([{ name: 'Medical Card', val: '5%', bar: 34000 }], { nameLabel: 'Page' }).indexOf('&#9888;') < 0, true);
+        // C3: the trajectory column is labelled with its METRIC when sparklines are present (so it is not misread as CTR-over-time)
+        mk('rankcard.track_label_when_spark', _rankCard([{ name: 'P', val: '1%', bar: 100, spark: [1, 2, 3] }], { nameLabel: 'Page', valueLabel: 'CTR', trackLabel: 'impr (6mo)' }).indexOf('impr (6mo)') >= 0, true);
+        mk('rankcard.no_track_label_no_spark', _rankCard([{ name: 'P', val: '1%', bar: 100 }], { nameLabel: 'Page', valueLabel: 'CTR', trackLabel: 'impr (6mo)' }).indexOf('impr (6mo)') < 0, true);   // no sparks -> no track header (bars, not trajectories)
+        // C3: a navigational top row (Mygovid) suppresses the diagnose chip in low_ctr (low CTR expected, not fixable)
+        mk('followup.lowctr_navtop_no_why', _followups({ intent: 'low_ctr' }, { navTop: true, data: { rows: [{ page: 'Mygovid' }] } }, r).join(' | ').indexOf('underperforming') < 0, true);
         mk('followup.lowctr_artifact_drops_why', _followups({ intent: 'low_ctr', category: 'Health' }, { ctrArtifact: true, data: { rows: [{ page: 'Medical Card' }] } }, r).join(' | ').indexOf('underperforming') < 0, true);
         mk('followup.lowctr_artifact_points_to_artifacts', _followups({ intent: 'low_ctr', category: 'Health' }, { ctrArtifact: true, data: { rows: [{ page: 'Medical Card' }] } }, r).join(' | ').indexOf('tracking issues') >= 0, true);
         mk('followup.lowctr_clean_keeps_why', _followups({ intent: 'low_ctr' }, { ctrArtifact: false, data: { rows: [{ page: 'Xyz' }] } }, r).join(' | ').indexOf('underperforming') >= 0, true);
@@ -535,6 +557,8 @@
         mk('imprcliff.real_decline_no', _imprCliff(5000, 2000), false);   // a genuine 60% decline is NOT a vanish
         mk('imprcliff.fuel_rising_no', _imprCliff(60800, 137900), false); // impressions UP is never a cliff
         mk('imprcliff.below_floor_no', _imprCliff(500, 1), false);        // too small a prior to call it
+        mk('imprcliff.at_floor_yes', _imprCliff(2000, 1), true);          // prior exactly at the named floor counts
+        mk('imprcliff.just_below_floor_no', _imprCliff(1600, 1), false);  // C2: a 1.6K -> 1 row looks identical but is below the floor, so it is NOT in the count (boundary named + tested)
         // Movers chip-swap: a vanished faller offers "trended" (date the cliff), never "underperforming".
         const _fmV = _followups({ intent: 'movers', category: 'Social Welfare' }, { data: { rows: [{ page: 'Illness Benefit', previous: 58300, current: 8, changePct: -100 }] } }, r);
         mk('followup.movers_vanished_no_why', _fmV.join(' | ').indexOf('underperforming') < 0, true);
@@ -616,6 +640,9 @@
     // Every tile, sentence, table, and chart routes CTR through here so 0.04% can't say '0.0%' on one surface
     // and '<0.1%' on another (the Fuel Allowance self-contradiction). Data rows keep numeric (2dp) for export.
     function _ctrTxt(ctr) { const c = Number(ctr) || 0; return (c > 0 && c < 0.001) ? '<0.1%' : (c * 100).toFixed(1) + '%'; }
+    // ONE place all "share of total" percents route through (C5): a nonzero sliver reads "<1%", never a misleading "0%".
+    // Takes a FRACTION (value/total, 0 to 1). Every inline "Math.round(v/total*100)+'%'" should call this instead.
+    function _pctTxt(frac) { const p = (Number(frac) || 0) * 100; return (p > 0 && p < 1) ? '<1%' : Math.round(p) + '%'; }
     // Comparison-aware CTR pair: rates in a compare read at ONE decimal, but get a SECOND when the rounded values TIE
     // (A2's "1.0% vs 1.0%" hides the real ordering) or when either is under 0.5% (B1's "1.1% vs 0.2%" near-order-of-
     // magnitude spread) - precision on demand, not everywhere. Sub-decimal still floors to "<0.0..1%" (never "0.00%").
@@ -1484,7 +1511,7 @@
     // NAVIGATIONAL queries: people typing a service/brand name to REACH a specific site (mywelfare, mygovid, revenue.ie).
     // Their low CTR isn't a snippet problem, it's users correctly skipping us for the service - so "+N clicks if top-3" is
     // clicks that were never ours to win. A short, site-specific known-terms list (B8); flag, don't price. Tune per site.
-    const _NAV_TERMS = ['mywelfare', 'my welfare', 'mygovid', 'my govid', 'revenue.ie', 'gov.ie', 'welfare.ie', 'ros.ie', 'motortax', 'motor tax online', 'basi.ie', 'coru', 'coru.ie', 'hse.ie'];
+    const _NAV_TERMS = ['mywelfare', 'my welfare', 'mygovid', 'my govid', 'revenue.ie', 'gov.ie', 'welfare.ie', 'ros.ie', 'motortax', 'motor tax online', 'basi.ie', 'coru', 'coru.ie', 'hse.ie', 'eircode', 'eircode finder', 'eircode.ie'];
     function _isNavigational(q) {
         const s = String(q || '').toLowerCase().replace(/\s+/g, ' ').trim();
         return _NAV_TERMS.some(function (t) {
@@ -1746,6 +1773,9 @@
     function _mfmt(s, m) { return m === 'ctr' ? _ctrTxt(s.ctr) : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
+    // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
+    // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
+    const _BUILD = '20260904z23';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -1792,8 +1822,12 @@
         if (!items.length) return '<div style="font-size:0.85rem;color:var(--color-text-muted);">No results.</div>';
         const max = Math.max.apply(null, items.map(function (it) { return Math.abs(it.bar || 0); }).concat([1]));
         // Labelled header so the numbers say WHAT they are (name column + value column).
+        // Label the trajectory column with its METRIC when sparklines are present (C3): the line sits beside CTR and is read
+        // as CTR-over-time, but it is IMPRESSIONS - three words retire that misreading (esp. a rising line on a low-CTR row).
+        const _hasSpark = items.some(function (it) { return it.spark && it.spark.length >= 2; });
+        const _trackHdr = (_hasSpark && opts.trackLabel) ? esc(opts.trackLabel) : '';
         const header = (opts.nameLabel || opts.valueLabel) ? '<div style="display:flex;align-items:center;gap:10px;padding:5px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);background:var(--color-bg-secondary);">' +
-            '<span style="flex:1;min-width:0;">' + esc(opts.nameLabel || '') + '</span><span style="width:96px;flex-shrink:0;"></span>' +
+            '<span style="flex:1;min-width:0;">' + esc(opts.nameLabel || '') + '</span><span style="width:96px;flex-shrink:0;text-align:center;">' + _trackHdr + '</span>' +
             '<span style="width:88px;flex-shrink:0;text-align:right;">' + esc(opts.valueLabel || '') + '</span></div>' : '';
         return '<div class="sv-ask-list">' + header +
             items.map(function (it) {
@@ -1821,7 +1855,7 @@
         const es = (entries || []).filter(function (x) { return (x.value || 0) > 0; });
         if (!es.length) return '';
         const total = es.reduce(function (s, x) { return s + x.value; }, 0) || 1;
-        const pctTxt = function (v) { const p = v / total * 100; return p > 0 && p < 1 ? '<1%' : Math.round(p) + '%'; };   // a nonzero sliver reads '<1%', never a misleading '0%'
+        const pctTxt = function (v) { return _pctTxt(v / total); };   // routes through the shared formatter (C5)
         const seg = es.map(function (x, i) { const pct = x.value / total * 100; return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' (' + pctTxt(x.value) + ')') + '" style="width:' + pct.toFixed(2) + '%;background:' + _stackColor(x.label, i) + ';height:100%;"></div>'; }).join('');
         const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + _stackColor(x.label, i) + ';"></span>' + esc(x.label) + ' ' + pctTxt(x.value) + '</span>'; }).join('');
         return '<div style="margin-bottom:12px;"><div style="display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--color-bg-tertiary);">' + seg + '</div>' +
@@ -1853,9 +1887,13 @@
     // hasn't "declined" - its URL has effectively gone dark in search (deindexed / redirected / canonical flipped away).
     // The CTR cliff catches "rank held, clicks vanished"; this catches "impressions vanished wholesale". Same artifact
     // family, opposite metric. Mechanical shape: prior well above the floor, current a rounding error of it.
+    // Named thresholds (C2) so the count/list boundary is explicit and tested: a page counts as "gone dark" only when its
+    // PRIOR cleared _IMPR_CLIFF_FLOOR (below it is just a small page, noise), now sits under _IMPR_CLIFF_MAX absolute AND
+    // under _IMPR_CLIFF_RATIO of prior. This is why a 1.6K -> 1 row looks identical but is not counted (below the floor).
+    const _IMPR_CLIFF_FLOOR = 2000, _IMPR_CLIFF_MAX = 20, _IMPR_CLIFF_RATIO = 0.02;
     function _imprCliff(prev, cur) {
         prev = Number(prev) || 0; cur = Number(cur) || 0;
-        return prev >= _HL_FLOOR && cur < 20 && cur < prev * 0.02;
+        return prev >= _IMPR_CLIFF_FLOOR && cur < _IMPR_CLIFF_MAX && cur < prev * _IMPR_CLIFF_RATIO;
     }
     // ROLLUP-scale sibling: a section/site CTR silently lies DOWNWARD when a few artifact pages (per _ctrCliff)
     // drag the weighted average. Recompute CTR EXCLUDING them; if that lifts it materially, the rollup is
@@ -2133,6 +2171,7 @@
         opts = opts || {};
         const cfg = data.chart || {};
         const posK = cfg.pos || 'position', sizeK = cfg.size || 'impressions', labK = cfg.label || 'query', urlK = cfg.url || null;
+        const sizeLabel = cfg.sizeLabel || 'impressions';   // C4: name the size encoding so a dot isn't misread (in an opportunities ladder, size = potential, NOT impressions)
         let rows = (data.rows || []).filter(function (r) { return r[posK] !== '' && r[posK] != null && isFinite(+r[posK]) && +r[posK] > 0; });
         if (!rows.length) return '';
         rows = rows.slice().sort(function (a, b) { return (+b[sizeK] || 0) - (+a[sizeK] || 0); });
@@ -2156,7 +2195,7 @@
         indiv.forEach(function (r, i) {
             const pos = +r[posK], sz = +r[sizeK] || 0, cx = xFor(i, indiv.length), cy = yFor(pos), rr = rFor(sz);
             const band = _serpBand(pos), col = band === 'top3' ? '#059669' : band === 'strike' ? '#0369a1' : '#9ca3af';
-            const tip = esc(String(r[labK]) + ': pos ' + pos.toFixed(1) + ', ' + fmt(sz) + ' impr');
+            const tip = esc(String(r[labK]) + ': pos ' + pos.toFixed(1) + ', ' + fmt(sz) + ' ' + sizeLabel);
             const link = (urlK && r[urlK]);
             dots += '<circle class="sv-tipel' + (link ? ' sv-ask-page' : '') + '" data-tip="' + tip + '"' + (link ? ' data-url="' + esc(r[urlK]) + '"' : '') + ' cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + rr.toFixed(1) + '" fill="' + col + '" fill-opacity="0.75" stroke="#fff" stroke-width="1.5" style="cursor:' + (link ? 'pointer' : 'default') + ';"/>';
             if (i < (opts.big ? 12 : 6)) labels += '<text x="' + cx.toFixed(1) + '" y="' + (cy - rr - 3).toFixed(1) + '" font-size="8" text-anchor="middle" fill="var(--color-text-secondary)">' + esc(String(r[labK]).slice(0, 16)) + '</text>';
@@ -2166,12 +2205,12 @@
             const byBand = { top3: [], strike: [], off: [] };
             rest.forEach(function (r) { byBand[_serpBand(+r[posK])].push(r); });
             const parts = [];
-            ['top3', 'strike', 'off'].forEach(function (b) { const arr = byBand[b]; if (!arr.length) return; const sm = arr.reduce(function (s, r) { return s + (+r[sizeK] || 0); }, 0); parts.push(arr.length + ' more in ' + (b === 'top3' ? 'top 3' : b === 'strike' ? 'striking distance' : 'off page 1') + ' (' + fmt(sm) + ' impr)'); });
+            ['top3', 'strike', 'off'].forEach(function (b) { const arr = byBand[b]; if (!arr.length) return; const sm = arr.reduce(function (s, r) { return s + (+r[sizeK] || 0); }, 0); parts.push(arr.length + ' more in ' + (b === 'top3' ? 'top 3' : b === 'strike' ? 'striking distance' : 'off page 1') + ' (' + fmt(sm) + ' ' + sizeLabel + ')'); });
             const listId = 'sv-ladder-more-' + uid;
             aggNote = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:4px;cursor:pointer;" onclick="var e=document.getElementById(\'' + listId + '\');if(e)e.style.display=e.style.display===\'none\'?\'block\':\'none\'">' + esc(parts.join(' · ')) + ' &middot; <span style="text-decoration:underline;">show</span></div>' +
-                '<div id="' + listId + '" style="display:none;font-size:0.72rem;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">' + rest.map(function (r) { return esc(String(r[labK]) + ' (pos ' + (+r[posK]).toFixed(1) + ', ' + fmt(+r[sizeK] || 0) + ' impr)'); }).join('<br>') + '</div>';
+                '<div id="' + listId + '" style="display:none;font-size:0.72rem;color:var(--color-text-secondary);margin-top:4px;line-height:1.5;">' + rest.map(function (r) { return esc(String(r[labK]) + ' (pos ' + (+r[posK]).toFixed(1) + ', ' + fmt(+r[sizeK] || 0) + ' ' + sizeLabel + ')'); }).join('<br>') + '</div>';
         }
-        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);max-width:' + W + 'px;">' + bands + blabels + dots + labels + '</svg>' + aggNote;
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible;font-family:var(--font-family);max-width:' + W + 'px;">' + bands + blabels + dots + labels + '</svg>' + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:2px;">Dot size = ' + esc(sizeLabel) + '; height = search rank.</div>' + aggNote;
     }
     // ── Dumbbell (Wave 2): before -> after as two dots joined, so both LEVELS show (delta bars hide them). ──
     function _chartDumbbell(data, opts) {
@@ -2235,7 +2274,19 @@
             const cue = (!isZero && ((d >= 0) !== improved)) ? (' ' + (improved ? 'better' : 'worse')) : '';
             const dtxt = (d != null) ? ((d > 0 ? '+' : '') + d + (r.dtype === 'pct' ? '%' : (r.unit === '%' ? 'pt' : '')) + cue) : '';
             const tX0 = x0 + pad + 4, tW = cellW - 2 * pad - 10, mx = Math.max(Math.abs(b), Math.abs(a), 1);
-            const bx = tX0 + tW * Math.min(1, Math.abs(b) / mx), ax = tX0 + tW * Math.min(1, Math.abs(a) / mx), ty = y0 + cellH - 33;
+            let bx = tX0 + tW * Math.min(1, Math.abs(b) / mx), ax = tX0 + tW * Math.min(1, Math.abs(a) / mx);
+            const ty = y0 + cellH - 33;
+            // Min-separation clamp (C6): on a 0-to-max scale a typical delta (7%) puts the two dots <1 diameter apart, so
+            // "changed a little" is indistinguishable from the zero-delta single dot. For any NONZERO delta, force a visible
+            // gap (preserving direction, kept in-cell) - the exact magnitude lives in the text; the dumbbell just shows a real,
+            // directional change happened. (Same honesty pattern as the sparkline deadband+clamp.)
+            if (!isZero) {
+                const minSep = 16, g = ax - bx;
+                if (Math.abs(g) < minSep) { const mid = (ax + bx) / 2, half = (minSep / 2) * (g >= 0 ? 1 : -1); bx = mid - half; ax = mid + half; }
+                const lo = tX0, hi = tX0 + tW;
+                if (Math.min(bx, ax) < lo) { const dd = lo - Math.min(bx, ax); bx += dd; ax += dd; }
+                if (Math.max(bx, ax) > hi) { const dd = Math.max(bx, ax) - hi; bx -= dd; ax -= dd; }
+            }
             cells += '<g>' +
                 '<rect x="' + (x0 + 4) + '" y="' + (y0 + 4) + '" width="' + (cellW - 8) + '" height="' + (cellH - 8) + '" rx="9" fill="var(--color-bg-primary)" stroke="var(--color-border-primary)"/>' +
                 '<text x="' + (x0 + pad + 3) + '" y="' + (y0 + 22) + '" font-size="' + (opts.big ? 12 : 10.5) + '" font-weight="700" fill="var(--color-text-heading)">' + esc(String(r[labK])) + '</text>' +
@@ -2800,7 +2851,12 @@
             const items = rows.map(function (p) { const sk = _lcTr[normUrl(p.url)]; return { name: p.name, val: _ctrTxt(p.s.ctr), bar: p.s.impressions, url: p.url, artifact: _ctrCliff(p.s.position, p.s.ctr, p.s.impressions), spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });
             const _lcArts = rows.filter(function (p) { return _ctrCliff(p.s.position, p.s.ctr, p.s.impressions); });
             const _lcNote = _lcArts.length ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">' + _lcArts.length + ' of these ' + rows.length + ' pages (marked &#9888;) have near-zero clicks at a top rank, the signature of a tracking artifact (a redirect or canonical split), not a content problem. Ask "which ' + (c ? esc(c.name) + ' ' : '') + 'pages have tracking issues" to see them all.</div>' : '';
-            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR' }) + _lcNote, ctrArtifact: !!(rows[0] && _ctrCliff(rows[0].s.position, rows[0].s.ctr, rows[0].s.impressions)), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + _ctrTxt(p.s.ctr) + ')'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }, shareBase: (c ? c.rollup.impressions : r.totals.impressions) || 0, shareKey: 'impressions', shareNoun: 'impressions, barely clicked' } };
+            // Navigational pages (C3): a service-name page (Mygovid) gets huge impressions and ~0 CTR because searchers want
+            // the service site, not us - low CTR is EXPECTED, not a content problem. Flag so the head of this flagship list
+            // isn't read as fixable (and the diagnose chip doesn't fire on it).
+            const _lcNav = rows.filter(function (p) { return _isNavigational(p.name); });
+            const _lcNavNote = _lcNav.length ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:8px;padding:7px 10px;border:1px solid var(--color-border-primary);border-radius:8px;">' + _lcNav.length + ' of these are navigational (' + _lcNav.slice(0, 2).map(function (p) { return esc(p.name); }).join(', ') + (_lcNav.length > 2 ? ', and more' : '') + '): people search a service name to reach it, so low CTR is expected, not a snippet problem.</div>' : '';
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR', trackLabel: 'impr (6mo)' }) + _lcNote + _lcNavNote, ctrArtifact: !!(rows[0] && _ctrCliff(rows[0].s.position, rows[0].s.ctr, rows[0].s.impressions)), navTop: !!(rows[0] && _isNavigational(rows[0].name)), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + _ctrTxt(p.s.ctr) + ')'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }, shareBase: (c ? c.rollup.impressions : r.totals.impressions) || 0, shareKey: 'impressions', shareNoun: 'impressions, barely clicked' } };
         }
         if (intent === 'stale') {
             const c = _catByName(cats, plan.category);
@@ -2810,7 +2866,7 @@
             let _staleTr = {};   // 6-month impression trajectory per row: a stale page that is ALSO fading is the urgent one
             try { _staleTr = await _pageTrends(rows.map(function (x) { return x.p; }), 6, 30, 'impressions'); } catch (e) {}
             const items = rows.map(function (x) { const sk = _staleTr[normUrl(x.p.url)], s = x.p.s || {}; return { name: x.p.name, val: Math.round(x.m) + 'mo', bar: x.m, url: x.p.url, artifact: _ctrCliff(s.position, s.ctr, s.impressions), spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });   // guard propagation: a stale page that is also a tracking artifact is flagged (the _rankCard ⚠ lever)
-            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Age' }), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Age', trackLabel: 'impr (6mo)' }), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
         }
         if (intent === 'compare') {
             const names = plan.categories || [];
@@ -2852,7 +2908,9 @@
             else { rows.sort(function (a, b) { return Math.abs(b.pct) - Math.abs(a.pct); }); rows = rows.slice(0, limit).sort(function (a, b) { return b.pct - a.pct; }); }
             const items = rows.map(function (x) { const up = x.pct >= 0, pa = Math.abs(x.pct); return { name: x.name, val: (up ? '▲ ' : '▼ ') + (pa > 500 ? '500+' : pa.toFixed(0)) + '%', bar: Math.min(500, pa), col: up ? '#059669' : '#dc2626', valCol: up ? '#059669' : '#dc2626', url: x.url, artifact: _imprCliff(x.prev, x.cur) }; });
             const _vanished = rows.filter(function (x) { return _imprCliff(x.prev, x.cur); });
-            const _vanNote = _vanished.length ? ' ' + _vanished.length + ' page' + (_vanished.length === 1 ? '' : 's') + ' dropped to near-zero impressions (' + _vanished.slice(0, 3).map(function (x) { return x.name; }).join(', ') + '), the signature of a URL going dark in search (deindexed or redirected), not a demand drop. Ask "how has ' + _vanished[0].name + ' trended" to date it.' : '';
+            // Count, list and naming must agree (C2): name up to 3 (biggest first, rows are movement-sorted) then say how many more.
+            const _vanNames = _vanished.slice(0, 3).map(function (x) { return x.name; }).join(', ') + (_vanished.length > 3 ? ', and ' + (_vanished.length - 3) + ' more' : '');
+            const _vanNote = _vanished.length ? ' ' + _vanished.length + ' page' + (_vanished.length === 1 ? '' : 's') + ' dropped to near-zero impressions (' + _vanNames + '), the signature of a URL going dark in search (deindexed or redirected), not a demand drop. Ask "how has ' + _vanished[0].name + ' trended" to date it.' : '';
             const _nd = _netDelta(rows, 'cur', 'prev');   // weighted aggregate change across the shown movers (override path)
             const _mword = mkey === 'pageViews' ? 'views' : 'impressions';
             const _mvHead = _moversHeadline(_nd, dir, _mword);   // magnitude only: no % over a direction-filtered top-N (see _moversHeadline)
@@ -2899,7 +2957,12 @@
             // Navigational queries (brand/service names) are demand for ANOTHER site, not content upside - exclude from the
             // ranked opportunities and name them, so a quarter-million "mywelfare" impressions aren't priced as +5.5K clicks (B8).
             const _oppNav = _oppPool.filter(function (x) { return !x.artifact && x.navigational; }).sort(function (a, b) { return b.impressions - a.impressions; });
-            qs = _oppPool.filter(function (x) { return !x.artifact && !x.navigational; }).sort(function (a, b) { return b.potential - a.potential; }).slice(0, limit);
+            // Denominator honesty (C4): the headline sums the SHOWN rows; if the winnable pool is larger, say so, so "~179K on
+            // the table" isn't read as the site's total when hundreds more sit below the cut.
+            const _winPool = _oppPool.filter(function (x) { return !x.artifact && !x.navigational; }).sort(function (a, b) { return b.potential - a.potential; });
+            qs = _winPool.slice(0, limit);
+            const _morePot = _winPool.slice(limit).reduce(function (s, x) { return s + (x.potential || 0); }, 0);
+            const _oppMore = _winPool.length > qs.length ? ' (the biggest ' + qs.length + ' of ' + _winPool.length + ' winnable queries; ~' + fmt(Math.round(_morePot)) + ' more clicks/mo sit below the cut)' : '';
             const _artNote = (_oppArts.length
                 ? '<div style="font-size:0.72rem;color:#d97706;margin-top:10px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">' + _oppArts.length + ' high-impression quer' + (_oppArts.length === 1 ? 'y' : 'ies') + ' left out: near-zero CTR at a top rank looks like a tracking artifact, not real upside (' + _oppArts.slice(0, 3).map(function (x) { return '"' + esc(x.query) + '"'; }).join(', ') + '). Investigate the page URL and canonical first.</div>'
                 : '') + (_oppNav.length
@@ -2910,7 +2973,7 @@
                 : { html: '', summary: '', err: 'No sizeable search opportunities found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + ', CTR looks healthy on the big queries.' };
             return { html: _oppCard(qs) + _artNote,
                 summary: 'Biggest search opportunities' + (c ? ' in ' + c.name : '') + ' (potential extra clicks over ' + periodLabel(_ddDays) + ', if each performed like a top-3 result): ' +
-                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.', data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'impressions', url: 'bestPage' } } };
+                    qs.slice(0, 5).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' clicks (best pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.' + _oppMore, data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }, { key: 'section', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '', section: x.category || '', bestPage: x.bestPage || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'potentialClicks', sizeLabel: 'potential clicks/mo', url: 'bestPage' } } };
         }
         if (intent === 'international_queries' || intent === 'top_countries') {
             let rows;
@@ -3229,7 +3292,7 @@
             if (byPotential) {
                 return { html: head + _oppCard(qs) + footnote,
                     summary: 'Quick wins for "' + page.name + '" (biggest extra-clicks potential, ' + periodLabel(_ddDays) + '): ' + qs.slice(0, 6).map(function (x) { return '"' + x.query + '" +' + fmt(Math.round(x.potential)) + ' (pos ' + (x.bestPos != null ? x.bestPos.toFixed(0) : '?') + ', ' + (x.label || '') + ')'; }).join(', ') + '.',
-                    data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'impressions' } } };
+                    data: { columns: [{ key: 'query', label: 'Query' }, { key: 'potentialClicks', label: 'Potential clicks' }, { key: 'bestPosition', label: 'Best position' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'action', label: 'Action' }], rows: qs.map(function (x) { return { query: x.query, potentialClicks: Math.round(x.potential), bestPosition: x.bestPos != null ? +x.bestPos.toFixed(1) : null, impressions: x.impressions, ctr: +((x.ctr || 0) * 100).toFixed(2), action: x.label || '' }; }), chart: { type: 'ladder', label: 'query', pos: 'bestPosition', size: 'potentialClicks', sizeLabel: 'potential clicks/mo' } } };
             }
             const items = qs.map(function (x) { return { name: x.query, val: fmt(x[by]) + (x.position != null ? ' · #' + x.position.toFixed(0) : ''), bar: x[by] }; });
             return {
@@ -3248,7 +3311,7 @@
             // even when NOTHING is fully dead, so "nothing invisible" can't hide a page sitting at 1 impression.
             const near = pages.filter(function (p) { const i = p.s.impressions || 0; return i > 0 && i < 10; }).sort(function (a, b) { return (a.s.impressions || 0) - (b.s.impressions || 0); });
             if (!dead.length && !near.length) return { html: '<div style="font-size:0.9rem;color:var(--color-text-secondary);">Every page' + (c ? ' in ' + esc(c.name) : '') + ' got at least some search impressions in ' + periodLabel(_ddDays) + ' - nothing invisible.</div>', summary: 'No pages with zero search impressions' + (c ? ' in ' + c.name : '') + '.', data: { columns: [], rows: [] } };
-            const pctDead = Math.round(dead.length / (total || 1) * 100);
+            const pctDead = _pctTxt(dead.length / (total || 1));   // routes through the shared formatter (C5): a 1-of-500 dead count reads "<1%", not "0%"
             const shown = dead.slice(0, limit);
             const items = shown.map(function (p) { return { name: p.name, val: ga4On ? (fmt(p.s.pageViews || 0) + ' views') : '0 impr', bar: ga4On ? (p.s.pageViews || 0) : 0, url: p.url }; });
             const _nearNote = near.length ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">Plus ' + near.length + ' page' + (near.length === 1 ? '' : 's') + ' under 10 impressions (functionally dark, just above the zero threshold): ' + near.slice(0, 4).map(function (p) { return esc(p.name) + ' (' + (p.s.impressions || 0) + ')'; }).join(', ') + (near.length > 4 ? ', and more' : '') + '.</div>' : '';
@@ -3258,12 +3321,12 @@
             const _irishNote = _irish.length ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:8px;padding:7px 10px;border:1px solid var(--color-border-primary);border-radius:8px;">' + _irish.length + ' of these look like Irish-language pages (' + _irish.slice(0, 2).map(function (p) { return esc(p.name); }).join(', ') + (_irish.length > 2 ? ', and more' : '') + '). Pages merge by name, so an Irish page whose English twin is named differently will not pair and can show as "dead" when its English version is alive. Check the pairing before treating these as dead.</div>' : '';
             const deadHead = dead.length
                 ? ('<div style="font-weight:700;font-size:0.95rem;color:var(--color-text-heading);margin-bottom:2px;">' + fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + esc(c.name) : '') + ' had zero search impressions</div>' +
-                    '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:12px;">' + pctDead + '% of ' + fmt(total) + ' pages, ' + periodLabel(_ddDays) + (ga4On ? ' (views are GA4 - some may still get referral/direct visits)' : '') + '</div>' +
+                    '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-bottom:12px;">' + pctDead + ' of ' + fmt(total) + ' pages, ' + periodLabel(_ddDays) + (ga4On ? ' (views are GA4 - some may still get referral/direct visits)' : '') + '</div>' +
                     _rankCard(items, { nameLabel: 'Page', valueLabel: ga4On ? 'Views' : 'Impressions' }) + (dead.length > shown.length ? '<div style="font-size:0.66rem;color:var(--color-text-muted);margin-top:6px;">Showing ' + shown.length + ' of ' + fmt(dead.length) + ' - Table / CSV has all.</div>' : ''))
                 : ('<div style="font-weight:700;font-size:0.95rem;color:var(--color-text-heading);margin-bottom:8px;">No page' + (c ? ' in ' + esc(c.name) : '') + ' had zero search impressions, but ' + near.length + ' ' + (near.length === 1 ? 'is' : 'are') + ' functionally dark (under 10 impressions).</div>');
             return {
                 html: deadHead + _nearNote + _irishNote,
-                summary: (dead.length ? (fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + c.name : '') + ' had zero search impressions in ' + periodLabel(_ddDays) + ' (' + pctDead + '% of ' + fmt(total) + ')') : ('No pages with zero search impressions' + (c ? ' in ' + c.name : ''))) + (near.length ? ', plus ' + near.length + ' under 10 impressions' : '') + (ga4On && dead.length ? '; GA4 views shown' : '') + '.',
+                summary: (dead.length ? (fmt(dead.length) + ' page' + (dead.length === 1 ? '' : 's') + (c ? ' in ' + c.name : '') + ' had zero search impressions in ' + periodLabel(_ddDays) + ' (' + pctDead + ' of ' + fmt(total) + ')') : ('No pages with zero search impressions' + (c ? ' in ' + c.name : ''))) + (near.length ? ', plus ' + near.length + ' under 10 impressions' : '') + (ga4On && dead.length ? '; GA4 views shown' : '') + '.',
                 data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'views', label: 'Views (GA4)' }, { key: 'url', label: 'URL' }], rows: (dead.length ? dead : near).map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, views: p.s.pageViews || 0, url: p.url }; }), chart: null }
             };
         }
@@ -3499,6 +3562,7 @@
             const AI_FLOOR = 'Note: this is a floor, not a ceiling — AI-Overview clicks are counted as Organic Search, and AI visits with no referrer fall into Direct, so real AI traffic is higher than shown.';
             const truncNote = data.truncated ? ' <span style="color:#b45309;">(source list truncated at the cap — long-tail sources may be undercounted).</span>' : '';
             const m = plan.source ? _sourceMatcher(plan.source) : (plan.channel ? _sourceMatcher(plan.channel) : null);
+            const _mVerb = (m && /s$/i.test(m.label) && !/\bsearch$/i.test(m.label)) ? 'are' : 'is';   // "AI assistants ARE", "Google IS" (C1 subject-verb slip); "Paid Search IS" stays singular
 
             // ── Growth: "is AI traffic growing?" — current vs previous period vs same period last year ──
             if (m && plan.growth) {
@@ -3553,8 +3617,8 @@
                 const items = rk.map(function (x) { return { name: x.name, val: fmt(x.sess), bar: x.sess, url: x.url }; });
                 return {
                     scope: { label: c ? c.name : null, isPage: false },   // C12: resolved section (or site)
-                    html: (share != null ? '<div style="font-size:1.1rem;font-weight:700;color:var(--color-text-primary);margin-bottom:10px;">' + esc(m.label) + ' is ' + shareTxt + ' &mdash; ' + fmt(total) + ' of ' + fmt(allTotal) + ' sessions' + (c ? ' in ' + esc(c.name) : '') + '.</div>' : '') + _rankCard(items, { nameLabel: 'Page', valueLabel: m.label + ' sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' session' + (total === 1 ? '' : 's') + ' from ' + esc(m.label) + (c ? ' in ' + esc(c.name) : ' site-wide') + ' (' + periodLabel(_ddDays) + '), across ' + scored.length + ' page' + (scored.length === 1 ? '' : 's') + '.' + truncNote + '</div>' + (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
-                    summary: (share != null ? m.label + ' is ' + shareTxt + ' to ' + scopeTxt + ' (' + fmt(total) + ' of ' + fmt(allTotal) + ' sessions, ' + periodLabel(_ddDays) + '). ' : fmt(total) + ' sessions from ' + m.label + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '). ') + 'Top pages: ' + rk.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
+                    html: (share != null ? '<div style="font-size:1.1rem;font-weight:700;color:var(--color-text-primary);margin-bottom:10px;">' + esc(m.label) + ' ' + _mVerb + ' ' + shareTxt + ' &mdash; ' + fmt(total) + ' of ' + fmt(allTotal) + ' sessions' + (c ? ' in ' + esc(c.name) : '') + '.</div>' : '') + _rankCard(items, { nameLabel: 'Page', valueLabel: m.label + ' sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' session' + (total === 1 ? '' : 's') + ' from ' + esc(m.label) + (c ? ' in ' + esc(c.name) : ' site-wide') + ' (' + periodLabel(_ddDays) + '), across ' + scored.length + ' page' + (scored.length === 1 ? '' : 's') + '.' + truncNote + '</div>' + (m.isAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
+                    summary: (share != null ? m.label + ' ' + _mVerb + ' ' + shareTxt + ' to ' + scopeTxt + ' (' + fmt(total) + ' of ' + fmt(allTotal) + ' sessions, ' + periodLabel(_ddDays) + '). ' : fmt(total) + ' sessions from ' + m.label + (c ? ' in ' + c.name : ' site-wide') + ' (' + periodLabel(_ddDays) + '). ') + 'Top pages: ' + rk.slice(0, 6).map(function (x) { return x.name + ' (' + fmt(x.sess) + ')'; }).join('; ') + '.',
                     data: { columns: [{ key: 'page', label: 'Page' }, { key: 'sessions', label: m.label + ' sessions' }, { key: 'url', label: 'URL' }], rows: rk.map(function (x) { return { page: x.name, sessions: x.sess, url: x.url }; }), chart: { type: 'bar', x: 'page', y: 'sessions', label: m.label + ' sessions' } }
                 };
             }
@@ -3572,16 +3636,16 @@
             const entries = Object.keys(buckets).map(function (k) { return { channel: k, sess: buckets[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
             if (!entries.length) return { html: '', summary: '', err: 'No traffic-source data for ' + scopeLabel + ' in ' + periodLabel(_ddDays) + '.' };
             const total = entries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
-            const items = entries.slice(0, limit).map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + Math.round(x.sess / total * 100) + '%)', bar: x.sess }; });
+            const items = entries.map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + _pctTxt(x.sess / total) + ')', bar: x.sess }; });   // ALL buckets (few, and the bar shows all): list and legend must agree (C5)
             const hasAI = entries.some(function (x) { return x.channel === 'AI assistants'; });
             // Break the single "AI assistants" bucket out by named assistant (ChatGPT/Perplexity/…).
             const aiEntries = Object.keys(aiB).map(function (k) { return { name: k, sess: aiB[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
             const aiTotal = aiEntries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
-            const aiHtml = (hasAI && aiEntries.length) ? '<div style="margin-top:10px;border-top:1px solid var(--color-border-primary);padding-top:8px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;">Which AI assistants (' + fmt(aiTotal) + ' AI sessions)</div>' + aiEntries.map(function (x) { return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:0.72rem;padding:2px 0;color:var(--color-text-primary);"><span>' + esc(x.name) + '</span><span style="color:var(--color-text-secondary);">' + fmt(x.sess) + ' &middot; ' + Math.round(x.sess / aiTotal * 100) + '%</span></div>'; }).join('') + '</div>' : '';
+            const aiHtml = (hasAI && aiEntries.length) ? '<div style="margin-top:10px;border-top:1px solid var(--color-border-primary);padding-top:8px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;">Which AI assistants (' + fmt(aiTotal) + ' AI sessions)</div>' + aiEntries.map(function (x) { return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:0.72rem;padding:2px 0;color:var(--color-text-primary);"><span>' + esc(x.name) + '</span><span style="color:var(--color-text-secondary);">' + fmt(x.sess) + ' &middot; ' + _pctTxt(x.sess / aiTotal) + '</span></div>'; }).join('') + '</div>' : '';
             return {
                 scope: { label: scopeLabel === 'the whole site' ? null : scopeLabel, isPage: !!plan.page },   // C12: resolved page/section, not the raw plan slot
                 html: _stackedBar(entries.map(function (x) { return { label: x.channel, value: x.sess }; }), {}) + _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + aiHtml + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
-                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 6).map(function (x) { return x.channel + ' ' + Math.round(x.sess / total * 100) + '%'; }).join(', ') + '.' + (hasAI && aiEntries.length ? ' AI split: ' + aiEntries.slice(0, 3).map(function (x) { return x.name + ' ' + Math.round(x.sess / aiTotal * 100) + '%'; }).join(', ') + '.' : ''),
+                summary: 'Where visitors to ' + scopeLabel + ' come from (' + periodLabel(_ddDays) + '): ' + entries.slice(0, 6).map(function (x) { return x.channel + ' ' + _pctTxt(x.sess / total); }).join(', ') + '.' + (hasAI && aiEntries.length ? ' AI assistants ' + _pctTxt(aiTotal / total) + ' (' + fmt(aiTotal) + '), of which ' + aiEntries.slice(0, 3).map(function (x) { return x.name + ' ' + _pctTxt(x.sess / aiTotal); }).join(', ') + '.' : ''),
                 data: { columns: [{ key: 'source', label: 'Source' }, { key: 'sessions', label: 'Sessions' }, { key: 'share', label: 'Share %' }], rows: entries.map(function (x) { return { source: x.channel, sessions: x.sess, share: +(x.sess / total * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'source', y: 'sessions', label: 'Sessions' } }
             };
         }
@@ -3878,9 +3942,9 @@
                 else { add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?'); }
                 break;
             case 'low_ctr':
-                // The top page is a tracking artifact (A14): "why underperforming" is the wrong question (it's not a content
-                // problem), so point at the artifact list instead - the same suppression page_summary already does.
-                if (topRow && !(res && res.ctrArtifact)) addWhy(topRow.page);
+                // The top page is a tracking artifact (A14) or navigational (C3): "why underperforming" is the wrong question
+                // (neither is a content problem), so suppress the diagnose chip; artifacts point at the artifact list.
+                if (topRow && !(res && (res.ctrArtifact || res.navTop))) addWhy(topRow.page);
                 if (res && res.ctrArtifact) add('Which ' + (cat ? cat + ' ' : '') + 'pages have tracking issues?');
                 add('Biggest search opportunities' + inCat);
                 if (cat) add('Top pages in ' + cat); else add('Which categories get the most traffic?');
@@ -3915,6 +3979,11 @@
                 break;
             case 'top_countries':
                 add('What do people abroad search us for?'); add('What do people search for?'); add('Where are our biggest search opportunities?');
+                break;
+            case 'traffic_sources':
+                // C5: this answer grew NO chips; its natural follow-ups (per-source pages, AI growth) are among the best.
+                if (plan.source) { add('Is ' + plan.source + ' traffic growing?'); if (cat) add('How is ' + cat + ' doing?'); else add('Which categories get the most traffic?'); }
+                else { add('How much traffic from AI?'); add('Is AI traffic growing?'); if (cat) add('How is ' + cat + ' doing?'); else add('What is AI doing to us?'); }
                 break;
             case 'questions':
                 if (topPageName) add('How is ' + topPageName + ' performing?');
@@ -4801,7 +4870,7 @@
                 // (res.scope) over what the plan requested, so a scope-ignoring handler can't leave a false category chip.
                 _interpScope(plan, _sc, res).forEach(function (b) { interpBits.push(b); });
                 interpBits.push(periodLabel(_ddDays));
-                const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span></div>';
+                const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span><span style="opacity:0.4;margin-left:6px;" title="Build stamp: which deploy produced this answer">build ' + esc(_BUILD) + '</span></div>';
                 const _metricTgl = (res.data && res.data.availableMetrics && res.data.availableMetrics.length > 1 && res.data.metricViews) ? _metricToggleHtml(eid, res.data.availableMetrics, res.data.metric) : '';
                 // Chart/card body only — the metric toggle sits OUTSIDE .sv-ask-rich so the handler's
                 // innerHTML swap (which replaces .sv-ask-rich) doesn't delete the toggle buttons.
@@ -5560,6 +5629,10 @@
     //              don't zero out a rank-3 page) — it is a redirect/tracking artifact; set aside, not counted.
     const _HL_WIN = 90, _HL_FLOOR = 2000, _HL_POS = 1.0, _HL_CTRDROP = 0.75, _HL_TOP = 15;
     const _HL_POSMAX = 10, _HL_CTRBASE = 0.02, _HL_CLIFFPOS = 5, _HL_CLIFFCTR = 0.005;
+    // _HL_AIMINCTR: the "near zero needs a number" line (C1). Below this CURRENT CTR, a held-rank page-1 collapse is an
+    // attribution artifact, not AI - Overviews reduce CTR, they do not drop a page-1 page to ~0. Set between the site's
+    // real exposed CTRs (~2 to 3%) and the artifact floor (Construction: 0.5%), so 0.8% cleanly separates them. Tune on data.
+    const _HL_AIMINCTR = 0.008;
     // Pure, testable per-page verdict from two GSC windows: now `a`, ~1yr ago `b`, each {impr, clk, pos}.
     // The ONE place the exposure thresholds are applied — selfTest asserts this directly, and because
     // diagnose / briefing now lean on it, a threshold change is a single, tested edit here.
@@ -5571,7 +5644,7 @@
         if (Math.abs(a.pos - b.pos) > _HL_POS) return Object.assign({ keep: false, reason: 'rankslip' }, base);   // rank slip, not AI
         if (a.pos > _HL_POSMAX) return Object.assign({ keep: false, reason: 'page2' }, base);       // page 2, not the Overview zone
         if (cN >= cB * _HL_CTRDROP) return Object.assign({ keep: false, reason: 'ctrheld' }, base); // CTR held
-        if (a.pos <= _HL_CLIFFPOS && cN < _HL_CLIFFCTR) return Object.assign({ keep: false, reason: 'artifact', artifact: true }, base);   // ~0 clicks at a top rank = redirect/tracking artifact
+        if (cN < _HL_AIMINCTR) return Object.assign({ keep: false, reason: 'artifact', artifact: true }, base);   // near-zero CTR NOW, even at a held DEEPER page-1 rank (we are past the page-2 gate): implausible from AI, so it is a redirect/tracking artifact, not an AI take (C1: Construction 8.3% to 0.5% at pos 9.3 used to slip through the pos<=5 guard)
         return Object.assign({ keep: true, tier: a.pos <= 2.0 ? 'cited' : 'exposed', lost: Math.max(0, Math.round(a.impr * (cB - cN) / 3)) }, base);
     }
     // Classify every English page into exposed / cited / excluded from two cached GSC windows.
