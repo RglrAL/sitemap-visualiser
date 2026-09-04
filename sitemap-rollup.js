@@ -364,6 +364,9 @@
         const _sa = _sectionActions(null, r, _saCtx);
         mk('brief.exposure_leads', (_sa[0] && _sa[0].type) || '', 'AI exposure');   // 2,300 floor outranks the 800 opportunity
         mk('brief.ranked_count', _sa._rankedCount, 2);                              // opportunity + exposure ranked; staleness excluded from the ranked slice
+        // ranking CURRENCY is clicks/mo, not impressions: a 4,700-impr decline (~570 clicks) ranks BELOW an 800-click opportunity
+        const _rankCtx = { hasQueries: true, qrows: [], qidx: [{ category: null, query: 'q', impressions: 500, potential: 800, bestPos: 6, bestPage: 'https://x/a' }], urlCat: null, urlToName: {}, prior: { gscBy: (function () { const o = {}; o[normUrl('https://x/a/1')] = { impressions: 5000 }; return o; })() }, aiExposed: null, aiChecked: false, gscOn: false };
+        mk('brief.rank_currency_is_clicks', (_sectionActions(null, r, _rankCtx)[0] || {}).type, 'Opportunity');
 
         // ── verdict headline: the big-type number MUST equal the sum of the rows shown (worst possible bug) ──
         mk('headline.opps_sum', _headlineFor('opportunities', { rows: [{ potentialClicks: 2500 }, { potentialClicks: 1700 }] }).value, 4200);   // real quantity: sum is the finding
@@ -405,6 +408,24 @@
         const _cpMini = function (older, newer) { return _chartMiniDeltas({ rows: [{ metric: 'Avg position', older: older, newer: newer, change: +(newer - older).toFixed(1), dtype: 'ptpos', better: 'lower' }], chart: { type: 'minideltas' } }, {}); };
         mk('minideltas.pos_improve_good', _cpMini(6.4, 5.1).indexOf('data-sentiment="good"') >= 0, true);   // position dropped -> GOOD (semantic hook, survives a repaint)
         mk('minideltas.pos_worsen_bad', _cpMini(5.1, 6.4).indexOf('data-sentiment="bad"') >= 0, true);
+        mk('minideltas.glyph_follows_number', _cpMini(5.1, 6.4).indexOf('▲') >= 0, true);   // position ROSE -> ▲ (glyph=number) but RED (colour=sentiment); no more ▼ paired with +0.2
+        mk('minideltas.zero_neutral', _chartMiniDeltas({ rows: [{ metric: 'Views', older: 57000, newer: 57100, change: 0, dtype: 'pct', better: 'higher' }], chart: { type: 'minideltas' } }, {}).indexOf('data-sentiment') < 0, true);   // zero delta = noise: no sentiment, no arrow (deadband)
+        // CTR formatter: sub-0.1% renders '<0.1%' everywhere (tile, sentence, table) via the ONE shared _ctrTxt, so no surface can round a real-but-tiny CTR to a self-contradicting '0.0%'
+        mk('ctrtxt.subdecimal', _ctrTxt(0.0004), '<0.1%');
+        mk('ctrtxt.zero_plain', _ctrTxt(0), '0.0%');           // an actual zero stays 0.0% (not '<0.1%' - reserve that for the non-zero-but-tiny case)
+        mk('mfmt.subdecimal_ctr', _mfmt({ ctr: 0.0004 }, 'ctr'), '<0.1%');   // the metric formatter inherits it -> every _mfmt consumer is covered
+        // ROLLUP artifact drag: a section whose CTR is pulled down by a few near-zero-at-top-rank pages is flagged, and the ex-artifact CTR lifts materially
+        const _raT = _rollupArtifacts([{ s: { impressions: 100000, clicks: 20, position: 2.5, ctr: 0.0002 } }, { s: { impressions: 10000, clicks: 500, position: 5, ctr: 0.05 } }, { s: { impressions: 10000, clicks: 400, position: 6, ctr: 0.04 } }]);
+        mk('rollupart.detects_drag', _raT.dragged, true);
+        mk('rollupart.excl_lifts', _raT.exCtr > _raT.rawCtr, true);
+        mk('rollupart.clean_undragged', _rollupArtifacts([{ s: { impressions: 10000, clicks: 500, position: 5, ctr: 0.05 } }]).dragged, false);   // no cliff page -> no false alarm
+        // FOLLOW-UP entity-typing: a template must only be filled with the entity type it names. An emerging ROW is a QUERY;
+        // its follow-up must resolve to the query's ranking PAGE, never stuff the query into a page template (the A5 hard fail).
+        const _fupEm = _followups({ intent: 'emerging' }, { data: { rows: [{ query: 'hostile witness meaning', bestPage: 'https://x/a/1' }] } }, r);
+        mk('followup.emerging_no_query_as_page', _fupEm.join(' ').indexOf('hostile witness meaning') < 0, true);   // the query string must NEVER become "the <query> page" (negative assertion: the bug can't hide)
+        mk('followup.emerging_chains_to_page', _fupEm.indexOf('How is A1 performing?') >= 0, true);                // it chains to the resolved ranking page (answerable via page_summary)
+        const _fupEm2 = _followups({ intent: 'emerging' }, { data: { rows: [{ query: 'hostile witness meaning', bestPage: 'https://x/nope' }] } }, r);
+        mk('followup.emerging_unresolved_safe', _fupEm2.join(' ').indexOf('hostile witness meaning') < 0, true);   // unresolvable page -> fall to safe generics, still never a query-as-page chip
         // #1 rate headline: a named rate reads in POINTS, never percent-of-percent; sentiment via the hook
         const _ctrHl = _headlineHtml({ value: 1.4, pct: true, unit: 'CTR now', delta: { pts: -0.3, improved: false }, tier: 'measured' });
         const _ctrChip = (/data-sentiment="[^"]*"[^>]*>([^<]*)</.exec(_ctrHl) || [])[1] || '';   // scope to the chip (the #3 hook IS the selector) so an innocent '1,180' or a date elsewhere can't false-fail the negative assertion
@@ -473,6 +494,10 @@
     // And Renovation Loan") stay distinguishable — the discriminating word survives (the full name lives in
     // the row's hover title). End-ellipsis fails exactly this case, which is the one that matters in a compare.
     function _ellipMid(s, n) { s = String(s); if (s.length <= n) return s; const head = Math.ceil((n - 1) / 2), tail = n - 1 - head; return s.slice(0, head) + '…' + (tail > 0 ? s.slice(s.length - tail) : ''); }
+    // THE CTR formatter (one place, all consumers): a sub-decimal rate must not render as a literal '0.0%'.
+    // Every tile, sentence, table, and chart routes CTR through here so 0.04% can't say '0.0%' on one surface
+    // and '<0.1%' on another (the Fuel Allowance self-contradiction). Data rows keep numeric (2dp) for export.
+    function _ctrTxt(ctr) { const c = Number(ctr) || 0; return (c > 0 && c < 0.001) ? '<0.1%' : (c * 100).toFixed(1) + '%'; }
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
             return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -640,7 +665,7 @@
                 '%;top:' + (leaf.y0 / H * 100) + '%;width:' + wPct + '%;height:' + hPct +
                 '%;background:' + f.css + ';border-radius:4px;overflow:hidden;padding:6px 8px;box-sizing:border-box;cursor:default;" class="sv-treemap-cell">' +
                 (showName ? '<div style="font-size:0.72rem;font-weight:700;color:' + txt + ';line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(leaf.data.name) + '</div>' : '') +
-                (showVal ? '<div style="font-size:0.66rem;color:' + sub + ';margin-top:2px;">' + fmt(c.impressions) + (usesCtr ? ' · ' + (c.ctr * 100).toFixed(1) + '%' : '') + '</div>' : '') +
+                (showVal ? '<div style="font-size:0.66rem;color:' + sub + ';margin-top:2px;">' + fmt(c.impressions) + (usesCtr ? ' · ' + _ctrTxt(c.ctr) : '') + '</div>' : '') +
             '</div>';
         }).join('');
 
@@ -698,7 +723,7 @@
                 '<div style="display:flex;flex-wrap:wrap;">' +
                     metric('Impressions', fmt(d.impressions)) +
                     metric('Clicks', fmt(d.clicks)) +
-                    metric('CTR', (d.ctr * 100).toFixed(1) + '%') +
+                    metric('CTR', _ctrTxt(d.ctr)) +
                     metric('Avg pos', d.position != null ? d.position.toFixed(1) : '—') +
                     (hasGA4 ? metric('Views', fmt(d.pageViews)) : '') +
                     (hasGA4 ? metric('Users', fmt(d.users)) : '') +
@@ -727,7 +752,7 @@
                     metric('URLs', fmt(t.pageCount)) +
                     metric('Impressions', fmt(t.impressions)) +
                     metric('Clicks', fmt(t.clicks)) +
-                    metric('CTR', (t.ctr * 100).toFixed(1) + '%') +
+                    metric('CTR', _ctrTxt(t.ctr)) +
                     metric('Avg pos', t.position != null ? t.position.toFixed(1) : '—') +
                     (hasGA4 ? metric('Views', fmt(t.pageViews)) : '') +
                     (hasGA4 ? metric('Users', fmt(t.users)) : '') +
@@ -1145,7 +1170,7 @@
                     metric('Content pages', fmt(d.leafCount)) +
                     metric('Impressions', fmt(d.impressions)) +
                     metric('Clicks', fmt(d.clicks)) +
-                    metric('CTR', (d.ctr * 100).toFixed(1) + '%') +
+                    metric('CTR', _ctrTxt(d.ctr)) +
                     metric('Avg pos', d.position != null ? d.position.toFixed(1) : '—') +
                     (hasGA4 ? metric('Views', fmt(d.pageViews)) : '') +
                     (hasGA4 ? metric('Users', fmt(d.users)) : '') +
@@ -1521,7 +1546,7 @@
     }
     function _allPages(r) { const out = []; r.categories.forEach(function (c) { catPages(c).forEach(function (p) { out.push(p); }); }); return out; }
     function _mval(s, m) { return m === 'ctr' ? s.ctr : (m === 'position' ? (s.position == null ? 999 : s.position) : (s[m] || 0)); }
-    function _mfmt(s, m) { return m === 'ctr' ? (s.ctr * 100).toFixed(1) + '%' : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
+    function _mfmt(s, m) { return m === 'ctr' ? _ctrTxt(s.ctr) : (m === 'position' ? (s.position != null ? s.position.toFixed(1) : '—') : fmt(s[m] || 0)); }
     const _MLABEL = { impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', position: 'avg position', pageViews: 'views', users: 'users', __overlay: 'overlay' };
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison' };
@@ -1540,7 +1565,7 @@
                     'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","unknown"], ' +
                     '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
-                    '"direction": "up"|"down"|"both", "limit": number (default 6)}. ' +
+                    '"direction": "up"|"down"|"both", "aspect": one of ["overview","takes","ctr"] for the ai_impact intent (default overview), "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
                     'most viewed->top_pages metric pageViews; low CTR / seen but not clicked->low_ctr; out of date / old->stale; how is X doing->section_summary; ' +
                     'which sections/categories perform best / rank the sections / rank the categories / best and worst sections / which sections or categories get the most traffic / section or category league table->rank_categories; ' +
@@ -1627,6 +1652,18 @@
     function _ctrCliff(position, ctr, impressions) {
         return position != null && position <= _HL_CLIFFPOS && (impressions || 0) >= _HL_FLOOR && (ctr || 0) < _HL_CLIFFCTR;
     }
+    // ROLLUP-scale sibling: a section/site CTR silently lies DOWNWARD when a few artifact pages (per _ctrCliff)
+    // drag the weighted average. Recompute CTR EXCLUDING them; if that lifts it materially, the rollup is
+    // dragged and the surface should say so (so section_summary / compare / rank_categories don't rank on a lie).
+    function _rollupArtifacts(pages) {
+        let totI = 0, totC = 0, artI = 0, artC = 0; const arts = [];
+        (pages || []).forEach(function (p) {
+            const s = p.s || {}, i = s.impressions || 0, c = s.clicks || 0; totI += i; totC += c;
+            if (_ctrCliff(s.position, s.ctr, i)) { artI += i; artC += c; arts.push(p); }
+        });
+        const rawCtr = totI > 0 ? totC / totI : 0, exI = totI - artI, exCtr = exI > 0 ? (totC - artC) / exI : rawCtr;
+        return { arts: arts, count: arts.length, rawCtr: rawCtr, exCtr: exCtr, dragged: arts.length > 0 && rawCtr > 0 && exCtr >= rawCtr * 1.3 };
+    }
     // Two-line row card for query opportunities: query + potential on top,
     // position/impressions/CTR/action label beneath. Rows click through to the
     // best-ranking page's report via the existing sv-ask-page handler.
@@ -1685,7 +1722,7 @@
         const cell = function (l, v) { return '<div style="flex:1;min-width:66px;padding:8px 10px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div></div>'; };
         return '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
             cell('Pages', fmt(rollup.leafCount)) + cell('Impressions', fmt(rollup.impressions)) + cell('Clicks', fmt(rollup.clicks)) +
-            cell('CTR', (rollup.ctr * 100).toFixed(1) + '%') + cell('Avg pos', rollup.position != null ? rollup.position.toFixed(1) : '—') +
+            cell('CTR', _ctrTxt(rollup.ctr)) + cell('Avg pos', rollup.position != null ? rollup.position.toFixed(1) : '—') +
             (hasGA4 ? cell('Views', fmt(rollup.pageViews)) : '') + (hasGA4 ? cell('Users', fmt(rollup.users)) : '') + '</div>';
     }
 
@@ -1925,18 +1962,24 @@
         rows.forEach(function (r, i) {
             const x0 = (i % cols) * cellW, y0 = Math.floor(i / cols) * cellH;
             const b = +r[bK], a = +r[aK], better = r.better || (r.dtype === 'ptpos' ? 'lower' : 'higher');
-            const improved = _deltaImproved(better, b, a), col = improved ? '#059669' : '#dc2626';
             const d = r.change;
-            const dtxt = (d != null) ? (d >= 0 ? '+' : '') + d + (r.dtype === 'pct' ? '%' : (r.unit === '%' ? 'pt' : '')) : '';
+            // GLYPH = the NUMBER's direction (▲ for +, ▼ for -); COLOUR + data-sentiment = _deltaImproved (so a
+            // position rise reads ▲ but RED). Zero delta is NOISE: neutral, no arrow, no sentiment (the deadband).
+            const isZero = (d == null) || d === 0;
+            const improved = _deltaImproved(better, b, a);
+            const col = isZero ? 'var(--color-text-muted)' : (improved ? '#059669' : '#dc2626');
+            const sentA = isZero ? '' : ' data-sentiment="' + (improved ? 'good' : 'bad') + '"';
+            const arrow = isZero ? '' : (d >= 0 ? '▲ ' : '▼ ');
+            const dtxt = (d != null) ? ((d > 0 ? '+' : '') + d + (r.dtype === 'pct' ? '%' : (r.unit === '%' ? 'pt' : ''))) : '';
             const tX0 = x0 + pad + 4, tW = cellW - 2 * pad - 10, mx = Math.max(Math.abs(b), Math.abs(a), 1);
             const bx = tX0 + tW * Math.min(1, Math.abs(b) / mx), ax = tX0 + tW * Math.min(1, Math.abs(a) / mx), ty = y0 + cellH - 33;
             cells += '<g>' +
                 '<rect x="' + (x0 + 4) + '" y="' + (y0 + 4) + '" width="' + (cellW - 8) + '" height="' + (cellH - 8) + '" rx="9" fill="var(--color-bg-primary)" stroke="var(--color-border-primary)"/>' +
                 '<text x="' + (x0 + pad + 3) + '" y="' + (y0 + 22) + '" font-size="' + (opts.big ? 12 : 10.5) + '" font-weight="700" fill="var(--color-text-heading)">' + esc(String(r[labK])) + '</text>' +
-                (d != null ? '<text data-sentiment="' + (improved ? 'good' : 'bad') + '" x="' + (x0 + cellW - pad - 3) + '" y="' + (y0 + 22) + '" font-size="' + (opts.big ? 12 : 10.5) + '" font-weight="700" text-anchor="end" fill="' + col + '">' + (improved ? '▲' : '▼') + ' ' + esc(dtxt) + '</text>' : '') +
+                (d != null ? '<text' + sentA + ' x="' + (x0 + cellW - pad - 3) + '" y="' + (y0 + 22) + '" font-size="' + (opts.big ? 12 : 10.5) + '" font-weight="700" text-anchor="end" fill="' + col + '">' + arrow + esc(dtxt) + '</text>' : '') +
                 '<line x1="' + Math.min(bx, ax).toFixed(1) + '" y1="' + ty + '" x2="' + Math.max(bx, ax).toFixed(1) + '" y2="' + ty + '" stroke="' + col + '" stroke-width="2" opacity="0.45"/>' +
                 '<circle cx="' + bx.toFixed(1) + '" cy="' + ty + '" r="4.5" fill="var(--color-bg-primary)" stroke="var(--color-text-muted)" stroke-width="2"/>' +
-                '<circle data-sentiment="' + (improved ? 'good' : 'bad') + '" cx="' + ax.toFixed(1) + '" cy="' + ty + '" r="5" fill="' + col + '"/>' +
+                '<circle' + sentA + ' cx="' + ax.toFixed(1) + '" cy="' + ty + '" r="5" fill="' + col + '"/>' +
                 '<text x="' + tX0 + '" y="' + (y0 + cellH - 12) + '" font-size="' + (opts.big ? 11 : 9.5) + '" fill="var(--color-text-muted)">' + esc(fmtV(r[bK], r)) + '</text>' +
                 '<text x="' + (x0 + cellW - pad - 5) + '" y="' + (y0 + cellH - 12) + '" font-size="' + (opts.big ? 11 : 9.5) + '" text-anchor="end" font-weight="700" fill="var(--color-text-primary)">' + esc(fmtV(r[aK], r)) + '</text>' +
             '</g>';
@@ -2351,7 +2394,7 @@
             opps = opps.filter(function (x) { return x.impressions >= 100 && x.potential >= 5; }).sort(function (a, b) { return b.potential - a.potential; }).slice(0, 3);
             opps.forEach(function (o) { ranked.push({ type: 'Opportunity', score: o.potential, title: 'Improve "' + o.query + '"', detail: '+' + fmt(Math.round(o.potential)) + ' clicks/mo potential - pos ' + (o.bestPos != null ? o.bestPos.toFixed(0) : '?') + ', ' + fmt(o.impressions) + ' impr', url: o.bestPage }); });
             const cann = _cannibalisation(ctx.qrows, c ? c.name : null, ctx.urlCat, ctx.urlToName).slice(0, 2);
-            cann.forEach(function (k) { ranked.push({ type: 'Cannibalisation', score: k.total * ctr * 0.3, title: 'Resolve competing pages for "' + k.query + '"', detail: k.competing + ' of your pages compete - ' + fmt(k.total) + ' impr at stake', url: (k.pages[0] && k.pages[0].url) || null }); });
+            cann.forEach(function (k) { const _cc = k.total * ctr * 0.3; ranked.push({ type: 'Cannibalisation', score: _cc, title: 'Resolve competing pages for "' + k.query + '"', detail: k.competing + ' of your pages compete, ' + fmt(k.total) + ' impr at stake (~' + fmt(Math.round(_cc)) + ' clicks/mo)', url: (k.pages[0] && k.pages[0].url) || null }); });
         }
         if (ctx.prior) {
             let worst = null;
@@ -2360,7 +2403,7 @@
                 const prev = (p.urls || [p.url]).reduce(function (s, u) { const pr = ctx.prior.gscBy[normUrl(u)]; return s + (pr ? (pr.impressions || 0) : 0); }, 0);
                 if (prev >= 200) { const pct = (cur - prev) / prev * 100; if (pct <= -15 && (!worst || pct < worst.pct)) worst = { p: p, pct: pct, cur: cur, prev: prev }; }
             });
-            if (worst) ranked.push({ type: 'Decline', score: (worst.prev - worst.cur) * ctr, title: 'Investigate ' + worst.p.name, detail: 'down ' + Math.round(Math.abs(worst.pct)) + '% - ' + fmt(worst.cur) + ' impr, was ' + fmt(worst.prev), url: worst.p.url });
+            if (worst) { const _dc = (worst.prev - worst.cur) * ctr; ranked.push({ type: 'Decline', score: _dc, title: 'Investigate ' + worst.p.name, detail: 'down ' + Math.round(Math.abs(worst.pct)) + '%, ' + fmt(worst.cur) + ' impr, was ' + fmt(worst.prev) + ' (~' + fmt(Math.round(_dc)) + ' clicks/mo lost)', url: worst.p.url }); }
         }
         // AI exposure (cache-only via ctx; the report is the full registry). Cap at 2 per briefing.
         let exposedScoped = [];
@@ -2384,7 +2427,7 @@
     }
     function _briefMarkdown(scope, rollup, actions) {
         let md = '## ' + scope + '\n\n';
-        md += '- Impressions: ' + fmt(rollup.impressions) + ' | Clicks: ' + fmt(rollup.clicks) + ' | CTR: ' + (rollup.ctr * 100).toFixed(1) + '%' + (rollup.pageViews ? (' | Views: ' + fmt(rollup.pageViews)) : '') + '\n\n';
+        md += '- Impressions: ' + fmt(rollup.impressions) + ' | Clicks: ' + fmt(rollup.clicks) + ' | CTR: ' + _ctrTxt(rollup.ctr) + (rollup.pageViews ? (' | Views: ' + fmt(rollup.pageViews)) : '') + '\n\n';
         if (!actions.length) { return md + '_No urgent priorities - looks healthy._\n\n'; }
         md += '**Priorities (ranked by estimated impact):**\n\n';
         actions.forEach(function (it, i) { md += (i + 1) + '. **' + it.type + '** - ' + it.title.replace(/"/g, '') + ' (' + it.detail + ')' + (it.url ? ('\n   ' + it.url) : '') + '\n'; });
@@ -2437,7 +2480,9 @@
         if (intent === 'section_summary') {
             const c = _catByName(cats, plan.category);
             if (!c) return { html: '', summary: '', err: 'I couldn\'t find that section.' };
-            return { html: '<div style="font-weight:700;margin-bottom:8px;">' + esc(c.name) + '</div>' + _stripCard(c.rollup, hasGA4), summary: c.name + ': ' + fmt(c.rollup.impressions) + ' impressions, ' + (c.rollup.ctr * 100).toFixed(1) + '% CTR, ' + fmt(c.rollup.pageViews) + ' views, ' + fmt(c.rollup.leafCount) + ' pages.', data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: _metricRows(c.rollup, hasGA4), chart: null } };
+            const _ra = _rollupArtifacts(catPages(c));   // a few near-zero-CTR-at-top-rank pages can drag the whole section's CTR down
+            const _raNote = _ra.dragged ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">CTR is dragged down by ' + _ra.count + ' page' + (_ra.count === 1 ? '' : 's') + ' with near-zero clicks at a top rank (likely a redirect or tracking artifact, not real performance); excluding ' + (_ra.count === 1 ? 'it' : 'them') + ', CTR is ~' + _ctrTxt(_ra.exCtr) + '. Ask "which ' + esc(c.name) + ' pages are exposed to AI" or open the AI Impact report to find them.</div>' : '';
+            return { html: '<div style="font-weight:700;margin-bottom:8px;">' + esc(c.name) + '</div>' + _stripCard(c.rollup, hasGA4) + _raNote, summary: c.name + ': ' + fmt(c.rollup.impressions) + ' impressions, ' + _ctrTxt(c.rollup.ctr) + ' CTR' + (_ra.dragged ? ' (dragged by ' + _ra.count + ' artifact page' + (_ra.count === 1 ? '' : 's') + '; ~' + _ctrTxt(_ra.exCtr) + ' without them)' : '') + ', ' + fmt(c.rollup.pageViews) + ' views, ' + fmt(c.rollup.leafCount) + ' pages.', data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: _metricRows(c.rollup, hasGA4), chart: null } };
         }
         if (intent === 'rank_categories') {
             const desc = plan.direction !== 'up';
@@ -2478,7 +2523,7 @@
             const rows = pages.filter(function (p) { return (p.s.impressions || 0) >= 300 && p.s.ctr < Math.max(0.005, avg * 0.6); }).sort(function (a, b) { return b.s.impressions - a.s.impressions; }).slice(0, limit);
             let _lcTr = {};   // these are high-impression pages, so their impression trajectories actually populate (unlike stale's dead pages)
             try { _lcTr = await _pageTrends(rows, 6, 30, 'impressions'); } catch (e) {}
-            const items = rows.map(function (p) { const sk = _lcTr[normUrl(p.url)]; return { name: p.name, val: (p.s.ctr * 100).toFixed(1) + '%', bar: p.s.impressions, url: p.url, spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });
+            const items = rows.map(function (p) { const sk = _lcTr[normUrl(p.url)]; return { name: p.name, val: _ctrTxt(p.s.ctr), bar: p.s.impressions, url: p.url, spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });
             return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'CTR' }), summary: 'High-impression, low-CTR pages' + (c ? ' in ' + c.name : '') + ': ' + rows.slice(0, 5).map(function (p) { return p.name + ' (' + fmt(p.s.impressions) + ' impr, ' + (p.s.ctr * 100).toFixed(1) + '%)'; }).join(', ') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'impressions', label: 'Impressions' }, { key: 'ctr', label: 'CTR %' }, { key: 'url', label: 'URL' }], rows: rows.map(function (p) { return { page: p.name, impressions: p.s.impressions || 0, ctr: +((p.s.ctr || 0) * 100).toFixed(2), url: p.url }; }), chart: { type: 'bar', x: 'page', y: 'impressions', label: 'Impressions' }, shareBase: (c ? c.rollup.impressions : r.totals.impressions) || 0, shareKey: 'impressions', shareNoun: 'impressions, barely clicked' } };
         }
         if (intent === 'stale') {
@@ -2710,7 +2755,7 @@
             const qCard = topQ.length ? ('<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:6px;">Top queries for this page</div>' + _rankCard(topQ.map(function (x) { return { name: x.query, val: fmt(x.impressions), bar: x.impressions }; }), { nameLabel: 'Query', valueLabel: 'Impressions' })) : '';
             return {
                 html: head + stat + sigCard + ciNote + qCard,
-                summary: 'Page "' + page.name + '": ' + fmt(impressions) + ' impressions, ' + (ctr * 100).toFixed(1) + '% CTR, position ' + (position != null ? position.toFixed(1) : 'n/a') + (impChg != null ? (', ' + (impChg >= 0 ? '+' : '') + impChg + '% vs previous period') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + '. Findings: ' + signals.map(function (x) { return x.t + ' (' + x.d + ')'; }).join('; ') + '.',
+                summary: 'Page "' + page.name + '": ' + fmt(impressions) + ' impressions, ' + _ctrTxt(ctr) + ' CTR, position ' + (position != null ? position.toFixed(1) : 'n/a') + (impChg != null ? (', ' + (impChg >= 0 ? '+' : '') + impChg + '% vs previous period') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + '. Findings: ' + signals.map(function (x) { return x.t + ' (' + x.d + ')'; }).join('; ') + '.',
                 data: { columns: [{ key: 'finding', label: 'Finding' }, { key: 'detail', label: 'Detail' }], rows: signals.map(function (x) { return { finding: x.t, detail: x.d }; }), chart: null }
             };
         }
@@ -2807,14 +2852,16 @@
             const top = _sectionActions(c, r, ctx);
             const rollup = c ? c.rollup : r.totals;
             const hasGA4b = r.totals.pageViews > 0 || r.totals.users > 0;
-            const scorecard = '<div style="font-weight:700;margin-bottom:8px;">' + esc(scopeTitle) + '</div>' + _stripCard(rollup, hasGA4b);
+            // Compact one-line context (NOT the full section strip — that's the section_summary answer; the
+            // briefing's job is priorities, and its most action-dense answer shouldn't open with its least).
+            const statsLine = '<div style="font-weight:700;font-size:0.95rem;color:var(--color-text-heading);">' + esc(scopeTitle) + '</div><div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:12px;">' + fmt(rollup.impressions) + ' impr &middot; ' + _ctrTxt(rollup.ctr) + ' CTR' + (hasGA4b ? ' &middot; ' + fmt(rollup.pageViews) + ' views' : '') + ' &middot; ' + fmt(rollup.leafCount || 0) + ' pages</div>';
             const md = '# Briefing: ' + scopeTitle + ' (' + periodLabel(_ddDays) + ')\n\n' + _briefMarkdown(scopeTitle, rollup, top);
-            if (!top.length) return { html: scorecard + '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-top:12px;">No urgent priorities right now - ' + esc(scopeName) + ' looks healthy. Try "biggest search opportunities' + (c ? ' in ' + c.name : '') + '".</div>', summary: esc(scopeName) + ' has no urgent priorities right now.', data: { columns: [], rows: [] }, markdown: md };
+            if (!top.length) return { html: statsLine + '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-top:4px;">No urgent priorities right now, ' + esc(scopeName) + ' looks healthy. Try "biggest search opportunities' + (c ? ' in ' + c.name : '') + '".</div>', summary: esc(scopeName) + ' has no urgent priorities right now.', data: { columns: [], rows: [] }, markdown: md };
             const _rk = top.slice(0, top._rankedCount || top.length), _fr = top.slice(top._rankedCount || top.length);
             const _muted = 'font-size:0.68rem;color:var(--color-text-muted);margin-top:8px;';
             const aiTail = (top._aiExposedTotal > 2) ? '<div style="' + _muted + '">+' + (top._aiExposedTotal - 2) + ' more exposed page' + (top._aiExposedTotal - 2 === 1 ? '' : 's') + ' in the AI Impact report.</div>' : '';
             const coldLine = (!top._aiChecked && top._gscOn) ? '<div style="' + _muted + '">AI exposure not yet checked this period. Open the AI Impact report to include it.</div>' : '';
-            const html = scorecard + '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 8px;">Your priorities (ranked by estimated impact)</div>' + _briefCard(_rk) + aiTail +
+            const html = statsLine + '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:0 0 8px;">Your priorities (ranked by estimated impact)</div>' + _briefCard(_rk) + aiTail +
                 (_fr.length ? '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin:14px 0 8px;">Also worth a look</div>' + _briefCard(_fr) : '') + coldLine;
             return {
                 html: html,
@@ -2916,7 +2963,7 @@
             const hasGA4p = r.totals.pageViews > 0 || r.totals.users > 0;
             const cell = function (l, v) { return '<div style="flex:1;min-width:64px;padding:8px 10px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div></div>'; };
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);">' +
-                cell('Impressions', fmt(s.impressions || 0)) + cell('Clicks', fmt(s.clicks || 0)) + cell('CTR', ((s.ctr || 0) * 100).toFixed(1) + '%') + cell('Avg pos', s.position != null ? s.position.toFixed(1) : '-') +
+                cell('Impressions', fmt(s.impressions || 0)) + cell('Clicks', fmt(s.clicks || 0)) + cell('CTR', _ctrTxt(s.ctr)) + cell('Avg pos', s.position != null ? s.position.toFixed(1) : '-') +
                 (hasGA4p ? cell('Views', fmt(s.pageViews || 0)) : '') + (hasGA4p ? cell('Users', fmt(s.users || 0)) : '') + (s.engagementRate != null ? cell('Engaged', Math.round(s.engagementRate * 100) + '%') : '') + '</div>';
             // Benchmark: CTR against the typical-for-its-position rate — a fact becomes a judgement. BUT a
             // near-zero CTR at a strong rank is a data artifact (redirect/attribution), not a low grade, so
@@ -2925,9 +2972,12 @@
             const _cliff = _ctrCliff(s.position, s.ctr, s.impressions);
             // GA4-corroborated framing: views >> clicks says real people reach the page, so GSC clicks is the broken figure.
             const _viewsCorrob = (hasGA4p && (s.pageViews || 0) > (s.clicks || 0) * 10) ? ' GA4 shows ' + fmt(s.pageViews || 0) + ' views, so people are reaching it;' : '';
+            // If the page was freshly edited, the update itself is the prime suspect for a URL/canonical change that broke click attribution.
+            const _cliffFreshMo = (_cliff && p.lm) ? (Date.now() - Date.parse(p.lm)) / (1000 * 60 * 60 * 24 * 30.44) : null;
+            const _cliffFresh = (_cliffFreshMo != null && _cliffFreshMo >= 0 && _cliffFreshMo < 2) ? ' It was updated ' + (_cliffFreshMo < 1 ? 'this month' : 'about ' + Math.round(_cliffFreshMo) + ' months ago') + ', so if that edit changed the URL, that is the likely cause.' : '';
             const benchHtml = _cliff
-                ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">' + fmt(s.impressions || 0) + ' impressions at position ' + s.position.toFixed(1) + ' but only ' + fmt(s.clicks || 0) + ' clicks (' + _aiCtr(s.ctr || 0) + ' CTR), implausibly low for a top rank.' + _viewsCorrob + ' this looks like a measurement artifact (clicks likely attributed to another URL), not performance: check the page URL and canonical.</div>'
-                : (_bench > 0 ? _benchmarkBar(s.ctr || 0, _bench, { fmt: function (v) { return (v * 100).toFixed(1) + '%'; }, note: 'for position ' + s.position.toFixed(0) }) : '');
+                ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">' + fmt(s.impressions || 0) + ' impressions at position ' + s.position.toFixed(1) + ' but only ' + fmt(s.clicks || 0) + ' clicks (' + _aiCtr(s.ctr || 0) + ' CTR), implausibly low for a top rank.' + _viewsCorrob + ' this looks like a measurement artifact (clicks likely attributed to another URL), not performance: check the page URL and canonical.' + _cliffFresh + '</div>'
+                : (_bench > 0 ? _benchmarkBar(s.ctr || 0, _bench, { fmt: function (v) { return _ctrTxt(v); }, note: 'for position ' + s.position.toFixed(0) }) : '');
             const months = p.lm ? (Date.now() - Date.parse(p.lm)) / (1000 * 60 * 60 * 24 * 30.44) : null;
             const meta = '<div style="font-size:0.7rem;color:var(--color-text-muted);margin-top:8px;">' + (months != null ? ('Last updated ~' + Math.round(months) + ' months ago') : 'No last-modified date') + '</div>';
             const _ci = _contentIntel(p);
@@ -2956,7 +3006,7 @@
             return {
                 ctrArtifact: _cliff,   // so the follow-ups don't offer "why underperforming" on a measurement artifact
                 html: head + strip + benchHtml + meta + ciLine + aiLine + topQ,
-                summary: '"' + p.name + '" (' + periodLabel(_ddDays) + '): ' + fmt(s.impressions || 0) + ' impressions, ' + fmt(s.clicks || 0) + ' clicks, ' + ((s.ctr || 0) * 100).toFixed(1) + '% CTR, position ' + (s.position != null ? s.position.toFixed(1) : 'n/a') + (hasGA4p ? (', ' + fmt(s.pageViews || 0) + ' views') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + (_ci ? (' On-page: reading ease ' + (_ci.readability != null ? Math.round(_ci.readability) : 'n/a') + ', ' + fmt(_ci.words || 0) + ' words, meta ' + (_ci.metaLen || 0) + ' chars' + (_ci.noindex ? ', NOINDEX (hidden from search)' : '') + '.') : '') + '.',
+                summary: '"' + p.name + '" (' + periodLabel(_ddDays) + '): ' + fmt(s.impressions || 0) + ' impressions, ' + fmt(s.clicks || 0) + ' clicks, ' + _ctrTxt(s.ctr) + ' CTR, position ' + (s.position != null ? s.position.toFixed(1) : 'n/a') + (hasGA4p ? (', ' + fmt(s.pageViews || 0) + ' views') : '') + (months != null ? (', updated ~' + Math.round(months) + 'mo ago') : '') + (_ci ? (' On-page: reading ease ' + (_ci.readability != null ? Math.round(_ci.readability) : 'n/a') + ', ' + fmt(_ci.words || 0) + ' words, meta ' + (_ci.metaLen || 0) + ' chars' + (_ci.noindex ? ', NOINDEX (hidden from search)' : '') + '.') : '') + '.',
                 data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'Impressions', value: s.impressions || 0 }, { metric: 'Clicks', value: s.clicks || 0 }, { metric: 'CTR %', value: +((s.ctr || 0) * 100).toFixed(2) }, { metric: 'Avg position', value: s.position != null ? +s.position.toFixed(1) : null }].concat(hasGA4p ? [{ metric: 'Views', value: s.pageViews || 0 }, { metric: 'Users', value: s.users || 0 }] : []).concat(_ciRows), chart: null }
             };
         }
@@ -3280,15 +3330,18 @@
                 return o.mult >= 2 && o.gain >= 20;           // at least doubled, meaningful absolute gain
             }).sort(function (a, b) { return b.gain - a.gain; }).slice(0, limit);
             if (!em.length) return { html: '', summary: '', err: 'No newly emerging or fast-rising searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days.' };
-            const _ctrPct = function (v) { return ((v || 0) * 100).toFixed(1) + '%'; };
-            // Richer than the generic rank card: query + a muted stat line (impressions · clicks · CTR)
-            // so all three metrics fit — the narrow value column can't. Borderless .sv-ask-list.
+            const _ctrPct = _ctrTxt;
+            // Resolve each query's ranking page URL back to a name so the row can say WHERE you rank, not just that demand rose.
+            const _u2n = Object.create(null); _allPages(r).forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { if (u) _u2n[normUrl(u)] = p.name; }); });
+            // Richer than the generic rank card: query + a muted stat line (impressions · clicks · CTR · rank · page)
+            // so it reads as a work list, not a news bulletin — position is what turns "demand rose" into a to-do. Borderless .sv-ask-list.
             const _emRow = function (o) {
                 const x = o.x;
                 const badge = o.isNew
                     ? '<span style="color:#059669;font-weight:700;">NEW</span>'
                     : '<span style="color:#059669;font-weight:700;">▲ rising</span> <span style="color:var(--color-text-muted);">(was ' + fmt(o.prior) + ' impressions)</span>';
-                const stat = fmt(x.impressions) + ' impressions · ' + fmt(x.clicks) + ' clicks · ' + _ctrPct(x.ctr) + ' CTR';
+                const pg = x.bestPage ? _u2n[normUrl(x.bestPage)] : null;
+                const stat = fmt(x.impressions) + ' impressions · ' + fmt(x.clicks) + ' clicks · ' + _ctrPct(x.ctr) + ' CTR' + (x.bestPos != null ? ' · best pos #' + x.bestPos.toFixed(0) : '') + (pg ? ' · ' + _ellipMid(pg, 28) : '');
                 const click = x.bestPage ? ' class="sv-ask-page sv-tipel" role="button" tabindex="0" data-url="' + esc(x.bestPage) + '" style="cursor:pointer;"' : '';
                 return '<div' + click + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="padding:9px 12px;border-bottom:1px solid var(--color-border-primary);">' +
                     '<div style="display:flex;align-items:baseline;gap:8px;"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:0.85rem;color:var(--color-text-primary);">' + esc(x.query) + '</span><span style="flex-shrink:0;font-size:0.72rem;font-weight:700;color:#059669;">+' + fmt(o.gain) + '</span></div>' +
@@ -3299,7 +3352,7 @@
             return {
                 html: '<div class="sv-ask-list">' + _emHead + em.map(_emRow).join('') + '</div><div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">New or fast-rising searches vs the previous ' + _ddDays + ' days (current impressions vs prior). Ride the demand while it is fresh.</div>',
                 summary: 'Emerging searches' + (c ? ' in ' + c.name : '') + ' vs the previous ' + _ddDays + ' days: ' + em.slice(0, 6).map(function (o) { return '"' + o.x.query + '" ' + fmt(o.x.impressions) + ' impressions' + (o.isNew ? ' (new)' : ' (was ' + fmt(o.prior) + ')'); }).join('; ') + '.',
-                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR %' }, { key: 'priorImpressions', label: 'Prior impressions' }, { key: 'gain', label: 'Impressions gained' }, { key: 'status', label: 'Status' }, { key: 'category', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: em.map(function (o) { return { query: o.x.query, impressions: o.x.impressions, clicks: o.x.clicks, ctr: +(((o.x.ctr) || 0) * 100).toFixed(2), priorImpressions: o.prior, gain: o.gain, status: o.isNew ? 'new' : 'rising', category: o.x.category || '', bestPage: o.x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'gain', label: 'Impressions gained' } }
+                data: { columns: [{ key: 'query', label: 'Query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR %' }, { key: 'bestPosition', label: 'Best position' }, { key: 'priorImpressions', label: 'Prior impressions' }, { key: 'gain', label: 'Impressions gained' }, { key: 'status', label: 'Status' }, { key: 'category', label: 'Category' }, { key: 'bestPage', label: 'Best page' }], rows: em.map(function (o) { return { query: o.x.query, impressions: o.x.impressions, clicks: o.x.clicks, ctr: +(((o.x.ctr) || 0) * 100).toFixed(2), bestPosition: o.x.bestPos != null ? +o.x.bestPos.toFixed(1) : null, priorImpressions: o.prior, gain: o.gain, status: o.isNew ? 'new' : 'rising', category: o.x.category || '', bestPage: o.x.bestPage || '' }; }), chart: { type: 'bar', x: 'query', y: 'gain', label: 'Impressions gained' } }
             };
         }
         if (intent === 'content_gaps') {
@@ -3528,7 +3581,9 @@
                 add('Which categories get the most traffic?'); add('Where are our biggest search opportunities?');
                 break;
             case 'emerging':
-                if (topRow && topRow.query) add('What queries bring people to the ' + topRow.query + ' page?');
+                // an emerging ROW is a QUERY, not a page: resolve the query's ranking page (topPageName) and ask about
+                // THAT (answerable), never stuff the query string into a page template ("the <query> page" names nothing).
+                if (topPageName) add('How is ' + topPageName + ' performing?');
                 add('What content should we create?'); add('What questions do people ask?');
                 break;
             case 'recently_updated':
@@ -3779,10 +3834,10 @@
 
     // Miss-log: record questions that resolve to `unknown` so the owner can see what
     // to build next. Capped ring buffer in localStorage. Inspect via SVRollup.getAskMisses().
-    function _logMiss(q) {
+    function _logMiss(q, tag) {
         try {
             const arr = JSON.parse(localStorage.getItem('svAskMisses') || '[]');
-            arr.push({ q: q, ts: Date.now() });
+            arr.push({ q: q, ts: Date.now(), tag: tag || 'unknown' });   // tag distinguishes a genuine unknown from a parse_error crash in the demand log
             while (arr.length > 200) arr.shift();
             localStorage.setItem('svAskMisses', JSON.stringify(arr));
         } catch (e) {}
@@ -3881,7 +3936,8 @@
             const _s1 = / (?:in|for) (.+?)\??$/i.exec(s);
             const _s2 = /\bcompared?\s+(?:the\s+)?(.+?)\s+(?:to|vs\.?|versus|against|with)\s+last year/i.exec(s);
             const _s3 = /\b(.+?)\s+(?:vs\.?|versus)\s+last year/i.exec(s);
-            const _cat = _s1 ? _s1[1].trim() : _s2 ? _s2[1].trim() : _s3 ? _s3[1].trim() : null;
+            const _s4 = /^is (?:the |this |that )?(.+?)(?:'s)?\s+(?:drop|dip|decline|fall|slump|slide|change|dropoff|trend)\b/i.exec(s);   // "is the Health drop seasonal" -> Health (handler validates against real sections)
+            const _cat = _s1 ? _s1[1].trim() : _s2 ? _s2[1].trim() : _s3 ? _s3[1].trim() : _s4 ? _s4[1].trim() : null;
             return { intent: 'seasonal', category: _cat, yoy: true };
         }
         // "how are pages we updated doing" / "what pages were updated recently" / "pages updated in the last N days" -> recently_updated
@@ -4236,10 +4292,27 @@
                 // Deterministic parser FIRST — only fall back to the LLM (a Groq call) when it
                 // can't handle the phrasing. Cuts ~1 Groq call per question for common queries.
                 let plan = _quickParse(q);
+                let _parseErr = false;
                 if (!plan) {
                     const _usr = 'Sections available: ' + catNames.join(', ') + '.\nQuestion: ' + q;
-                    const raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: _usr }], { temperature: 0, max_tokens: 200, response_format: { type: 'json_object' } });
-                    try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; }
+                    let raw = null;
+                    try {
+                        // max_tokens is the ceiling for reasoning + content combined. The JSON answer is ~30 tokens,
+                        // but gpt-oss reasons in the same budget, and a HARD/ambiguous question (exactly what the LLM
+                        // fallback exists for) can burn a 200 cap entirely on reasoning, leaving EMPTY content -> Groq's
+                        // json_validate_failed -> 400. Give reasoning headroom (1000) and ask for minimal deliberation
+                        // (a classification wants compliance, not a think). This is the A6 root-cause fix.
+                        raw = await window.GroqAI.complete([{ role: 'system', content: sys }, { role: 'user', content: _usr }], { temperature: 0, max_tokens: 1000, reasoning_effort: 'low', response_format: { type: 'json_object' } });
+                    } catch (pe) {
+                        // The parser FAILING is not the ANSWER failing. A rejected/malformed Groq request (e.g. an
+                        // unbuilt question the prompt has no fields for) must degrade to the graceful unknown path,
+                        // never crash the panel. Log it (house rule: real error before theorising) and mark it so
+                        // the miss is tagged parse_error, keeping crashes distinguishable from genuine unknowns.
+                        if (typeof console !== 'undefined') console.error('[SVRollup] Ask parser request failed, treating as unknown:', (pe && pe.message) ? pe.message : pe);
+                        _parseErr = true;
+                    }
+                    if (raw != null) { try { plan = JSON.parse(String(raw).replace(/```json|```/g, '').trim()); } catch (e) { plan = { intent: 'unknown' }; } }
+                    else plan = { intent: 'unknown' };
                 }
                 if (!plan) plan = { intent: 'unknown' };
                 // Category-owner scope: default bare questions to the owner's section, one-shot for
@@ -4262,7 +4335,7 @@
                 if (plan.intent === 'compare_periods') { resp.innerHTML = _thinkingHtml('Fetching both periods'); }
                 const res = await runIntent(plan, r);
                 if (res.unknown) {
-                    _logMiss(q);
+                    _logMiss(q, _parseErr ? 'parse_error' : 'unknown');
                     resp.innerHTML = '<div style="font-size:0.85rem;color:var(--color-text-secondary);margin-bottom:10px;">I did not quite catch that. I cover priorities, opportunities, page &amp; section performance, search queries, geography and the Irish/English gap. Try one of these (or tap <b>What can I ask?</b>):</div><div style="display:flex;flex-wrap:wrap;gap:6px;">' + _chipBtns(_pickChips()) + '</div><button class="sv-ask-help" style="margin-top:10px;background:none;border:none;color:var(--primary);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;text-decoration:underline;">What can I ask?</button>';
                     busy = false; return;
                 }
@@ -4293,6 +4366,10 @@
                     if (_hls && window.askHighlight) _hls.forEach(function (h) { if (h.urls && h.urls.length) window.askHighlight(h.urls, h.tone); });
                 } catch (e) {}
                 const interpBits = [_ILBL[plan.intent] || plan.intent];
+                // Source + growth ride the plan but were invisible in the chip: an answer scoped to AI, read as growth,
+                // must SAY so (a chip narrower than its answer is the honesty mechanism half-failing). e.g. "AI traffic · growth".
+                if (plan.intent === 'traffic_sources' && plan.source) interpBits[0] = plan.source + ' traffic';
+                if (plan.growth) interpBits.push('growth');
                 // The chip shows the RESOLVED scope (rule 3), never the pill's — this is the honesty mechanism.
                 if (plan.categories && plan.categories.length) interpBits.push(plan.categories.join(' vs '));
                 else if (_sc.unscoped) interpBits.push('whole site');
@@ -4440,6 +4517,7 @@
             { q: 'is AI traffic growing', intent: 'traffic_sources', source: 'AI' },   // NOT ai_impact/ai_exposed
             // seasonal / recently updated
             { q: 'is the recent drop seasonal', intent: 'seasonal' },
+            { q: 'is the Health drop seasonal', intent: 'seasonal', category: 'health' },   // the section slot must survive (A2 scope bug)
             { q: 'what pages were updated recently', intent: 'recently_updated' },
             { q: 'pages updated in the last 30 days in Health', intent: 'recently_updated', category: 'health' },
             // compare_periods — assert the scope slot. quickParse can't tell a section from a page by
@@ -4451,6 +4529,7 @@
             // must DEFER to the LLM (quickParse deliberately null)
             { q: 'what is the capital of France', intent: null },
             { q: 'compare Health and Housing', intent: null },                  // section compare -> LLM
+            { q: 'compare the Fuel Allowance page before and after May 12', intent: null },   // anchored before/after = change_impact territory (unbuilt): must DEFER, never be grabbed by compare_periods' "from A and B" matcher (the pinned collision)
             { q: 'how are we doing overall', intent: null },                    // site_summary -> LLM
             { q: 'what do people search for in Health', intent: null }          // top_queries -> LLM (no hijack)
         ];
@@ -4888,7 +4967,7 @@
     // divergence WEDGE (evidence, not estimate). TAKES is a pending placeholder until the Phase 2
     // per-page classifier (position discipline can't run at site aggregate). Epistemic grammar via _epi.
     const _aiPct = function (x) { return (x >= 0 ? 'up ' : 'down ') + Math.abs(Math.round(x * 100)) + '%'; };
-    const _aiCtr = function (x) { const p = (x || 0) * 100; return (p > 0 && p < 0.1) ? '<0.1%' : p.toFixed(1) + '%'; };   // 0.04% must not render as a literal '0.0%'
+    const _aiCtr = _ctrTxt;   // unified: the shared CTR formatter (sub-decimal '<0.1%' rule lives in one place)
     // THE verdict sentence — built ONCE here, consumed verbatim by the report AND the ai_impact chat answer
     // (one engine, two views includes the WORDS). Plain text (measured numbers render plain per the grammar).
     // For the MIXED read it carries the DECOMPOSITION: since clicks = impressions x CTR, a clicks decline is
