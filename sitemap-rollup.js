@@ -442,6 +442,10 @@
         mk('nav.coru', _isNavigational('coru'), true);                          // B12: CORU is the health regulator (coru.ie), brand-navigation
         mk('nav.coru_wholeword', _isNavigational('corundum hardness'), false);  // bare short token must not substring-match
         mk('nav.eircode', _isNavigational('eircode finder'), true);              // C4: Eircode's own tool, navigational exhibit #5
+        // P1.6 run: per-query foreign share (data-precise) separates foreign-driven demand from genuine Irish demand.
+        const _fs = _foreignShareMap([{ query: 'hostile witness meaning', country: 'phl', impressions: 900 }, { query: 'hostile witness meaning', country: 'irl', impressions: 100 }, { query: 'how to make a will', country: 'irl', impressions: 800 }, { query: 'how to make a will', country: 'gbr', impressions: 200 }]);
+        mk('foreign.mostly_foreign', _fs['hostile witness meaning'] > _FOREIGN_SHARE_MAX, true);   // 900/1000 abroad -> flagged
+        mk('foreign.irish_demand_kept', _fs['how to make a will'] < _FOREIGN_SHARE_MAX, true);      // 200/1000 abroad -> stays (CIB's audience)
         // C4 ladder: dot size is the RANKED quantity, labelled so it is not misread (size=potential in an opportunities ladder)
         mk('ladder.size_labelled', _chartLadder({ rows: [{ q: 'a', p: 2, pot: 900 }, { q: 'b', p: 8, pot: 400 }], chart: { type: 'ladder', label: 'q', pos: 'p', size: 'pot', sizeLabel: 'potential clicks/mo' } }, {}).indexOf('potential clicks/mo') >= 0, true);
         // C5 shared percent formatter: a nonzero sliver reads "<1%" everywhere, never "0%".
@@ -450,6 +454,13 @@
         mk('pcttxt.normal', _pctTxt(0.82), '82%');
         mk('followup.traffic_sources_has_chips', _followups({ intent: 'traffic_sources' }, { data: { rows: [] } }, r).length > 0, true);   // C5: the answer grew no chips; now it does
         mk('followup.traffic_sources_source_growth', _followups({ intent: 'traffic_sources', source: 'Facebook' }, { data: { rows: [] } }, r).join(' | ').indexOf('Facebook traffic growing') >= 0, true);
+        // Chips-as-plans refactor: (a) a category-template can NEVER embed a non-category (a page/garbage in the category slot
+        // is nulled), so no case can generate a "briefing scoped to a page" chip; a REAL category still gets its scoped chip.
+        mk('followup.typevalid_drops_noncategory', _followups({ intent: 'briefing', category: 'Nonexistent Page' }, { data: { rows: [] } }, r, '').join(' | ').indexOf('Nonexistent') < 0, true);
+        mk('followup.typevalid_keeps_real_category', _followups({ intent: 'briefing', category: 'A' }, { data: { rows: [] } }, r, '').join(' | ').indexOf(' in A') >= 0, true);
+        // (f) a chip that just re-asks the current question is dropped; an unrelated question keeps the chips.
+        mk('followup.tautology_self_repeat_dropped', _followups({ intent: 'site_summary' }, { data: { rows: [] } }, r, 'What should I focus on?').join(' | ').indexOf('What should I focus on?') < 0, true);
+        mk('followup.tautology_unrelated_kept', _followups({ intent: 'site_summary' }, { data: { rows: [] } }, r, 'something entirely different').length > 0, true);
         // B8 diagnose chip only where warranted: opportunities offers a NEUTRAL page look, never "why underperforming" (its best page may be winning).
         const _fOpp = _followups({ intent: 'opportunities', category: 'Health' }, { data: { rows: [{ query: 'q', bestPage: 'https://x/a/1' }] } }, r);
         mk('followup.opps_no_diagnose', _fOpp.join(' | ').indexOf('underperforming') < 0, true);
@@ -1645,6 +1656,23 @@
             return { query: q, impressions: e.impressions, clicks: e.clicks, topCountry: top };
         });
     }
+    // Per-query FOREIGN share (fraction of impressions NOT from Ireland), from country-query rows. For a national
+    // public-service body, a query that is majority-foreign is demand from people it does not serve (e.g. "hostile witness
+    // meaning" is Philippines-driven), so its opportunity "potential" is not really winnable/relevant. Data-precise, not a
+    // prefix guess - keeps genuine Irish how-to/definitional demand ("how to make a will") in the list (P1.6 run).
+    function _foreignShareMap(rows) {
+        const byQ = Object.create(null);
+        (rows || []).forEach(function (row) {
+            const q = String(row.query || '').trim().toLowerCase(); if (!q) return;
+            let e = byQ[q]; if (!e) e = byQ[q] = { tot: 0, irl: 0 };
+            e.tot += row.impressions || 0;
+            if (String(row.country || '').toLowerCase() === 'irl') e.irl += row.impressions || 0;
+        });
+        const m = Object.create(null);
+        for (const q in byQ) { const e = byQ[q]; m[q] = e.tot > 0 ? (e.tot - e.irl) / e.tot : 0; }
+        return m;
+    }
+    const _FOREIGN_SHARE_MAX = 0.6;   // >60% of a query's impressions from outside Ireland -> majority-foreign demand
     function _aggCountries(rows) {
         const byC = Object.create(null);
         rows.forEach(function (row) {
@@ -1775,7 +1803,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z23';
+    const _BUILD = '20260904z26';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -1891,6 +1919,9 @@
     // PRIOR cleared _IMPR_CLIFF_FLOOR (below it is just a small page, noise), now sits under _IMPR_CLIFF_MAX absolute AND
     // under _IMPR_CLIFF_RATIO of prior. This is why a 1.6K -> 1 row looks identical but is not counted (below the floor).
     const _IMPR_CLIFF_FLOOR = 2000, _IMPR_CLIFF_MAX = 20, _IMPR_CLIFF_RATIO = 0.02;
+    // Below this current-period impression count, a seasonal verdict is built on noise (a collapsed COVID-era page like
+    // Contact Tracing) - the % swings are not trustworthy, so flag the read as indicative (B10's small-sample probe).
+    const _SEASONAL_MIN_IMPR = 200;
     function _imprCliff(prev, cur) {
         prev = Number(prev) || 0; cur = Number(cur) || 0;
         return prev >= _IMPR_CLIFF_FLOOR && cur < _IMPR_CLIFF_MAX && cur < prev * _IMPR_CLIFF_RATIO;
@@ -2949,6 +2980,11 @@
             }
 
             // opportunities: rank by potential extra clicks; floors keep out noise.
+            // Foreign-demand flag (P1.6 run): a majority-foreign query is not this national body's audience, so its
+            // "potential" is not really winnable/relevant. Data-precise (country rows), graceful if country data is off.
+            let _fShare = null;
+            try { const _cr = await getCountryQueryRows(_ddDays); if (_cr && _cr.length) _fShare = _foreignShareMap(_cr); } catch (e) {}
+            if (_fShare) qs.forEach(function (x) { x.foreign = (_fShare[String(x.query).toLowerCase()] || 0) > _FOREIGN_SHARE_MAX; });
             const _oppPool = qs.filter(function (x) { return x.impressions >= 100 && x.potential >= 5; });
             // Artifact queries (near-zero CTR at a top rank) produce FICTIONAL potential - keep a tracking split off
             // the #1-priority slot (A7: Medical Card was ranked top on artifact CTR). Surface them as investigate-first,
@@ -2957,9 +2993,11 @@
             // Navigational queries (brand/service names) are demand for ANOTHER site, not content upside - exclude from the
             // ranked opportunities and name them, so a quarter-million "mywelfare" impressions aren't priced as +5.5K clicks (B8).
             const _oppNav = _oppPool.filter(function (x) { return !x.artifact && x.navigational; }).sort(function (a, b) { return b.impressions - a.impressions; });
+            // Majority-foreign queries: excluded from the winnable ranking (a national body's opportunities are its citizens').
+            const _oppFor = _oppPool.filter(function (x) { return !x.artifact && !x.navigational && x.foreign; }).sort(function (a, b) { return b.impressions - a.impressions; });
             // Denominator honesty (C4): the headline sums the SHOWN rows; if the winnable pool is larger, say so, so "~179K on
             // the table" isn't read as the site's total when hundreds more sit below the cut.
-            const _winPool = _oppPool.filter(function (x) { return !x.artifact && !x.navigational; }).sort(function (a, b) { return b.potential - a.potential; });
+            const _winPool = _oppPool.filter(function (x) { return !x.artifact && !x.navigational && !x.foreign; }).sort(function (a, b) { return b.potential - a.potential; });
             qs = _winPool.slice(0, limit);
             const _morePot = _winPool.slice(limit).reduce(function (s, x) { return s + (x.potential || 0); }, 0);
             const _oppMore = _winPool.length > qs.length ? ' (the biggest ' + qs.length + ' of ' + _winPool.length + ' winnable queries; ~' + fmt(Math.round(_morePot)) + ' more clicks/mo sit below the cut)' : '';
@@ -2967,9 +3005,11 @@
                 ? '<div style="font-size:0.72rem;color:#d97706;margin-top:10px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">' + _oppArts.length + ' high-impression quer' + (_oppArts.length === 1 ? 'y' : 'ies') + ' left out: near-zero CTR at a top rank looks like a tracking artifact, not real upside (' + _oppArts.slice(0, 3).map(function (x) { return '"' + esc(x.query) + '"'; }).join(', ') + '). Investigate the page URL and canonical first.</div>'
                 : '') + (_oppNav.length
                 ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:8px;padding:7px 10px;border:1px solid var(--color-border-primary);border-radius:8px;">' + _oppNav.length + ' navigational quer' + (_oppNav.length === 1 ? 'y' : 'ies') + ' left out (' + _oppNav.slice(0, 3).map(function (x) { return '"' + esc(x.query) + '"'; }).join(', ') + '): people typing a service name to reach it, likely not winnable as content.</div>'
+                : '') + (_oppFor.length
+                ? '<div style="font-size:0.72rem;color:var(--color-text-muted);margin-top:8px;padding:7px 10px;border:1px solid var(--color-border-primary);border-radius:8px;">' + _oppFor.length + ' quer' + (_oppFor.length === 1 ? 'y' : 'ies') + ' left out as mostly searched from abroad (' + _oppFor.slice(0, 3).map(function (x) { return '"' + esc(x.query) + '"'; }).join(', ') + '): demand from outside Ireland, likely not this service’s audience.</div>'
                 : '');
-            if (!qs.length) return (_oppArts.length || _oppNav.length)
-                ? { html: _artNote, summary: 'No winnable content opportunities' + (c ? ' in ' + c.name : '') + ': the big low-CTR queries here are ' + (_oppArts.length ? 'measurement artifacts' : '') + (_oppArts.length && _oppNav.length ? ' or ' : '') + (_oppNav.length ? 'navigational (people seeking another service)' : '') + ', not content upside. See the notes.', data: { columns: [], rows: [] } }
+            if (!qs.length) return (_oppArts.length || _oppNav.length || _oppFor.length)
+                ? { html: _artNote, summary: 'No winnable content opportunities' + (c ? ' in ' + c.name : '') + ': the big low-CTR queries here are ' + [(_oppArts.length ? 'measurement artifacts' : ''), (_oppNav.length ? 'navigational' : ''), (_oppFor.length ? 'mostly foreign demand' : '')].filter(Boolean).join(' or ') + ', not content upside. See the notes.', data: { columns: [], rows: [] } }
                 : { html: '', summary: '', err: 'No sizeable search opportunities found' + (c ? ' in ' + c.name : '') + ' for ' + periodLabel(_ddDays) + ', CTR looks healthy on the big queries.' };
             return { html: _oppCard(qs) + _artNote,
                 summary: 'Biggest search opportunities' + (c ? ' in ' + c.name : '') + ' (potential extra clicks over ' + periodLabel(_ddDays) + ', if each performed like a top-3 result): ' +
@@ -3711,6 +3751,9 @@
             } else {
                 verdict = yoyPct != null ? ('Broadly stable vs the previous period; ' + (yoyPct >= 0 ? 'up ' + yoyPct : 'down ' + Math.abs(yoyPct)) + '% vs last year.') : 'Broadly stable vs the previous period.';
             }
+            // Small-sample honesty (B10): a near-collapsed page has too few current impressions for the % swings to mean much.
+            const _thin = curImp < _SEASONAL_MIN_IMPR;
+            if (_thin) verdict += ' (Based on only ' + fmt(curImp) + ' impressions this period, so treat this as indicative, not a firm read.)';
             const dlt = function (p) { return p == null ? { txt: 'n/a', col: 'var(--color-text-muted)' } : { txt: (p >= 0 ? '+' : '') + p + '%', col: p >= 0 ? '#059669' : '#dc2626' }; };
             const cell = function (l, v, sub) { return '<div style="flex:1;min-width:92px;padding:9px 11px;border-right:1px solid var(--color-border-primary);"><div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);">' + l + '</div><div style="font-size:1.05rem;font-weight:700;color:var(--color-text-primary);">' + v + '</div>' + (sub ? '<div style="font-size:0.62rem;color:' + sub.col + ';font-weight:700;">' + sub.txt + '</div>' : '') + '</div>'; };
             const strip = '<div style="display:flex;flex-wrap:wrap;border:1px solid var(--color-border-primary);border-radius:10px;overflow:hidden;background:var(--color-bg-primary);margin-bottom:10px;">' +
@@ -3898,8 +3941,17 @@
     // Deterministic "explore next" suggestions from the answered intent (stateless
     // fake multi-turn). Every suggestion is a question the pipeline can actually
     // answer, so a chip just re-enters ask(). Max 3.
-    function _followups(plan, res, r) {
-        const cat = plan.category || (plan.categories && plan.categories[0]) || null;
+    // Chips-as-plans (retires the chip-generator class): a follow-up is only worth offering if it is a CONSTRUCTIBLE plan.
+    // Two structural guarantees, enforced here so no per-case discipline is needed:
+    //  (a) TYPE-VALID: a category-scoped template ("... in X", "What should I focus on in X") only ever embeds a REAL
+    //      category name. `cat` is validated against r.categories and nulled if the plan slot held a page/garbage - so a
+    //      "briefing scoped to a page" chip (B10) can no longer be generated by ANY case, not just the ones we patched.
+    //  (f) NO TAUTOLOGY: a chip that would just re-ask the current question is dropped (the self-repeat filter on return).
+    // Page-scoped templates already embed only resolved page names (topPageName from _allPages, or a resolved plan.page).
+    function _followups(plan, res, r, q) {
+        const _catRaw = plan.category || (plan.categories && plan.categories[0]) || null;
+        const _catNode = (_catRaw && r && r.categories) ? _catByName(r.categories, _catRaw) : null;
+        const cat = _catNode ? _catNode.name : null;   // real category or null: category-templates can never render type-invalid
         const out = [];
         const add = function (q) { if (q && out.length < 3 && out.indexOf(q) < 0) out.push(q); };
         const inCat = cat ? (' in ' + cat) : '';
@@ -4066,7 +4118,10 @@
                 break;
             }
         }
-        return out;
+        // Tautology filter (f): drop any chip that just re-asks the current question (a self-repeat adds nothing).
+        const _nrm = function (s) { return String(s || '').toLowerCase().replace(/[?.,]/g, '').replace(/\bthe\b/g, '').replace(/\s+/g, ' ').trim(); };
+        const _qn = _nrm(q);
+        return _qn ? out.filter(function (c) { return _nrm(c) !== _qn; }) : out;
     }
 
     // Real section names from the loaded sitemap so example questions never reference a
@@ -4910,7 +4965,7 @@
                 const _rem = res.disambig ? null : ((plan.remainder && String(plan.remainder).trim().length > 3) ? String(plan.remainder).trim() : _compoundRemainder(q));
                 // A did-you-mean is a paused question, not an answer: grow NO follow-up chips from it (they would be
                 // template-filled with the unresolved raw string, e.g. "payments" as if it were a page). A8 sibling of the A5 entity-typing bug.
-                const _fups = (res.disambig || _rem) ? [] : _followups(plan, res, r);
+                const _fups = (res.disambig || _rem) ? [] : _followups(plan, res, r, q);
                 if (_rem) {
                     resp.insertAdjacentHTML('beforeend',
                         '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--color-border-primary);">' +
