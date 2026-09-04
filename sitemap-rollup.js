@@ -466,6 +466,7 @@
         mk('pcttxt.normal', _pctTxt(0.82), '82%');
         mk('followup.traffic_sources_has_chips', _followups({ intent: 'traffic_sources' }, { data: { rows: [] } }, r).length > 0, true);   // C5: the answer grew no chips; now it does
         mk('followup.traffic_sources_source_growth', _followups({ intent: 'traffic_sources', source: 'Facebook' }, { data: { rows: [] } }, r).join(' | ').indexOf('Facebook traffic growing') >= 0, true);
+        mk('followup.traffic_sources_page_scoped', _followups({ intent: 'traffic_sources', page: 'Water Charges' }, { data: { rows: [] } }, r).join(' | ').indexOf('How is the Water Charges page performing?') >= 0, true);   // page-scoped (tree) answer leads with the page chip - guards the merged-duplicate-case fix
         // Chips-as-plans refactor: (a) a category-template can NEVER embed a non-category (a page/garbage in the category slot
         // is nulled), so no case can generate a "briefing scoped to a page" chip; a REAL category still gets its scoped chip.
         mk('followup.typevalid_drops_noncategory', _followups({ intent: 'briefing', category: 'Nonexistent Page' }, { data: { rows: [] } }, r, '').join(' | ').indexOf('Nonexistent') < 0, true);
@@ -507,6 +508,11 @@
         mk('pagebyurl.langkey_twins_same', _langKey('https://x/en/z') === _langKey('https://x/ga/z'), true);
         mk('planpage.url_never_candidates', (function () { const res = _planPage(r, { url: 'https://x/a/1' }); return !!res.page && !res.candidates; })(), true);
         mk('planpage.url_unknown_none', _planPage(r, { url: 'https://x/nope' }).none, true);
+        // Tree scope-drop fix: a url-only plan (what the tree menu sends) must populate plan.page so DUAL-SCOPE gates
+        // (traffic_sources / compare_periods / seasonal) fire instead of falling to whole-site.
+        mk('normtree.url_populates_page', _normalizeTreePlan({ intent: 'traffic_sources', url: 'https://x/a/1' }, r).page, 'A1');
+        mk('normtree.no_url_untouched', _normalizeTreePlan({ intent: 'traffic_sources', category: 'C' }, r).page, undefined);
+        mk('normtree.explicit_page_wins', _normalizeTreePlan({ intent: 'traffic_sources', url: 'https://x/a/1', page: 'typed name' }, r).page, 'typed name');
         // P1.10 v1: coverage-gap INFERRED bracket - engages the "needs positional" objection (ships a bounded number, not a re-defer).
         mk('coverage.bracket_typical', (function () { const b = _coverageBracket(500, 103); return b.lo + '-' + b.hi + '/' + b.width; })(), '397-500/103');
         mk('coverage.bracket_no_unmatched_is_point', (function () { const b = _coverageBracket(500, 0); return b.lo === 500 && b.hi === 500 && b.width === 0; })(), true);   // no unmatched GA -> exact, not a bracket
@@ -565,6 +571,12 @@
         mk('interpscope.abroad_empty', _interpScope({ intent: 'international_queries' }, {}, { scope: { label: null, country: null } }).join('|'), '');
         mk('interpscope.fallback_shows_category', _interpScope({ intent: 'top_pages', category: 'Health' }, { oneShot: false }, {}).join('|'), 'Health');
         mk('interpscope.fallback_unscoped_site', _interpScope({ intent: 'rank_categories' }, { unscoped: true }, {}).join('|'), 'whole site');
+        // Period-lie fix (ai_impact "· last 30 days" over a 12-month verdict): the chip renders res.period when the answer's
+        // window diverges from the dropdown, else the dropdown. One axis over from _interpScope.
+        mk('interpperiod.res_wins', _interpPeriodLabel({ period: 'last 12 months' }, 'last 30 days'), 'last 12 months');
+        mk('interpperiod.fallback_when_absent', _interpPeriodLabel({}, 'last 30 days'), 'last 30 days');
+        mk('interpperiod.fallback_when_null', _interpPeriodLabel({ period: null }, 'last 30 days'), 'last 30 days');
+        mk('interpperiod.compare_windows', _interpPeriodLabel({ period: 'this month vs last month' }, 'last 30 days'), 'this month vs last month');
         // A11 qualifier guard: an unserveable DEVICE cut must be NAMED in the answer (carve-out), never silently dropped.
         mk('segnote.device_mobile_named', _segmentNote("what's our bounce rate on mobile", ['Health', 'Money']).indexOf('device') >= 0 && _segmentNote("what's our bounce rate on mobile", ['Health']).indexOf('mobile') >= 0, true);
         mk('segnote.device_desktop', _segmentNote('top pages on desktop', ['Health']).indexOf('desktop') >= 0, true);
@@ -1881,7 +1893,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z32';
+    const _BUILD = '20260904z35';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -2170,6 +2182,15 @@
         if (plan && plan.url) { const p = _pageByUrl(r, plan.url); return p ? { page: p } : { none: true }; }
         return _resolvePage(r, ref);
     }
+    // Ask-the-tree normalisation: a tree plan carries {url} but no {page}. DUAL-SCOPE intents (traffic_sources /
+    // compare_periods / seasonal) branch on `plan.page` truthiness BEFORE reaching _planPage, so a url-only plan would
+    // skip the page branch and fall to whole-site (the tree scope-drop). Populate plan.page from the URL so every
+    // page-scope gate fires; resolution still runs off plan.url (url priority in _planPage), so this only flips the
+    // gates on - it never changes WHICH page resolves. Explicit plan.page is never overwritten. Mutates + returns plan.
+    function _normalizeTreePlan(plan, r) {
+        if (plan && plan.url && !plan.page) { const tp = _pageByUrl(r, plan.url); plan.page = tp ? tp.name : plan.url; }
+        return plan;
+    }
     // "Did you mean:" list - a question PAUSED mid-resolution, not an answer. Each candidate re-runs the SAME intent
     // (data-intent) with the RESOLVED page (data-page), dispatched STRUCTURALLY by the .sv-ask-disambig handler - so a
     // page_summary disambig can never be mis-templated into a diagnose question (the A8 click-contract bug). No
@@ -2224,6 +2245,14 @@
         if (plan.country) out.push(plan.country);
         if (plan.page) out.push(plan.page);
         return out;
+    }
+    // The PERIOD segment of the interpretation chip. Same rule as _interpScope, one axis over: the chip must render the
+    // window the ANSWER actually spans, not the dropdown. An intent whose answer ignores _ddDays (ai_impact reads a
+    // 12-month GSC history; compare_periods spans periodA..periodB) declares res.period = a label, and the chip renders
+    // THAT instead of periodLabel(_ddDays). Retires the period-lie twin of the scope-lie class ("AI impact · last 30
+    // days" over a body that says "over the last 12 months").
+    function _interpPeriodLabel(res, fallbackLabel) {
+        return (res && res.period) ? res.period : fallbackLabel;
     }
 
     // ── keyword cannibalisation: 2+ of your own pages competing for one query ──
@@ -2929,6 +2958,8 @@
         const limit = Math.min(15, Math.max(1, plan.limit || 6));
         const intent = plan.intent;
 
+        _normalizeTreePlan(plan, r);   // url-only tree plans -> populate plan.page so dual-scope gates fire (the tree scope-drop fix)
+
         if (intent === 'site_summary') {
             return { html: _stripCard(r.totals, hasGA4), summary: 'Whole site: ' + fmt(r.totals.impressions) + ' impressions, ' + fmt(r.totals.clicks) + ' clicks, ' + _ctrTxt(r.totals.ctr) + ' CTR, ' + fmt(r.totals.leafCount) + ' content pages.', data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: _metricRows(r.totals, hasGA4), chart: null } };
         }
@@ -3206,6 +3237,7 @@
             const summaryParts = cur.series.map(function (s) { const f = s.values[0], l = s.values[s.values.length - 1], chg = f > 0 ? Math.round((l - f) / f * 100) : null; return s.name + ' ' + fmt(f) + '->' + fmt(l) + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '%)' : ''); });
             return {
                 html: '',
+                period: 'last ' + N + ' months',   // trend spans a fixed 6-month series, not the dropdown (period-lie fix)
                 summary: (targets.length > 1 ? 'Trend comparison' : 'Trend') + ' over the last ' + N + ' months by ' + _MLABEL[curMetric] + ': ' + summaryParts.join('; ') + '.',
                 data: { columns: cur.columns, rows: cur.rows, periods: periods, series: cur.series, metric: curMetric, availableMetrics: avail, metricViews: metricViews, chart: cur.chart }
             };
@@ -3699,6 +3731,7 @@
             const _cpSummary = scopeLabel + ' (' + newer.label + ' vs ' + older.label + '): ' + (_leadTxt ? (_leadTxt + (_restTxt ? '; ' + _restTxt : '')) : rows.slice(0, 3).map(function (rr) { return rr.metric + ' ' + fmtCell(rr.older, rr) + ' to ' + fmtCell(rr.newer, rr) + (rr.delta != null ? ' (' + _dTxt(rr) + ')' : ''); }).join('; ')) + '.' + (norm ? ' (daily averages, periods differ in length.)' : '');
             return {
                 scope: { label: (scopeLabel === 'the whole site' ? null : scopeLabel), isPage: !!page },   // chip renders what was RESOLVED (page or section), not the raw plan slot (C12 chip-audit: same class as seasonal B10)
+                period: newer.label + ' vs ' + older.label,   // chip renders the two windows compared, not the dropdown (period-lie fix)
                 html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:10px;">' + esc(scopeLabel === 'the whole site' ? 'Whole site' : scopeLabel) + ' &middot; ' + esc(older.label) + ' vs ' + esc(newer.label) + '</div>' + table + ovlNote + normNote + retNote,
                 headline: _cpHead,
                 summary: _cpSummary + (_ovl ? ' ' + _ovl.note : ''),
@@ -4014,6 +4047,7 @@
                 const trend = A.trend, div = A.div;
                 if (!div) return { html: '', summary: '', err: 'Not enough Search Console history yet to read the click-through trend.' };
                 return {
+                    period: 'last ' + div.months + ' months',   // chip renders the verdict's real window, not the dropdown
                     html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">Click through rate over ' + trend.length + ' months</div>' + _aiCtrChart(trend) + viewBtn,
                     summary: 'Google click through rate went from ' + _aiCtr(div.eCtr) + ' to ' + _aiCtr(div.lCtr) + ' over ' + div.months + ' months (clicks ' + _aiPct(div.clkChange) + ' on impressions ' + _aiPct(div.imprChange) + '). Falling CTR at steady impressions is the see but don’t click signal.',
                     data: { columns: [{ key: 'period', label: 'Month' }, { key: 'ctr', label: 'CTR %' }], rows: trend.map(function (x) { return { period: _aiYm(x.ym), ctr: x.impressions > 0 ? +(x.clicks / x.impressions * 100).toFixed(2) : 0 }; }), chart: { type: 'line', x: 'period', y: 'ctr', label: 'CTR %' } }
@@ -4034,6 +4068,7 @@
             // Crop rule: the takes number is a crop unit, so the "consistent with" framing rides WITH the card.
             const takesCaveat = takesMo != null ? '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:8px;">AI takes is an estimated floor, a pattern consistent with AI answers in results, not a measured "AI took" figure.</div>' : '';
             return {
+                period: (div && div.months) ? 'last ' + div.months + ' months' : null,   // chip renders the verdict's real window (12mo GSC history), not the 30-day dropdown
                 html: strip + takesCaveat + viewBtn,   // the verdict sentence lives in the summary (one-liner); do NOT repeat it in the body (was the duplication bug)
                 summary: summary,
                 data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'AI takes (clicks/mo, est floor)', value: takesMo }, { metric: 'Exposed pages', value: exposed.length }, { metric: 'AI sends (sessions/mo)', value: sendsMo }], chart: null }
@@ -4138,8 +4173,14 @@
                 break;
             case 'traffic_sources':
                 // C5: this answer grew NO chips; its natural follow-ups (per-source pages, AI growth) are among the best.
+                // Page-aware when scoped (a tree "where does X traffic come from" resolves to a page): lead with the page.
+                // (Was a duplicate case label further down whose page branch was dead code; merged here.)
                 if (plan.source) { add('Is ' + plan.source + ' traffic growing?'); if (cat) add('How is ' + cat + ' doing?'); else add('Which categories get the most traffic?'); }
-                else { add('How much traffic from AI?'); add('Is AI traffic growing?'); if (cat) add('How is ' + cat + ' doing?'); else add('What is AI doing to us?'); }
+                else {
+                    if (plan.page) add('How is the ' + plan.page + ' page performing?');
+                    add('How much traffic from AI?'); add('Is AI traffic growing?');
+                    if (!plan.page) { if (cat) add('How is ' + cat + ' doing?'); else add('What is AI doing to us?'); }
+                }
                 break;
             case 'questions':
                 if (topPageName) add('How is ' + topPageName + ' performing?');
@@ -4195,10 +4236,6 @@
             case 'abandoned':
                 if (topRow && topRow.page) { add('How is the ' + topRow.page + ' page performing?'); add('Where does traffic to the ' + topRow.page + ' page come from?'); }
                 add('What should I focus on' + (cat ? ' in ' + cat : '') + '?');
-                break;
-            case 'traffic_sources':
-                if (plan.page) add('How is the ' + plan.page + ' page performing?');
-                add('Where are our biggest search opportunities?'); add('What should I focus on' + (cat ? ' in ' + cat : '') + '?');
                 break;
             case 'ai_impact':
                 add('Which pages is Google answering for?');
@@ -5040,7 +5077,7 @@
                 // The chip shows the RESOLVED scope (rule 5) via _interpScope: it prefers what runIntent ACTUALLY used
                 // (res.scope) over what the plan requested, so a scope-ignoring handler can't leave a false category chip.
                 _interpScope(plan, _sc, res).forEach(function (b) { interpBits.push(b); });
-                interpBits.push(periodLabel(_ddDays));
+                interpBits.push(_interpPeriodLabel(res, periodLabel(_ddDays)));
                 if (plan._src === 'tree') interpBits.push('from the tree');   // provenance: a menu click is as auditable as a typed question (rides the same interp rail)
                 const interp = '<div style="font-size:0.68rem;color:var(--color-text-muted);margin-bottom:10px;">Interpreted as: <span style="color:var(--color-text-secondary);font-weight:600;">' + esc(interpBits.join(' · ')) + '</span><span style="opacity:0.4;margin-left:6px;" title="Build stamp: which deploy produced this answer">build ' + esc(_BUILD) + '</span></div>';
                 const _metricTgl = (res.data && res.data.availableMetrics && res.data.availableMetrics.length > 1 && res.data.metricViews) ? _metricToggleHtml(eid, res.data.availableMetrics, res.data.metric) : '';
