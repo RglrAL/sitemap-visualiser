@@ -491,6 +491,23 @@
         mk('narr.summary_no_more_when_short', _narrative('Lead', [{ text: 'a', value: '1' }]).summary, 'Lead: a (1).');
         mk('narr.lines_passthrough', _narrative('L', [{ text: 'a', value: '1' }]).summaryLines.length, 1);
         mk('narr.estimated_tilde_in_summary', _narrative('L', [{ text: '"q"', value: '450 clicks/mo, pos 8', tier: 'estimated' }]).summary, 'L: "q" (~450 clicks/mo, pos 8).');   // opportunities: the estimate marker survives into the portable one-liner, not just the bullets
+        // Source / AI-brand icons: closed vocabulary -> one lookup, every key returns an <svg>, unknown -> safe default (never blank).
+        mk('icon.source_known', _sourceIcon('Google search').indexOf('<svg') === 0, true);
+        mk('icon.source_default_not_blank', _sourceIcon('some unmapped source').indexOf('<svg') === 0, true);
+        mk('icon.ai_known', _aiBrandIcon('ChatGPT').indexOf('<svg') === 0, true);
+        mk('icon.ai_default_not_blank', _aiBrandIcon('some unknown bot').indexOf('<svg') === 0, true);
+        // Freshness scale: buckets MUST match the tree-map legend (<30/<90/<180/<1yr/<2yr/2yr+). Injected NOW = deterministic.
+        (function () {
+            const NOW = Date.UTC(2026, 8, 4), d = function (days) { return new Date(NOW - days * 86400000).toISOString(); };
+            mk('fresh.new', _freshnessBucket(d(10), NOW).label, 'New');
+            mk('fresh.fresh', _freshnessBucket(d(60), NOW).label, 'Fresh');
+            mk('fresh.recent', _freshnessBucket(d(120), NOW).label, 'Recent');
+            mk('fresh.aging', _freshnessBucket(d(300), NOW).label, 'Aging');
+            mk('fresh.old', _freshnessBucket(d(500), NOW).label, 'Old');
+            mk('fresh.stale', _freshnessBucket(d(900), NOW).label, 'Stale');
+            mk('fresh.no_date_null', _freshnessBucket(null, NOW), null);
+            mk('fresh.bad_date_null', _freshnessBucket('not-a-date', NOW), null);
+        })();
         // Chips-as-plans refactor: (a) a category-template can NEVER embed a non-category (a page/garbage in the category slot
         // is nulled), so no case can generate a "briefing scoped to a page" chip; a REAL category still gets its scoped chip.
         mk('followup.typevalid_drops_noncategory', _followups({ intent: 'briefing', category: 'Nonexistent Page' }, { data: { rows: [] } }, r, '').join(' | ').indexOf('Nonexistent') < 0, true);
@@ -1953,8 +1970,8 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260904z39';
-    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts' };
+    const _BUILD = '20260904z42';
+    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
     // splits red-fallers / teal-risers). Single-page focus (diagnose/page_summary) is a fast-follow.
@@ -1967,8 +1984,8 @@
 
     // Ask parse system prompt · STATIC (built once, so it caches on Groq and never varies per call).
     const _ASK_SYS_PROMPT = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","artifact_pages","unknown"], ' +
-                    '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","artifact_pages","freshness","unknown"], ' +
+                    '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries/trend intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "aspect": one of ["overview","takes","ctr"] for the ai_impact intent (default overview), "remainder": if the question asks for MORE than the chosen intent answers (a compound like "top pages and their engagement and compare with Housing"), a SHORT standalone question for the most important unanswered part (else omit), "limit": number (default 6)}. ' +
                     'Mapping: views->pageViews; traffic->impressions; lost/dropped/falling/down->intent movers direction down; rising/gained/up->direction up; ' +
@@ -1981,7 +1998,7 @@
                     'from abroad / overseas / internationally / the diaspora / emigrants / people outside Ireland->international_queries with country null; ' +
                     'from a named place / what does X search us for / what do people in X search for (the US / Australia / Britain / Mexico)->international_queries with country set to that country name; ' +
                     'which countries / where are searchers from / top countries->top_countries; ' +
-                    'how has X trended / over time / trend / history / over the last months / month by month->trend (category optional; metric impressions/clicks/views); trend of X vs Y / compare X and Y over time->trend with categories [X,Y]; ' +
+                    'how has X trended / over time / trend / history / over the last months / month by month->trend (X is a PAGE or a category - put a page name in "page", a section in "category"; metric impressions/clicks/views); trend of X vs Y / compare X and Y over time->trend with categories [X,Y]; ' +
                     'what PAGES are trending / which pages are rising or growing or gaining or climbing / top rising pages / biggest movers / which pages are up or down / what pages are moving in X->movers (page-level; direction up for trending/rising/growing, down for falling/dropping, both otherwise; category optional). IMPORTANT: trend draws ONE line over time for a whole section/site; use movers when the user asks WHICH PAGES changed (e.g. "what pages are trending in Environment" is movers, NOT trend); reserve trend for "over time / history / trended / month by month". ' +
                     'why is X underperforming / why is X down / why is the X page underperforming / what is wrong with X / diagnose X / why is X not getting clicks->diagnose with page set to X (the page named, even a long multi-word name); ' +
                     'what questions do people ask / what are people asking / question searches / common questions->questions (category optional); ' +
@@ -1991,7 +2008,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). what is AI doing to us / AI impact / impact of AI / are we losing clicks to AI / zero-click / see but do not click->ai_impact aspect "overview"; how many clicks is AI or Google Overviews taking / clicks lost to AI / what are AI Overviews costing us->ai_impact aspect "takes"; is our click-through rate falling / CTR trend / is CTR dropping->ai_impact aspect "ctr"; which pages is Google answering for / which of my pages are exposed to AI / pages losing clicks to AI / exposed pages / AI exposure in X->ai_exposed (category optional; the SCOPED per-page exposed list). which pages have tracking or measurement or attribution issues / artifact pages / pages with near-zero clicks at a top rank / which pages are dragging CTR / pages with a redirect or canonical split->artifact_pages (category optional; the pages whose clicks look mis-attributed, distinct from ai_exposed). (ai_impact is the whole-site AI verdict, ai_exposed is the per-page list; both distinct from traffic_sources, which is "how much traffic FROM a named source". Use traffic_sources for "traffic from AI" / "is AI traffic growing".) If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "what is the capital of France"->{"intent":"unknown"}.';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); how fresh / up to date / current is the content / content freshness / how much content is old or stale / freshness breakdown->freshness (the distribution of pages across the New/Fresh/Recent/Aging/Old/Stale age scale; category optional; distinct from `stale` which LISTS the oldest pages and `recently_updated` which lists the newest); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). what is AI doing to us / AI impact / impact of AI / are we losing clicks to AI / zero-click / see but do not click->ai_impact aspect "overview"; how many clicks is AI or Google Overviews taking / clicks lost to AI / what are AI Overviews costing us->ai_impact aspect "takes"; is our click-through rate falling / CTR trend / is CTR dropping->ai_impact aspect "ctr"; which pages is Google answering for / which of my pages are exposed to AI / pages losing clicks to AI / exposed pages / AI exposure in X->ai_exposed (category optional; the SCOPED per-page exposed list). which pages have tracking or measurement or attribution issues / artifact pages / pages with near-zero clicks at a top rank / which pages are dragging CTR / pages with a redirect or canonical split->artifact_pages (category optional; the pages whose clicks look mis-attributed, distinct from ai_exposed). (ai_impact is the whole-site AI verdict, ai_exposed is the per-page list; both distinct from traffic_sources, which is "how much traffic FROM a named source". Use traffic_sources for "traffic from AI" / "is AI traffic growing".) If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "how has the fuel allowance page trended"->{"intent":"trend","page":"fuel allowance"} ; "how fresh is the content in Housing"->{"intent":"freshness","category":"Housing"} ; "what is the capital of France"->{"intent":"unknown"}.';
     // Integrity check (cheap insurance): a corrupted/truncated prompt breaks routing silently.
     try { if (_ASK_SYS_PROMPT.length < 8000 || _ASK_SYS_PROMPT.indexOf('never force the closest match') < 0) { if (typeof console !== 'undefined') console.error('[SVRollup] Ask system prompt looks truncated/corrupted (' + _ASK_SYS_PROMPT.length + ' chars) - routing will be unreliable.'); } } catch (e) {}
 
@@ -2017,7 +2034,7 @@
                     ? _sparkline(it.spark, { w: 90, h: 18 })
                     : '<span style="display:block;height:6px;background:var(--color-bg-tertiary);border-radius:3px;overflow:hidden;"><span class="sv-ask-bar" style="display:block;height:100%;width:' + bw + '%;background:' + col + ';"></span></span>';
                 return '<div' + clickable + ' onmouseover="this.style.background=\'var(--color-bg-tertiary)\'" onmouseout="this.style.background=\'\'"><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-border-primary);font-size:0.85rem;">' +
-                    '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(it.name) + (it.artifact ? ' <span style="color:#d97706;font-weight:400;" title="Near-zero clicks at a top rank, likely a tracking artifact not real performance">&#9888;</span>' : '') + '</span>' +
+                    '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + (it.icon || '') + esc(it.name) + (it.artifact ? ' <span style="color:#d97706;font-weight:400;" title="Near-zero clicks at a top rank, likely a tracking artifact not real performance">&#9888;</span>' : '') + '</span>' +
                     '<span style="width:96px;flex-shrink:0;">' + trackHtml + '</span>' +
                     '<span style="width:88px;flex-shrink:0;text-align:right;font-weight:700;color:' + (it.valCol || 'var(--color-text-primary)') + ';">' + it.val + '</span>' +
                 '</div></div>';
@@ -2028,14 +2045,65 @@
     const _SOURCE_COLORS = { 'Organic Search': '#4285F4', 'Google': '#4285F4', 'AI assistants': '#7c3aed', 'AskCI chatbot': '#0ea5e9', 'Direct': '#9ca3af', 'Social': '#ec4899', 'Email': '#14b8a6', 'Referral': '#f59e0b', 'Paid Search': '#16a34a', 'Paid': '#16a34a', 'Other': '#94a3b8' };
     const _STACK_PALETTE = ['#4285F4', '#7c3aed', '#ec4899', '#14b8a6', '#f59e0b', '#16a34a', '#9ca3af', '#0ea5e9'];
     function _stackColor(name, i) { return _SOURCE_COLORS[name] || _STACK_PALETTE[i % _STACK_PALETTE.length]; }
+    // ── Source & AI-brand icons: the source list and AI-assistant breakdown are a CLOSED, known vocabulary (unlike query/
+    // page lists, which get NO icons - no vocabulary to key off). One inline-SVG glyph per bucket speeds scanning. Monochrome
+    // (currentColor) so it inherits the row's text colour -> theme-safe in light+dark with zero per-icon colour management;
+    // one lookup with a SAFE DEFAULT (an unmapped source gets a neutral globe, never a blank/broken icon). Decorative
+    // (aria-hidden) - the text label carries the meaning. Semantic glyphs for buckets; distinct marks for the AI brands.
+    function _svgStroke(inner) { return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:-2px;margin-right:7px;opacity:0.8;" aria-hidden="true">' + inner + '</svg>'; }
+    function _svgFill(inner) { return '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;vertical-align:-2px;margin-right:7px;opacity:0.85;" aria-hidden="true">' + inner + '</svg>'; }
+    const _SEARCH_ICO = _svgStroke('<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>');
+    const _AI_SPARK = _svgFill('<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>');
+    const _SOURCE_ICONS = {
+        'Google search': _SEARCH_ICO,
+        'Other search': _SEARCH_ICO,
+        'Direct': _svgStroke('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/>'),
+        'Other referral': _svgStroke('<path d="M9 15l6-6"/><path d="M11 6l1-1a4.5 4.5 0 0 1 6 6l-1 1"/><path d="M13 18l-1 1a4.5 4.5 0 0 1-6-6l1-1"/>'),
+        'Facebook': _svgFill('<path d="M15 3h-2.5A4.5 4.5 0 0 0 8 7.5V10H5.5v3.5H8V21h3.5v-7.5H14l.5-3.5h-3V7.5c0-.6.4-1 1-1H15z"/>'),
+        'Other social': _svgStroke('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>'),
+        'AI assistants': _AI_SPARK,
+        'AskCI chatbot': _svgStroke('<path d="M20 11.5A7.5 7.5 0 0 1 12.5 19H7l-4 3v-5A7.5 7.5 0 1 1 20 11.5z"/>'),
+        'Email': _svgStroke('<rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/>')
+    };
+    const _SOURCE_ICON_DEFAULT = _svgStroke('<circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"/>');
+    function _sourceIcon(bucket) { return _SOURCE_ICONS[bucket] || _SOURCE_ICON_DEFAULT; }
+    const _AI_ICONS = {
+        'ChatGPT': _svgStroke('<path d="M12 4l6.9 4v8L12 20l-6.9-4V8z"/><circle cx="12" cy="12" r="2.5"/>'),
+        'Gemini': _svgFill('<path d="M12 2c.3 5.4 4.6 9.7 10 10-5.4.3-9.7 4.6-10 10-.3-5.4-4.6-9.7-10-10 5.4-.3 9.7-4.6 10-10z"/>'),
+        'Perplexity': _svgStroke('<circle cx="12" cy="12" r="8.5"/><line x1="12" y1="3.5" x2="12" y2="20.5"/><path d="M12 8l5 4-5 4"/>'),
+        'Claude': _svgStroke('<line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>'),
+        'Copilot': _svgStroke('<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>'),
+        'DeepSeek': _svgStroke('<path d="M3 14c3 0 3.2-4 6-4s3 4 6 4 3-4 6-4"/>'),
+        'Meta AI': _svgStroke('<path d="M4 12c0-3 1.5-5 3.5-5 3 0 4 5 4.5 5s1.5-5 4.5-5c2 0 3.5 2 3.5 5s-1.5 5-3.5 5c-3 0-4-5-4.5-5s-1.5 5-4.5 5C5.5 17 4 15 4 12z"/>'),
+        'Grok': _svgStroke('<line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>')
+    };
+    function _aiBrandIcon(name) { return _AI_ICONS[name] || _AI_SPARK; }
+    // ── Content-freshness scale: MUST MATCH the tree-map scale (index.html getFreshnessInfo + the 3D legend: <30d / <90d /
+    // <180d / <1yr / <2yr / 2yr+). Keyed off a page's lastmod (p.lm). `now` injected for pure/testable bucketing. Returns
+    // {label, order 0..5, days, color} or null when there's no usable date. Six buckets, freshest first.
+    const _FRESH_SCALE = [
+        { label: 'New', maxDays: 30, color: '#2e7d32' },
+        { label: 'Fresh', maxDays: 90, color: '#43a047' },
+        { label: 'Recent', maxDays: 180, color: '#fdd835' },
+        { label: 'Aging', maxDays: 365, color: '#fb8c00' },
+        { label: 'Old', maxDays: 730, color: '#e53935' },
+        { label: 'Stale', maxDays: Infinity, color: '#b71c1c' }
+    ];
+    function _freshnessBucket(lm, now) {
+        if (!lm) return null;
+        const t = Date.parse(lm); if (isNaN(t)) return null;
+        const days = (now - t) / 86400000;
+        for (let i = 0; i < _FRESH_SCALE.length; i++) { if (days < _FRESH_SCALE[i].maxDays) return { label: _FRESH_SCALE[i].label, order: i, days: days, color: _FRESH_SCALE[i].color }; }
+        return { label: 'Stale', order: 5, days: days, color: '#b71c1c' };
+    }
     function _stackedBar(entries, opts) {
         opts = opts || {};
         const es = (entries || []).filter(function (x) { return (x.value || 0) > 0; });
         if (!es.length) return '';
         const total = es.reduce(function (s, x) { return s + x.value; }, 0) || 1;
         const pctTxt = function (v) { return _pctTxt(v / total); };   // routes through the shared formatter (C5)
-        const seg = es.map(function (x, i) { const pct = x.value / total * 100; return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' (' + pctTxt(x.value) + ')') + '" style="width:' + pct.toFixed(2) + '%;background:' + _stackColor(x.label, i) + ';height:100%;"></div>'; }).join('');
-        const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + _stackColor(x.label, i) + ';"></span>' + esc(x.label) + ' ' + pctTxt(x.value) + '</span>'; }).join('');
+        const seg = es.map(function (x, i) { const pct = x.value / total * 100; return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' (' + pctTxt(x.value) + ')') + '" style="width:' + pct.toFixed(2) + '%;background:' + (x.color || _stackColor(x.label, i)) + ';height:100%;"></div>'; }).join('');   // x.color opt-in (freshness scale)
+        const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + (x.color || _stackColor(x.label, i)) + ';"></span>' + esc(x.label) + ' ' + pctTxt(x.value) + '</span>'; }).join('');
         return '<div style="margin-bottom:12px;"><div style="display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--color-bg-tertiary);">' + seg + '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:7px;">' + legend + '</div></div>';
     }
@@ -3120,11 +3188,47 @@
             const c = _catByName(cats, plan.category);
             const pages = c ? catPages(c) : _allPages(r);
             const now = Date.now();
-            const rows = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12; }).sort(function (a, b) { return b.m - a.m; }).slice(0, limit);
+            // Denominator honesty (C4): count ALL stale pages, show the oldest N (stale is a worklist -> more than the
+            // default 6), and say "showing N of TOTAL". The old code reported rows.length (the CAPPED count) as the total,
+            // so "6 stale pages" hid the rest. The Table (data.rows) carries the full list.
+            const _all = pages.map(function (p) { const t = p.lm ? Date.parse(p.lm) : NaN; return { p: p, m: isNaN(t) ? null : (now - t) / (1000 * 60 * 60 * 24 * 30.44) }; }).filter(function (x) { return x.m != null && x.m > 12; }).sort(function (a, b) { return b.m - a.m; });
+            const _total = _all.length;
+            const _show = plan.limit ? Math.min(25, Math.max(1, plan.limit)) : 12;
+            const rows = _all.slice(0, _show);
             let _staleTr = {};   // 6-month impression trajectory per row: a stale page that is ALSO fading is the urgent one
             try { _staleTr = await _pageTrends(rows.map(function (x) { return x.p; }), 6, 30, 'impressions'); } catch (e) {}
             const items = rows.map(function (x) { const sk = _staleTr[normUrl(x.p.url)], s = x.p.s || {}; return { name: x.p.name, val: Math.round(x.m) + 'mo', bar: x.m, url: x.p.url, artifact: _ctrCliff(s.position, s.ctr, s.impressions), spark: (sk && sk.some(function (v) { return v > 0; })) ? sk : null }; });   // guard propagation: a stale page that is also a tracking artifact is flagged (the _rankCard ⚠ lever)
-            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Age', trackLabel: 'impr (6mo)' }), summary: (rows.length ? rows.length : 'No') + ' stale pages' + (c ? ' in ' + c.name : '') + ' (over 12 months old)' + (rows.length ? ', oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: rows.map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
+            const _moreNote = _total > rows.length ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Showing the ' + rows.length + ' oldest of ' + _total + ' pages not updated in over 12 months' + (c ? ' in ' + c.name : '') + '. The Table view has all ' + _total + '.</div>' : '';
+            return { html: _rankCard(items, { nameLabel: 'Page', valueLabel: 'Age', trackLabel: 'impr (6mo)' }) + _moreNote, scope: { label: c ? c.name : null, isPage: false }, period: 'by last update', summary: (_total ? _total : 'No') + ' stale page' + (_total === 1 ? '' : 's') + (c ? ' in ' + c.name : '') + ' (not updated in over 12 months)' + (_total > rows.length ? ', showing the ' + rows.length + ' oldest' : '') + (rows.length ? '; oldest: ' + rows.slice(0, 4).map(function (x) { return x.p.name + ' (' + Math.round(x.m) + 'mo)'; }).join(', ') : '') + '.', data: { columns: [{ key: 'page', label: 'Page' }, { key: 'monthsOld', label: 'Months old' }, { key: 'lastModified', label: 'Last modified' }, { key: 'url', label: 'URL' }], rows: _all.slice(0, 100).map(function (x) { return { page: x.p.name, monthsOld: Math.round(x.m), lastModified: x.p.lm || '', url: x.p.url }; }), chart: { type: 'bar', x: 'page', y: 'monthsOld', label: 'Months old' } } };
+        }
+        if (intent === 'freshness') {
+            // Content-freshness distribution across the 6-bucket scale (same scale as the tree-map colour legend). The
+            // overview companion to `stale` (the worklist) and `recently_updated` (the fresh end): "how up to date is X?"
+            const c = _catByName(cats, plan.category);
+            const pages = c ? catPages(c) : _allPages(r);
+            const now = Date.now();
+            const counts = _FRESH_SCALE.map(function () { return 0; });
+            let dated = 0, undated = 0, oldPlus = 0;
+            pages.forEach(function (p) {
+                const b = _freshnessBucket(p.lm, now);
+                if (!b) { undated++; return; }
+                dated++; counts[b.order]++;
+                if (b.order >= 4) oldPlus++;   // Old + Stale = over a year without an update
+            });
+            if (!dated) return { html: '', summary: '', err: 'No last-modified dates available' + (c ? ' in ' + c.name : '') + ' to assess freshness (needs the sitemap lastmod field).' };
+            const _scope = c ? c.name : 'the site';
+            const barEntries = _FRESH_SCALE.map(function (b, i) { return { label: b.label, value: counts[i], color: b.color }; }).filter(function (x) { return x.value > 0; });
+            const items = _FRESH_SCALE.map(function (b, i) { return { label: b.label, color: b.color, count: counts[i] }; }).filter(function (x) { return x.count > 0; }).map(function (x) { return { name: x.name || x.label, val: x.count + ' (' + _pctTxt(x.count / dated) + ')', bar: x.count, col: x.color }; });
+            const oldShare = oldPlus / dated;
+            const undatedNote = undated ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + undated + ' page' + (undated === 1 ? '' : 's') + ' had no last-modified date (not counted).</div>' : '';
+            const head = '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + _pctTxt(oldShare) + ' of ' + esc(_scope) + ' is over a year old</div><div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:10px;">' + fmt(oldPlus) + ' of ' + fmt(dated) + ' dated pages are Old or Stale (not updated in 1+ years).</div>';
+            return {
+                scope: { label: c ? c.name : null, isPage: false },
+                period: 'by last update',   // age-based (sitemap lastmod), NOT the analytics dropdown window - the chip must not claim "last 30 days"
+                html: head + _stackedBar(barEntries, {}) + _rankCard(items, { nameLabel: 'Freshness', valueLabel: 'Pages' }) + undatedNote,
+                summary: 'Content freshness for ' + _scope + ' (' + fmt(dated) + ' dated pages): ' + barEntries.map(function (x) { return x.label + ' ' + x.value + ' (' + _pctTxt(x.value / dated) + ')'; }).join(', ') + '. ' + _pctTxt(oldShare) + ' is Old or Stale (over a year without an update).',
+                data: { columns: [{ key: 'bucket', label: 'Freshness' }, { key: 'pages', label: 'Pages' }, { key: 'share', label: 'Share %' }], rows: _FRESH_SCALE.map(function (b, i) { return { bucket: b.label, pages: counts[i], share: +(counts[i] / dated * 100).toFixed(1) }; }), chart: { type: 'bar', x: 'bucket', y: 'pages', label: 'Pages' } }
+            };
         }
         if (intent === 'compare') {
             const names = plan.categories || [];
@@ -3284,9 +3388,19 @@
         if (intent === 'trend') {
             const tmetric = ['impressions', 'clicks', 'pageViews', 'users'].indexOf(metric) >= 0 ? metric : 'impressions';
             const N = 6, win = 30;
+            // Page-scoped trend (fix: a page question used to fall to its SECTION - trend was category-only). Resolve the
+            // page and trend ITS stats over the 6 windows. A name that's neither a page nor a section is a genuine miss.
+            let _tpage = null;
+            if (plan.page && !(plan.categories && plan.categories.length >= 2)) {
+                const _pr = _planPage(r, plan, plan.page);
+                if (_pr.candidates) return { html: _disambig('trend', _pr.candidates, plan.page), summary: 'Several pages match "' + plan.page + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
+                if (_pr.page) _tpage = _pr.page;
+                else if (!_catByName(cats, plan.page)) return _pageNotFound(plan.page, r);
+            }
             let targets;
             if (plan.categories && plan.categories.length >= 2) { const a = _catByName(cats, plan.categories[0]), b = _catByName(cats, plan.categories[1]); targets = [a, b].filter(Boolean); }
-            if (!targets || !targets.length) targets = [_catByName(cats, plan.category)];   // may be [null] = whole site
+            else if (_tpage) targets = [{ _page: _tpage, name: _tpage.name }];   // single-page series
+            if (!targets || !targets.length) targets = [_catByName(cats, plan.category || plan.page)];   // category by either slot; [null] = whole site
             // Fetch once; compute ALL metrics per period so the chart's metric toggle needs no re-fetch.
             const TM = ['impressions', 'clicks', 'pageViews', 'users'];
             const periods = [], byMetric = {}; TM.forEach(function (m) { byMetric[m] = targets.map(function () { return []; }); });
@@ -3296,7 +3410,11 @@
                 try { const maps = await fetchTrendWindow(window.treeData, win, i * win); rb = build(window.treeData, { statsFor: statsForMaps(maps.gscBy, maps.ga4By) }); } catch (e) {}
                 targets.forEach(function (tg, ti) {
                     let rollup = null;
-                    if (rb) { if (tg) { const cc = _catByName(rb.categories, tg.name); rollup = cc ? cc.rollup : null; } else rollup = rb.totals; }
+                    if (rb) {
+                        if (tg && tg._page) rollup = _combineStats((tg._page.urls || [tg._page.url]).map(function (u) { return rb.byUrl[normUrl(u)]; }));   // page series: sum the page's URL(s), merge-twin safe
+                        else if (tg) { const cc = _catByName(rb.categories, tg.name); rollup = cc ? cc.rollup : null; }
+                        else rollup = rb.totals;
+                    }
                     TM.forEach(function (m) { byMetric[m][ti].push(rollup ? Math.round(_mval(rollup, m)) : 0); });
                 });
             }
@@ -3335,6 +3453,7 @@
             const summaryParts = cur.series.map(function (s) { const f = s.values[0], l = s.values[s.values.length - 1], chg = f > 0 ? Math.round((l - f) / f * 100) : null; return s.name + ' ' + fmt(f) + '->' + fmt(l) + (chg != null ? ' (' + (chg >= 0 ? '+' : '') + chg + '%)' : ''); });
             return {
                 html: '',
+                scope: { label: _tpage ? _tpage.name : (targets.length === 1 && targets[0] ? targets[0].name : null), isPage: !!_tpage },   // chip renders the RESOLVED scope (page or section), not the raw plan slot
                 period: 'last ' + N + ' months',   // trend spans a fixed 6-month series, not the dropdown (period-lie fix)
                 summary: (targets.length > 1 ? 'Trend comparison' : 'Trend') + ' over the last ' + N + ' months by ' + _MLABEL[curMetric] + ': ' + summaryParts.join('; ') + '.',
                 data: { columns: cur.columns, rows: cur.rows, periods: periods, series: cur.series, metric: curMetric, availableMetrics: avail, metricViews: metricViews, chart: cur.chart }
@@ -3930,12 +4049,12 @@
             const entries = Object.keys(buckets).map(function (k) { return { channel: k, sess: buckets[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
             if (!entries.length) return { html: '', summary: '', err: 'No traffic-source data for ' + scopeLabel + ' in ' + periodLabel(_ddDays) + '.' };
             const total = entries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
-            const items = entries.map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + _pctTxt(x.sess / total) + ')', bar: x.sess }; });   // ALL buckets (few, and the bar shows all): list and legend must agree (C5)
+            const items = entries.map(function (x) { return { name: x.channel, val: fmt(x.sess) + ' (' + _pctTxt(x.sess / total) + ')', bar: x.sess, icon: _sourceIcon(x.channel) }; });   // ALL buckets (few, and the bar shows all): list and legend must agree (C5). icon: closed source vocabulary -> per-bucket glyph
             const hasAI = entries.some(function (x) { return x.channel === 'AI assistants'; });
             // Break the single "AI assistants" bucket out by named assistant (ChatGPT/Perplexity/…).
             const aiEntries = Object.keys(aiB).map(function (k) { return { name: k, sess: aiB[k] }; }).filter(function (x) { return x.sess > 0; }).sort(function (a, b) { return b.sess - a.sess; });
             const aiTotal = aiEntries.reduce(function (s, x) { return s + x.sess; }, 0) || 1;
-            const aiHtml = (hasAI && aiEntries.length) ? '<div style="margin-top:10px;border-top:1px solid var(--color-border-primary);padding-top:8px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;">Which AI assistants (' + fmt(aiTotal) + ' AI sessions)</div>' + aiEntries.map(function (x) { return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:0.72rem;padding:2px 0;color:var(--color-text-primary);"><span>' + esc(x.name) + '</span><span style="color:var(--color-text-secondary);">' + fmt(x.sess) + ' &middot; ' + _pctTxt(x.sess / aiTotal) + '</span></div>'; }).join('') + '</div>' : '';
+            const aiHtml = (hasAI && aiEntries.length) ? '<div style="margin-top:10px;border-top:1px solid var(--color-border-primary);padding-top:8px;"><div style="font-size:0.66rem;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;">Which AI assistants (' + fmt(aiTotal) + ' AI sessions)</div>' + aiEntries.map(function (x) { return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:0.72rem;padding:2px 0;color:var(--color-text-primary);"><span style="display:inline-flex;align-items:center;">' + _aiBrandIcon(x.name) + esc(x.name) + '</span><span style="color:var(--color-text-secondary);">' + fmt(x.sess) + ' &middot; ' + _pctTxt(x.sess / aiTotal) + '</span></div>'; }).join('') + '</div>' : '';
             return {
                 scope: { label: scopeLabel === 'the whole site' ? null : scopeLabel, isPage: !!plan.page },   // C12: resolved page/section, not the raw plan slot
                 html: _stackedBar(entries.map(function (x) { return { label: x.channel, value: x.sess }; }), {}) + _rankCard(items, { nameLabel: 'Source', valueLabel: 'Sessions' }) + '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">' + fmt(total) + ' sessions to ' + esc(scopeLabel === 'the whole site' ? 'the site' : scopeLabel) + ' (' + periodLabel(_ddDays) + '), classified by source.' + truncNote + '</div>' + aiHtml + (hasAI ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:6px;">' + AI_FLOOR + '</div>' : ''),
@@ -4246,8 +4365,14 @@
                 break;
             case 'stale':
                 if (topRow) addWhy(topRow.page);
-                if (cat) { add('Top pages in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
+                add('How fresh is the content' + inCat + '?');   // the distribution overview companion to this list
+                if (cat) add('Which ' + cat + ' pages lost traffic?');
                 else add('Which categories get the most traffic?');
+                break;
+            case 'freshness':
+                add('What is stale' + inCat + '?');              // the list behind the "Old/Stale" buckets
+                add('What pages were updated recently' + inCat + '?');
+                if (cat) add('What should I focus on in ' + cat + '?');
                 break;
             case 'section_summary':
                 if (cat) { add('What should I focus on in ' + cat + '?'); add('Biggest search opportunities in ' + cat); add('Which ' + cat + ' pages lost traffic?'); }
@@ -4630,6 +4755,27 @@
         // "what content should we create" / "content gaps" -> content_gaps
         // "low engagement" / "people leave quickly" / "found but not read" -> abandoned
         if (/\blow engagement\b|\b(?:leave|leaving|bounce|bouncing|drop off|click away)\b|\bfound but (?:leave|not read|dont? read|don't read)\b|\bread but leave\b|\bpeople (?:arrive|come) but leave\b/i.test(s)) { const _im = / in (.+?)\??$/i.exec(s); return { intent: 'abandoned', category: _im ? _im[1].trim() : null }; }
+        // "how fresh / up to date / current is the content", "content freshness", "freshness of X" -> freshness distribution.
+        // Before movers/trend so "freshness over time" doesn't get grabbed as a trend line. Excludes "which" (that's stale/movers).
+        {
+            const _isFresh = /\bcontent freshness\b|\bfreshness\b|\bhow (?:fresh|current|up[\s-]?to[\s-]?date|out[\s-]?of[\s-]?date)\b|\bhow old is (?:the |our )?content\b/i.test(s);
+            if (_isFresh && !/\bwhich\b/i.test(s)) {
+                let _cat = null, m;
+                if ((m = /\b(?:in|for|of)\s+(.+?)\s*\??$/i.exec(s))) _cat = m[1];
+                else if ((m = /how (?:fresh|current|up[\s-]?to[\s-]?date|out[\s-]?of[\s-]?date) (?:is|are)\s+(?:the\s+|our\s+)?(.+?)\s*\??$/i.exec(s))) _cat = m[1];
+                if (_cat) { _cat = _cat.replace(/\s+(section|category|content|pages)$/i, '').replace(/^(?:the|our)\s+/i, '').trim(); if (!_cat || /^(content|site|pages|the site)$/i.test(_cat)) _cat = null; }
+                return { intent: 'freshness', category: _cat };
+            }
+        }
+        // "what is stale / stale pages / which pages are stale / oldest pages" -> stale (not updated in 12+ months). After
+        // freshness so "how fresh / freshness" stays the distribution. Bare "what is stale?" was falling through to unknown.
+        {
+            if (/\bstale\b|\boldest pages?\b|\bmost out[\s-]?of[\s-]?date pages?\b|\bpages? (?:that (?:are|have)|not) (?:been )?updated\b/i.test(s) && !/\bfreshness\b|\bhow (?:fresh|current|up[\s-]?to[\s-]?date)\b/i.test(s)) {
+                const _sc = /\b(?:in|for|within)\s+(.+?)\s*\??$/i.exec(s);
+                let _c = _sc ? _sc[1].trim().replace(/^the\s+/i, '').replace(/\s+(section|category)$/i, '').trim() : null;
+                return { intent: 'stale', category: _c || null };
+            }
+        }
         // "what pages are trending / rising / falling in X" -> page-level movers (NOT the trend line).
         // Also "biggest/top movers" (unambiguous) even without the word "pages".
         {
@@ -4644,6 +4790,23 @@
                 else if (/\b(?:falling|dropping|declining|sinking|losing|lost|gone down)\b/i.test(s)) _dir = 'down';
                 const _im = / (?:in|for|within) (.+?)\??$/i.exec(s);
                 return { intent: 'movers', category: _im ? _im[1].trim() : null, direction: _dir };
+            }
+        }
+        // "how has X trended / trend of X / X over time / month by month" -> the trend LINE for one scope over 6 months.
+        // Placed AFTER movers so "what pages are trending" stays movers. Past-tense/over-time phrasing only; excludes
+        // pages/sections/which (movers/section_movers) and seasonal/YoY. Scope goes in `page`; the handler resolves it as
+        // a page OR a section (so a page question no longer falls to its section - the z41 fix).
+        {
+            const _isTrend = /\btrended\b|\bmonth by month\b|\btrend of\b|\bover time\b|\bover the (?:last|past) (?:6|six|several|few) months\b/i.test(s);
+            const _notOther = !/\bpages\b|\bsections\b/i.test(s) && !/\bnewly (?:trending|rising)\b/i.test(s) && !/\bseasonal\b|last year\b|year on year\b/i.test(s) && !/\bwhich\b/i.test(s);   // PLURAL pages/sections only (movers/section_movers); a singular "the X page" is a legit page trend
+            if (_isTrend && _notOther) {
+                let _sc = null, m;
+                if ((m = /how (?:has|have|did)\s+(?:the\s+)?(.+?)\s+(?:trended|changed|done|performed|gone)\b/i.exec(s))) _sc = m[1];
+                else if ((m = /\btrend of\s+(.+?)\s*\??$/i.exec(s))) _sc = m[1];
+                else if ((m = /^(.+?)\s+over time\s*\??$/i.exec(s))) _sc = m[1];
+                else if ((m = /\b(?:for|in|of)\s+(.+?)\s*\??$/i.exec(s))) _sc = m[1];
+                _sc = _sc ? _sc.replace(/^the\s+/i, '').replace(/\s+(page|section|category)$/i, '').trim() : null;
+                return { intent: 'trend', page: _sc || null };
             }
         }
         // "compare traffic to X from A and B" / "compare X from A and B" -> compare_periods
@@ -5302,7 +5465,8 @@
             { q: 'which pages have tracking issues', intent: 'artifact_pages' },
             { q: 'which pages have measurement artifacts in Health', intent: 'artifact_pages', category: 'health' },
             { q: 'which pages do people leave quickly', intent: 'abandoned' },
-            { q: 'what is stale in Employment', intent: null },                 // stale -> LLM
+            { q: 'what is stale', intent: 'stale' },                            // bare stale (was falling to unknown)
+            { q: 'what is stale in Employment', intent: 'stale', category: 'Employment' },   // z42: stale now deterministic
             { q: 'any pages competing for the same search', intent: null },
             { q: 'generate a weekly digest', intent: 'digest' },
             // discover
@@ -5321,7 +5485,9 @@
             // movers vs trend (the classic confusion)
             { q: 'what pages are trending in Environment', intent: 'movers' },
             { q: 'which pages lost traffic', intent: 'movers' },
-            { q: 'how has Health trended', intent: null },                      // trend -> LLM
+            { q: 'how has Health trended', intent: 'trend', page: 'Health' },    // z41: trend now deterministic; scope in page, handler resolves page-or-section
+            { q: 'how has the fuel allowance page trended', intent: 'trend', page: 'fuel allowance' },   // a PAGE trend (was mis-routed to its section)
+            { q: 'trend of Housing over time', intent: 'trend', page: 'Housing' },
             { q: 'which sections are declining', intent: 'section_movers' },
             // traffic sources / AI · assert the SOURCE slot (extraction is the fragile bit)
             { q: 'how much traffic from askci', intent: 'traffic_sources', source: 'askci' },
@@ -5347,6 +5513,9 @@
             { q: 'is the recent drop seasonal', intent: 'seasonal' },
             { q: 'is the Health drop seasonal', intent: 'seasonal', category: 'health' },   // the section slot must survive (A2 scope bug)
             { q: 'what pages were updated recently', intent: 'recently_updated' },
+            { q: 'how fresh is the content', intent: 'freshness' },
+            { q: 'content freshness in Health', intent: 'freshness', category: 'health' },
+            { q: 'how up to date is Housing', intent: 'freshness', category: 'Housing' },
             { q: 'pages updated in the last 30 days in Health', intent: 'recently_updated', category: 'health' },
             // compare_periods · assert the scope slot. quickParse can't tell a section from a page by
             // syntax, so a section name lands in `page` ("Health"); the intent reconciles that to a
