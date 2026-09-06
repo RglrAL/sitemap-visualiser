@@ -43,6 +43,11 @@
     // ── aggregation accumulator ──
     // pageCount = every URL-bearing node (incl. section/landing pages · needed so analytics tally).
     // leafCount = leaf pages only (matches the Content-by-Category report's "Pages").
+    // Coverage predicate (single source): a page "has search or analytics data" if ANY metric is nonzero. This is the
+    // structure intent's "% with data" definition. DELIBERATELY NOT the same axis as dead_pages ("dead" = zero IMPRESSIONS
+    // only): a page with GA4 views but no search impressions HAS data yet is search-dead - so coverage% and dead_pages are
+    // NOT complements and must not be expected to reconcile. Pinned by selfTest so the two definitions can't drift.
+    function _hasData(s) { s = s || {}; return !!((s.impressions || 0) || (s.clicks || 0) || (s.pageViews || 0) || (s.users || 0) || (s.sessions || 0)); }
     function emptyAgg() {
         return { impressions: 0, clicks: 0, pageViews: 0, users: 0,
                  _posSum: 0, _posWeight: 0, pageCount: 0, leafCount: 0, pagesWithData: 0,
@@ -69,7 +74,7 @@
         // sitemap = pagesWithData + zero-traffic(dead_pages) + (pages whose data failed URL-matching). It is INCOMPLETE
         // by design: GA4 pages with NO sitemap match (migration destinations, old URLs) never enter this walk at all -
         // that orphan set is the `orphan_pages` intent, not visible here.
-        if (imp || clk || pv || us || ses) agg.pagesWithData += 1;
+        if (_hasData(s)) agg.pagesWithData += 1;   // coverage predicate, single-sourced (see _hasData) - ANY metric, distinct from dead_pages' zero-IMPRESSIONS axis
     }
     function mergeAgg(into, from) {
         into.impressions += from.impressions; into.clicks += from.clicks;
@@ -532,12 +537,50 @@
             mk('orphan.matchpct', d.matchPct, 0.5);
             mk('orphan.none_when_all_matched', _orphanDiff([{ path: '/a', views: 1 }], { '/a': 1 }).orphans.length, 0);
             mk('orphan.sort_by_clicks', _orphanDiff([{ path: '/a', clicks: 5, views: 100 }, { path: '/b', clicks: 50, views: 1 }], {}, 'clicks').orphans[0].path, '/b');   // GSC view ranks by clicks, not views
+            // Site URL set = FULL tree walk incl. the homepage /en (the root-normalisation fix), not just leaf pages.
+            const _sset = _siteUrlSet({ url: 'https://x/en/', children: [{ url: 'https://x/en/health', children: [{ url: 'https://x/en/health/medical-card' }] }] });
+            mk('siteurlset.homepage_included', !!_sset['/en'], true);
+            mk('siteurlset.landing_included', !!_sset['/en/health'], true);
+            mk('siteurlset.leaf_included', !!_sset['/en/health/medical-card'], true);
+            mk('siteurlset.count', Object.keys(_sset).length, 3);
+        })();
+        // Legacy-URL 301 mapping: legacy detection + slug tokens + best-match-by-overlap (fuzzy, so confidence-graded).
+        mk('legacy.php', _isLegacyUrl('/centre.php'), true);
+        mk('legacy.underscore', _isLegacyUrl('/social_welfare/carers'), true);
+        mk('legacy.no_lang_prefix', _isLegacyUrl('/tralee'), true);
+        mk('legacy.current_not_legacy', _isLegacyUrl('/en/housing/grants-for-a-home-energy-upgrade'), false);
+        mk('slugtokens.drops_stop_and_short', _slugTokens('/en/social-welfare/carers').join(','), 'social,welfare,carers');
+        (function () {
+            const idx = [{ p: { name: 'Carers Allowance', url: 'https://x/en/social-welfare/carers-allowance' }, set: (function () { const s = {}; ['social', 'welfare', 'carers', 'allowance'].forEach(function (t) { s[t] = 1; }); return s; })() }];
+            mk('bestmatch.finds_by_leaf', _bestSitemapMatch('/social_welfare/social_welfare_payments/carers', idx).page.name, 'Carers Allowance');
+            mk('bestmatch.high_conf', _bestSitemapMatch('/social_welfare/social_welfare_payments/carers', idx).conf, 'high');
+            mk('bestmatch.no_match_null', _bestSitemapMatch('/centre.php', idx), null);
+        })();
+        // Language coverage: count merged pages by three-state lang tag (over merged pages, not raw twin-counting totals).
+        mk('langcounts.mix', (function () { const c = _langCounts([{ lang: 'paired' }, { lang: 'en' }, { lang: 'en' }, { lang: 'ga' }, { lang: null }]); return c.paired + '/' + c.en + '/' + c.ga; })(), '1/2/1');
+        mk('langcounts.empty', (function () { const c = _langCounts([]); return c.paired + c.en + c.ga; })(), 0);
+        // Depth histogram (shape strip): leaf pages at each level from root. Root (no url) = 0; a branch node isn't a leaf.
+        mk('depthhist.levels', _depthHistogram({ children: [{ url: 'https://x/en/a', children: [{ url: 'https://x/en/a/1' }, { url: 'https://x/en/a/2' }] }, { url: 'https://x/en/b' }] }).join(','), '0,1,2');
+        // Coverage (structure "% with data") vs dead_pages: pin both definitions so they can't drift, AND pin that they are
+        // DIFFERENT axes (a views-only page has data yet is search-dead) so no one expects "72% with data" to complement dead_pages.
+        mk('hasdata.impressions', _hasData({ impressions: 5 }), true);
+        mk('hasdata.views_only', _hasData({ pageViews: 3 }), true);
+        mk('hasdata.all_zero', _hasData({ impressions: 0, clicks: 0, pageViews: 0, users: 0, sessions: 0 }), false);
+        mk('hasdata.empty', _hasData({}), false);
+        mk('coverage.deadpages_axes_differ', (function () { const s = { impressions: 0, pageViews: 10 }; return _hasData(s) === true && ((s.impressions || 0) === 0); })(), true);   // has data (coverage) AND search-dead (dead_pages) at once = not complements
+        // Breadcrumb ancestry: top content section -> page; tree root (no url) + language node (/en) stripped.
+        (function () {
+            const t = { name: 'root', children: [{ name: 'en', url: 'https://x/en', children: [{ name: 'Health', url: 'https://x/en/health', children: [{ name: 'Medical Card', url: 'https://x/en/health/medical-card' }] }] }] };
+            const bc = _pageAncestry(t, 'https://x/en/health/medical-card');
+            mk('breadcrumb.path', bc.map(function (n) { return n.name; }).join('>'), 'Health>Medical Card');
+            mk('breadcrumb.unknown_null', _pageAncestry(t, 'https://x/en/nope'), null);
         })();
         // Base-path normalisation: GA4 keeps ?query/#hash + trailing slash; strip so param-variants collapse (not false orphans).
         mk('basepath.strips_query', _basePath('/foo?utm=x'), '/foo');
         mk('basepath.strips_hash', _basePath('/foo#sec'), '/foo');
         mk('basepath.trailing_slash', _basePath('/foo/'), '/foo');
         mk('basepath.root_kept', _basePath('/'), '/');
+        mk('basepath.decodes_pct', _basePath('/en/an-bord-plean%c3%a1la'), '/en/an-bord-pleanála');   // GSC accent-encoding must not false-orphan
         // Orphan noise class: search endpoints / CMS-admin / roots are expected non-content; real content orphans -> null (the signal).
         mk('orphanclass.search', _orphanClass('/en/social-welfare/search_wagtail'), 'search');
         mk('orphanclass.admin', _orphanClass('/cms/pages/2903/edit/preview'), 'admin');
@@ -1148,6 +1191,24 @@
         (cat.nodes || []).forEach(function (n) { collectPages(n, raw); });
         return mergePages(raw);
     }
+    // Language coverage: count MERGED logical pages by the three-state lang tag (paired / EN-only / GA-only). Pure/testable.
+    // The denominator discipline: this runs over merged pages (catPages already merges), NOT build()'s twin-counting raw totals.
+    function _langCounts(pages) {
+        let paired = 0, en = 0, ga = 0;
+        for (let i = 0; i < pages.length; i++) { const l = pages[i].lang; if (l === 'paired') paired++; else if (l === 'en') en++; else if (l === 'ga') ga++; }
+        return { paired: paired, en: en, ga: ga };
+    }
+    // Split bar in the epistemic grammar: paired = SOLID (measured), uncertain = HATCHED (inferred: EN pages that may have a
+    // translated-slug Irish twin - the _coverageBracket width), gap = DASHED HOLLOW (absence: confirmed English-only).
+    function _langSplitBar(paired, uncertain, gap) {
+        const tot = paired + uncertain + gap || 1;
+        const seg = function (n, style, tip) { return n > 0 ? '<div class="sv-tipel" data-tip="' + esc(tip) + '" style="width:' + (n / tot * 100).toFixed(1) + '%;height:100%;box-sizing:border-box;' + style + '"></div>' : ''; };
+        return '<div style="display:flex;height:12px;border-radius:3px;overflow:hidden;background:var(--color-bg-tertiary);">' +
+            seg(paired, 'background:#059669;', 'Paired (Irish version confirmed): ' + paired) +
+            seg(uncertain, 'background:repeating-linear-gradient(45deg,#d97706,#d97706 3px,transparent 3px,transparent 6px);', 'Uncertain (may have a translated-slug Irish version): ' + uncertain) +
+            seg(gap, 'background:transparent;border:1px dashed var(--color-text-muted);', 'English only (no Irish version): ' + gap) +
+        '</div>';
+    }
 
     function showLoadingOverlay(text) {
         let el = document.getElementById('sv-loading-overlay');
@@ -1741,6 +1802,22 @@
         for (let i = 0; i < kids.length; i++) { const d = _treeDepth(kids[i]); if (d > mx) mx = d; }
         return mx + 1;
     }
+    // Leaf (content) pages at each depth from the root -> [d0, d1, d2, …]. Pure/testable. Feeds the depth shape strip.
+    function _depthHistogram(tree) {
+        const h = [];
+        (function walk(n, d) {
+            if (!n) return;
+            const kids = n.children || n._children || [];
+            if (n.url && !kids.length) h[d] = (h[d] || 0) + 1;
+            for (let i = 0; i < kids.length; i++) walk(kids[i], d + 1);
+        })(tree, 0);
+        for (let i = 0; i < h.length; i++) if (h[i] == null) h[i] = 0;
+        return h;
+    }
+    // Provenance disclosure for sitemap-derived answers (structure / language coverage): every count here presumes the
+    // loaded sitemap is the live site. No load-timestamp is captured, so the honest note names the presumption and points
+    // at the orphan report as the freshness check, rather than claiming a date it doesn't have.
+    function _sitemapNote() { return '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Counts reflect the currently-loaded sitemap, not the live site. To check it is current, ask "which pages get traffic but are not in the sitemap".</div>'; }
     // Orphan diff: GA4 pages (with traffic) that DON'T map to any sitemap page. Completes the reconciliation identity the
     // structure counts leave open - sitemap = withData + zeroTraffic, PLUS this orphan set the equation never sees. Pure:
     // ga4Entries = [{path, views, users}], sitePathSet = {path:1}. Returns match-rate (the normalisation health check) +
@@ -1753,6 +1830,7 @@
         let s = String(p || '');
         const q = s.search(/[?#]/); if (q >= 0) s = s.slice(0, q);
         if (s.length > 1) s = s.replace(/\/+$/, '');
+        try { s = decodeURIComponent(s); } catch (e) {}   // GSC percent-encodes accents (%c3%a1='á'); sitemap has the literal - decode both sides so they match, not false-orphan
         return s.toLowerCase();
     }
     // Orphan noise classifier (first-run finding): the raw orphan list is dominated by NON-content URLs GA4 tracks but the
@@ -1767,6 +1845,45 @@
         if (/^\/(?!en\/|ga\/)[a-z]{2}\//.test(p)) return 'otherlang';   // /fr/… /es/… /bn/… = a translation outside the tool's en/ga scope, not an en/ga content gap
         return null;   // content = an EN/GA content orphan (the actionable stale-sitemap signal)
     }
+    // Every URL-bearing node in the sitemap tree (homepage, language + section roots, section landings, all pages) as base
+    // paths - NOT just category leaf pages (_allPages), else the homepage /en and section landings false-orphan (the
+    // ~18K-clicks "site roots" normalisation gap the first GSC run exposed). Pure (takes the tree) -> testable.
+    // ── Legacy-URL 301 mapping: a legacy orphan (old .php/.asp/.html/.doc URL, underscore path, or a non-en/ga path from the
+    // pre-migration site) matched to its likely CURRENT sitemap page by slug-token overlap. Fuzzy by nature -> every row
+    // carries a confidence, and a weak match is flagged, never presented as certain.
+    const _SLUG_STOP = { en: 1, ga: 1, www: 1, index: 1, php: 1, asp: 1, aspx: 1, html: 1, htm: 1, doc: 1, docx: 1, pdf: 1, the: 1, and: 1, for: 1, with: 1, your: 1, our: 1, page: 1, home: 1, site: 1 };
+    function _slugTokens(s) {
+        const out = [];
+        String(s || '').toLowerCase().split(/[^a-z0-9]+/).forEach(function (w) { if (w.length >= 3 && !_SLUG_STOP[w]) out.push(w); });
+        return out;
+    }
+    function _isLegacyUrl(path) {
+        const p = String(path || '').toLowerCase();
+        if (/\.(?:php|asp|aspx|html?|jsp|cfm|doc|docx|pdf)(?:$|[?#])/.test(p)) return true;   // old file-extension URL
+        if (/_/.test(p)) return true;                              // pre-migration underscore path
+        if (p !== '/' && !/^\/(?:en|ga)\//.test(p)) return true;   // no language prefix = old flat path
+        return false;
+    }
+    // idx = [{p, set:{token:1}}]; returns {page, score, conf} or null. Leaf (last) token weighted - it's the strongest signal.
+    function _bestSitemapMatch(orphanPath, idx) {
+        const otoks = _slugTokens(orphanPath); if (!otoks.length) return null;
+        const leaf = otoks[otoks.length - 1];
+        let best = null, bestScore = 0;
+        for (let i = 0; i < idx.length; i++) {
+            const set = idx[i].set; let shared = 0;
+            for (let j = 0; j < otoks.length; j++) if (set[otoks[j]]) shared++;
+            const score = shared + (set[leaf] ? 2 : 0);
+            if (score > bestScore) { bestScore = score; best = idx[i]; }
+        }
+        if (!best || bestScore < 2) return null;
+        const leafMatch = !!best.set[leaf];
+        return { page: best.p, score: bestScore, conf: (leafMatch && bestScore >= 4) ? 'high' : (leafMatch ? 'medium' : 'low') };
+    }
+    function _siteUrlSet(tree) {
+        const set = Object.create(null);
+        (function collect(n) { if (!n) return; if (n.url) set[_basePath(_shortUrl(n.url))] = 1; const kids = n.children || n._children || []; for (let i = 0; i < kids.length; i++) collect(kids[i]); })(tree);
+        return set;
+    }
     function _orphanDiff(entries, sitePathSet, sortKey) {
         sortKey = sortKey || 'views';   // rank by search CLICKS for the GSC (outage-currency) view, VIEWS for GA4
         let matched = 0; const orphans = [];
@@ -1774,6 +1891,22 @@
         orphans.sort(function (a, b) { return ((b[sortKey] || 0) - (a[sortKey] || 0)) || ((b.views || 0) - (a.views || 0)); });
         const total = entries.length;
         return { total: total, matched: matched, orphans: orphans, matchPct: total ? matched / total : null };
+    }
+    // Shared orphan fetch (used by orphan_pages AND redirects, so they can't drift): dual-source GSC clicks + GA4 views,
+    // unified per base path, diffed against the full sitemap URL set. Returns null when neither source is connected.
+    async function _computeOrphanEntries(days) {
+        const gsc = window.GSCIntegration, ga4 = window.GA4Integration;
+        const gscOn = !!(gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchAllPages);
+        const ga4On = !!(ga4 && ga4.isConnected && ga4.isConnected() && ga4.fetchAllPages);
+        if (!gscOn && !ga4On) return null;
+        const toPath = (ga4 && typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
+        const siteSet = _siteUrlSet(window.treeData);
+        const agg = Object.create(null);
+        const bump = function (k) { if (!agg[k]) agg[k] = { path: k, clicks: 0, impressions: 0, views: 0, users: 0 }; return agg[k]; };
+        if (gscOn) { try { const m = await gsc.fetchAllPages({ days: days }); if (m && m.forEach) m.forEach(function (rec, url) { const e = bump(_basePath(_shortUrl(url))); e.clicks += (rec && rec.clicks) || 0; e.impressions += (rec && rec.impressions) || 0; }); } catch (e) {} }
+        if (ga4On) { try { const m = await ga4.fetchAllPages({ days: days }); if (m && m.forEach) m.forEach(function (rec, path) { const e = bump(_basePath(toPath(path))); e.views += (rec && rec.pageViews) || 0; e.users += (rec && rec.users) || 0; }); } catch (e) {} }
+        const entries = Object.keys(agg).map(function (k) { return agg[k]; });
+        return { diff: _orphanDiff(entries, siteSet, gscOn ? 'clicks' : 'views'), gscOn: gscOn, ga4On: ga4On, entries: entries };
     }
     function _isNavigational(q) {
         const s = String(q || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -2055,21 +2188,36 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260906z49';
-    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness', structure: 'site structure', orphan_pages: 'orphan traffic' };
+    const _BUILD = '20260906z58';
+    const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness', structure: 'site structure', orphan_pages: 'orphan traffic', redirects: 'redirect list', language_coverage: 'Irish coverage', structure_change: 'structural changes', breadcrumb: 'page location' };
+    // Ancestry path of a page in the sitemap tree, top content section -> page, as [{name,url}]. Drops the structural roots
+    // (tree root, language nodes /en /ga) so the breadcrumb starts at a real section. Pure/testable (keyed by _langKey).
+    function _pageAncestry(tree, targetUrl) {
+        const key = _langKey(targetUrl); if (!key) return null;
+        let found = null;
+        (function walk(n, path) {
+            if (found || !n) return;
+            const p2 = path.concat([n]);
+            if (n.url && _langKey(n.url) === key) { found = p2; return; }
+            const kids = n.children || n._children || []; for (let i = 0; i < kids.length; i++) walk(kids[i], p2);
+        })(tree, []);
+        if (!found) return null;
+        return found.filter(function (n) { const sp = n.url ? String(n.url).replace(/^https?:\/\/[^/]+/, '').replace(/\/+$/, '') : ''; return n.name && sp && sp !== '/' && !/^\/[a-z]{2}$/i.test(sp); }).map(function (n) { return { name: n.name, url: n.url }; });
+    }
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
     // splits red-fallers / teal-risers). Single-page focus (diagnose/page_summary) is a fast-follow.
     function _toneFor(intent) {
         if (intent === 'dead_pages') return 'grey';
+        if (intent === 'language_coverage') return 'amber';   // English-only pages tint amber = the translation gap, given a geography on the tree
         if (intent === 'opportunities' || intent === 'top_pages' || intent === 'low_ctr' ||
-            intent === 'briefing' || intent === 'recently_updated') return 'teal';
+            intent === 'briefing' || intent === 'recently_updated' || intent === 'breadcrumb') return 'teal';   // breadcrumb: light the located page
         return null;
     }
 
     // Ask parse system prompt · STATIC (built once, so it caches on Groq and never varies per call).
     const _ASK_SYS_PROMPT = 'You turn a question about website analytics into a JSON query. Reply with ONLY a JSON object, no prose, no code fences. ' +
-                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","artifact_pages","freshness","structure","orphan_pages","unknown"], ' +
+                    'Schema: {"intent": one of ["rank_categories","section_summary","top_pages","low_ctr","stale","movers","site_summary","compare","opportunities","top_queries","international_queries","top_countries","trend","diagnose","questions","language_gap","cannibalisation","briefing","page_queries","digest","dead_pages","page_summary","content_gaps","section_movers","emerging","recently_updated","abandoned","seasonal","traffic_sources","ai_impact","ai_exposed","compare_periods","artifact_pages","freshness","structure","orphan_pages","redirects","language_coverage","structure_change","breadcrumb","unknown"], ' +
                     '"category": exact section name from the list or null, "categories": [two section names] for compare or trend, "country": a country name for international_queries (or null for all-abroad), "page": a page name for the diagnose/page_queries/trend intents (or null), "by_potential": true only when asking what a page should target / quick wins for a page (else omit), "days": integer window in days for recently_updated (e.g. 90 for "last 90 days", 30 for "last month"; default 90), "yoy": true when the user asks if a change is seasonal / vs last year (else omit), "periodA": first period phrase and "periodB": second period phrase for compare_periods (e.g. "this month","last month","last 90 days","the previous 90 days","q1","q2"); "source": for traffic_sources: a source, AI assistant, or bucket the question names - e.g. "AI" / "ChatGPT" / "Claude" / "Perplexity" / "Facebook" / "google" / "askci" / a newsletter (else omit), "growth": true when they ask if a source is GROWING / how it has grown over time (else omit), ' +
                     '"metric": one of ["impressions","clicks","ctr","position","pageViews","users"] (default impressions), ' +
                     '"direction": "up"|"down"|"both", "aspect": one of ["overview","takes","ctr"] for the ai_impact intent (default overview), "remainder": if the question asks for MORE than the chosen intent answers (a compound like "top pages and their engagement and compare with Housing"), a SHORT standalone question for the most important unanswered part (else omit), "limit": number (default 6)}. ' +
@@ -2093,7 +2241,7 @@
                     'what queries bring people to X / what searches lead to X / what do people search to find X / how do people find the X page / queries for the X page->page_queries with page set to X (a specific PAGE, not a section); what should the X page target / quick wins for the X page / how do we improve X in search->page_queries with page X and by_potential true; ' +
                     'weekly digest / generate a digest / digest for all sections / all owners priorities / everyone\'s priorities->digest (a site-wide roll-up of each section\'s priorities); a digest / briefing for ONE named section->briefing with that category; ' +
                     'which pages get no traffic / no search traffic / zero impressions / nobody finds / orphaned / invisible / dead pages->dead_pages (category optional); ' +
-                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); how fresh / up to date / current is the content / content freshness / how much content is old or stale / freshness breakdown->freshness (the distribution of pages across the New/Fresh/Recent/Aging/Old/Stale age scale; category optional; distinct from `stale` which LISTS the oldest pages and `recently_updated` which lists the newest); how many pages / how many sections / how big or deep is the site / site structure / how is the site organised / pages per section->structure (page & section COUNTS and nesting depth from the sitemap, NO traffic; category optional; distinct from site_summary which is traffic totals, and from top_pages/dead_pages which are traffic-ranked or zero-traffic); which pages get traffic but are NOT in the sitemap / orphan pages / orphan traffic / pages not in the sitemap / untracked URLs / pages Google sees that are missing from the sitemap->orphan_pages (GA4 pages whose URL has no sitemap match, the stale-sitemap / migration-destination signal; no scope); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). what is AI doing to us / AI impact / impact of AI / are we losing clicks to AI / zero-click / see but do not click->ai_impact aspect "overview"; how many clicks is AI or Google Overviews taking / clicks lost to AI / what are AI Overviews costing us->ai_impact aspect "takes"; is our click-through rate falling / CTR trend / is CTR dropping->ai_impact aspect "ctr"; which pages is Google answering for / which of my pages are exposed to AI / pages losing clicks to AI / exposed pages / AI exposure in X->ai_exposed (category optional; the SCOPED per-page exposed list). which pages have tracking or measurement or attribution issues / artifact pages / pages with near-zero clicks at a top rank / which pages are dragging CTR / pages with a redirect or canonical split->artifact_pages (category optional; the pages whose clicks look mis-attributed, distinct from ai_exposed). (ai_impact is the whole-site AI verdict, ai_exposed is the per-page list; both distinct from traffic_sources, which is "how much traffic FROM a named source". Use traffic_sources for "traffic from AI" / "is AI traffic growing".) If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "how has the fuel allowance page trended"->{"intent":"trend","page":"fuel allowance"} ; "how fresh is the content in Housing"->{"intent":"freshness","category":"Housing"} ; "how many pages does the site have"->{"intent":"structure"} ; "which pages get traffic but are not in the sitemap"->{"intent":"orphan_pages"} ; "what is the capital of France"->{"intent":"unknown"}.';
+                    'how is the X page performing / how is X doing (when X is a PAGE) / X page performance / page views for X / stats for the X page / how many views does X get->page_summary with page X (use this, not section_summary, when X is a specific page rather than a section); what content should we create / content gaps / what should we write / where do we have no good page / high demand we rank poorly for->content_gaps (category optional); which sections/categories are growing / declining / rising / biggest section or category movers / how are sections or categories trending->section_movers (direction up/down/both); what is newly trending / new searches this / emerging or rising queries / what is growing in search / what is people newly searching->emerging (category optional); how are pages we updated / edited / changed doing / what pages were updated recently / recently updated or refreshed pages / pages updated in the last N days or months->recently_updated (set days to the window, category optional); what pages were ADDED or REMOVED or deleted recently / which pages are new or gone / what changed in the site structure->structure_change (the tool holds ONE sitemap snapshot with no history to diff, so this is a graceful REFUSAL - one word from recently_updated but different: added/removed is existence, updated is lastmod; NEVER force added/removed into recently_updated); how fresh / up to date / current is the content / content freshness / how much content is old or stale / freshness breakdown->freshness (the distribution of pages across the New/Fresh/Recent/Aging/Old/Stale age scale; category optional; distinct from `stale` which LISTS the oldest pages and `recently_updated` which lists the newest); how many pages / how many sections / how big or deep is the site / site structure / how is the site organised / pages per section->structure (page & section COUNTS and nesting depth from the sitemap, NO traffic; category optional; distinct from site_summary which is traffic totals, and from top_pages/dead_pages which are traffic-ranked or zero-traffic); which pages get traffic but are NOT in the sitemap / orphan pages / orphan traffic / pages not in the sitemap / untracked URLs / pages Google sees that are missing from the sitemap->orphan_pages (GA4/GSC pages whose URL has no sitemap match, the stale-sitemap / migration-destination signal; no scope); generate a 301 redirect list / redirect map / which old or legacy URLs should redirect / legacy urls->redirects (old-format orphan URLs - .php, underscores, pre-migration paths - matched to their likely current sitemap page for a 301, ranked by clicks; a subset of orphan_pages, no scope); where does X live / where is the X page located / what is the path to X / which section is X in->breadcrumb with page X (where the page sits in the site tree, as a clickable path; X is a page name); how many pages have Irish versions / how much of the site is translated / translation or Irish coverage / which sections have the least Irish->language_coverage (STRUCTURAL: which merged pages have a paired Irish version, by section, with the translated-slug uncertainty bracket; distinct from language_gap which is the PERFORMANCE view where an Irish twin underperforms its English by traffic); leave quickly / bounce / bouncing / low engagement / found but not read / people arrive but leave->abandoned (category optional); is this normal / is this seasonal / seasonal / vs last year / compared to last year / same time last year / year on year->seasonal yoy true (page or category optional; it compares current vs previous period AND vs the same period last year); where do visitors come from / where does traffic to X come from / traffic sources / how do people get to X / which channels / channel breakdown / organic vs direct->traffic_sources (page or category optional); which pages does X send / drive / bring (X = a source, an AI assistant like ChatGPT, or a bucket like social/paid/organic)->traffic_sources with source X; how many from X / how much traffic from X / sessions from X / how many to the Y page from X (X = a NAMED source like AI, ChatGPT, Facebook, google, askci)->traffic_sources with source X (and page Y if a specific page is named); how much traffic from AI / how much of X is AI->traffic_sources source AI; is AI (or ChatGPT/etc) traffic growing / how has AI traffic grown / is AI traffic rising->traffic_sources with source AI and growth true (distinct from emerging/rising_queries which are about SEARCH QUERIES, not traffic sources); compare X from A and B / X: A vs B / how did X do in A vs B / X this month vs last month / compare X between two periods->compare_periods with page OR category (the scope) and periodA + periodB (relative period phrases like this month / last month / last 90 days / the previous 90 days / q1 / q2). Distinct from compare (two SECTIONS side by side, one period) and seasonal (current vs previous vs same-time-last-year). what is AI doing to us / AI impact / impact of AI / are we losing clicks to AI / zero-click / see but do not click->ai_impact aspect "overview"; how many clicks is AI or Google Overviews taking / clicks lost to AI / what are AI Overviews costing us->ai_impact aspect "takes"; is our click-through rate falling / CTR trend / is CTR dropping->ai_impact aspect "ctr"; which pages is Google answering for / which of my pages are exposed to AI / pages losing clicks to AI / exposed pages / AI exposure in X->ai_exposed (category optional; the SCOPED per-page exposed list). which pages have tracking or measurement or attribution issues / artifact pages / pages with near-zero clicks at a top rank / which pages are dragging CTR / pages with a redirect or canonical split->artifact_pages (category optional; the pages whose clicks look mis-attributed, distinct from ai_exposed). (ai_impact is the whole-site AI verdict, ai_exposed is the per-page list; both distinct from traffic_sources, which is "how much traffic FROM a named source". Use traffic_sources for "traffic from AI" / "is AI traffic growing".) If nothing fits, use intent "unknown" - never force the closest match. Examples: "how did Health do this month vs last month"->{"intent":"compare_periods","category":"Health","periodA":"this month","periodB":"last month"} ; "which pages does ChatGPT send people to"->{"intent":"traffic_sources","source":"ChatGPT"} ; "what pages are trending in Housing"->{"intent":"movers","category":"Housing","direction":"up"} ; "why is the fuel allowance page not getting clicks"->{"intent":"diagnose","page":"fuel allowance"} ; "how has the fuel allowance page trended"->{"intent":"trend","page":"fuel allowance"} ; "how fresh is the content in Housing"->{"intent":"freshness","category":"Housing"} ; "how many pages does the site have"->{"intent":"structure"} ; "which pages get traffic but are not in the sitemap"->{"intent":"orphan_pages"} ; "generate a 301 redirect list"->{"intent":"redirects"} ; "how much of the site is translated into Irish"->{"intent":"language_coverage"} ; "where does the Medical Card page live"->{"intent":"breadcrumb","page":"Medical Card"} ; "what is the capital of France"->{"intent":"unknown"}.';
     // Integrity check (cheap insurance): a corrupted/truncated prompt breaks routing silently.
     try { if (_ASK_SYS_PROMPT.length < 8000 || _ASK_SYS_PROMPT.indexOf('never force the closest match') < 0) { if (typeof console !== 'undefined') console.error('[SVRollup] Ask system prompt looks truncated/corrupted (' + _ASK_SYS_PROMPT.length + ' chars) - routing will be unreliable.'); } } catch (e) {}
 
@@ -2191,6 +2339,22 @@
         const legend = es.map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + (x.color || _stackColor(x.label, i)) + ';"></span>' + esc(x.label) + ' ' + pctTxt(x.value) + '</span>'; }).join('');
         return '<div style="margin-bottom:12px;"><div style="display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--color-bg-tertiary);">' + seg + '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:7px;">' + legend + '</div></div>';
+    }
+    // Composition SHAPE strip: segments sized by PAGE COUNT (or depth), not traffic. Deliberately NEUTRAL slate shades - NOT
+    // the traffic palette - so the shape itself reads "structure, not traffic" (the caption is the backup, per the grammar).
+    const _SHAPE_SHADES = ['#64748b', '#94a3b8', '#475569', '#b0bac9', '#7c8ba1', '#334155'];
+    function _shapeStrip(items, opts) {
+        opts = opts || {};
+        const es = (items || []).filter(function (x) { return (x.value || 0) > 0; });
+        if (!es.length) return '';
+        const total = es.reduce(function (s, x) { return s + x.value; }, 0) || 1, unit = opts.unit || 'pages';
+        const seg = es.map(function (x, i) { return '<div class="sv-tipel" data-tip="' + esc(x.label + ': ' + fmt(x.value) + ' ' + unit + ' (' + _pctTxt(x.value / total) + ')') + '" style="width:' + (x.value / total * 100).toFixed(2) + '%;height:100%;background:' + _SHAPE_SHADES[i % _SHAPE_SHADES.length] + ';"></div>'; }).join('');
+        const legend = es.slice(0, 6).map(function (x, i) { return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.64rem;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;flex-shrink:0;background:' + _SHAPE_SHADES[i % _SHAPE_SHADES.length] + ';"></span>' + esc(x.label) + ' ' + _pctTxt(x.value / total) + '</span>'; }).join('');
+        return '<div style="margin:2px 0 12px;">' +
+            (opts.caption ? '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);margin-bottom:4px;">' + esc(opts.caption) + '</div>' : '') +
+            '<div style="display:flex;height:14px;border-radius:4px;overflow:hidden;background:var(--color-bg-tertiary);">' + seg + '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:6px;">' + legend + (es.length > 6 ? '<span style="font-size:0.62rem;color:var(--color-text-muted);">and ' + (es.length - 6) + ' more</span>' : '') + '</div>' +
+        '</div>';
     }
     // Benchmark encoding (Wave 3): a bare number is a fact; a number against its expectation is a judgement.
     // Fill = actual, tick = the expected-for-position value, colour + data-sentiment hook by above/below.
@@ -3217,7 +3381,7 @@
                 const ro = c.rollup;
                 return {
                     scope: { label: c.name, isPage: false }, period: 'from the sitemap',
-                    html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + esc(c.name) + ' structure</div><div style="font-size:0.82rem;color:var(--color-text-secondary);">' + fmt(ro.leafCount) + ' content pages &middot; ' + fmt(ro.pageCount) + ' URLs &middot; ' + fmt(ro.pagesWithData) + ' with search or analytics data</div>',
+                    html: '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + esc(c.name) + ' structure</div><div style="font-size:0.82rem;color:var(--color-text-secondary);">' + fmt(ro.leafCount) + ' content pages &middot; ' + fmt(ro.pageCount) + ' URLs &middot; ' + fmt(ro.pagesWithData) + ' with search or analytics data</div>' + _sitemapNote(),
                     summary: c.name + ': ' + fmt(ro.leafCount) + ' content pages, ' + fmt(ro.pageCount) + ' URLs total, ' + fmt(ro.pagesWithData) + ' with search or analytics data.',
                     data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: [{ metric: 'Content pages', value: ro.leafCount }, { metric: 'URLs', value: ro.pageCount }, { metric: 'With data', value: ro.pagesWithData }], chart: null }
                 };
@@ -3229,9 +3393,15 @@
             const coverage = (t.pageCount > 0) ? t.pagesWithData / t.pageCount : null;
             const head = '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + fmt(t.leafCount) + ' content pages across ' + secs.length + ' sections</div><div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:10px;">' + fmt(t.pageCount) + ' URLs total' + (depth ? ' &middot; ' + depth + ' levels deep' : '') + (coverage != null ? ' &middot; ' + _pctTxt(coverage) + ' have search or analytics data' : '') + '</div>';
             const _moreNote = secs.length > items.length ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Showing the ' + items.length + ' biggest of ' + secs.length + ' sections. The Table has all.</div>' : '';
+            // Shape strips: the composition IS the answer (Justice's sliver vs Social Welfare's slab). Neutral slate, not the
+            // traffic palette, so it can't be misread as a traffic bar. Depth strip = pages-at-each-level (the ladder lying down).
+            const _shape = _shapeStrip(secs.map(function (x) { return { label: x.name, value: x.pages }; }), { caption: 'Share of pages by section (not traffic)' });
+            let _dh = []; try { _dh = _depthHistogram(window.treeData); } catch (e) {}
+            const _depthItems = _dh.map(function (n, d) { return { label: d === 0 ? 'Home' : 'Level ' + d, value: n }; }).filter(function (x) { return x.value > 0; });
+            const _depthStrip = _depthItems.length > 1 ? _shapeStrip(_depthItems, { caption: 'Content by depth (levels from home)' }) : '';
             return {
                 scope: { label: null, isPage: false }, period: 'from the sitemap',
-                html: head + _rankCard(items, { nameLabel: 'Section', valueLabel: 'Pages' }) + _moreNote,
+                html: head + _shape + _depthStrip + _rankCard(items, { nameLabel: 'Section', valueLabel: 'Pages' }) + _moreNote + _sitemapNote(),
                 summary: fmt(t.leafCount) + ' content pages across ' + secs.length + ' sections (' + fmt(t.pageCount) + ' URLs' + (depth ? ', ' + depth + ' levels deep' : '') + '). Biggest sections by page count: ' + secs.slice(0, 5).map(function (x) { return x.name + ' (' + fmt(x.pages) + ')'; }).join(', ') + '.',
                 data: { columns: [{ key: 'section', label: 'Section' }, { key: 'contentPages', label: 'Content pages' }, { key: 'urls', label: 'URLs' }], rows: secs.map(function (x) { return { section: x.name, contentPages: x.pages, urls: x.urls }; }), chart: { type: 'bar', x: 'section', y: 'contentPages', label: 'Content pages' } }
             };
@@ -3245,25 +3415,51 @@
             const _raNote = _ra.dragged ? '<div style="font-size:0.72rem;color:#d97706;margin-top:8px;padding:7px 10px;border:1px solid rgba(217,119,6,0.3);border-radius:8px;background:rgba(217,119,6,0.06);">CTR is dragged down by ' + _ra.count + ' page' + (_ra.count === 1 ? '' : 's') + ' with near-zero clicks at a top rank (likely a redirect or tracking artifact, not real performance); excluding ' + (_ra.count === 1 ? 'it' : 'them') + ', CTR is ~' + _ctrTxt(_ra.exCtr) + '. Ask "which ' + esc(c.name) + ' pages have tracking issues" to see them.</div>' : '';
             return { html: '<div style="font-weight:700;margin-bottom:8px;">' + esc(c.name) + '</div>' + _stripCard(c.rollup, hasGA4, _ra.dragged) + _raNote, summary: c.name + ': ' + fmt(c.rollup.impressions) + ' impressions, ' + _ctrTxt(c.rollup.ctr) + ' CTR' + (_ra.dragged ? ' (dragged by ' + _ra.count + ' artifact page' + (_ra.count === 1 ? '' : 's') + '; ~' + _ctrTxt(_ra.exCtr) + ' without them)' : '') + ', ' + fmt(c.rollup.pageViews) + ' views, ' + fmt(c.rollup.leafCount) + ' pages.', data: { columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }], rows: _metricRows(c.rollup, hasGA4), chart: null } };
         }
+        if (intent === 'breadcrumb') {
+            // "Where does X live?" -> the drawn path (section -> … -> page), each node clickable. Reuses _planPage (did-you-mean
+            // for an ambiguous name), _pageAncestry for the trail, and the _forcedPlan click rail (sections -> section_summary,
+            // the leaf -> page_summary). Doubles as ambiguity-resolution training: the path IS the disambiguator.
+            const _ref = plan.page || plan.category || '';
+            const _res = _planPage(r, plan, _ref);
+            if (_res.candidates) return { html: _disambig('breadcrumb', _res.candidates, _ref), summary: 'Several pages match "' + _ref + '", pick one.', data: { columns: [], rows: [] }, disambig: true };
+            if (_res.none) return _pageNotFound(_ref, r);
+            const page = _res.page;
+            let path = null; try { path = _pageAncestry(window.treeData, page.url); } catch (e) {}
+            if (!path || !path.length) return { html: '', summary: '', err: 'I found "' + page.name + '" but could not trace its location in the tree.' };
+            const pathHtml = path.map(function (n, i) {
+                const isLeaf = i === path.length - 1;
+                const dot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (isLeaf ? 'var(--primary)' : 'var(--color-text-muted)') + ';flex-shrink:0;"></span>';
+                const conn = i > 0 ? '<span style="display:inline-block;width:16px;height:2px;background:var(--color-border-primary);flex-shrink:0;"></span>' : '';
+                const attrs = isLeaf ? ('data-url="' + esc(n.url) + '" data-name="' + esc(n.name) + '"') : ('data-cat="' + esc(n.name) + '"');
+                const label = '<span class="sv-ask-bc" ' + attrs + ' style="cursor:pointer;color:' + (isLeaf ? 'var(--color-text-heading)' : 'var(--color-text-secondary)') + ';font-weight:' + (isLeaf ? '700' : '600') + ';">' + esc(n.name) + '</span>';
+                return conn + dot + label;
+            }).join('');
+            return {
+                scope: { label: page.name, isPage: true }, period: 'from the sitemap',
+                html: '<div style="font-size:0.7rem;color:var(--color-text-muted);margin-bottom:8px;">Where "' + esc(page.name) + '" lives in the site:</div>' +
+                    '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:0.85rem;line-height:2;">' + pathHtml + '</div>' +
+                    '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:10px;">Click a section to explore it, or the page to see its performance.</div>',
+                summary: page.name + ' lives at: ' + path.map(function (n) { return n.name; }).join(' > ') + '.',
+                hlUrls: [page.url],
+                data: { columns: [{ key: 'level', label: 'Level' }, { key: 'name', label: 'Name' }, { key: 'url', label: 'URL' }], rows: path.map(function (n, i) { return { level: i + 1, name: n.name, url: n.url }; }), chart: null }
+            };
+        }
+        if (intent === 'structure_change') {
+            // Honest refusal: the tool holds ONE sitemap snapshot, no history to diff, so "what was added/removed" is
+            // unanswerable by construction. Names WHY + routes to what IS answerable (recently_updated by lastmod, and the
+            // orphan report for content the sitemap has not caught up with). missTag logs the demand (snapshot-diffing = a v2).
+            return { html: '', summary: '', missTag: 'structure_diff', noScopeEscape: true,
+                err: 'I can\'t tell you what pages were added or removed. I hold a single sitemap snapshot with no earlier version to compare against, so I see what exists now but not what changed. What I can show: pages UPDATED recently, from when they were last modified (ask "what pages were updated recently"); or URLs getting traffic that are not in the sitemap, which often means content the sitemap has not caught up with (ask "which pages get traffic but are not in the sitemap").' };
+        }
         if (intent === 'orphan_pages') {
             // Pages that get traffic but are NOT in the sitemap. DUAL-SOURCE: GSC search CLICKS (the outage currency - where
             // the vanished clicks would reappear if a migration moved URLs) AND GA4 VIEWS, unified per base path, ranked by
             // clicks when GSC is on. The migration-destination diagnostic + sitemap-freshness guard + normalisation
             // match-rate check. Fetch is live-only; the diff/classify/basepath logic is headless-tested.
-            const gsc = window.GSCIntegration, ga4 = window.GA4Integration;
-            const gscOn = !!(gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchAllPages);
-            const ga4On = !!(ga4 && ga4.isConnected && ga4.isConnected() && ga4.fetchAllPages);
-            if (!gscOn && !ga4On) return { html: '', summary: '', err: 'Finding pages that get traffic but are not in the sitemap needs a Search Console or GA4 connection.' };
-            const toPath = (ga4 && typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
-            const siteSet = Object.create(null);   // base path of every sitemap URL, so both sources compare apples-to-apples
-            _allPages(r).forEach(function (p) { (p.urls || [p.url]).forEach(function (u) { if (u) siteSet[_basePath(_shortUrl(u))] = 1; }); });
-            const agg = Object.create(null);   // combined per-base-path: GSC clicks/impr (keys are URLs) + GA4 views/users (keys are paths)
-            const bump = function (k) { if (!agg[k]) agg[k] = { path: k, clicks: 0, impressions: 0, views: 0, users: 0 }; return agg[k]; };
-            if (gscOn) { try { const m = await gsc.fetchAllPages({ days: _ddDays }); if (m && m.forEach) m.forEach(function (rec, url) { const e = bump(_basePath(_shortUrl(url))); e.clicks += (rec && rec.clicks) || 0; e.impressions += (rec && rec.impressions) || 0; }); } catch (e) {} }
-            if (ga4On) { try { const m = await ga4.fetchAllPages({ days: _ddDays }); if (m && m.forEach) m.forEach(function (rec, path) { const e = bump(_basePath(toPath(path))); e.views += (rec && rec.pageViews) || 0; e.users += (rec && rec.users) || 0; }); } catch (e) {} }
-            const entries = Object.keys(agg).map(function (k) { return agg[k]; });
-            if (!entries.length) return { html: '', summary: '', err: 'No Search Console or GA4 page data came back for ' + periodLabel(_ddDays) + '.' };
-            const diff = _orphanDiff(entries, siteSet, gscOn ? 'clicks' : 'views');
+            const _oc = await _computeOrphanEntries(_ddDays);
+            if (!_oc) return { html: '', summary: '', err: 'Finding pages that get traffic but are not in the sitemap needs a Search Console or GA4 connection.' };
+            const gscOn = _oc.gscOn, ga4On = _oc.ga4On, diff = _oc.diff;
+            if (!_oc.entries.length) return { html: '', summary: '', err: 'No Search Console or GA4 page data came back for ' + periodLabel(_ddDays) + '.' };
             const allOrphans = diff.orphans.filter(function (x) { return (x.clicks || 0) > 0 || (x.views || 0) > 0; });
             // Split real CONTENT orphans (migration / stale-sitemap signal) from expected non-content (search / CMS-admin /
             // roots / other-language) - named + counted, never silently dropped (first-run finding: raw list was mostly noise).
@@ -3293,6 +3489,42 @@
                 html: head + _rankCard(items, { nameLabel: 'Content URL not in sitemap', valueLabel: gscOn ? 'Clicks / Views' : 'Views' }) + _moreNote + noiseNote,
                 summary: fmt(content.length) + ' content page' + (content.length === 1 ? '' : 's') + ' get traffic but are not in the sitemap (' + _magnitude + ', match rate ' + _pctTxt(diff.matchPct) + '). Top by ' + _srcLabel + ': ' + content.slice(0, 5).map(function (x) { return x.path + ' (' + _rowVal(x) + ')'; }).join(', ') + '.' + (noiseN ? ' (' + fmt(noiseN) + ' non-content URLs excluded.)' : ''),
                 data: { columns: _cols, rows: _allRows, chart: { type: 'bar', x: 'path', y: gscOn ? 'clicks' : 'views', label: gscOn ? 'Clicks' : 'Views' } }
+            };
+        }
+        if (intent === 'redirects') {
+            // Legacy-URL 301 list: legacy-format orphans (old .php/.doc, underscore, no-lang-prefix) matched to their likely
+            // CURRENT sitemap page by slug overlap, ranked by clicks. The SEO byproduct of the orphan run (redirect the old
+            // URLs that still rank, to consolidate authority). Fuzzy -> per-row confidence; a weak match is flagged, not asserted.
+            const _oc = await _computeOrphanEntries(_ddDays);
+            if (!_oc) return { html: '', summary: '', err: 'Building a redirect list needs a Search Console or GA4 connection.' };
+            const gscOn = _oc.gscOn;
+            const orphans = _oc.diff.orphans.filter(function (x) { return ((x.clicks || 0) > 0 || (x.views || 0) > 0) && !_orphanClass(x.path); });   // content orphans only
+            const legacy = orphans.filter(function (x) { return _isLegacyUrl(x.path); });
+            if (!legacy.length) return { html: '', summary: '', err: 'No legacy-format URLs are getting traffic. The off-sitemap URLs are current-format (likely just a stale sitemap, not a redirect problem); ask "which pages get traffic but aren\'t in the sitemap".' };
+            const pages = _allPages(r);
+            const idx = pages.map(function (p) { const set = Object.create(null); _slugTokens(_shortUrl(p.url) + ' ' + (p.name || '')).forEach(function (t) { set[t] = 1; }); return { p: p, set: set }; });
+            const rows = legacy.map(function (x) { const m = _bestSitemapMatch(x.path, idx); return { from: x.path, to: m ? _shortUrl(m.page.url) : null, name: m ? m.page.name : null, conf: m ? m.conf : 'none', clicks: x.clicks || 0, views: x.views || 0 }; })
+                .sort(function (a, b) { return (b.clicks - a.clicks) || (b.views - a.views); });
+            const withMatch = rows.filter(function (x) { return !!x.to; }).length;
+            const legacyClicks = rows.reduce(function (s, x) { return s + x.clicks; }, 0), legacyViews = rows.reduce(function (s, x) { return s + x.views; }, 0);
+            const _mag = gscOn ? (fmt(legacyClicks) + ' search clicks') : (fmt(legacyViews) + ' views');
+            const confCol = { high: '#059669', medium: '#d97706', low: '#9ca3af', none: '#dc2626' };
+            const _show = Math.min(rows.length, Math.max(limit, 20));
+            const rowHtml = rows.slice(0, _show).map(function (x) {
+                const metric = gscOn ? (fmt(x.clicks) + ' clk') : (fmt(x.views) + ' vw');
+                const to = x.to ? ('<span style="color:var(--color-text-primary);">' + esc(x.to) + '</span>' + (x.name ? ' <span style="color:var(--color-text-muted);">(' + esc(x.name) + ')</span>' : '')) : '<span style="color:#dc2626;">no confident match; map manually</span>';
+                return '<div style="padding:8px 10px;border-bottom:1px solid var(--color-border-primary);font-size:0.78rem;">' +
+                    '<div style="display:flex;justify-content:space-between;gap:10px;"><span style="font-family:monospace;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(x.from) + '</span><span style="flex-shrink:0;font-weight:700;color:var(--color-text-secondary);">' + metric + ' <span style="color:' + confCol[x.conf] + ';">' + x.conf + '</span></span></div>' +
+                    '<div style="color:var(--primary);font-size:0.72rem;margin-top:2px;">&rarr; ' + to + '</div>' +
+                '</div>';
+            }).join('');
+            const head = '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + fmt(rows.length) + ' legacy URL' + (rows.length === 1 ? '' : 's') + ' to 301-redirect (' + fmt(withMatch) + ' auto-matched to a current page)</div><div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:10px;">' + _mag + ' (' + periodLabel(_ddDays) + ') land on old-format URLs not in the sitemap. Each row suggests the current page to redirect to; confidence is from slug overlap, so verify before applying, especially medium and low.</div>';
+            const _more = rows.length > _show ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Showing the top ' + _show + ' by traffic of ' + rows.length + '. The Table / CSV has all.</div>' : '';
+            return {
+                scope: { label: null, isPage: false }, period: 'from the sitemap',
+                html: head + '<div class="sv-ask-list">' + rowHtml + '</div>' + _more,
+                summary: fmt(rows.length) + ' legacy URLs to 301-redirect (' + fmt(withMatch) + ' auto-matched, ' + _mag + '). Top: ' + rows.slice(0, 4).map(function (x) { return x.from + (x.to ? ' to ' + x.to : ' (no match)'); }).join('; ') + '.',
+                data: { columns: [{ key: 'from', label: 'Legacy URL' }, { key: 'to', label: 'Redirect to' }, { key: 'name', label: 'Target page' }, { key: 'confidence', label: 'Confidence' }, { key: 'clicks', label: 'Clicks' }, { key: 'views', label: 'Views' }], rows: rows.map(function (x) { return { from: x.from, to: x.to || '', name: x.name || '', confidence: x.conf, clicks: x.clicks, views: x.views }; }), chart: null }
             };
         }
         if (intent === 'rank_categories') {
@@ -3705,6 +3937,41 @@
                 html: _rankCard(items, { nameLabel: 'Question', valueLabel: 'Impressions' }),
                 summary: _qNarr.summary,
                 data: { columns: [{ key: 'question', label: 'Question' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'bestPage', label: 'Best page' }], rows: qs.map(function (x) { return { question: x.query, impressions: x.impressions, clicks: x.clicks, bestPage: x.bestPage || '' }; }), chart: { type: 'bar', x: 'question', y: 'impressions', label: 'Impressions' } }
+            };
+        }
+        if (intent === 'language_coverage') {
+            // STRUCTURAL translation coverage (distinct from language_gap = the performance view). Over MERGED logical pages
+            // (catPages merges twins), three-state paired/en/ga, with the _coverageBracket honesty for translated-slug twins.
+            const enOnlyUrls = [];
+            const secs = cats.map(function (c) {
+                const pgs = catPages(c);
+                pgs.forEach(function (p) { if (p.lang === 'en' && p.url) enOnlyUrls.push(p.url); });   // the translation debt, for the tree tint
+                const lc = _langCounts(pgs), br = _coverageBracket(lc.en, lc.ga), enSide = lc.paired + lc.en;
+                return { name: c.name, paired: lc.paired, en: lc.en, ga: lc.ga, uncertain: br.width, gap: br.lo, enSide: enSide, cov: enSide > 0 ? lc.paired / enSide : 1 };
+            }).filter(function (x) { return x.enSide > 0 || x.ga > 0; });
+            if (!secs.length) return { html: '', summary: '', err: 'No English/Irish pairing is detectable in this sitemap (no /en/ or /ga/ URLs to compare).' };
+            const g = secs.reduce(function (a, x) { a.paired += x.paired; a.en += x.en; a.ga += x.ga; return a; }, { paired: 0, en: 0, ga: 0 });
+            const gbr = _coverageBracket(g.en, g.ga), gEnSide = g.paired + g.en;
+            const covLo = gEnSide > 0 ? g.paired / gEnSide : 0, covHi = gEnSide > 0 ? (g.paired + gbr.width) / gEnSide : 0;
+            secs.sort(function (a, b) { return a.cov - b.cov; });   // least-covered first = the finding
+            const _show = Math.min(secs.length, Math.max(limit, 15));
+            const rowsHtml = secs.slice(0, _show).map(function (x) {
+                return '<div style="padding:7px 10px;border-bottom:1px solid var(--color-border-primary);font-size:0.78rem;">' +
+                    '<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary);font-weight:600;">' + esc(x.name) + '</span><span style="flex-shrink:0;color:var(--color-text-secondary);font-weight:700;">' + _pctTxt(x.cov) + ' <span style="color:var(--color-text-muted);font-weight:400;">' + x.paired + '/' + x.enSide + '</span></span></div>' +
+                    _langSplitBar(x.paired, x.uncertain, x.gap) +
+                '</div>';
+            }).join('');
+            const legend = '<div style="display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 4px;font-size:0.64rem;color:var(--color-text-secondary);">' +
+                '<span><span style="display:inline-block;width:10px;height:10px;background:#059669;border-radius:2px;vertical-align:-1px;"></span> paired</span>' +
+                '<span><span style="display:inline-block;width:10px;height:10px;background:repeating-linear-gradient(45deg,#d97706,#d97706 2px,transparent 2px,transparent 4px);border-radius:2px;vertical-align:-1px;"></span> uncertain (translated slug)</span>' +
+                '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed var(--color-text-muted);border-radius:2px;vertical-align:-1px;"></span> English only</span></div>';
+            const head = '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + _pctTxt(covLo) + (gbr.width ? ' to ' + _pctTxt(covHi) : '') + ' of English pages have an Irish version</div><div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:8px;">' + fmt(g.paired) + ' of ' + fmt(gEnSide) + ' English pages are paired' + (gbr.width ? '; ~' + fmt(gbr.width) + ' more may be paired via a translated Irish slug (the uncertain band)' : '') + (g.ga ? '; ' + fmt(g.ga) + ' Irish-only pages' : '') + '. Sections below, least covered first.</div>';
+            return {
+                scope: { label: null, isPage: false }, period: 'from the sitemap',
+                html: head + legend + '<div class="sv-ask-list">' + rowsHtml + '</div>' + (secs.length > _show ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Showing the ' + _show + ' least-covered of ' + secs.length + ' sections. The Table has all.</div>' : '') + _sitemapNote(),
+                summary: _pctTxt(covLo) + ' to ' + _pctTxt(covHi) + ' of ' + fmt(gEnSide) + ' English pages have an Irish version (' + fmt(g.paired) + ' confirmed pairs, ~' + fmt(gbr.width) + ' uncertain via translated slugs, ' + fmt(g.ga) + ' Irish-only). Least covered: ' + secs.slice(0, 5).map(function (x) { return x.name + ' (' + _pctTxt(x.cov) + ')'; }).join(', ') + '.',
+                hlUrls: enOnlyUrls,   // amber tree tint: the English-only pages light up = the translation gap given a geography
+                data: { columns: [{ key: 'section', label: 'Section' }, { key: 'paired', label: 'Paired' }, { key: 'englishOnly', label: 'English only' }, { key: 'irishOnly', label: 'Irish only' }, { key: 'coverage', label: 'Coverage %' }], rows: secs.map(function (x) { return { section: x.name, paired: x.paired, englishOnly: x.en, irishOnly: x.ga, coverage: +(x.cov * 100).toFixed(1) }; }), chart: null }
             };
         }
         if (intent === 'language_gap') {
@@ -4937,13 +5204,30 @@
         // NOT traffic-qualified (get/have/with/stale/traffic/clicks... -> those are dead_pages/artifact/stale/top_pages etc).
         {
             const _kw = /\bsite structure\b|\bstructure of (?:the )?site\b|\bhow (?:is|are) (?:the )?(?:site|content|pages?) (?:structured|organi[sz]ed|laid out|arranged|built)\b|\bhow (?:big|deep) is (?:the )?site\b|\bhow many (?:sections?|categories|subsections?|levels)\b|\bpages per (?:section|category)\b/i.test(s);
-            const _hmp = /\bhow many pages\b/i.test(s) && !/\b(?:no|zero|stale|updated?|traffic|clicks?|views?|impressions?|sessions?|tracking|issues?|artifacts?|search|opportunit|underperform|lost|trend|rank|exposed|ai)\b/i.test(s);   // exclude by traffic/quality NOUNS, not generic verbs (which block "does the site have")
+            const _hmp = /\bhow many pages\b/i.test(s) && !/\b(?:no|zero|stale|updated?|traffic|clicks?|views?|impressions?|sessions?|tracking|issues?|artifacts?|search|opportunit|underperform|lost|trend|rank|exposed|ai|irish|translat|language|versions?)\b/i.test(s);   // exclude traffic/quality/language NOUNS (not generic verbs, which would block "does the site have")
             if (_kw || _hmp) {
                 const _sc = /\b(?:in|for|of|within)\s+(.+?)\s*\??$/i.exec(s);
                 let _cat = _sc ? _sc[1].trim().replace(/^(?:the)\s+/i, '').replace(/\s+(section|category)$/i, '').trim() : null;
                 if (_cat && /^(site|whole site|this site|the site|it|pages)$/i.test(_cat)) _cat = null;
                 return { intent: 'structure', category: _cat };
             }
+        }
+        // "where does X live / where is X located / what's the path to X / which section is X in" -> breadcrumb (page location).
+        {
+            let m, pg = null;
+            if ((m = /\bwhere (?:does|is|do i find|can i find|to find)\s+(?:the\s+)?(.+?)(?:\s+page)?\s+(?:live|found|sit|located|in the site|in the tree)\b/i.exec(s))) pg = m[1];
+            else if ((m = /\bwhat(?:'s| is)\s+the\s+path\s+to\s+(?:the\s+)?(.+?)(?:\s+page)?\s*\??$/i.exec(s))) pg = m[1];
+            else if ((m = /\bwhich\s+section\s+(?:is|has|contains)\s+(?:the\s+)?(.+?)(?:\s+page)?\b/i.exec(s))) pg = m[1];
+            if (pg) { pg = pg.replace(/\s+(?:page|section)$/i, '').replace(/^the\s+/i, '').trim(); if (pg && !/^(this|that|it)$/i.test(pg)) return { intent: 'breadcrumb', page: pg }; }
+        }
+        // Language/translation COVERAGE (structural: which pages HAVE an Irish version) - distinct from language_gap (the
+        // performance view: where the Irish twin UNDERperforms), so exclude perf phrasings.
+        if ((/\btranslat/i.test(s) || /\birish (?:versions?|coverage|content|pages?)\b/i.test(s) || /\bhow much (?:of (?:the )?(?:site|content) )?is (?:in )?irish\b/i.test(s) || /\bas gaeilge\b/i.test(s)) && !/\bunderperform|perform|worse|traffic\b/i.test(s)) {
+            return { intent: 'language_coverage' };
+        }
+        // Legacy-URL 301 redirect list (before orphan, since "redirect old urls" is more specific than "not in sitemap").
+        if (/\b301s?\b|\bredirect (?:list|map|plan)\b|\b(?:generate|build|create|make) (?:a )?redirect/i.test(s) || (/\bredirects?\b/i.test(s) && /\blegacy|old url|sitemap|\.php\b/i.test(s)) || /\blegacy urls?\b/i.test(s)) {
+            return { intent: 'redirects' };
         }
         // Orphan traffic: GA4 pages that get traffic but aren't in the sitemap (stale-sitemap / migration-destination detector).
         if (/\borphan(?:ed|s)?\b|\b(?:pages?|urls?|traffic)\b[^?]*\b(?:not|missing|aren'?t|isn'?t)\b[^?]*\bin (?:the )?sitemap\b|\bnot in (?:the )?sitemap\b|\bget(?:ting|s)? traffic\b[^?]*\bnot in\b|\buntracked pages?\b|\bpages? (?:google|ga4) (?:sees?|knows?)\b[^?]*\bnot in\b/i.test(s)) {
@@ -5060,6 +5344,13 @@
             const _s4 = /^is (?:the |this |that )?(.+?)(?:'s)?\s+(?:drop|dip|decline|fall|slump|slide|change|dropoff|trend)\b/i.exec(s);   // "is the Health drop seasonal" -> Health (handler validates against real sections)
             const _cat = _s1 ? _s1[1].trim() : _s2 ? _s2[1].trim() : _s3 ? _s3[1].trim() : _s4 ? _s4[1].trim() : null;
             return { intent: 'seasonal', category: _cat, yoy: true };
+        }
+        // "what pages were ADDED / removed / deleted / are new / gone" -> a structural EXISTENCE change. The tool holds ONE
+        // sitemap snapshot with no history to diff, so this is an honest REFUSAL, not a force-match into recently_updated
+        // (the A11 shape: "added recently" vs "updated recently" are one word apart). Excludes update-verbs (-> recently_updated)
+        // and search/trending (-> emerging).
+        if ((/\b(?:added|removed|deleted|disappeared|gone)\b/i.test(s) || /\bnew pages?\b/i.test(s)) && !/\bgone (?:up|down)\b/i.test(s) && !/\bupdated?|edited|modified|refreshed|revised\b/i.test(s) && !/\btrending|rising|emerging|search|quer|traffic|source\b/i.test(s)) {
+            return { intent: 'structure_change' };
         }
         // "how are pages we updated doing" / "what pages were updated recently" / "pages updated in the last N days" -> recently_updated
         if (/\b(?:recently|newly|lately)\s+(?:updated|changed|edited|refreshed|revised)\b|\b(?:updated|changed|edited|refreshed|revised)\s+(?:recently|lately)\b|\b(?:pages?|content)\s+(?:that\s+|we\s+|were\s+|was\s+|have\s+been\s+|got\s+|just\s+)*(?:updated|changed|edited|refreshed|revised)\b|\b(?:updated|changed|edited|refreshed)\s+pages?\b|\bhow\s+are\s+(?:the\s+)?(?:pages?|content)\s+we\s+(?:updated|changed|edited)\b/i.test(s)) {
@@ -5322,6 +5613,14 @@
             }
             const scopeOpen = e.target.closest('.sv-ask-scope-open');
             if (scopeOpen) { if (_scopeSel) { try { _scopeSel.focus(); } catch (_e) {} } return; }
+            const bc = e.target.closest('.sv-ask-bc');
+            if (bc) {
+                // Breadcrumb node click: a section fires its summary, the leaf fires page_summary (same _forcedPlan rail as did-you-mean).
+                const bcUrl = bc.getAttribute('data-url'), bcCat = bc.getAttribute('data-cat');
+                if (bcUrl) { _forcedPlan = { intent: 'page_summary', url: bcUrl }; input.value = 'How is ' + (bc.getAttribute('data-name') || 'this page') + ' doing?'; ask(); }
+                else if (bcCat) { _forcedPlan = { intent: 'section_summary', category: bcCat }; input.value = 'How is ' + bcCat + ' doing?'; ask(); }
+                return;
+            }
             const dis = e.target.closest('.sv-ask-disambig');
             if (dis) {
                 // Structured re-dispatch: force the ORIGINAL intent with the RESOLVED page (exact name), so it resolves
@@ -5526,7 +5825,15 @@
                                 { tone: 'teal', urls: _pick(function (x) { return (x.changePct || 0) >= 0; }) }];
                     } else {
                         const _t = _toneFor(plan.intent);
-                        if (_t) { const _us = _rows.map(function (x) { return x.url || x.bestPage; }).filter(Boolean); if (_us.length) _hls = [{ tone: _t, urls: _us }]; }
+                        const _us = (res.hlUrls && res.hlUrls.length) ? res.hlUrls : _rows.map(function (x) { return x.url || x.bestPage; }).filter(Boolean);   // res.hlUrls: rows aren't page-shaped (e.g. language_coverage rows are sections)
+                        if (_t && _us.length) { _hls = [{ tone: _t, urls: _us }]; }
+                        else if (res.scope && !res.scope.isPage && res.scope.label && window.askHighlightBranch) {
+                            // no page-level URLs to light, but the answer is SECTION-scoped -> BRANCH-GLOW the whole section subtree (scope made spatial)
+                            const _cat = _catByName(r.categories, res.scope.label);
+                            const _cu = _cat ? (_cat.nodes || []).map(function (n) { return n.url; }).filter(Boolean) : [];
+                            if (_cat && !_cu.length && _cat.url) _cu.push(_cat.url);
+                            if (_cu.length) window.askHighlightBranch(_cu, _t || 'teal');
+                        }
                     }
                     if (_hls && window.askHighlight) _hls.forEach(function (h) { if (h.urls && h.urls.length) window.askHighlight(h.urls, h.tone); });
                 } catch (e) {}
@@ -5707,6 +6014,12 @@
             { q: 'is the recent drop seasonal', intent: 'seasonal' },
             { q: 'is the Health drop seasonal', intent: 'seasonal', category: 'health' },   // the section slot must survive (A2 scope bug)
             { q: 'what pages were updated recently', intent: 'recently_updated' },
+            // A11 collision pair: "added/removed" (structural existence, refused) must NOT force-match into "updated" (lastmod).
+            { q: 'what pages were added recently', intent: 'structure_change' },
+            { q: 'what pages were removed', intent: 'structure_change' },
+            { q: 'which pages are gone', intent: 'structure_change' },
+            { q: 'where does the Medical Card page live', intent: 'breadcrumb', page: 'medical card' },
+            { q: 'what is the path to Fuel Allowance', intent: 'breadcrumb', page: 'fuel allowance' },
             { q: 'how fresh is the content', intent: 'freshness' },
             { q: 'content freshness in Health', intent: 'freshness', category: 'health' },
             { q: 'how up to date is Housing', intent: 'freshness', category: 'Housing' },
@@ -5717,6 +6030,11 @@
             { q: 'which pages get traffic but are not in the sitemap', intent: 'orphan_pages' },
             { q: 'orphan pages', intent: 'orphan_pages' },
             { q: 'pages not in the sitemap', intent: 'orphan_pages' },
+            { q: 'generate a 301 redirect list', intent: 'redirects' },
+            { q: 'which legacy urls should redirect', intent: 'redirects' },
+            { q: 'how much of the site is translated into Irish', intent: 'language_coverage' },
+            { q: 'how many pages have Irish versions', intent: 'language_coverage' },
+            { q: 'where does the Irish version underperform', intent: null },   // performance view -> language_gap (LLM), NOT coverage
             { q: 'pages updated in the last 30 days in Health', intent: 'recently_updated', category: 'health' },
             // compare_periods · assert the scope slot. quickParse can't tell a section from a page by
             // syntax, so a section name lands in `page` ("Health"); the intent reconciles that to a
