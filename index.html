@@ -24,11 +24,11 @@
 <script src="gsc-integration-module.js"></script>
 <script src="standalone-ga4-integration.js?v=20260904q"></script>
 <script src="unified-citizens-dashboard.js?v=20260904q"></script>
-<script src="combined-tooltip-integration.js?v=20260904z39"></script>
+<script src="combined-tooltip-integration.js?v=20260906z58"></script>
 <script src="enhanced-url-matching.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
-<script src="sitemap-rollup.js?v=20260906z49"></script>
+<script src="sitemap-rollup.js?v=20260906z58"></script>
 <script src="sitemap-geomap.js"></script>
 <script src="groq-integration-module.js?v=20260904u"></script>
 
@@ -4102,7 +4102,12 @@ body.dark-theme .legend-item {
     stroke: #9ca3af !important; stroke-width: 1.5px !important;
     fill: #d1d5db !important; opacity: 0.55; filter: grayscale(1);
 }
-.node.ask-hl-teal text, .node.ask-hl-red text { font-weight: 700; opacity: 1; }
+.node.ask-hl-amber circle {
+    stroke: #d97706 !important; stroke-width: 3px !important;
+    filter: drop-shadow(0 0 7px rgba(217,119,6,0.9));
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.node.ask-hl-teal text, .node.ask-hl-red text, .node.ask-hl-amber text { font-weight: 700; opacity: 1; }
 .node.ask-hl-grey text { opacity: 0.6; }
 
 
@@ -8135,12 +8140,12 @@ function _askSubtreeHasUrl(dataNode, set, norm) {
 window.askHighlight = function (urls, tone) {
     if (typeof is3DViewActive !== 'undefined' && is3DViewActive) return;   // v1: 2D only
     if (!g || !urls || !urls.length) return;
-    const cls  = tone === 'red' ? 'ask-hl-red' : tone === 'grey' ? 'ask-hl-grey' : 'ask-hl-teal';
+    const cls  = tone === 'red' ? 'ask-hl-red' : tone === 'grey' ? 'ask-hl-grey' : tone === 'amber' ? 'ask-hl-amber' : 'ask-hl-teal';
     const norm = (window.SVRollup && window.SVRollup._normUrl) ? window.SVRollup._normUrl : function (u) { return u; };
     const set  = {}; urls.forEach(function (u) { if (u) set[norm(u)] = 1; });
     g.selectAll('g.node').each(function (d) {
         const el = d3.select(this);
-        if (el.classed('ask-hl-teal') || el.classed('ask-hl-red') || el.classed('ask-hl-grey')) return;  // keep a prior tone
+        if (el.classed('ask-hl-teal') || el.classed('ask-hl-red') || el.classed('ask-hl-grey') || el.classed('ask-hl-amber')) return;  // keep a prior tone
         const direct    = d.data && d.data.url && set[norm(d.data.url)];
         const structural = d.data && (d.data.children || d.data._children);
         const collapsed = !d.children && structural;                          // rendered node hiding a subtree
@@ -8150,9 +8155,27 @@ window.askHighlight = function (urls, tone) {
     });
     g.selectAll('path.link').style('opacity', 0.12);
 };
+// Branch glow: light a node AND its whole subtree (the section made spatial). Same tone classes / clear path as askHighlight,
+// so it composes and clears identically. A node is in-branch if it OR any ancestor's url is in the set.
+window.askHighlightBranch = function (urls, tone) {
+    if (typeof is3DViewActive !== 'undefined' && is3DViewActive) return;
+    if (!g || !urls || !urls.length) return;
+    const cls  = tone === 'red' ? 'ask-hl-red' : tone === 'grey' ? 'ask-hl-grey' : tone === 'amber' ? 'ask-hl-amber' : 'ask-hl-teal';
+    const norm = (window.SVRollup && window.SVRollup._normUrl) ? window.SVRollup._normUrl : function (u) { return u; };
+    const set  = {}; urls.forEach(function (u) { if (u) set[norm(u)] = 1; });
+    g.selectAll('g.node').each(function (d) {
+        const el = d3.select(this);
+        if (el.classed('ask-hl-teal') || el.classed('ask-hl-red') || el.classed('ask-hl-grey') || el.classed('ask-hl-amber')) return;
+        let inBranch = false, node = d;
+        while (node) { if (node.data && node.data.url && set[norm(node.data.url)]) { inBranch = true; break; } node = node.parent; }
+        if (inBranch) el.classed('ask-fade', false).classed(cls, true);
+        else if (!el.classed('ask-fade')) el.classed('ask-fade', true);
+    });
+    g.selectAll('path.link').style('opacity', 0.12);
+};
 window.askClearHighlight = function () {
     if (!g) return;
-    g.selectAll('g.node').classed('ask-fade ask-hl-teal ask-hl-red ask-hl-grey', false);
+    g.selectAll('g.node').classed('ask-fade ask-hl-teal ask-hl-red ask-hl-grey ask-hl-amber', false);
     g.selectAll('path.link').style('opacity', null);
 };
 
