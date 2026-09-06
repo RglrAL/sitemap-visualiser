@@ -537,6 +537,11 @@
         mk('basepath.strips_hash', _basePath('/foo#sec'), '/foo');
         mk('basepath.trailing_slash', _basePath('/foo/'), '/foo');
         mk('basepath.root_kept', _basePath('/'), '/');
+        // Orphan noise class: search endpoints / CMS-admin / roots are expected non-content; real content orphans -> null (the signal).
+        mk('orphanclass.search', _orphanClass('/en/social-welfare/search_wagtail'), 'search');
+        mk('orphanclass.admin', _orphanClass('/cms/pages/2903/edit/preview'), 'admin');
+        mk('orphanclass.root', _orphanClass('/en'), 'root');
+        mk('orphanclass.content_null', _orphanClass('/en/housing/grants-for-a-home-energy-upgrade'), null);
         // Chips-as-plans refactor: (a) a category-template can NEVER embed a non-category (a page/garbage in the category slot
         // is nulled), so no case can generate a "briefing scoped to a page" chip; a REAL category still gets its scoped chip.
         mk('followup.typevalid_drops_noncategory', _followups({ intent: 'briefing', category: 'Nonexistent Page' }, { data: { rows: [] } }, r, '').join(' | ').indexOf('Nonexistent') < 0, true);
@@ -1746,6 +1751,17 @@
         if (s.length > 1) s = s.replace(/\/+$/, '');
         return s.toLowerCase();
     }
+    // Orphan noise classifier (first-run finding): the raw orphan list is dominated by NON-content URLs GA4 tracks but the
+    // sitemap rightly omits - Wagtail per-page search endpoints (/search_wagtail), CMS admin/preview (/cms/, /edit, /preview),
+    // and language roots (/en, /ga). These are expected, not migration evidence. Returns 'search'|'admin'|'root' for noise,
+    // null for a real CONTENT orphan (the stale-sitemap / migration signal). Named + counted, never silently dropped.
+    function _orphanClass(path) {
+        const p = String(path || '').toLowerCase();
+        if (p === '/' || /^\/(en|ga)$/.test(p)) return 'root';
+        if (/(?:^|\/)search_wagtail(?:\/|$)|\/search(?:\/|$)/.test(p)) return 'search';
+        if (/\/cms\/|\/django|\/wp-admin|(?:^|\/)admin(?:\/|$)|\/edit(?:\/|$)|\/preview(?:\/|$)|\/draft(?:\/|$)/.test(p)) return 'admin';
+        return null;
+    }
     function _orphanDiff(ga4Entries, sitePathSet) {
         let matched = 0; const orphans = [];
         for (let i = 0; i < ga4Entries.length; i++) { const e = ga4Entries[i]; if (sitePathSet[e.path]) matched++; else orphans.push(e); }
@@ -2033,7 +2049,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260906z46';
+    const _BUILD = '20260906z47';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness', structure: 'site structure', orphan_pages: 'orphan traffic' };
     // Which answers light up the tree, and in what tone. null = no tree highlight (non-spatial
     // intents like trend / rank_categories / traffic_sources). Movers is handled separately (it
@@ -3240,18 +3256,29 @@
             byPath.forEach(function (rec, path) { const k = _basePath(path); if (!agg[k]) agg[k] = { path: k, views: 0, users: 0 }; agg[k].views += (rec && rec.pageViews) || 0; agg[k].users += (rec && rec.users) || 0; });
             const entries = Object.keys(agg).map(function (k) { return agg[k]; });
             const diff = _orphanDiff(entries, siteSet);
-            const orphans = diff.orphans.filter(function (x) { return x.views > 0; });
-            if (!orphans.length) return { scope: { label: null, isPage: false }, html: '<div style="font-size:0.85rem;color:var(--color-text-secondary);">Every GA4 page with traffic maps to a sitemap page (' + _pctTxt(diff.matchPct) + ' of ' + fmt(diff.total) + ' tracked pages matched). No orphan traffic: the sitemap and analytics agree.</div>', summary: 'No orphan traffic: all ' + fmt(diff.total) + ' GA4 pages match a sitemap page (' + _pctTxt(diff.matchPct) + ' matched).', data: { columns: [{ key: 'path', label: 'URL path' }, { key: 'views', label: 'Views' }], rows: [], chart: null } };
-            const orphanViews = orphans.reduce(function (s, x) { return s + x.views; }, 0);
-            const _show = Math.min(orphans.length, Math.max(limit, 15));
-            const items = orphans.slice(0, _show).map(function (x) { return { name: x.path, val: fmt(x.views), bar: x.views }; });
-            const head = '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + fmt(orphans.length) + ' page' + (orphans.length === 1 ? '' : 's') + ' get traffic but are not in the sitemap</div><div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:10px;">' + fmt(orphanViews) + ' views (' + periodLabel(_ddDays) + ') arrive on URLs the sitemap does not list &middot; GA4 match rate ' + _pctTxt(diff.matchPct) + ' of ' + fmt(diff.total) + ' tracked pages. Likely a URL migration the sitemap did not follow, removed pages still ranking, or tracking on old URLs.</div>';
-            const _moreNote = orphans.length > items.length ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Showing the ' + items.length + ' most-visited of ' + orphans.length + '. The Table has all.</div>' : '';
+            const allOrphans = diff.orphans.filter(function (x) { return x.views > 0; });
+            // Split real CONTENT orphans (the migration / stale-sitemap signal) from expected non-content noise (search
+            // endpoints / CMS-admin / roots) - named + counted, never silently dropped (first-run finding: raw list was 2K+ mostly noise).
+            const content = [], noise = { search: { n: 0, v: 0 }, admin: { n: 0, v: 0 }, root: { n: 0, v: 0 } };
+            allOrphans.forEach(function (x) { const cl = _orphanClass(x.path); if (cl && noise[cl]) { noise[cl].n++; noise[cl].v += x.views; } else content.push(x); });
+            const noiseN = noise.search.n + noise.admin.n + noise.root.n;
+            const nb = [];
+            if (noise.search.n) nb.push(noise.search.n + ' search endpoint' + (noise.search.n === 1 ? '' : 's') + ' (' + fmt(noise.search.v) + ' views)');
+            if (noise.admin.n) nb.push(noise.admin.n + ' CMS or admin URL' + (noise.admin.n === 1 ? '' : 's') + ' (' + fmt(noise.admin.v) + ' views)');
+            if (noise.root.n) nb.push(noise.root.n + ' site root' + (noise.root.n === 1 ? '' : 's') + ' (' + fmt(noise.root.v) + ' views)');
+            const noiseNote = nb.length ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Excluded as expected non-content: ' + nb.join(', ') + '. These are search/admin/root URLs the sitemap rightly omits, not missing content.</div>' : '';
+            const _allRows = allOrphans.map(function (x) { return { path: x.path, type: _orphanClass(x.path) || 'content', views: x.views, users: x.users }; });
+            if (!content.length) return { scope: { label: null, isPage: false }, html: '<div style="font-size:0.85rem;color:var(--color-text-secondary);">No <b>content</b> pages are missing from the sitemap' + (noiseN ? ' - the ' + fmt(noiseN) + ' unmatched GA4 URLs are all search / admin / functional (expected)' : '') + '. GA4 match rate ' + _pctTxt(diff.matchPct) + ' of ' + fmt(diff.total) + ' tracked pages.</div>' + noiseNote, summary: 'No content orphans' + (noiseN ? ': the ' + fmt(noiseN) + ' unmatched GA4 URLs are search/admin/functional (expected)' : '') + '. Match rate ' + _pctTxt(diff.matchPct) + '.', data: { columns: [{ key: 'path', label: 'URL path' }, { key: 'type', label: 'Type' }, { key: 'views', label: 'Views' }], rows: _allRows, chart: null } };
+            const contentViews = content.reduce(function (s, x) { return s + x.views; }, 0);
+            const _show = Math.min(content.length, Math.max(limit, 15));
+            const items = content.slice(0, _show).map(function (x) { return { name: x.path, val: fmt(x.views), bar: x.views }; });
+            const head = '<div style="font-weight:700;color:var(--color-text-heading);margin-bottom:6px;">' + fmt(content.length) + ' content page' + (content.length === 1 ? '' : 's') + ' get traffic but are not in the sitemap</div><div style="font-size:0.75rem;color:var(--color-text-secondary);margin-bottom:10px;">' + fmt(contentViews) + ' views (' + periodLabel(_ddDays) + ') on content URLs the sitemap does not list &middot; GA4 match rate ' + _pctTxt(diff.matchPct) + ' of ' + fmt(diff.total) + ' tracked pages. Likely a URL migration the sitemap did not follow, removed pages still ranking, or tracking on old URLs.</div>';
+            const _moreNote = content.length > items.length ? '<div style="font-size:0.62rem;color:var(--color-text-muted);margin-top:8px;">Showing the ' + items.length + ' most-visited of ' + content.length + ' content orphans. The Table has all (incl. the excluded non-content).</div>' : '';
             return {
                 scope: { label: null, isPage: false },
-                html: head + _rankCard(items, { nameLabel: 'URL not in sitemap', valueLabel: 'Views' }) + _moreNote,
-                summary: fmt(orphans.length) + ' page' + (orphans.length === 1 ? '' : 's') + ' get traffic but are not in the sitemap (' + fmt(orphanViews) + ' views, GA4 match rate ' + _pctTxt(diff.matchPct) + '). Top: ' + orphans.slice(0, 5).map(function (x) { return x.path + ' (' + fmt(x.views) + ')'; }).join(', ') + '.',
-                data: { columns: [{ key: 'path', label: 'URL path' }, { key: 'views', label: 'Views' }, { key: 'users', label: 'Users' }], rows: orphans.map(function (x) { return { path: x.path, views: x.views, users: x.users }; }), chart: { type: 'bar', x: 'path', y: 'views', label: 'Views' } }
+                html: head + _rankCard(items, { nameLabel: 'Content URL not in sitemap', valueLabel: 'Views' }) + _moreNote + noiseNote,
+                summary: fmt(content.length) + ' content page' + (content.length === 1 ? '' : 's') + ' get traffic but are not in the sitemap (' + fmt(contentViews) + ' views, GA4 match rate ' + _pctTxt(diff.matchPct) + '). Top: ' + content.slice(0, 5).map(function (x) { return x.path + ' (' + fmt(x.views) + ')'; }).join(', ') + '.' + (noiseN ? ' (' + fmt(noiseN) + ' search/admin/root URLs excluded as non-content.)' : ''),
+                data: { columns: [{ key: 'path', label: 'URL path' }, { key: 'type', label: 'Type' }, { key: 'views', label: 'Views' }, { key: 'users', label: 'Users' }], rows: _allRows, chart: { type: 'bar', x: 'path', y: 'views', label: 'Views' } }
             };
         }
         if (intent === 'rank_categories') {
