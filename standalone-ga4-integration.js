@@ -38,6 +38,7 @@
     function initGA4Integration() {
         ga4Log('Initializing standalone GA4 integration...');
         addGA4Button();
+        addCombinedGoogleButton();
         addGA4Styles();
         initializeGA4Auth();
     }
@@ -1036,6 +1037,118 @@ function addGA4Button() {
     };
     
     checkAndAdd();
+}
+
+// ── Combined "Connect Google" button (GA4 + GSC in one click) ───────────────────
+// One prominent button that connects both services with a single consent, reflects
+// the combined state, and toggles both off. The individual GA4/GSC buttons are
+// hidden (kept in the DOM so their status/handlers still work under the hood).
+function handleCombinedGoogleClick() {
+    const ga4 = !!(window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected());
+    const gsc = !!(window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected());
+    if (ga4 && gsc) {
+        // Both on → disconnect both.
+        try { if (window.GA4Integration.disconnect) window.GA4Integration.disconnect(); } catch (e) {}
+        try { if (window.GSCIntegration.toggleConnection && window.GSCIntegration.isConnected()) window.GSCIntegration.toggleConnection(); } catch (e) {}
+        updateCombinedGoogleButton();
+    } else {
+        // None/partial → connect both with one consent.
+        if (typeof window.SVConnectGoogle === 'function') window.SVConnectGoogle();
+        else if (window.GA4Integration && window.GA4Integration.connectGoogle) window.GA4Integration.connectGoogle();
+    }
+}
+
+function updateCombinedGoogleButton() {
+    // Hide the per-service buttons (desktop + mobile) — the combined one supersedes them.
+    ['ga4ConnectBtn', 'gscConnectBtn', 'mobileGa4Btn', 'mobileGscBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.setProperty('display', 'none', 'important');
+    });
+
+    const ga4 = !!(window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected());
+    const gsc = !!(window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected());
+    let label, dot, border;
+    if (ga4 && gsc)      { label = 'Google connected'; dot = '#34a853'; border = '#34a853'; }
+    else if (ga4 || gsc) { label = 'Google (partial)';  dot = '#fbbc04'; border = '#fbbc04'; }
+    else                 { label = 'Connect Google';     dot = '#ea4335'; border = '#dadce0'; }
+
+    const txt   = document.getElementById('googleConnectText');
+    const light = document.getElementById('googleConnectLight');
+    const btn   = document.getElementById('googleConnectBtn');
+    if (txt)   txt.textContent = label;
+    if (light) light.style.backgroundColor = dot;
+    if (btn)   btn.style.setProperty('border-color', border, 'important');
+
+    const mTxt   = document.getElementById('mobileGoogleConnectText');
+    const mLight = document.getElementById('mobileGoogleConnectLight');
+    if (mTxt)   mTxt.textContent = label;
+    if (mLight) mLight.style.backgroundColor = dot;
+}
+
+function addCombinedGoogleButton() {
+    const googleIcon = `
+        <svg width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0;">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
+        </svg>`;
+
+    const addDesktop = () => {
+        const navBar = document.querySelector('.nav-group.integrations-nav') ||
+                       document.querySelector('.nav-group') ||
+                       document.querySelector('.nav-bar') ||
+                       document.querySelector('nav') ||
+                       document.querySelector('[class*="nav"]');
+        if (!navBar) { setTimeout(addDesktop, 100); return; }
+        if (document.getElementById('googleConnectBtn')) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'nav-btn nav-google-btn';
+        btn.id = 'googleConnectBtn';
+        btn.onclick = handleCombinedGoogleClick;
+        btn.title = 'Connect Google Analytics 4 and Search Console together';
+        btn.innerHTML = googleIcon +
+            '<span id="googleConnectText">Connect Google</span>' +
+            '<div id="googleConnectLight" style="width:8px;height:8px;border-radius:50%;background:#ea4335;flex-shrink:0;"></div>';
+        btn.style.cssText = `
+            display: flex !important; align-items: center; gap: 8px;
+            padding: 8px 16px !important; margin: 0 8px !important;
+            background: var(--color-bg-primary) !important;
+            border: 1px solid #dadce0 !important; border-radius: 8px !important;
+            cursor: pointer; font-size: 14px !important;
+            color: var(--color-text-primary) !important; transition: all 0.2s ease;
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+        // Place it first, ahead of the (now hidden) individual buttons.
+        navBar.insertBefore(btn, navBar.firstChild);
+        updateCombinedGoogleButton();
+        // Poll keeps the label/light and the hidden-individual state in sync as the
+        // underlying modules connect/disconnect (they don't emit a shared event).
+        setInterval(updateCombinedGoogleButton, 1000);
+    };
+
+    const addMobile = () => {
+        const container = document.getElementById('mobileIntegrationsContainer');
+        const section   = document.getElementById('mobileIntegrationsSection');
+        if (!container || !section) { setTimeout(addMobile, 200); return; }
+        if (document.getElementById('mobileGoogleConnectBtn')) return;
+        section.style.display = 'block';
+        const mbtn = document.createElement('button');
+        mbtn.className = 'mobile-nav-item';
+        mbtn.id = 'mobileGoogleConnectBtn';
+        mbtn.onclick = () => { handleCombinedGoogleClick(); if (typeof closeMobileMenu === 'function') closeMobileMenu(); };
+        mbtn.innerHTML =
+            '<span style="display:flex;align-items:center;gap:8px;">' + googleIcon +
+            '<span id="mobileGoogleConnectText">Connect Google</span>' +
+            '<div id="mobileGoogleConnectLight" style="width:8px;height:8px;border-radius:50%;background:#ea4335;"></div>' +
+            '</span>';
+        container.insertBefore(mbtn, container.firstChild);
+    };
+
+    addDesktop();
+    addMobile();
 }
 
 // Add GA4 button to mobile menu
