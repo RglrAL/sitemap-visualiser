@@ -565,6 +565,7 @@ function formatDuration(seconds) {
         hasData: () => gscDataLoaded,
         getData: (url) => gscDataMap.get(url),
         toggleConnection: toggleGSCConnection,
+        acceptExternalToken: acceptGSCExternalToken,
         fetchData: fetchGSCDataForSitemap,
         fetchAllPages: fetchAllGSCPages,
         fetchAllQueries: fetchAllGSCQueries,
@@ -809,8 +810,22 @@ function formatDuration(seconds) {
         
         updateConnectionStatus(true);
         gscEvents.emit('authenticated');
-        
+
         // Start lazy loading initialization
+        initializeLazyLoading();
+    }
+
+    // Accept a token minted by the combined "Connect Google" flow (GA4 + GSC, one consent).
+    // Same post-auth path as handleAuthResponse, just without its own token request.
+    function acceptGSCExternalToken(token) {
+        if (!token) return;
+        accessToken = token;
+        tokenSetTime = Date.now();
+        if (gapi && gapi.client) {
+            gapi.client.setToken({ access_token: accessToken });
+        }
+        updateConnectionStatus(true);
+        gscEvents.emit('authenticated');
         initializeLazyLoading();
     }
 
@@ -831,7 +846,14 @@ function formatDuration(seconds) {
                 alert('Google services are still loading. Please wait a moment and try again.');
                 return;
             }
-            
+
+            // One consent for both: connect GSC + GA4 together when the combined flow is available.
+            if (typeof window.SVConnectGoogle === 'function') {
+                showGSCLoadingState();
+                window.SVConnectGoogle();
+                return;
+            }
+
             if (tokenClient) {
                 debugLog('Requesting access token...');
                 showGSCLoadingState();
