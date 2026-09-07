@@ -73,6 +73,70 @@
         }
     }
 
+    // ── One-click "Connect Google" (GA4 + GSC in a single consent) ──────────────
+    // GA4 and GSC share the same OAuth client id, so one token carrying BOTH scopes
+    // authenticates both APIs. This requests it once and hands the token to each
+    // module, so the team connects everything with a single click + single consent.
+    const GOOGLE_COMBINED_SCOPES =
+        'https://www.googleapis.com/auth/analytics.readonly ' +
+        'https://www.googleapis.com/auth/webmasters.readonly';
+    let combinedTokenClient = null;
+
+    // Accept a token minted elsewhere (the combined flow) and continue GA4 setup.
+    function acceptGA4ExternalToken(token) {
+        if (!token) return;
+        ga4AccessToken = token;
+        if (typeof gapi !== 'undefined' && gapi.client) {
+            gapi.client.setToken({ access_token: ga4AccessToken });
+        }
+        setupGA4Connection();
+    }
+
+    function connectGoogleCombined() {
+        if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+            alert('Google services are still loading. Please wait a moment and try again.');
+            return;
+        }
+        if (!combinedTokenClient) {
+            combinedTokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GA4_CONFIG.CLIENT_ID,
+                scope: GOOGLE_COMBINED_SCOPES,
+                callback: (response) => {
+                    hideGA4LoadingState();
+                    if (!response || !response.access_token) {
+                        console.error('[Google] Combined auth: no access token', response);
+                        return;
+                    }
+                    const token = response.access_token;
+                    // Drive GA4 (this module) then GSC (its module), each independently guarded.
+                    try { acceptGA4ExternalToken(token); } catch (e) { console.error('[Google] GA4 accept failed', e); }
+                    try {
+                        if (window.GSCIntegration && typeof window.GSCIntegration.acceptExternalToken === 'function') {
+                            window.GSCIntegration.acceptExternalToken(token);
+                        }
+                    } catch (e) { console.error('[Google] GSC accept failed', e); }
+                },
+                error_callback: (error) => {
+                    console.error('[Google] Combined auth error:', error);
+                    if (error && (error.type === 'popup_blocked' || (error.message && error.message.indexOf('popup') >= 0))) {
+                        try { combinedTokenClient.requestAccessToken({ prompt: 'consent' }); return; }
+                        catch (e) { /* fall through */ }
+                    }
+                    hideGA4LoadingState();
+                }
+            });
+        }
+        showGA4LoadingState();
+        try {
+            combinedTokenClient.requestAccessToken({ prompt: '' });
+        } catch (e) {
+            try { combinedTokenClient.requestAccessToken({ prompt: 'consent' }); }
+            catch (e2) { hideGA4LoadingState(); alert('Authentication popup was blocked. Please allow popups for this site and try again.'); }
+        }
+    }
+    // Shared entry point either module's button can call.
+    window.SVConnectGoogle = connectGoogleCombined;
+
     function getGA4PropertyName(propertyId) {
         // Configuration object for GA4 properties with domain mapping
         const GA4_PROPERTIES = [
@@ -141,6 +205,13 @@
                 if (isValid) {
                     ga4PropertyId = selectedPropertyId;
                     ga4Connected = true;
+                    // Remember the property for this sitemap's domain so we can skip the
+                    // picker next time (known domains already auto-connect; this covers custom ones).
+                    try {
+                        if (window.currentSitemapDomain) {
+                            localStorage.setItem('ga4PropertyBySite:' + window.currentSitemapDomain, selectedPropertyId);
+                        }
+                    } catch (e) {}
                     updateGA4ConnectionStatus(true);
                     
                     // Get the property name for the success message
@@ -245,7 +316,18 @@
             resolve(matchedProperty.propertyId);
             return;
         }
-        
+
+        // Previously-connected custom/unknown domain: reuse the remembered property (skip the dialog).
+        try {
+            const remembered = currentDomain && localStorage.getItem('ga4PropertyBySite:' + currentDomain);
+            if (remembered && /^\d{8,12}$/.test(remembered)) {
+                ga4Log('Reusing remembered GA4 property ' + remembered + ' for ' + currentDomain);
+                modal.remove();
+                resolve(remembered);
+                return;
+            }
+        } catch (e) {}
+
         // For unknown domains, show helpful info
         let autoSelectMessage = '';
         if (currentDomain) {
@@ -1102,11 +1184,16 @@ function addMobileGA4Button() {
             }
             disconnectGA4();
         } else {
+            // One consent for both: if GSC is available, connect GA4 + GSC together.
+            if (window.GSCIntegration && typeof window.SVConnectGoogle === 'function') {
+                window.SVConnectGoogle();
+                return;
+            }
             if (!ga4TokenClient) {
                 alert('GA4 services are still loading. Please wait a moment and try again.');
                 return;
             }
-            
+
             showGA4LoadingState();
             
             try {
@@ -1606,7 +1693,9 @@ function addGA4Styles() {
         fetchMonthlyViews: fetchMonthlyViews,
         fetchSourcesByPage: fetchSourcesByPage,
         disconnect: disconnectGA4,
-        
+        acceptExternalToken: acceptGA4ExternalToken,
+        connectGoogle: connectGoogleCombined,
+
         // Utility functions
         formatNumber: formatNumber,
         formatDuration: formatDuration,
