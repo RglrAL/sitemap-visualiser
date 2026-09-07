@@ -8,6 +8,11 @@
     // ─── Constants ────────────────────────────────────────────────────────────
 
     const GROQ_ENDPOINT      = 'https://api.groq.com/openai/v1/chat/completions';
+    // Optional shared-key proxy (a Cloudflare Worker /groq route holding ONE team key).
+    // Set once in index.html:  window.SV_GROQ_PROXY_URL = 'https://<worker>.workers.dev/groq';
+    // When set, teammates get AI with ZERO setup; a personal key (if entered) still wins.
+    // Read lazily (this module loads before index.html sets the global).
+    function _proxyUrl() { return (typeof window !== 'undefined' && window.SV_GROQ_PROXY_URL) || ''; }
     const STORAGE_KEY_API    = 'groqApiKey';
     const STORAGE_KEY_MODEL  = 'groqModel';
     const STORAGE_KEY_PIN    = 'groqAdminPin';
@@ -159,6 +164,24 @@
 
     // ─── Core API ─────────────────────────────────────────────────────────────
 
+    // True when we can reach Groq at all: a personal key, or a configured shared proxy.
+    function _canCall() { return !!_apiKey || !!_proxyUrl(); }
+
+    // Resolves where a request goes and what auth it carries.
+    //  - a real key (personal, or overrideKey during validation) → Groq direct, Bearer auth
+    //  - no key but a proxy is set                                → the Worker, which injects the shared key
+    // Returns null when neither is available (caller surfaces "not configured").
+    function _resolveEndpoint(key) {
+        if (key) {
+            return { url: GROQ_ENDPOINT, headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' } };
+        }
+        const pu = _proxyUrl();
+        if (pu) {
+            return { url: pu, headers: { 'Content-Type': 'application/json' } };
+        }
+        return null;
+    }
+
     async function _rawComplete(messages, options, overrideKey) {
         const key    = overrideKey || _apiKey;
         const signal = options && options.signal;
@@ -175,14 +198,14 @@
         // spending its whole token budget deliberating (the A6 empty-generation root cause). Passed through only when set.
         if (options && options.reasoning_effort) payload.reasoning_effort = options.reasoning_effort;
 
+        const ep = _resolveEndpoint(key);
+        if (!ep) throw new Error('Groq AI not configured. Click ✨ AI in the toolbar to add your API key.');
+
         let response;
         try {
-            response = await fetch(GROQ_ENDPOINT, {
+            response = await fetch(ep.url, {
                 method:  'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + key,
-                    'Content-Type':  'application/json',
-                },
+                headers: ep.headers,
                 body:   JSON.stringify(payload),
                 signal: signal || undefined,
             });
@@ -237,7 +260,7 @@
     // Accepts options.signal (AbortSignal) to allow cancellation.
     // If no signal provided, creates its own AbortController (stored as _activeController).
     async function complete(messages, options) {
-        if (!_apiKey) {
+        if (!_canCall()) {
             throw new Error(
                 'Groq AI not configured. Click ✨ AI in the toolbar to add your API key.'
             );
@@ -255,7 +278,7 @@
     // If no signal provided, creates its own AbortController (stored as _activeController).
     // Aborting fires neither onDone nor onError — request silently stops.
     async function stream(messages, onChunk, onDone, onError, options) {
-        if (!_apiKey) {
+        if (!_canCall()) {
             if (typeof onError === 'function') {
                 onError(new Error(
                     'Groq AI not configured. Click ✨ AI in the toolbar to add your API key.'
@@ -281,14 +304,14 @@
             stream:      true,
         };
 
+        const ep = _resolveEndpoint(_apiKey);
+        if (!ep) { if (typeof onError === 'function') onError(new Error('Groq AI not configured.')); return; }
+
         let response;
         try {
-            response = await fetch(GROQ_ENDPOINT, {
+            response = await fetch(ep.url, {
                 method:  'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + _apiKey,
-                    'Content-Type':  'application/json',
-                },
+                headers: ep.headers,
                 body:   JSON.stringify(payload),
                 signal: signal,
             });
@@ -954,7 +977,7 @@ body.dark-theme .nav-ai-btn.configured {
     function _updateButtonState() {
         const btn = document.getElementById('groqAiBtn');
         if (!btn) return;
-        btn.classList.toggle('configured', !!_apiKey);
+        btn.classList.toggle('configured', _canCall());
         btn.classList.toggle('testing',    _testing);
     }
 
@@ -990,6 +1013,14 @@ body.dark-theme .nav-ai-btn.configured {
         desc.style.cssText = 'margin:0 0 22px;font-size:0.82rem;color:var(--color-text-secondary);line-height:1.5;';
         desc.textContent = 'Add your Groq API key to enable AI-powered writing suggestions, meta description generation, and content analysis. Groq inference is free to try.';
         box.appendChild(desc);
+
+        // Shared-key active: reassure that AI already works with no setup.
+        if (!_apiKey && _proxyUrl()) {
+            const shared = document.createElement('p');
+            shared.style.cssText = 'margin:0 0 22px;padding:10px 12px;border-radius:8px;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-left:3px solid #10b981;font-size:0.8rem;color:var(--color-text-secondary);line-height:1.5;';
+            shared.textContent = 'A shared team key is active, so AI already works here — no setup needed. Add your own key below only if you want to use your personal Groq account.';
+            box.appendChild(shared);
+        }
 
         const keyLabel = document.createElement('label');
         keyLabel.textContent = 'API Key';
@@ -1635,12 +1666,13 @@ body.dark-theme .nav-ai-btn.configured {
         // a Set and abort all. (Callers that pass their own AbortSignal manage their own cancellation
         // and are unaffected either way.)
         cancel:       () => { if (_activeController) { _activeController.abort(); _activeController = null; } },
-        isConfigured: () => !!_apiKey,
+        isConfigured: () => _canCall(),
+        usingSharedKey: () => !_apiKey && !!_proxyUrl(),
         getModel:     () => _model,
         showSettings: _showSettingsModal,
         getPrompt:    _getPrompt,
         debug: {
-            getStatus:      () => ({ hasKey: !!_apiKey, model: _model, testing: _testing }),
+            getStatus:      () => ({ hasKey: !!_apiKey, sharedProxy: !!_proxyUrl(), canCall: _canCall(), model: _model, testing: _testing }),
             clearKey:       () => { _apiKey = null; _clearStorage(); _updateButtonState(); },
             isAdminAuthed:  () => { try { return sessionStorage.getItem(SESSION_KEY_AUTH) === 'true'; } catch(e) { return false; } },
             clearAdminAuth: () => { try { sessionStorage.removeItem(SESSION_KEY_AUTH); } catch(e) {} },
