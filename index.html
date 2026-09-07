@@ -6982,6 +6982,11 @@ Technical details: All CORS proxy services failed to fetch the sitemap.`);
 //    that won't rot. Leave '' to use only the public proxies below.
 const CORS_PROXY_WORKER = 'https://sitemap-cors.alleroc.workers.dev';
 
+// ⬇️ Shared Groq key for the whole team (zero per-person setup). Point this at the
+//    /groq route of the same Worker once you've redeployed cors-proxy-worker.js and
+//    set its GROQ_KEY secret. Leave '' to keep the per-user "paste your key" flow.
+window.SV_GROQ_PROXY_URL = CORS_PROXY_WORKER ? (CORS_PROXY_WORKER + '/groq') : '';
+
 const CORS_PROXIES = [
     // Your own Worker first (if configured) — reliable; the rest are flaky public fallbacks.
     ...(CORS_PROXY_WORKER ? [url => `${CORS_PROXY_WORKER}/?url=${encodeURIComponent(url)}`] : []),
