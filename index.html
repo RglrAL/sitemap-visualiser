@@ -11396,7 +11396,7 @@ window.switchView = function(viewType) {
         .attr("class", "dashboard-header");
     
     header.append("h2")
-        .text("📊 Site Structure");
+        .text("Site Structure");
     
     header.append("div")
         .attr("class", "dashboard-subtitle")
@@ -11417,11 +11417,9 @@ window.switchView = function(viewType) {
     
     // Performance Overview Section
     const performanceSection = container.append("div")
-        .style("padding", "30px")
-        .style("background", isDark ? "var(--gray-800)" : "white")
-        .style("border-radius", "16px")
-        .style("margin-bottom", "24px")
-        .style("box-shadow", isDark ? "0 4px 6px -1px rgb(0 0 0 / 0.3)" : "0 4px 6px -1px rgb(0 0 0 / 0.1)");
+        .style("padding", "0")
+        .style("background", "transparent")
+        .style("margin-bottom", "24px");
     
     performanceSection.append("h3")
         .style("font-size", "1.4rem")
@@ -11438,7 +11436,7 @@ window.switchView = function(viewType) {
     
     const metrics = [
         {
-            title: "📄 Site Structure",
+            title: "Site Structure",
             value: siteStats.totalPages.toLocaleString(),
             label: "Total Pages",
             subtitle: `Across ${siteStats.categoryCount} main categories`,
@@ -11446,7 +11444,7 @@ window.switchView = function(viewType) {
             color: "var(--primary)"
         },
         {
-            title: "🎯 Navigation Quality",
+            title: "Navigation Quality",
             value: siteAnalysis.score + "/100",
             label: "Structure Score",
             subtitle: siteAnalysis.score >= 80 ? "Excellent organization" : siteAnalysis.score >= 60 ? "Good structure" : "Needs improvement",
@@ -11454,7 +11452,7 @@ window.switchView = function(viewType) {
             color: "var(--primary)"
         },
         {
-            title: "📊 Content Depth",
+            title: "Content Depth",
             value: siteStats.maxDepth,
             label: "Maximum Depth",
             subtitle: `Average: ${siteStats.avgDepth} levels`,
@@ -11462,7 +11460,7 @@ window.switchView = function(viewType) {
             color: "var(--primary)"
         },
         {
-            title: "🔍 Category Analysis",
+            title: "Category Analysis",
             value: siteStats.largestCategory.percentage + "%",
             label: "Largest Category",
             subtitle: siteStats.largestCategory.name,
@@ -11473,8 +11471,8 @@ window.switchView = function(viewType) {
     
     metrics.forEach(metric => {
         const card = metricsGrid.append("div")
-            .style("background", isDark ? "linear-gradient(145deg, var(--gray-700) 0%, var(--gray-750) 100%)" : "linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)")
-            .style("border", isDark ? "1px solid var(--gray-600)" : "1px solid #e2e8f0")
+            .style("background", isDark ? "var(--gray-800)" : "var(--color-bg-primary)")
+            .style("border", "1px solid var(--color-border-primary)")
             .style("border-radius", "16px")
             .style("padding", "24px")
             .style("position", "relative")
@@ -11510,7 +11508,7 @@ window.switchView = function(viewType) {
         
         // Value
         card.append("div")
-            .style("font-size", "2.2rem")
+            .style("font-size", "1.6rem")
             .style("font-weight", "800")
             .style("color", isDark ? "var(--gray-100)" : "#1e293b")
             .style("line-height", "1")
@@ -11544,7 +11542,7 @@ window.switchView = function(viewType) {
                 .style("border-radius", "12px")
                 .style("font-size", "0.7rem")
                 .style("font-weight", "600")
-                .text("✓ Good");
+                .text("Good");
         } else if (metric.trend === "negative") {
             card.append("div")
                 .style("position", "absolute")
@@ -11556,7 +11554,7 @@ window.switchView = function(viewType) {
                 .style("border-radius", "12px")
                 .style("font-size", "0.7rem")
                 .style("font-weight", "600")
-                .text("⚠ Review");
+                .text("Review");
         }
     });
     
@@ -11588,7 +11586,7 @@ window.switchView = function(viewType) {
                     .style("color", "var(--color-text-heading)")
                     .style("text-align", "center")
                     .style("margin-bottom", "20px")
-                    .text("🌐 Language Distribution");
+                    .text("Language Distribution");
                 
                 const langGrid = langSection.append("div")
                     .style("display", "grid")
@@ -11702,7 +11700,7 @@ window.switchView = function(viewType) {
                     .style("color", "var(--color-text-heading)")
                     .style("text-align", "center")
                     .style("margin-bottom", "20px")
-                    .text("🔍 Language Pair Analysis");
+                    .text("Language Pair Analysis");
                 
                 // Detect missing language pairs
                 const languagePairMismatches = detectLanguagePairMismatches(siteStats.languageStats);
@@ -11716,7 +11714,7 @@ window.switchView = function(viewType) {
                     mismatchCard.append("h4")
                         .style("color", "var(--color-text-primary)")
                         .style("margin-bottom", "15px")
-                        .text("⚠️ Language Pair Differences Detected");
+                        .text("Language Pair Differences Detected");
                     
                     mismatchCard.append("p")
                         .style("color", "var(--color-text-secondary)")
@@ -11801,7 +11799,7 @@ window.switchView = function(viewType) {
                         .style("color", "#2e7d32")
                         .style("text-align", "center")
                         .style("padding", "20px")
-                        .text("✅ All categories have matching page counts between languages!");
+                        .text("All categories have matching page counts between languages!");
                 }
             }
             
@@ -11817,7 +11815,7 @@ window.switchView = function(viewType) {
             
             depthChart.append("div")
                 .attr("class", "chart-title")
-                .text("📈 Pages by Depth Level");
+                .text("Pages by Depth Level");
             
             createDepthChart(depthChart);
         }
@@ -11970,7 +11968,7 @@ function createDepthChart(container) {
             
             perfHeader.append("div")
                 .attr("class", "insight-icon")
-                .text("🎯");
+                .text("");
             
             perfHeader.append("div")
                 .attr("class", "insight-title")
@@ -12006,7 +12004,7 @@ function createDepthChart(container) {
                 
                 issuesHeader.append("div")
                     .attr("class", "insight-icon")
-                    .text("⚠️");
+                    .text("");
                 
                 issuesHeader.append("div")
                     .attr("class", "insight-title")
@@ -12021,7 +12019,7 @@ function createDepthChart(container) {
                     
                     li.append("div")
                         .attr("class", "issue-icon")
-                        .text(issue.type === 'critical' ? '🚨' : '⚠️');
+                        .text("");
                     
                     const content = li.append("div");
                     
@@ -12047,7 +12045,7 @@ function createDepthChart(container) {
                 
                 recHeader.append("div")
                     .attr("class", "insight-icon")
-                    .text("💡");
+                    .text("");
                 
                 recHeader.append("div")
                     .attr("class", "insight-title")
@@ -12061,7 +12059,7 @@ function createDepthChart(container) {
                     
                     li.append("div")
                         .attr("class", "recommendation-icon")
-                        .text("💡");
+                        .text("");
                     
                     const content = li.append("div");
                     
@@ -12087,7 +12085,7 @@ function createDepthChart(container) {
                 
                 strengthsHeader.append("div")
                     .attr("class", "insight-icon")
-                    .text("✅");
+                    .text("");
                 
                 strengthsHeader.append("div")
                     .attr("class", "insight-title")
@@ -12106,7 +12104,7 @@ function createDepthChart(container) {
                     li.append("div")
                         .style("margin-right", "10px")
                         .style("margin-top", "2px")
-                        .text("✅");
+                        .text("");
                     
                     li.append("div")
                         .style("color", "#444")
@@ -12245,12 +12243,12 @@ function createDepthChart(container) {
         // No lastmod data found - return the original message
         return `
             <div style="text-align: center; margin-bottom: 30px;">
-                <h2 style="color: var(--color-text-heading);">📅 Content Freshness Analysis</h2>
+                <h2 style="color: var(--color-text-heading);">Content Freshness Analysis</h2>
                 <p style="color: var(--color-text-secondary);">No lastmod data found in this sitemap</p>
             </div>
             
             <div style="background: var(--color-warning-bg); border-left: 4px solid #ff9800; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="color: #e65100; margin-bottom: 15px;">⚠️ Missing LastMod Data</h4>
+                <h4 style="color: #e65100; margin-bottom: 15px;">Missing LastMod Data</h4>
                 <p style="color: var(--color-text-primary); margin-bottom: 15px;">Your sitemap doesn't include lastmod (last modified) dates. This is valuable data for:</p>
                 <ul style="color: var(--color-text-primary); margin-left: 20px; margin-bottom: 15px;">
                     <li><strong>Content maintenance tracking</strong> - Know which pages are outdated</li>
@@ -12476,12 +12474,12 @@ window.criticalCurrentPage = 1;
     `;
     
     const ageCategories = [
-    { label: 'New (1-3 months)', count: freshness.new, color: '#2e7d32', desc: 'Recently updated' },
-    { label: 'Fresh (3-6 months)', count: freshness.fresh, color: '#43a047', desc: 'Still current' },
-    { label: 'Recent (6-12 months)', count: freshness.recent, color: '#fdd835', desc: 'May need review' },
-    { label: 'Aging (1-2 years)', count: freshness.aging, color: '#fb8c00', desc: 'Should be reviewed' },
-    { label: 'Old (2-3 years)', count: freshness.old, color: '#e53935', desc: 'Needs attention' },
-    { label: 'Stale (> 3 years)', count: freshness.stale, color: '#b71c1c', desc: 'Urgent review needed' }
+    { label: 'New (< 1 month)', count: freshness.new, color: '#2e7d32', desc: 'Recently updated' },
+    { label: 'Fresh (1-3 months)', count: freshness.fresh, color: '#43a047', desc: 'Still current' },
+    { label: 'Recent (3-6 months)', count: freshness.recent, color: '#fdd835', desc: 'May need review' },
+    { label: 'Aging (6-12 months)', count: freshness.aging, color: '#fb8c00', desc: 'Should be reviewed' },
+    { label: 'Old (1-2 years)', count: freshness.old, color: '#e53935', desc: 'Needs attention' },
+    { label: 'Stale (2+ years)', count: freshness.stale, color: '#b71c1c', desc: 'Urgent review needed' }
 ];
         
     ageCategories.forEach((cat, index) => {
@@ -12489,94 +12487,11 @@ window.criticalCurrentPage = 1;
         const isHighPriority = index >= 4; // Old and Stale categories
         
         html += `
-            <div style="
-                background: ${isDarkTheme ? `linear-gradient(135deg, ${cat.color}25, ${cat.color}18)` : `linear-gradient(135deg, ${cat.color}08, ${cat.color}04)`};
-                border: 1px solid ${isDarkTheme ? `${cat.color}55` : `${cat.color}30`};
-                border-radius: 16px; 
-                padding: 20px; 
-                position: relative;
-                overflow: hidden;
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-                ${isHighPriority ? 'box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);' : 'box-shadow: 0 2px 8px rgba(0,0,0,0.08);'}
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';" 
-               onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='${isHighPriority ? '0 4px 20px rgba(239, 68, 68, 0.15)' : '0 2px 8px rgba(0,0,0,0.08)'}'; ">
-                
-                <!-- Background decoration -->
-                <div style="
-                    position: absolute; 
-                    top: -10px; 
-                    right: -10px; 
-                    width: 40px; 
-                    height: 40px; 
-                    background: ${cat.color};
-                    border-radius: 50%;
-                    opacity: 0.1;
-                "></div>
-                
-                <!-- Header with count -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; position: relative; z-index: 1;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: var(--color-text-primary); font-size: 14px; margin-bottom: 4px;">
-                            ${cat.label}
-                        </div>
-                        <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.4;">
-                            ${cat.desc}
-                        </div>
-                    </div>
-                    <div style="
-                        background: ${cat.color}; 
-                        color: white; 
-                        padding: 6px 10px; 
-                        border-radius: 12px; 
-                        font-size: 16px; 
-                        font-weight: 700;
-                        min-width: 45px;
-                        text-align: center;
-                        box-shadow: 0 2px 8px ${cat.color}40;
-                    ">
-                        ${cat.count}
-                    </div>
-                </div>
-                
-                <!-- Progress bar -->
-                <div style="
-                    background: ${isDarkTheme ? '#374151' : '#f3f4f6'};
-                    height: 8px;
-                    border-radius: 6px;
-                    overflow: hidden;
-                    margin-bottom: 8px;
-                    position: relative;
-                ">
-                    <div style="
-                        background: linear-gradient(90deg, ${cat.color}, ${cat.color}dd);
-                        height: 100%; 
-                        width: ${percentage}%; 
-                        border-radius: 6px; 
-                        transition: width 1s ease-out;
-                        box-shadow: 0 0 10px ${cat.color}40;
-                    "></div>
-                </div>
-                
-                <!-- Percentage and priority indicator -->
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 13px; color: var(--color-text-primary); font-weight: 500;">
-                        ${percentage}% of total
-                    </div>
-                    ${isHighPriority ? `
-                        <div style="
-                            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-                            color: white;
-                            padding: 2px 8px;
-                            border-radius: 8px;
-                            font-size: 10px;
-                            font-weight: 600;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                        ">
-                            ⚠️ Priority
-                        </div>
-                    ` : ''}
-                </div>
+            <div style="border:1px solid var(--color-border-primary);border-radius:10px;background:var(--color-bg-primary);padding:12px 13px;">
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><span style="width:9px;height:9px;border-radius:2px;background:${cat.color};flex-shrink:0;"></span><span style="font-weight:700;font-size:0.82rem;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cat.label}</span></div>
+                <div style="font-size:1.3rem;font-weight:800;color:var(--color-text-heading);line-height:1.1;">${cat.count} <span style="font-size:0.62rem;font-weight:600;color:var(--color-text-muted);">${percentage}%${isHighPriority ? ' · priority' : ''}</span></div>
+                <div style="height:4px;background:var(--color-bg-tertiary);border-radius:2px;margin-top:8px;overflow:hidden;"><div style="height:100%;width:${percentage}%;background:${cat.color};"></div></div>
+                <div style="font-size:0.64rem;color:var(--color-text-secondary);margin-top:6px;">${cat.desc}</div>
             </div>
         `;
     });
@@ -12723,8 +12638,8 @@ window.criticalCurrentPage = 1;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             ">
                 <div style="
-                    background: linear-gradient(135deg, var(--color-text-heading), #2563eb);
-                    color: white; 
+                    background: var(--color-bg-secondary);
+                    color: var(--color-text-heading); 
                     padding: 20px; 
                     font-weight: 600;
                     position: relative;
@@ -12841,7 +12756,7 @@ window.criticalCurrentPage = 1;
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
                 <div style="
                     width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, #10b981, #059669);
+                    background: #059669;
                     border-radius: 10px; 
                     display: flex; align-items: center; justify-content: center;
                     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
@@ -12862,7 +12777,7 @@ window.criticalCurrentPage = 1;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             ">
                 <div style="
-                    background: linear-gradient(135deg, #10b981, #059669); 
+                    background: #059669; 
                     color: white; 
                     padding: 20px; 
                     font-weight: 600;
@@ -12931,15 +12846,6 @@ pageDetails.newest.forEach((page, index) => {
 <!-- Enhanced Pages Requiring Immediate Attention -->
 <div style="margin-bottom: 40px;">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-        <div style="
-            width: 40px; height: 40px; 
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        ">
-            <span style="font-size: 18px;">🚨</span>
-        </div>
         <div>
             <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Action Required - Critical Content Review</h3>
             <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Pages older than 2 years that may need urgent content updates</p>
@@ -12957,15 +12863,12 @@ const criticalPages = pageDetails.oldest.filter(p => {
 html += `
     <!-- Enhanced Summary Stats -->
     <div style="
-        background: linear-gradient(135deg, #fef3f2, #fed7cc); 
-        border: 1px solid #fca5a5;
-        border-left: 4px solid #dc2626; 
-        padding: 25px; 
-        border-radius: 16px; 
-        margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
-        position: relative;
-        overflow: hidden;
+        background: var(--color-bg-primary); 
+        border: 1px solid var(--color-border-primary);
+        border-left: 3px solid #dc2626; 
+        padding: 16px 18px; 
+        border-radius: 10px; 
+        margin-bottom: 20px;
     ">
         <!-- Background decoration -->
         <div style="
@@ -12980,7 +12883,7 @@ html += `
         
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; position: relative; z-index: 1;">
             <div>
-                <span style="font-size: 2.5rem; font-weight: bold; color: #f44336;">${criticalPages.length}</span>
+                <span style="font-size: 1.5rem; font-weight: 800; color: #dc2626;">${criticalPages.length}</span>
                 <span style="font-size: 1.2rem; color: #856404; margin-left: 10px;">pages are over 2 years old and may require attention</span>
             </div>
             <div style="color: #856404; font-size: 0.95rem;">
@@ -13109,7 +13012,7 @@ criticalPages.slice(criticalStartIndex, criticalEndIndex).forEach((page, index) 
 if (criticalPages.length === 0) {
     html += `
         <div style="padding: 40px; text-align: center; color: #4caf50;">
-            <div style="font-size: 3rem; margin-bottom: 10px;">✅</div>
+            <div style="font-size: 1.6rem; margin-bottom: 8px; color: #059669;">✓</div>
             <div style="font-size: 1.2rem; font-weight: bold;">Excellent!</div>
             <div style="color: var(--color-text-secondary); margin-top: 10px;">No pages are critically outdated (over 2 years old)</div>
         </div>
@@ -13231,7 +13134,7 @@ ${cat.stale > 0 ? `<div style="width: ${stalePercentage}%; background: #b71c1c; 
                 <!-- Expandable details section for this category -->
                 <div id="freshness-category-${index}" style="display: none; padding: 15px; background: #f8f9ff; border-top: 1px dashed #e0e0e0; margin-top: 10px;">
                     <div style="margin-bottom: 15px;">
-                        <div style="font-weight: 500; color: var(--color-text-heading); margin-bottom: 8px;">📅 Most Recent Updates:</div>
+                        <div style="font-weight: 500; color: var(--color-text-heading); margin-bottom: 8px;">Most Recent Updates:</div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
         `;
         
@@ -13259,7 +13162,7 @@ ${cat.stale > 0 ? `<div style="width: ${stalePercentage}%; background: #b71c1c; 
                     </div>
                     
                     <div>
-                        <div style="font-weight: 500; color: var(--color-text-heading); margin-bottom: 8px;">⚠️ May Need Attention:</div>
+                        <div style="font-weight: 500; color: var(--color-text-heading); margin-bottom: 8px;">May Need Attention:</div>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
         `;
         
@@ -13307,7 +13210,7 @@ ${cat.stale > 0 ? `<div style="width: ${stalePercentage}%; background: #b71c1c; 
     // Recommendations
     html += `
         <div style="background: var(--color-info-bg); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-            <h4 style="color: var(--color-text-heading); margin-bottom: 15px;">💡 Content Maintenance Recommendations</h4>
+            <h4 style="color: var(--color-text-heading); margin-bottom: 15px;">Content Maintenance Recommendations</h4>
             <ul style="color: var(--color-text-primary); line-height: 1.6; margin-left: 20px;">
     `;
     
@@ -13657,69 +13560,9 @@ window.exportFreshnessAnalysis = function() {
             
             const analysis = generateCategoryBreakdown();
             
-            // Create modal overlay
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
-                align-items: center; justify-content: center; padding: clamp(10px, 3vw, 20px);
-                backdrop-filter: blur(4px);
-            `;
+            window.SVReportShell({ title: 'Content by Category', subtitle: 'Content structure by section and language', bodyHtml: analysis });
             
-            modal.onclick = () => modal.remove();
-            
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: var(--color-bg-primary); border-radius: 16px; position: relative;
-                width: 95vw; max-width: 1200px; max-height: 90vh; overflow: hidden;
-                display: flex; flex-direction: column;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                margin: 0 auto;
-                animation: modalSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-            `;
-            content.onclick = e => e.stopPropagation();
 
-            const scrollBody = document.createElement('div');
-            scrollBody.style.cssText = 'flex: 1; overflow-y: auto; padding: clamp(15px, 4vw, 30px);';
-            scrollBody.innerHTML = analysis;
-            content.appendChild(scrollBody);
-            
-            // Then create and append the X button
-const closeBtn = document.createElement('button');
-closeBtn.innerHTML = '×';
-closeBtn.style.cssText = `
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 48px;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    z-index: 1000;
-`;
-closeBtn.onmouseover = () => {
-    closeBtn.style.background = 'var(--color-bg-tertiary)';
-    closeBtn.style.color = 'var(--color-text-primary)';
-};
-closeBtn.onmouseout = () => {
-    closeBtn.style.background = 'transparent';
-    closeBtn.style.color = 'var(--color-text-secondary)';
-};
-closeBtn.onclick = () => modal.remove();
-
-// Append the button AFTER setting innerHTML
-content.appendChild(closeBtn);
-
-            modal.appendChild(content);
-            document.body.appendChild(modal);
         }
 
         function generateCategoryBreakdown() {
@@ -13727,25 +13570,7 @@ content.appendChild(closeBtn);
             const irishLang = siteStats.languageStats.find(l => l.name === 'ga');
             
             let html = `
-                <!-- Enhanced Header with Status Badge -->
-                <div style="text-align: center; margin-bottom: 40px; position: relative;">
-                    <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                        <div style="
-                            width: 60px; height: 60px; 
-                            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-                            border-radius: 50%; 
-                            display: flex; align-items: center; justify-content: center;
-                            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
-                        ">
-                            <span style="font-size: 24px;">📋</span>
-                        </div>
-                        <div style="text-align: left;">
-                            <h2 style="color: var(--color-text-heading); margin: 0; font-size: 28px; font-weight: 700;">Content by Category</h2>
-                            <p style="color: var(--color-text-secondary); margin: 5px 0 0 0; font-size: 16px;">Complete analysis of your site's content structure and organization</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+`;
             
             if (englishLang) {
                 const englishCategories = Object.values(englishLang.children).sort((a, b) => b.pages - a.pages);
@@ -13754,15 +13579,6 @@ content.appendChild(closeBtn);
                     <!-- Enhanced English Content Section -->
                     <div style="margin-bottom: 40px;">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                            <div style="
-                                width: 40px; height: 40px; 
-                                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                                border-radius: 10px; 
-                                display: flex; align-items: center; justify-content: center;
-                                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-                            ">
-                                <span style="font-size: 18px;">🇬🇧</span>
-                            </div>
                             <div>
                                 <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">English Content</h3>
                                 <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">${englishLang.pages.toLocaleString()} pages (${englishLang.percentage}% of site)</p>
@@ -13771,8 +13587,8 @@ content.appendChild(closeBtn);
                         
                         <!-- Enhanced Stats Grid -->
                         <div style="
-                            background: linear-gradient(135deg, #eff6ff, #dbeafe); 
-                            border: 1px solid #bfdbfe;
+                            background: var(--color-bg-primary); 
+                            border: 1px solid var(--color-border-primary);
                             border-radius: 16px; 
                             padding: 25px; 
                             margin-bottom: 25px;
@@ -13798,7 +13614,7 @@ content.appendChild(closeBtn);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
-                                    <div style="font-size: 2rem; font-weight: bold; color: #1d4ed8; margin-bottom: 8px; position: relative; z-index: 1;">
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #1d4ed8; margin-bottom: 8px; position: relative; z-index: 1;">
                                         ${englishCategories.length}
                                     </div>
                                     <div style="color: var(--color-text-secondary); font-size: 14px; font-weight: 500;">Categories</div>
@@ -13822,7 +13638,7 @@ content.appendChild(closeBtn);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
-                                    <div style="font-size: 2rem; font-weight: bold; color: #1d4ed8; margin-bottom: 8px; position: relative; z-index: 1;">
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #1d4ed8; margin-bottom: 8px; position: relative; z-index: 1;">
                                         ${englishLang.maxDepth}
                                     </div>
                                     <div style="color: var(--color-text-secondary); font-size: 14px; font-weight: 500;">Max Depth</div>
@@ -13846,7 +13662,7 @@ content.appendChild(closeBtn);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
-                                    <div style="font-size: 2rem; font-weight: bold; color: #1d4ed8; margin-bottom: 8px; position: relative; z-index: 1;">
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #1d4ed8; margin-bottom: 8px; position: relative; z-index: 1;">
                                         ${Math.round(englishLang.pages / englishCategories.length)}
                                     </div>
                                     <div style="color: var(--color-text-secondary); font-size: 14px; font-weight: 500;">Avg Pages/Category</div>
@@ -13863,7 +13679,7 @@ content.appendChild(closeBtn);
                             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
                         ">
                             <div style="
-                                background: linear-gradient(135deg, var(--color-text-heading), #2563eb);
+                                background: var(--color-bg-secondary);
                                 color: white; 
                                 padding: 20px; 
                                 font-weight: 600;
@@ -13920,15 +13736,6 @@ content.appendChild(closeBtn);
                     <!-- Enhanced Irish Content Section -->
                     <div style="margin-bottom: 40px;">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                            <div style="
-                                width: 40px; height: 40px; 
-                                background: linear-gradient(135deg, #10b981, #059669);
-                                border-radius: 10px; 
-                                display: flex; align-items: center; justify-content: center;
-                                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                            ">
-                                <span style="font-size: 18px;">🇮🇪</span>
-                            </div>
                             <div>
                                 <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Irish Content</h3>
                                 <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">${irishLang.pages.toLocaleString()} pages (${irishLang.percentage}% of site)</p>
@@ -13937,8 +13744,8 @@ content.appendChild(closeBtn);
                         
                         <!-- Enhanced Irish Stats Grid -->
                         <div style="
-                            background: linear-gradient(135deg, #ecfdf5, #d1fae5); 
-                            border: 1px solid #bbf7d0;
+                            background: var(--color-bg-primary); 
+                            border: 1px solid var(--color-border-primary);
                             border-radius: 16px; 
                             padding: 25px; 
                             margin-bottom: 25px;
@@ -13964,7 +13771,7 @@ content.appendChild(closeBtn);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
-                                    <div style="font-size: 2rem; font-weight: bold; color: #059669; margin-bottom: 8px; position: relative; z-index: 1;">
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #059669; margin-bottom: 8px; position: relative; z-index: 1;">
                                         ${irishCategories.length}
                                     </div>
                                     <div style="color: var(--color-text-secondary); font-size: 14px; font-weight: 500;">Categories</div>
@@ -13988,7 +13795,7 @@ content.appendChild(closeBtn);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
-                                    <div style="font-size: 2rem; font-weight: bold; color: #059669; margin-bottom: 8px; position: relative; z-index: 1;">
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #059669; margin-bottom: 8px; position: relative; z-index: 1;">
                                         ${irishLang.maxDepth}
                                     </div>
                                     <div style="color: var(--color-text-secondary); font-size: 14px; font-weight: 500;">Max Depth</div>
@@ -14012,7 +13819,7 @@ content.appendChild(closeBtn);
                                         border-radius: 50%;
                                         opacity: 0.1;
                                     "></div>
-                                    <div style="font-size: 2rem; font-weight: bold; color: #059669; margin-bottom: 8px; position: relative; z-index: 1;">
+                                    <div style="font-size: 1.3rem; font-weight: 800; color: #059669; margin-bottom: 8px; position: relative; z-index: 1;">
                                         ${Math.round(irishLang.pages / irishCategories.length)}
                                     </div>
                                     <div style="color: var(--color-text-secondary); font-size: 14px; font-weight: 500;">Avg Pages/Category</div>
@@ -14084,15 +13891,6 @@ content.appendChild(closeBtn);
                 <!-- Enhanced Recommendations Section -->
                 <div style="margin-bottom: 40px;">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                        <div style="
-                            width: 40px; height: 40px; 
-                            background: linear-gradient(135deg, #f59e0b, #d97706);
-                            border-radius: 10px; 
-                            display: flex; align-items: center; justify-content: center;
-                            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-                        ">
-                            <span style="font-size: 18px;">💡</span>
-                        </div>
                         <div>
                             <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Category Optimization Recommendations</h3>
                             <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Actionable insights to improve your content structure</p>
@@ -14100,28 +13898,14 @@ content.appendChild(closeBtn);
                     </div>
                     
                     <div style="
-                        background: linear-gradient(135deg, #fffbeb, #fef3c7); 
-                        border: 1px solid #fcd34d;
-                        border-left: 4px solid #f59e0b; 
-                        padding: 25px; 
-                        border-radius: 16px; 
-                        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
-                        position: relative;
-                        overflow: hidden;
+                        background: var(--color-bg-primary); 
+                        border: 1px solid var(--color-border-primary);
+                        border-left: 3px solid #f59e0b; 
+                        padding: 16px 18px; 
+                        border-radius: 10px;
                     ">
-                        <!-- Background decoration -->
-                        <div style="
-                            position: absolute; 
-                            top: -30px; 
-                            right: -30px; 
-                            width: 100px; 
-                            height: 100px; 
-                            background: rgba(245, 158, 11, 0.05);
-                            border-radius: 50%;
-                        "></div>
-                        
                         <ul style="
-                            color: #92400e; 
+                            color: var(--color-text-primary); 
                             line-height: 1.8; 
                             margin-left: 20px; 
                             font-size: 15px;
@@ -14154,45 +13938,8 @@ content.appendChild(closeBtn);
                     </div>
                 </div>
                 
-                <!-- Enhanced Action Buttons -->
-                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <button onclick="window.exportCategoryBreakdown()" 
-                            style="
-                                padding: 16px 32px; 
-                                background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
-                                color: white; 
-                                border: none; 
-                                border-radius: 12px; 
-                                cursor: pointer; 
-                                font-size: 16px;
-                                font-weight: 600;
-                                box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
-                                transition: all 0.2s ease;
-                                display: flex;
-                                align-items: center;
-                                gap: 8px;
-                            "
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(74, 144, 226, 0.4)';"
-                            onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 12px rgba(74, 144, 226, 0.3)';">
-                        <span>📥</span> Export Category Report
-                    </button>
-                    <button onclick="window.closeCategoryModal()" 
-                            style="
-                                padding: 16px 32px; 
-                                background: linear-gradient(135deg, #6b7280, #4b5563); 
-                                color: white; 
-                                border: none; 
-                                border-radius: 12px; 
-                                cursor: pointer; 
-                                font-size: 16px;
-                                font-weight: 600;
-                                box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-                                transition: all 0.2s ease;
-                            "
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(107, 114, 128, 0.4)';"
-                            onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 12px rgba(107, 114, 128, 0.3)';">
-                        Close
-                    </button>
+                <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px;">
+                    <button onclick="window.exportCategoryBreakdown()" style="padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:600;font-family:inherit;">Export report</button>
                 </div>
             `;
             
@@ -14270,72 +14017,11 @@ window.showURLPatternAnalysis = function() {
     
     const analysis = analyzeURLPatterns();
     
-    // Create modal overlay
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
-        align-items: center; justify-content: center; padding: clamp(10px, 3vw, 20px);
-        backdrop-filter: blur(4px);
-    `;
-    
-    modal.onclick = () => modal.remove();
-    
-    const content = document.createElement('div');
-    content.style.cssText = `
-        background: var(--color-bg-primary); border-radius: 16px; position: relative;
-        width: 95vw; max-width: 1200px; max-height: 90vh; overflow: hidden;
-        display: flex; flex-direction: column;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        margin: 0 auto;
-        animation: modalSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    `;
-    content.onclick = e => e.stopPropagation();
-
-    const scrollBody = document.createElement('div');
-    scrollBody.style.cssText = 'flex: 1; overflow-y: auto; padding: clamp(15px, 4vw, 30px);';
-    scrollBody.innerHTML = generateURLPatternHTML(analysis);
-    content.appendChild(scrollBody);
-    
-    
-    // Then create and append the X button
-const closeBtn = document.createElement('button');
-closeBtn.innerHTML = '×';
-closeBtn.style.cssText = `
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 28px;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    z-index: 1000;
-`;
-closeBtn.onmouseover = () => {
-    closeBtn.style.background = 'var(--color-bg-tertiary)';
-    closeBtn.style.color = 'var(--color-text-primary)';
-};
-closeBtn.onmouseout = () => {
-    closeBtn.style.background = 'transparent';
-    closeBtn.style.color = 'var(--color-text-secondary)';
-};
-closeBtn.onclick = () => modal.remove();
-
-// Append the button AFTER setting innerHTML
-content.appendChild(closeBtn);
-
-
-
-    modal.appendChild(content);
-    document.body.appendChild(modal);
+    window.SVReportShell({
+        title: 'URL Health Audit',
+        subtitle: 'URL structure, patterns and SEO health',
+        bodyHtml: generateURLPatternHTML(analysis)
+    });
 }
 
 function analyzeURLPatterns() {
@@ -14707,42 +14393,11 @@ function generateURLPatternHTML(analysis) {
                       analysis.healthScore >= 60 ? 'Good' : 'Needs Improvement';
     
     let html = `
-        <!-- Enhanced Header with Status Badge -->
-        <div style="text-align: center; margin-bottom: 40px; position: relative;">
-            <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                <div style="
-                    width: 60px; height: 60px; 
-                    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-                    border-radius: 50%; 
-                    display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
-                ">
-                    <span style="font-size: 24px;">🔍</span>
-                </div>
-                <div style="text-align: left;">
-                    <h2 style="color: var(--color-text-heading); margin: 0; font-size: 28px; font-weight: 700;">URL Health Audit</h2>
-                    <p style="color: var(--color-text-secondary); margin: 5px 0 0 0; font-size: 16px;">Comprehensive analysis of your URL structure, patterns, and SEO health</p>
-                </div>
-            </div>
-        </div>
+        
         
         <!-- Enhanced Health Score Section -->
         <div style="margin-bottom: 40px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                <div style="
-                    width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, ${scoreColor}, ${scoreColor}dd);
-                    border-radius: 10px; 
-                    display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 4px 12px ${scoreColor}40;
-                ">
-                    <span style="font-size: 18px;">🎯</span>
-                </div>
-                <div>
-                    <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">URL Health Score</h3>
-                    <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Overall assessment of your URL structure quality</p>
-                </div>
-            </div>
+            <div style="margin-bottom: 20px;"><h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">URL Health Score</h3><p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Overall assessment of your URL structure quality</p></div>
             
             <div style="
                 background: var(--color-bg-secondary);
@@ -14778,153 +14433,38 @@ function generateURLPatternHTML(analysis) {
                     font-size: 14px;
                     box-shadow: 0 4px 12px ${scoreColor}40;
                 ">
-                    ${analysis.healthScore >= 80 ? '🟢 Excellent URLs' : analysis.healthScore >= 60 ? '🟡 Good URLs' : '🔴 Needs Improvement'}
+                    ${analysis.healthScore >= 80 ? 'Excellent URLs' : analysis.healthScore >= 60 ? 'Good URLs' : 'Needs Improvement'}
                 </div>
             </div>
         </div>
         
         <!-- Enhanced Key Metrics Grid -->
         <div style="margin-bottom: 40px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                <div style="
-                    width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                    border-radius: 10px; 
-                    display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-                ">
-                    
-                </div>
-                <div>
-                    <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Key Metrics</h3>
-                    <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Essential URL statistics and issue counts</p>
-                </div>
-            </div>
+            <div style="margin-bottom: 20px;"><h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Key Metrics</h3><p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Essential URL statistics and issue counts</p></div>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
-                <div style="
-                    background: var(--color-bg-secondary);
-                    border: 1px solid var(--color-border-primary);
-                    border-radius: 16px; 
-                    padding: 24px; 
-                    text-align: center;
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        position: absolute; 
-                        top: -20px; 
-                        right: -20px; 
-                        width: 60px; 
-                        height: 60px; 
-                        background: var(--primary);
-                        border-radius: 50%;
-                        opacity: 0.1;
-                    "></div>
-                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--color-link); margin-bottom: 8px; position: relative; z-index: 1;">
-                        ${analysis.totalURLs}
-                    </div>
-                    <div style="color: var(--color-text-primary); font-weight: 600; margin-bottom: 4px;">Total URLs</div>
-                    <div style="color: var(--color-text-secondary); font-size: 12px;">Analyzed in sitemap</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--color-border-primary); border-radius: 12px; overflow: hidden; background: var(--color-bg-secondary);">
+                <div style="flex: 1; min-width: 140px; padding: 14px 18px; border-right: 1px solid var(--color-border-primary);">
+                    <div style="font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); font-weight: 600; margin-bottom: 4px;">Total URLs</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-text-heading);">${analysis.totalURLs}</div>
                 </div>
-                
-                <div style="
-                    background: var(--color-bg-secondary);
-                    border: 1px solid var(--color-border-primary);
-                    border-radius: 16px; 
-                    padding: 24px; 
-                    text-align: center;
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        position: absolute; 
-                        top: -20px; 
-                        right: -20px; 
-                        width: 60px; 
-                        height: 60px; 
-                        background: var(--primary);
-                        border-radius: 50%;
-                        opacity: 0.1;
-                    "></div>
-                    <div style="font-size: 2.5rem; font-weight: bold; color: var(--color-link); margin-bottom: 8px; position: relative; z-index: 1;">
-                        ${analysis.stats.avgLength}
-                    </div>
-                    <div style="color: var(--color-text-primary); font-weight: 600; margin-bottom: 4px;">Avg Length</div>
-                    <div style="color: var(--color-text-secondary); font-size: 12px;">Characters per URL</div>
+                <div style="flex: 1; min-width: 140px; padding: 14px 18px; border-right: 1px solid var(--color-border-primary);">
+                    <div style="font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); font-weight: 600; margin-bottom: 4px;">Avg Length</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-text-heading);">${analysis.stats.avgLength} chars</div>
                 </div>
-                
-                <div style="
-                    background: linear-gradient(135deg, ${analysis.issues.critical.length > 0 ? '#fef2f2, #fee2e2' : '#ecfdf5, #dcfce7'}); 
-                    border: 1px solid ${analysis.issues.critical.length > 0 ? '#fecaca' : '#bbf7d0'};
-                    border-radius: 16px; 
-                    padding: 24px; 
-                    text-align: center;
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        position: absolute; 
-                        top: -20px; 
-                        right: -20px; 
-                        width: 60px; 
-                        height: 60px; 
-                        background: ${analysis.issues.critical.length > 0 ? '#ef4444' : '#22c55e'};
-                        border-radius: 50%;
-                        opacity: 0.1;
-                    "></div>
-                    <div style="font-size: 2.5rem; font-weight: bold; color: ${analysis.issues.critical.length > 0 ? '#dc2626' : '#16a34a'}; margin-bottom: 8px; position: relative; z-index: 1;">
-                        ${analysis.issues.critical.length}
-                    </div>
-                    <div style="color: var(--color-text-primary); font-weight: 600; margin-bottom: 4px;">Critical Issues</div>
-                    <div style="color: var(--color-text-secondary); font-size: 12px;">Require immediate attention</div>
+                <div style="flex: 1; min-width: 140px; padding: 14px 18px; border-right: 1px solid var(--color-border-primary);">
+                    <div style="font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); font-weight: 600; margin-bottom: 4px;">Critical Issues</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: ${analysis.issues.critical.length > 0 ? '#dc2626' : 'var(--color-text-heading)'};">${analysis.issues.critical.length}</div>
                 </div>
-                
-                <div style="
-                    background: linear-gradient(135deg, ${analysis.issues.warning.length > 0 ? '#fffbeb, #fef3c7' : '#ecfdf5, #dcfce7'}); 
-                    border: 1px solid ${analysis.issues.warning.length > 0 ? '#fcd34d' : '#bbf7d0'};
-                    border-radius: 16px; 
-                    padding: 24px; 
-                    text-align: center;
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        position: absolute; 
-                        top: -20px; 
-                        right: -20px; 
-                        width: 60px; 
-                        height: 60px; 
-                        background: ${analysis.issues.warning.length > 0 ? '#f59e0b' : '#22c55e'};
-                        border-radius: 50%;
-                        opacity: 0.1;
-                    "></div>
-                    <div style="font-size: 2.5rem; font-weight: bold; color: ${analysis.issues.warning.length > 0 ? '#d97706' : '#16a34a'}; margin-bottom: 8px; position: relative; z-index: 1;">
-                        ${analysis.issues.warning.length}
-                    </div>
-                    <div style="color: var(--color-text-primary); font-weight: 600; margin-bottom: 4px;">Warnings</div>
-                    <div style="color: var(--color-text-secondary); font-size: 12px;">Should be addressed</div>
+                <div style="flex: 1; min-width: 140px; padding: 14px 18px;">
+                    <div style="font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); font-weight: 600; margin-bottom: 4px;">Warnings</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: ${analysis.issues.warning.length > 0 ? '#d97706' : 'var(--color-text-heading)'};">${analysis.issues.warning.length}</div>
                 </div>
             </div>
         </div>
         
         <!-- Enhanced URL Characteristics -->
         <div style="margin-bottom: 40px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                <div style="
-                    width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, #f59e0b, #d97706);
-                    border-radius: 10px; 
-                    display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-                ">
-                    <span style="font-size: 18px;">🔗</span>
-                </div>
-                <div>
-                    <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">URL Characteristics</h3>
-                    <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Detailed breakdown of URL patterns and issues</p>
-                </div>
-            </div>
+            <div style="margin-bottom: 20px;"><h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">URL Characteristics</h3><p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Detailed breakdown of URL patterns and issues</p></div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
     `;
     
@@ -14976,80 +14516,7 @@ function generateURLPatternHTML(analysis) {
     characteristics.forEach(char => {
         const isIssue = char.count > 0 && char.label !== 'Max URL depth' && char.label !== 'URLs with file extensions';
         html += `
-            <div style="
-                background: var(--color-bg-primary); 
-                border: 1px solid var(--color-border-primary);
-                border-left: 4px solid ${char.color}; 
-                border-radius: 16px; 
-                padding: 20px; 
-                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-                position: relative;
-                overflow: hidden;
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)';" 
-               onmouseout="this.style.transform='translateY(0px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';">
-                
-                <!-- Background decoration -->
-                <div style="
-                    position: absolute; 
-                    top: -15px; 
-                    right: -15px; 
-                    width: 50px; 
-                    height: 50px; 
-                    background: ${char.color};
-                    border-radius: 50%;
-                    opacity: 0.1;
-                "></div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1;">
-                    <div style="flex: 1;">
-                        <div style="
-                            color: var(--color-text-secondary); 
-                            font-size: 14px; 
-                            font-weight: 500; 
-                            margin-bottom: 8px;
-                            line-height: 1.4;
-                        ">${char.label}</div>
-                        <div style="
-                            font-size: 2rem; 
-                            font-weight: bold; 
-                            color: ${char.color}; 
-                            margin-bottom: 4px;
-                            line-height: 1;
-                        ">
-                            ${char.count}
-                        </div>
-                        ${char.percentage !== '' ? `
-                            <div style="
-                                font-size: 12px; 
-                                color: #9ca3af; 
-                                font-weight: 500;
-                            ">${char.percentage}% of total URLs</div>
-                        ` : ''}
-                        
-                        ${isIssue ? `
-                            <div style="
-                                margin-top: 8px;
-                                padding: 4px 8px;
-                                background: ${char.color}15;
-                                border-radius: 8px;
-                                font-size: 11px;
-                                color: ${char.color};
-                                font-weight: 600;
-                                text-transform: uppercase;
-                                letter-spacing: 0.5px;
-                            ">
-                                ${char.count > 0 ? 'Needs Review' : 'Good'}
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div style="
-                        font-size: 2.5rem; 
-                        opacity: 0.8;
-                        margin-left: 15px;
-                    ">${char.icon}</div>
-                </div>
-            </div>
+            <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-left: 4px solid ${char.color}; border-radius: 12px; padding: 16px 18px;"><div style="color: var(--color-text-secondary); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; line-height: 1.4;">${char.label}</div><div style="font-size: 1.5rem; font-weight: 700; color: ${char.color}; line-height: 1;">${char.count}</div>${char.percentage !== '' ? `<div style="font-size: 0.72rem; color: var(--color-text-secondary); font-weight: 500; margin-top: 4px;">${char.percentage}% of total URLs</div>` : ''}${isIssue ? `<div style="display: inline-block; margin-top: 8px; padding: 3px 8px; background: ${char.color}15; border-radius: 6px; font-size: 0.62rem; color: ${char.color}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">${char.count > 0 ? 'Needs Review' : 'Good'}</div>` : ''}</div>
         `;
     });
     
@@ -15059,21 +14526,7 @@ function generateURLPatternHTML(analysis) {
         
         <!-- Enhanced Common URL Patterns -->
         <div style="margin-bottom: 40px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
-                <div style="
-                    width: 40px; height: 40px; 
-                    background: linear-gradient(135deg, #10b981, #059669);
-                    border-radius: 10px; 
-                    display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                ">
-                    <span style="font-size: 18px;">🔗</span>
-                </div>
-                <div>
-                    <h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Most Common URL Patterns</h3>
-                    <p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Identified patterns and their frequency across your site</p>
-                </div>
-            </div>
+            <div style="margin-bottom: 20px;"><h3 style="color: var(--color-text-heading); margin: 0; font-size: 1.05rem; font-weight: 700;">Most Common URL Patterns</h3><p style="color: var(--color-text-secondary); margin: 2px 0 0 0; font-size: 14px;">Identified patterns and their frequency across your site</p></div>
             
             <div style="
                 background: var(--color-bg-primary); 
@@ -15115,15 +14568,10 @@ function generateURLPatternHTML(analysis) {
         <!-- Recommendations -->
         ${analysis.recommendations.length > 0 ? `
         <div style="margin-bottom: 30px;">
-            <h3 style="color: var(--color-text-heading); margin-bottom: 20px;">💡 Recommendations</h3>
+            <h3 style="color: var(--color-text-heading); margin: 0 0 20px 0; font-size: 1.05rem; font-weight: 700;">Recommendations</h3>
             <div style="display: grid; gap: 15px;">
                 ${analysis.recommendations.map(rec => `
-                    <div style="background: ${rec.priority === 'high' ? '#ffebee' : rec.priority === 'medium' ? '#fff8e1' : '#e8f2ff'}; 
-                                border-left: 4px solid ${rec.priority === 'high' ? '#f44336' : rec.priority === 'medium' ? '#ff9800' : '#2196f3'}; 
-                                padding: 20px; border-radius: 8px;">
-                        <div style="display: flex; align-items: start; gap: 15px;">
-                            <div style="font-size: 1.5rem;">${rec.priority === 'high' ? '🚨' : rec.priority === 'medium' ? '⚠️' : 'ℹ️'}</div>
-                            <div style="flex: 1;">
+                    <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-left: 4px solid ${rec.priority === 'high' ? '#f44336' : rec.priority === 'medium' ? '#ff9800' : '#2196f3'}; padding: 18px 20px; border-radius: 12px;"><div style="display: flex; align-items: start; gap: 15px;"><div style="flex: 1;">
                                 <h4 style="color: var(--color-text-heading); margin-bottom: 8px;">${rec.title}</h4>
                                 <p style="color: var(--color-text-secondary); margin-bottom: 8px;">${rec.description}</p>
                                 <div style="font-size: 0.85rem; color: #888;">
@@ -15140,12 +14588,12 @@ function generateURLPatternHTML(analysis) {
         <!-- Issues List -->
         ${analysis.issues.critical.length > 0 || analysis.issues.warning.length > 0 ? `
         <div style="margin-bottom: 30px;">
-            <h3 style="color: var(--color-text-heading); margin-bottom: 20px;">🔧 Detailed Issues</h3>
+            <h3 style="color: var(--color-text-heading); margin: 0 0 20px 0; font-size: 1.05rem; font-weight: 700;">Detailed Issues</h3>
             
             <!-- Filters -->
             <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 250px;">
-                    <input type="text" id="issueSearchInput" placeholder="🔍 Search by URL..." 
+                    <input type="text" id="issueSearchInput" placeholder="Search by URL..." 
                            onkeyup="window.filterIssues()"
                            style="width: 100%; padding: 10px 15px; border: 2px solid #e0e0e0; 
                                   border-radius: 8px; font-size: 14px; outline: none;
@@ -15208,15 +14656,10 @@ function generateURLPatternHTML(analysis) {
         
         <!-- Export Options -->
         <div style="display: flex; gap: 10px; justify-content: center;">
-            <button onclick="window.exportURLAnalysis()" 
-                    style="padding: 12px 24px; background: #4a90e2; color: white; 
-                           border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                📥 Export Analysis Report
-            </button>
-            <button onclick="window.closeURLModal()" 
-                    style="padding: 12px 24px; background: #666; color: white; 
-                           border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                Close
+            <button onclick="window.exportURLAnalysis()"
+                    style="padding: 10px 22px; background: var(--primary); color: white;
+                           border: none; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+                Export report
             </button>
         </div>
     `;
@@ -15248,7 +14691,7 @@ function generateIssuesList(issues, type, searchTerm = '', issueTypeFilter = '')
         return '<p style="text-align: center; color: var(--color-text-secondary); padding: 20px;">No issues found matching your filters.</p>';
     }
     
-    const bgColor = type === 'critical' ? '#ffebee' : type === 'warning' ? '#fff8e1' : '#e8f2ff';
+    const bgColor = 'var(--color-bg-secondary)';
     const borderColor = type === 'critical' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196f3';
     
     let html = `<div style="display: grid; gap: 10px; max-height: 400px; overflow-y: auto;">
@@ -15258,8 +14701,7 @@ function generateIssuesList(issues, type, searchTerm = '', issueTypeFilter = '')
     
     filteredIssues.forEach((issue, index) => {
         html += `
-            <div style="background: ${bgColor}; border-left: 4px solid ${borderColor}; 
-                        padding: 15px; border-radius: 8px;">
+            <div style="background: ${bgColor}; border: 1px solid var(--color-border-primary); border-left: 4px solid ${borderColor}; padding: 15px; border-radius: 12px;">
                 <div style="font-weight: 500; color: var(--color-text-primary); margin-bottom: 5px;">
                     ${issue.issue}
                 </div>
@@ -15268,9 +14710,7 @@ function generateIssuesList(issues, type, searchTerm = '', issueTypeFilter = '')
                         ${issue.url}
                     </a>
                 </div>
-                <div style="font-size: 0.85rem; color: #888;">
-                    💡 ${issue.recommendation}
-                </div>
+                <div style="font-size: 0.85rem; color: var(--color-text-secondary);">${issue.recommendation}</div>
             </div>
         `;
     });
@@ -15654,13 +15094,18 @@ let currentHighlightedNodes = new Set();
 
 // Dashboard view function
 function showDashboardView() {
-    if (!treeData) {
+    if (!treeData || !siteStats) {
         showToast('Please load a sitemap first', 'warning');
         return;
     }
-    
-    // Use the existing switchView function
-    switchView('dashboard');
+    const shell = window.SVReportShell({
+        title: 'Site Structure',
+        subtitle: `Structure of ${siteStats.totalPages.toLocaleString()} pages across ${siteStats.categoryCount} categories`
+    });
+    const container = d3.select(shell.body);
+    createMetricsSection(container);
+    createChartsSection(container);
+    createInsightsSection(container);
 }
 
 // Enhanced 3D view initialization
