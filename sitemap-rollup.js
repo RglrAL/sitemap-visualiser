@@ -5532,6 +5532,8 @@
             if (_askFab) _askFab.style.display = '';   // bring the launcher back
             if (_prevFocus && _prevFocus.focus) { try { _prevFocus.focus(); } catch (e) {} }
         }
+        // Let the rest of the app close the panel (e.g. switching back to the tree/3D/dashboard view).
+        window.SVCloseAsk = function () { if (document.getElementById('sv-ask-panel')) closePanel(); };
         function onKey(e) { if (e.key === 'Escape' && document.getElementById('sv-ask-panel')) closePanel(); }
         document.addEventListener('keydown', onKey);
 
