@@ -28,7 +28,7 @@
 <script src="enhanced-url-matching.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
-<script src="sitemap-rollup.js?v=20260906z58"></script>
+<script src="sitemap-rollup.js?v=20260909z59"></script>
 <script src="sitemap-geomap.js"></script>
 <script src="groq-integration-module.js?v=20260904u"></script>
 <script src="sv-onboarding.js?v=20260907a"></script>
@@ -5721,7 +5721,7 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             
                 <div class="upload-card">
                     <div class="upload-area" id="uploadArea">
-                        <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>
+                        <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-link)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>
                        <h3 class="drop-zone-title">Drop sitemap.xml here</h3>
                         <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                             Choose File
@@ -11099,7 +11099,10 @@ crumb.title = item.data.name;
         // View switching
         // Update your switchView function with this approach:
 window.switchView = function(viewType) {
-    
+
+    // Switching back to a main view closes the Ask panel if it's open.
+    try { if (window.SVCloseAsk) window.SVCloseAsk(); } catch (e) {}
+
     // CRITICAL: Clean up 3D view FIRST if it's active
     if (is3DViewActive) {
         is3DViewActive = false;
