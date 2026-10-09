@@ -907,8 +907,10 @@ function formatDuration(seconds) {
         const today = new Date();
         const days = opts.days || 30;
         const offset = opts.offset || 0;   // days to shift the window back (for prior-period comparison)
-        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
-        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        // Explicit YYYY-MM-DD bounds win over the days/offset window (calendar-month reports). Noon UTC so the
+        // toISOString().split('T')[0] below yields the same calendar date on every machine.
+        const end = opts.endDate ? new Date(opts.endDate + 'T12:00:00Z') : new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = opts.startDate ? new Date(opts.startDate + 'T12:00:00Z') : new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
         try {
             const resp = await robustGSCApiCall(async () => gapi.client.request({
                 path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
@@ -968,8 +970,10 @@ function formatDuration(seconds) {
         const today = new Date();
         const days = opts.days || 30;
         const offset = opts.offset || 0;   // days to shift the window back (for prior-period comparison)
-        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
-        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        // Explicit YYYY-MM-DD bounds win over the days/offset window (calendar-month reports). Noon UTC so the
+        // toISOString().split('T')[0] below yields the same calendar date on every machine.
+        const end = opts.endDate ? new Date(opts.endDate + 'T12:00:00Z') : new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = opts.startDate ? new Date(opts.startDate + 'T12:00:00Z') : new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
         try {
             const resp = await robustGSCApiCall(async () => gapi.client.request({
                 path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
@@ -1027,8 +1031,10 @@ function formatDuration(seconds) {
         const today = new Date();
         const days = opts.days || 30;
         const offset = opts.offset || 0;
-        const end = new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
-        const start = new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
+        // Explicit YYYY-MM-DD bounds win over the days/offset window (calendar-month reports). Noon UTC so the
+        // toISOString().split('T')[0] below yields the same calendar date on every machine.
+        const end = opts.endDate ? new Date(opts.endDate + 'T12:00:00Z') : new Date(today.getTime() - (offset * 24 * 60 * 60 * 1000));
+        const start = opts.startDate ? new Date(opts.startDate + 'T12:00:00Z') : new Date(today.getTime() - ((days + offset) * 24 * 60 * 60 * 1000));
         try {
             const resp = await robustGSCApiCall(async () => gapi.client.request({
                 path: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,

@@ -21,14 +21,14 @@
 
 <script async defer src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="gsc-integration-module.js"></script>
+<script src="gsc-integration-module.js?v=20261009a"></script>
 <script src="standalone-ga4-integration.js?v=20260904q"></script>
 <script src="unified-citizens-dashboard.js?v=20260904q"></script>
 <script src="combined-tooltip-integration.js?v=20260906z58"></script>
 <script src="enhanced-url-matching.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
-<script src="sitemap-rollup.js?v=20261009z60"></script>
+<script src="sitemap-rollup.js?v=20261009z61"></script>
 <script src="sitemap-geomap.js"></script>
 <script src="groq-integration-module.js?v=20260904u"></script>
 <script src="sv-onboarding.js?v=20260907a"></script>
@@ -5582,6 +5582,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
                 <div class="nav-dropdown-item" onclick="downloadMonthlyReport(); closeReportsDropdown();">
                     Monthly Report (.xlsx)
                 </div>
+                <div class="nav-dropdown-item" onclick="downloadMonthlySearchReport(); closeReportsDropdown();">
+                    Monthly Report + Search (.xlsx)
+                </div>
                 <div class="nav-dropdown-item" onclick="downloadSectionPagesReport(); closeReportsDropdown();">
                     Section Pages (.xlsx)
                 </div>
@@ -5660,6 +5663,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             </button>
             <button class="mobile-nav-item" onclick="downloadMonthlyReport(); closeMobileMenu();">
                 Monthly Report (.xlsx)
+            </button>
+            <button class="mobile-nav-item" onclick="downloadMonthlySearchReport(); closeMobileMenu();">
+                Monthly Report + Search (.xlsx)
             </button>
             <button class="mobile-nav-item" onclick="downloadSectionPagesReport(); closeMobileMenu();">
                 Section Pages (.xlsx)

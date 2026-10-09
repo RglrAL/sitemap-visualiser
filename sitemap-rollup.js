@@ -2188,7 +2188,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20261009z60';
+    const _BUILD = '20261009z61';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness', structure: 'site structure', orphan_pages: 'orphan traffic', redirects: 'redirect list', language_coverage: 'Irish coverage', structure_change: 'structural changes', breadcrumb: 'page location' };
     // Ancestry path of a page in the sitemap tree, top content section -> page, as [{name,url}]. Drops the structural roots
     // (tree root, language nodes /en /ga) so the breadcrumb starts at a real section. Pure/testable (keyed by _langKey).
@@ -6117,7 +6117,54 @@
         })(tree);
         return ga4By;
     }
-    function _reportWs(headers, rows, pctKeys) {              // array-of-objects -> worksheet; pctKeys get % format
+    // GSC per-page metrics for an explicit calendar range (normUrl -> {impressions, clicks, ctr, position}).
+    async function _fetchGSCRange(startDate, endDate) {
+        const by = Object.create(null);
+        const gsc = window.GSCIntegration;
+        if (!(gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchAllPages)) return by;
+        const m = await gsc.fetchAllPages({ startDate: startDate, endDate: endDate });
+        m.forEach(function (rec, url) { by[normUrl(url)] = rec; });
+        return by;
+    }
+    // GSC query/page pairs for an explicit calendar range (top 25k pairs by impressions - the API cap).
+    async function _fetchGSCQueriesRange(startDate, endDate) {
+        const gsc = window.GSCIntegration;
+        if (!(gsc && gsc.isConnected && gsc.isConnected() && gsc.fetchAllQueries)) return [];
+        return gsc.fetchAllQueries({ startDate: startDate, endDate: endDate });
+    }
+    // Top-N queries per page by clicks (then impressions), as 'q1 · q2 · q3' strings keyed by normUrl(page).
+    function _topQueriesByPage(qrows, n) {
+        const per = Object.create(null);
+        (qrows || []).forEach(function (r) { const k = normUrl(r.page); (per[k] || (per[k] = [])).push(r); });
+        const out = Object.create(null);
+        Object.keys(per).forEach(function (k) {
+            per[k].sort(function (a, b) { return (b.clicks - a.clicks) || (b.impressions - a.impressions); });
+            out[k] = per[k].slice(0, n).map(function (r) { return r.query; }).join(' · ');
+        });
+        return out;
+    }
+    // Section x query aggregate: counts summed, position impression-weighted; 'landing' = the page in that
+    // section that took the most clicks for the query. pageCat maps normUrl(page) -> {section, order, title}.
+    function _sectionQueryRows(qrows, pageCat, perSection) {
+        const agg = Object.create(null);
+        (qrows || []).forEach(function (r) {
+            const pc = pageCat[normUrl(r.page)]; if (!pc) return;      // outside the curated EN sections
+            const key = pc.section + '\u0000' + r.query;
+            const a = agg[key] || (agg[key] = { section: pc.section, order: pc.order, query: r.query, impressions: 0, clicks: 0, _pos: 0, _w: 0, landing: '', _lc: -1 });
+            a.impressions += r.impressions || 0; a.clicks += r.clicks || 0;
+            a._pos += (r.position || 0) * (r.impressions || 0); a._w += (r.impressions || 0);
+            if ((r.clicks || 0) > a._lc) { a._lc = r.clicks || 0; a.landing = pc.title; }
+        });
+        const bySec = Object.create(null);
+        Object.keys(agg).forEach(function (k) { const a = agg[k]; a.ctr = a.impressions ? a.clicks / a.impressions : 0; a.position = a._w ? a._pos / a._w : 0; (bySec[a.section] || (bySec[a.section] = [])).push(a); });
+        const out = [];
+        Object.keys(bySec).sort(function (x, y) { return bySec[x][0].order - bySec[y][0].order; }).forEach(function (sec) {
+            bySec[sec].sort(function (a, b) { return (b.impressions - a.impressions) || (b.clicks - a.clicks); });
+            bySec[sec].slice(0, perSection).forEach(function (a) { out.push(a); });
+        });
+        return out;
+    }
+    function _reportWs(headers, rows, pctKeys, decKeys) {     // array-of-objects -> worksheet; pctKeys get % format, decKeys one decimal
         const aoa = [headers.map(function (h) { return h.label; })];
         rows.forEach(function (r) { aoa.push(headers.map(function (h) { return r[h.key]; })); });
         const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -6126,10 +6173,10 @@
             headers.forEach(function (h, C) {
                 const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
                 if (!cell || typeof cell.v !== 'number') return;
-                cell.z = pctKeys.indexOf(h.key) >= 0 ? '0.0%' : '#,##0';   // % for deltas, thousands-comma for counts
+                cell.z = pctKeys.indexOf(h.key) >= 0 ? '0.0%' : (decKeys && decKeys.indexOf(h.key) >= 0) ? '0.0' : '#,##0';   // % for deltas/CTR, 0.0 for position, thousands-comma for counts
             });
         }
-        ws['!cols'] = headers.map(function (h) { return { wch: h.key === 'path' ? 60 : h.key === 'title' ? 40 : 12 }; });
+        ws['!cols'] = headers.map(function (h) { return { wch: h.key === 'path' ? 60 : (h.key === 'title' || h.key === 'topQueries' || h.key === 'query' || h.key === 'landing') ? 40 : 12 }; });
         return ws;
     }
     // Conditional formatting SheetJS (free) can't write, so we inject it into the finished file.
@@ -6353,11 +6400,17 @@
             sparkline: sparkline
         };
     }
-    async function buildMonthlyReport(year, month) {
+    // opts.search = the '+ Search' variant: adds GSC columns (Impressions, Clicks, CTR, Avg position, Top queries) to every
+    // page row plus a 'Search Queries' tab (top queries per section). Without it the output is the standard report, unchanged.
+    async function buildMonthlyReport(year, month, opts) {
+        opts = opts || {}; const withSearch = !!opts.search;
         const tree = window.treeData;
         if (!tree) { alert('Load a sitemap first.'); return; }
         const ga4 = window.GA4Integration;
         if (!(ga4 && ga4.isConnected && ga4.isConnected())) { alert('Connect GA4 first - the monthly report is GA4-based.'); return; }
+        const gsc = window.GSCIntegration;
+        if (withSearch && !(gsc && gsc.isConnected && gsc.isConnected())) { alert('Connect Google Search Console first - this report adds search data to the pageview report.'); return; }
+        if (withSearch && !(gsc.fetchAllQueries && gsc.fetchAllPages)) { alert('Search data needs the updated GSC module. Redeploy gsc-integration-module.js and hard-refresh.'); return; }
         if (typeof XLSX === 'undefined') { alert('Spreadsheet library not loaded. Hard-refresh (index.html must include xlsx.full.min.js).'); return; }
         const cur = _monthRange(year, month);
         const pm = month === 1 ? 12 : month - 1, py = month === 1 ? year - 1 : year;
@@ -6366,9 +6419,14 @@
         let _tsM = month - 5, _tsY = year; while (_tsM < 1) { _tsM += 12; _tsY -= 1; }
         const trendStart = _monthRange(_tsY, _tsM).start;                // first day of the 6-month trend window
         let pair;
-        try { pair = await Promise.all([_fetchGA4Range(tree, cur.start, cur.end), _fetchGA4Range(tree, prev.start, prev.end), _fetchGA4Range(tree, yr.start, yr.end)]); }
-        catch (e) { alert('Could not fetch GA4 data: ' + (e && e.message ? e.message : String(e))); return; }
+        const jobs = [_fetchGA4Range(tree, cur.start, cur.end), _fetchGA4Range(tree, prev.start, prev.end), _fetchGA4Range(tree, yr.start, yr.end)];
+        if (withSearch) { jobs.push(_fetchGSCRange(cur.start, cur.end)); jobs.push(_fetchGSCQueriesRange(cur.start, cur.end)); }
+        try { pair = await Promise.all(jobs); }
+        catch (e) { alert('Could not fetch ' + (withSearch ? 'GA4/GSC' : 'GA4') + ' data: ' + (e && e.message ? e.message : String(e))); return; }
         const curBy = pair[0], prevBy = pair[1], yearBy = pair[2];
+        const gscBy = withSearch ? (pair[3] || {}) : {}, qrows = withSearch ? (pair[4] || []) : [];
+        const topQ = withSearch ? _topQueriesByPage(qrows, 3) : {};
+        const pageCat = Object.create(null);                             // normUrl -> {section, order, title} (Search Queries tab)
         const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
         const rc = build(tree, { statsFor: statsForMaps({}, curBy) });   // categories, merged by name
         build(tree);                                                     // restore current-period annotations
@@ -6391,7 +6449,13 @@
                             const u = uOf(a), pu = uOf(b), yu = uOf(c);
                             tot.v += v; tot.pv += pv; tot.yv += yv; tot.u += u; tot.pu += pu; tot.yu += yu;       // site totals (all EN pages)
                             tot.s += a ? (a.sessions || 0) : 0; tot.ps += b ? (b.sessions || 0) : 0; tot.ys += c ? (c.sessions || 0) : 0;
-                            if (v > 0 || pv > 0) rows.push({ category: cat.name, order: ord, title: n.name || '', path: p, views: v, pViews: pv, dViews: _pctDelta(v, pv), users: u, pUsers: pu, dUsers: _pctDelta(u, pu) });
+                            const g = withSearch ? gscBy[k] : null;
+                            if (withSearch) pageCat[k] = { section: cat.name, order: ord, title: n.name || '' };
+                            if (v > 0 || pv > 0 || (g && g.impressions > 0)) {   // + Search: a page seen in results but never visited still earns a row
+                                const row = { category: cat.name, order: ord, title: n.name || '', path: p, views: v, pViews: pv, dViews: _pctDelta(v, pv), users: u, pUsers: pu, dUsers: _pctDelta(u, pu) };
+                                if (withSearch) { row.impressions = g ? (g.impressions || 0) : 0; row.clicks = g ? (g.clicks || 0) : 0; row.ctr = g && g.impressions ? g.clicks / g.impressions : 0; row.position = g ? (g.position || 0) : null; row.topQueries = topQ[k] || (g && g.impressions ? '(none in top 25k pairs)' : ''); }
+                                rows.push(row);
+                            }
                         }
                     }
                     (n.children || n._children || []).forEach(walk);
@@ -6411,21 +6475,28 @@
         const summary = _summarySheet(rows, tot, trend6, 'Monthly Summary · ' + _RPT_MONTHS[month - 1] + ' ' + year);
         XLSX.utils.book_append_sheet(wb, summary.ws, 'Summary');                                        // exec summary = first tab
         const siteH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }, { key: 'dViews', label: '% Δ' }, { key: 'users', label: 'Active users' }, { key: 'dUsers', label: '% Δ2' }];   // 2nd %Δ deduped for Excel-table column-name uniqueness (matches original)
+        if (withSearch) siteH.push({ key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR' }, { key: 'position', label: 'Avg position' }, { key: 'topQueries', label: 'Top queries (by clicks)' });
+        const pctK = withSearch ? ['dViews', 'dUsers', 'ctr'] : ['dViews', 'dUsers'], decK = withSearch ? ['position'] : [];
         const catH = siteH.slice(1);                                    // per-category sheets drop the Category column
         const byViews = function (a, b) { return b.views - a.views; };
         // %Δ descending, new pages (null delta) last · matches the hand-made Trends + category tabs.
         const byDelta = function (a, b) { return (b.dViews == null ? -Infinity : b.dViews) - (a.dViews == null ? -Infinity : a.dViews); };
         const topViews = rows.filter(function (r) { return r.views >= _RPT_TOPVIEWS_MIN; }).sort(byViews);
-        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, topViews, ['dViews', 'dUsers']), 'Top Views');                         // views >= floor
+        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, topViews, pctK, decK), 'Top Views');                         // views >= floor
         const trend = rows.filter(function (r) { return r.dViews != null && r.dViews >= _RPT_TREND_MIN; }).sort(byDelta);
-        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, trend, ['dViews', 'dUsers']), 'Trends');                               // grew >= +50%
+        XLSX.utils.book_append_sheet(wb, _reportWs(siteH, trend, pctK, decK), 'Trends');                               // grew >= +50%
         const seenCat = {};                                            // category name -> order (present in data)
         rows.forEach(function (r) { seenCat[r.category] = r.order; });
         Object.keys(seenCat).sort(function (a, b) { return seenCat[a] - seenCat[b]; }).forEach(function (name) {
             const cr = rows.filter(function (r) { return r.category === name; }).sort(byDelta);   // all real pages, %Δ desc
-            if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, ['dViews', 'dUsers']), _xlSheetName(name));
+            if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, pctK, decK), _xlSheetName(name));
         });
-        const _fname = 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
+        if (withSearch) {                                                // top 50 queries per section, curated order
+            const qH = [{ key: 'section', label: 'Section' }, { key: 'query', label: 'Search query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR' }, { key: 'position', label: 'Avg position' }, { key: 'landing', label: 'Top landing page' }];
+            const qr = _sectionQueryRows(qrows, pageCat, 50);
+            XLSX.utils.book_append_sheet(wb, _reportWs(qH, qr, ['ctr'], ['position']), 'Search Queries');
+        }
+        const _fname = (withSearch ? 'CI Pageview + Search Stats ' : 'CI Pageview Stats ') + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
         await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales, kpiCells: summary.kpiCells, sparkline: summary.sparkline } });   // write + inject formatting/tables/sparkline
     }
     // ── Section pages report (.xlsx) ─────────────────────────────────────────────
@@ -6551,6 +6622,9 @@
     }
     function promptMonthlyReport() {
         _promptMonth({ title: 'Monthly pageview report', subtitle: 'Pick a month to generate the spreadsheet. GA4 data covers roughly the last 14 months.', onPick: buildMonthlyReport });
+    }
+    function promptMonthlySearchReport() {
+        _promptMonth({ title: 'Monthly report + Search', subtitle: 'Pick a month. The standard pageview report with Search Console columns (impressions, clicks, CTR, position, top queries) on every page, plus a Search Queries tab.', onPick: function (y, m) { buildMonthlyReport(y, m, { search: true }); } });
     }
     function promptSectionPagesReport() {
         _promptMonth({
@@ -6911,6 +6985,7 @@
         showAIImpact: showAIImpact,
         buildMonthlyReport: buildMonthlyReport,
         downloadMonthlyReport: promptMonthlyReport,
+        downloadMonthlySearchReport: promptMonthlySearchReport,
         buildSectionPagesReport: buildSectionPagesReport,
         downloadSectionPagesReport: promptSectionPagesReport,
         statsForUrl: statsForUrl,
@@ -6933,6 +7008,7 @@
     window.showCategoryPerformance = showPanel;
     window.showAskData = showAsk;
     window.downloadMonthlyReport = promptMonthlyReport;
+    window.downloadMonthlySearchReport = promptMonthlySearchReport;
     window.downloadSectionPagesReport = promptSectionPagesReport;
     window.showAIImpact = function () { showAIImpact(); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _ensureAskFab);
