@@ -2188,7 +2188,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20261009z61';
+    const _BUILD = '20261009z62';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness', structure: 'site structure', orphan_pages: 'orphan traffic', redirects: 'redirect list', language_coverage: 'Irish coverage', structure_change: 'structural changes', breadcrumb: 'page location' };
     // Ancestry path of a page in the sitemap tree, top content section -> page, as [{name,url}]. Drops the structural roots
     // (tree root, language nodes /en /ga) so the breadcrumb starts at a real section. Pure/testable (keyed by _langKey).
@@ -6492,14 +6492,14 @@
             if (cr.length) XLSX.utils.book_append_sheet(wb, _reportWs(catH, cr, pctK, decK), _xlSheetName(name));
         });
         if (withSearch) {                                                // top 50 queries per section, curated order
-            const qH = [{ key: 'section', label: 'Section' }, { key: 'query', label: 'Search query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR' }, { key: 'position', label: 'Avg position' }, { key: 'landing', label: 'Top landing page' }];
+            const qH = [{ key: 'section', label: 'Category' }, { key: 'query', label: 'Search query' }, { key: 'impressions', label: 'Impressions' }, { key: 'clicks', label: 'Clicks' }, { key: 'ctr', label: 'CTR' }, { key: 'position', label: 'Avg position' }, { key: 'landing', label: 'Top landing page' }];
             const qr = _sectionQueryRows(qrows, pageCat, 50);
             XLSX.utils.book_append_sheet(wb, _reportWs(qH, qr, ['ctr'], ['position']), 'Search Queries');
         }
         const _fname = (withSearch ? 'CI Pageview + Search Stats ' : 'CI Pageview Stats ') + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
         await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales, kpiCells: summary.kpiCells, sparkline: summary.sparkline } });   // write + inject formatting/tables/sparkline
     }
-    // ── Section pages report (.xlsx) ─────────────────────────────────────────────
+    // ── Category pages report (.xlsx) ────────────────────────────────────────────
     // An INVENTORY, not a movers list: every English page in each curated section for one month,
     // ranked by views with active users alongside - zero-traffic pages stay in (that is the point).
     // Sheets: Sections (page counts + views per section) + All Pages (site-wide ranking) + one tab
@@ -6547,7 +6547,7 @@
                 })(top);
             });
         });
-        if (!rows.length) { alert('No English pages found in the curated sections - is the right sitemap loaded?'); return; }
+        if (!rows.length) { alert('No English pages found in the curated categories - is the right sitemap loaded?'); return; }
         if (!rows.some(function (r) { return r.views > 0; })) { alert('No GA4 page data for ' + label + '. (GA4 retention is ~2-14 months; the month may be out of range.)'); return; }
         const byViews = function (a, b) { return (b.views - a.views) || String(a.title).localeCompare(String(b.title)); };
         const secMap = {};
@@ -6557,15 +6557,15 @@
         });
         const secRows = Object.keys(secMap).map(function (k) { return secMap[k]; }).sort(function (a, b) { return a.order - b.order; });
         const wb = XLSX.utils.book_new();
-        const secH = [{ key: 'section', label: 'Section' }, { key: 'pages', label: 'Pages' }, { key: 'withViews', label: 'Pages with views' }, { key: 'views', label: 'Views' }];
-        XLSX.utils.book_append_sheet(wb, _reportWs(secH, secRows, []), 'Sections');
-        const pageH = [{ key: 'category', label: 'Section' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }];
+        const secH = [{ key: 'section', label: 'Category' }, { key: 'pages', label: 'Pages' }, { key: 'withViews', label: 'Pages with views' }, { key: 'views', label: 'Views' }];
+        XLSX.utils.book_append_sheet(wb, _reportWs(secH, secRows, []), 'Categories');
+        const pageH = [{ key: 'category', label: 'Category' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }];
         XLSX.utils.book_append_sheet(wb, _reportWs(pageH, rows.slice().sort(byViews), []), 'All Pages');
         secRows.forEach(function (x) {                                   // one tab per section, curated order, views desc
             const cr = rows.filter(function (r) { return r.category === x.section; }).sort(byViews);
             XLSX.utils.book_append_sheet(wb, _reportWs(pageH.slice(1), cr, []), _xlSheetName(x.section));
         });
-        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), 'CI Section Pages ' + label + '.xlsx');
+        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), 'CI Category Pages ' + label + '.xlsx');
     }
     // Month picker modal for the .xlsx report: year stepper + a 4-col month grid. Future (incomplete)
     // months are disabled; clicking a month generates the report. Replaces the old YYYY-MM prompt().
@@ -6628,8 +6628,8 @@
     }
     function promptSectionPagesReport() {
         _promptMonth({
-            title: 'Section pages report',
-            subtitle: 'Pick a month, or take the whole year. One tab per section listing every English page, ranked by pageviews.',
+            title: 'Category pages report',
+            subtitle: 'Pick a month, or take the whole year. One tab per category listing every English page, ranked by pageviews.',
             onPick: function (y, m) { buildSectionPagesReport(_sectionRange(y, m)); },
             onPickYear: function (y) { buildSectionPagesReport(_sectionRange(y, 0)); }
         });
