@@ -21899,22 +21899,22 @@ function createAIOverviewImpactSection(gscData, url, dashboardId = 'default') {
             <div class="ai-impact-content">
                 <!-- Key Metrics Row -->
                 <div class="ai-metrics-strip">
-                    <div class="ai-metric">
+                    <div class="ai-metric ctr">
                         <div class="ai-metric-label">CTR Change</div>
                         <div class="ai-metric-value ${impactMetrics.ctrDecline > 0 ? 'neg' : 'pos'}">${impactMetrics.ctrDecline > 0 ? '-' : '+'}${Math.abs(impactMetrics.ctrDecline)}%</div>
                         <div class="ai-metric-sub">vs 6 months ago</div>
                     </div>
-                    <div class="ai-metric">
+                    <div class="ai-metric impr">
                         <div class="ai-metric-label">Impression Change</div>
                         <div class="ai-metric-value ${impactMetrics.impressionGrowth >= 0 ? 'pos' : 'neg'}">${impactMetrics.impressionGrowth >= 0 ? '+' : ''}${impactMetrics.impressionGrowth}%</div>
                         <div class="ai-metric-sub">vs 6 months ago</div>
                     </div>
-                    <div class="ai-metric">
+                    <div class="ai-metric lost">
                         <div class="ai-metric-label">Est. Lost Clicks</div>
                         <div class="ai-metric-value">${impactMetrics.estimatedLostClicks}</div>
                         <div class="ai-metric-sub">per month</div>
                     </div>
-                    <div class="ai-metric">
+                    <div class="ai-metric div">
                         <div class="ai-metric-label">Divergence Index</div>
                         <div class="ai-metric-value">${impactMetrics.divergenceIndex}</div>
                         <div class="ai-metric-sub">6-month impact</div>
@@ -22467,18 +22467,22 @@ function calculateImpactFromRealTimeSeriesData(timelineData, url) {
     // Find peak divergence month
     const peakDivergenceMonth = findPeakDivergenceMonthReal(sortedData, aiLaunchDate);
     
+    // Classify the actual pattern (AI vs ranking vs demand vs stable) using position, not just CTR.
+    const positionChange = postAIAvg.position - preAIAvg.position;   // +ve = rank worse
+    const pat = classifyAIPattern(ctrDecline, impressionGrowth, positionChange, postAIAvg.impressions);
     return {
-        ctrDecline: Math.max(ctrDecline, 0),
-        impressionGrowth: Math.max(impressionGrowth, 0),
+        ctrDecline: Math.round(ctrDecline),                          // signed (un-clamped) so counter-signals show
+        impressionGrowth: Math.round(impressionGrowth),
         estimatedLostClicks: estimatedLostClicks.toLocaleString(),
         divergenceIndex,
-        severity,
-        severityIcon,
-        severityText,
-        keyInsight: `Real data analysis shows ${ctrDecline > 0 ? `a ${ctrDecline}% CTR decline` : 'stable CTR'} and ${impressionGrowth > 0 ? `${impressionGrowth}% impression growth` : 'stable impressions'} since AI Overviews launched. This page has experienced ${estimatedLostClicks.toLocaleString()} estimated lost clicks due to AI-powered search results.`,
-        peakDivergenceMonth: peakDivergenceMonth || findPeakDivergenceMonthFromAggregated(postAIAvg.clicks, postAIAvg.impressions, postAIAvg.ctr),
-        averagePositionChange: (postAIAvg.position - preAIAvg.position).toFixed(1),
-        topAffectedQueries: 'Information-seeking queries',
+        severity: pat.severity,
+        severityIcon: pat.icon,
+        severityText: pat.label,                                     // honest badge: AI / Ranking / Demand / Stable / Insufficient
+        pattern: pat.key,
+        keyInsight: pat.verdict.replace(/<[^>]+>/g, ''),
+        peakDivergenceMonth: peakDivergenceMonth || 'N/A',
+        averagePositionChange: positionChange.toFixed(1),
+        topAffectedQueries: null,                                    // removed the hardcoded fake; real per-query attribution is a follow-on
         timelineData: sortedData,
         preAIMetrics: preAIAvg,
         postAIMetrics: postAIAvg,
@@ -22647,17 +22651,64 @@ function updateAIImpactDisplay(dashboardId, updatedMetrics) {
         peakMonthElement.textContent = updatedMetrics.peakDivergenceMonth;
     }
     
-    // Add indicator that we're using real data
+    // Re-render the "What this means" narrative with the real, classified metrics (the initial
+    // render showed the honest "analysing" line; this swaps in the actual pattern verdict).
+    const narrativeEl = dashboardContainer.querySelector('.ai-impact-narrative');
+    if (narrativeEl) narrativeEl.innerHTML = generateDynamicNarrative(updatedMetrics, window.currentGSCData, window.currentPageUrl);
+
+    // Update the four headline metric cards (the render uses .ai-metric.<key>).
+    const setMetric = function (cls, val) { const el = dashboardContainer.querySelector('.ai-metric.' + cls + ' .ai-metric-value'); if (el) el.textContent = val; };
+    if (updatedMetrics.isRealData) {
+        setMetric('ctr', (updatedMetrics.ctrDecline > 0 ? '-' : '+') + Math.abs(updatedMetrics.ctrDecline) + '%');
+        setMetric('impr', (updatedMetrics.impressionGrowth >= 0 ? '+' : '') + updatedMetrics.impressionGrowth + '%');
+        setMetric('lost', updatedMetrics.estimatedLostClicks);
+        setMetric('div', updatedMetrics.divergenceIndex);
+    }
+
+    // Subtitle: honest + data-backed only once we actually have real data.
     const sectionTitle = dashboardContainer.querySelector('.ai-overview-impact-section .section-subtitle');
     if (sectionTitle && updatedMetrics.isRealData) {
-        sectionTitle.textContent = 'Real 12-month historical data analysis of clicks vs impressions divergence due to AI overviews';
+        sectionTitle.textContent = 'Based on this page’s real 12-month Search Console history (clicks vs impressions vs position)';
     }
-    
+
+}
+
+// Classify what's actually happening from the real signals — don't assume AI. Position is the key
+// discriminator: steady rank + falling CTR = AI/zero-click; worse rank = a ranking decline, not AI.
+// ctrDecline: +ve = CTR fell. impressionChange: signed %. positionChange: +ve = rank got WORSE.
+// postImpressions: avg daily impressions in the recent period (for a thin-data guard).
+function classifyAIPattern(ctrDecline, impressionChange, positionChange, postImpressions) {
+    ctrDecline = Number(ctrDecline) || 0; impressionChange = Number(impressionChange) || 0; positionChange = Number(positionChange) || 0;
+    const ctrDown = ctrDecline > 10, imprDown = impressionChange < -10, imprHeld = impressionChange >= -10, posWorse = positionChange > 0.5;
+    const impTxt = (impressionChange >= 0 ? '+' : '') + Math.round(impressionChange) + '%';
+    const ctrTxt = Math.round(Math.abs(ctrDecline)) + '%';
+    const posTxt = positionChange > 0.5 ? ('slipped by ' + positionChange.toFixed(1)) : positionChange < -0.5 ? ('improved by ' + Math.abs(positionChange).toFixed(1)) : 'held steady';
+    if (postImpressions != null && postImpressions < 10) {
+        return { key: 'lowdata', label: 'Insufficient Traffic', severity: 'minimal', icon: '📊', verdict: `<strong>Not enough Search Console traffic to assess.</strong> This page has too few impressions to separate an AI effect from normal noise.` };
+    }
+    if (ctrDecline < 5 && Math.abs(impressionChange) < 10) {
+        return { key: 'stable', label: 'Stable', severity: 'minimal', icon: '✅', verdict: `<strong>Performance is broadly stable</strong> versus 6 months ago — no material change in clicks or impressions.` };
+    }
+    if (ctrDown && imprHeld && !posWorse) {
+        return { key: 'ai', label: 'AI / Zero-Click', severity: 'high', icon: '🤖', verdict: `<strong>This matches the AI / zero-click signature.</strong> The page is still shown about as often (impressions ${impTxt}) and still ranks well (position ${posTxt}), yet clicks are down ${ctrTxt} — consistent with Google answering the query directly in an AI Overview.` };
+    }
+    if (posWorse) {
+        return { key: 'ranking', label: 'Ranking Decline', severity: 'high', icon: '📉', verdict: `<strong>This looks like a ranking decline, not AI.</strong> Average position ${posTxt} and impressions are ${impTxt}. Clicks fell because visibility fell — a different problem, and a different fix, from zero-click.` };
+    }
+    if (imprDown && !posWorse) {
+        return { key: 'demand', label: 'Demand Decline', severity: 'moderate', icon: '📆', verdict: `<strong>This looks like falling search demand.</strong> Impressions are ${impTxt} while your ranking ${posTxt} — fewer people are searching for this (seasonal, or the topic fading), rather than AI taking the clicks.` };
+    }
+    return { key: 'mixed', label: 'Mixed Signals', severity: 'moderate', icon: '❓', verdict: `<strong>Mixed signals.</strong> Clicks are down ${ctrTxt}, but the pattern isn’t a clean match for AI, ranking loss, or demand change — worth a closer look at the query and position detail.` };
 }
 
 // Generate dynamic narrative based on page metrics and patterns
 function generateDynamicNarrative(impactMetrics, gscData, url) {
-    
+    // Before the real GSC time-series arrives (or when there isn't enough), show the honest status
+    // line — never a verdict computed from empty data.
+    if (!impactMetrics || !impactMetrics.isRealData) {
+        return `<div class="narrative-section"><div class="narrative-heading"><h4>What this means</h4></div><div class="narrative-intro"><p>${(impactMetrics && impactMetrics.keyInsight) || 'Analysing…'}</p></div></div>`;
+    }
+
     // Extract key values for the narrative
     const ctrDecline = impactMetrics.ctrDecline || 0;
     const impressionChange = impactMetrics.impressionGrowth || 0;
@@ -22697,18 +22748,25 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
     
     // Check if this is public service content
     const publicServiceWarning = getPublicServiceWarning(url);
-    
+
+    // Classify what's actually happening (uses position — not just CTR). The AI-specific framing
+    // (divergence index, footer) only shows when the pattern IS the AI/zero-click signature.
+    const positionChange = parseFloat(impactMetrics.averagePositionChange) || 0;
+    const postImpr = (impactMetrics.postAIMetrics && impactMetrics.postAIMetrics.impressions != null) ? impactMetrics.postAIMetrics.impressions : (gscData && gscData.impressions != null ? gscData.impressions : null);
+    const pat = classifyAIPattern(impactMetrics.ctrDecline || 0, impactMetrics.impressionGrowth || 0, positionChange, postImpr);
+
     return `
         <div class="narrative-section">
             <div class="narrative-heading">
                 <h4>What this means</h4>
             </div>
-            
+
             <div class="narrative-intro">
-                <p>${generateNarrativeIntro(ctrDecline, impressionChange, impressionTrend)}</p>
+                <p>${pat.verdict}</p>
                 <p class="severity-message">${severityMessage}</p>
             </div>
-            
+
+            ${pat.key === 'ai' ? `
             <div class="divergence-info-section">
                 <h6>What's the Divergence Index?</h6>
                 <p class="divergence-explainer">A single score for how much AI Overviews are affecting this page. It climbs when lots of people <strong>see</strong> your page in search but fewer actually <strong>click</strong> &mdash; the signature of Google answering the question itself. The higher the number, the bigger the impact.</p>
@@ -22717,17 +22775,18 @@ function generateDynamicNarrative(impactMetrics, gscData, url) {
                         ${generateDivergenceScaleVisual(impactMetrics.divergenceIndex)}
                     </div>
                 </div>
-            </div>
-            
+            </div>` : ''}
+
             ${publicServiceWarning ? `
             <div class="public-service-warning">
                 <p>${publicServiceWarning}</p>
             </div>
             ` : ''}
-            
+
+            ${pat.key === 'ai' ? `
             <div class="narrative-footer">
                 <p class="footer-note"><em>AI Overviews reduce direct clicks, but being the trusted source AI systems cite still matters &mdash; focus on comprehensive, authoritative content.</em></p>
-            </div>
+            </div>` : ''}
         </div>
     `;
 }

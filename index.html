@@ -28,7 +28,7 @@
 <script src="enhanced-url-matching.js"></script>
 <script src="dashboard-glossary.js"></script>
 <script src="page-intelligence-module.js"></script>
-<script src="sitemap-rollup.js?v=20260909z59"></script>
+<script src="sitemap-rollup.js?v=20261009z60"></script>
 <script src="sitemap-geomap.js"></script>
 <script src="groq-integration-module.js?v=20260904u"></script>
 <script src="sv-onboarding.js?v=20260907a"></script>
@@ -5582,6 +5582,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
                 <div class="nav-dropdown-item" onclick="downloadMonthlyReport(); closeReportsDropdown();">
                     Monthly Report (.xlsx)
                 </div>
+                <div class="nav-dropdown-item" onclick="downloadSectionPagesReport(); closeReportsDropdown();">
+                    Section Pages (.xlsx)
+                </div>
                 <div class="nav-dropdown-item" onclick="showAIImpact(); closeReportsDropdown();">
                     AI Impact
                 </div>
@@ -5657,6 +5660,9 @@ body.dark-theme .mobile-control-grid.three-col .control-btn.active {
             </button>
             <button class="mobile-nav-item" onclick="downloadMonthlyReport(); closeMobileMenu();">
                 Monthly Report (.xlsx)
+            </button>
+            <button class="mobile-nav-item" onclick="downloadSectionPagesReport(); closeMobileMenu();">
+                Section Pages (.xlsx)
             </button>
             <button class="mobile-nav-item" onclick="showAIImpact(); closeMobileMenu();">
                 AI Impact
@@ -6607,31 +6613,6 @@ function closeReportsDropdownOnOutside(e) {
 
 
 // Add this function to properly clean up labels
-window.cleanup3DLabels = function() {
-    // Clear any update intervals
-    if (labels3DUpdateInterval) {
-        cancelAnimationFrame(labels3DUpdateInterval);
-        labels3DUpdateInterval = null;
-    }
-    
-    // Remove labels container
-    const labelsContainer = document.getElementById('labels3d');
-    if (labelsContainer) {
-        labelsContainer.remove();
-    }
-    
-    // Remove any style tags we added
-    const labelStyles = document.getElementById('labels3d-styles');
-    if (labelStyles) {
-        labelStyles.remove();
-    }
-}
-
-
-
-
-
-
 
 // Adjust scroll position when toggling
 function adjustScrollAfterToggle() {
@@ -15123,6 +15104,7 @@ function show3DView() {
     }
     
     is3DViewActive = true;
+    _lastHoverId3D = null;   // fresh graph: forget the previous session's hovered node
     currentView = '3d';
     document.body.setAttribute('data-view', '3d');
     
@@ -15264,7 +15246,8 @@ function show3DView() {
     
     addStats3D();
     optimizeRendering();
-    
+    initCollapse3D();   // open collapsed to the top levels (root + first tier)
+
     // Initialize keyboard navigation for 3D view
     initKeyboardNavigation();
 }
@@ -15291,67 +15274,7 @@ function toggleLabels3D() {
 }
 
 
-// Add this function after show3DView
-function add3DLabels() {
-    const container = document.getElementById('3d-graph-container');
-    const labelsDiv = document.createElement('div');
-    labelsDiv.id = 'labels3d';
-    labelsDiv.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        overflow: hidden;
-    `;
-    container.appendChild(labelsDiv);
-    
-    // Update labels on render
-    Graph3D.onEngineTick(() => {
-        const camera = Graph3D.camera();
-        const visibleNodes = graphData.nodes.filter(node => 
-            node.depth <= 1 && node.__threeObj
-        );
-        
-        labelsDiv.innerHTML = '';
-        
-        visibleNodes.forEach(node => {
-            const pos = node.__threeObj.position.clone();
-            pos.project(camera);
-            
-            const x = (pos.x + 1) * container.offsetWidth / 2;
-            const y = (-pos.y + 1) * container.offsetHeight / 2;
-            
-            if (pos.z < 1) { // Only show if in front of camera
-                const label = document.createElement('div');
-                label.className = 'node-label-3d';
-                label.style.cssText = `
-                    position: absolute;
-                    left: ${x}px;
-                    top: ${y - 30}px;
-                    transform: translate(-50%, -100%);
-                    color: ${node.depth === 0 ? '#ff0000' : '#0066cc'};
-                    font-weight: bold;
-                    font-size: ${node.depth === 0 ? '14px' : '12px'};
-                    text-shadow: 0 0 3px white, 0 0 5px white;
-                `;
-                label.textContent = node.name;
-                labelsDiv.appendChild(label);
-            }
-        });
-    });
-}
-
-
-
-
-
-
-// Add a simpler node label function for better performance
-function createSimpleNodeLabel(node) {
-    return `<div style="font-size: 12px;">${node.name}</div>`;
-}
+// (removed dead 3D label helpers: add3DLabels / createSimpleNodeLabel)
 
 
 
@@ -15374,22 +15297,24 @@ function showMobileHint() {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.9);
-        color: white;
+        background: var(--color-bg-elevated, rgba(0, 0, 0, 0.9));
+        color: var(--color-text-primary, #fff);
+        border: 1px solid var(--color-border-primary, rgba(255,255,255,0.15));
         padding: 16px 24px;
         border-radius: 16px;
         font-size: 14px;
         z-index: 10002;
         text-align: center;
         max-width: 80%;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        line-height: 1.6;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     `;
     hint.innerHTML = `
-        <div style="font-size: 16px; margin-bottom: 8px;">📱 Mobile Controls</div>
-        <div>👆 Tap nodes to explore</div>
-        <div>🤏 Pinch to zoom</div>
-        <div>👉 Drag to rotate</div>
-        <div>☰ Menu button for more options</div>
+        <div style="font-size: 15px; font-weight: 700; margin-bottom: 8px;">Touch controls</div>
+        <div>Tap a node to explore</div>
+        <div>Pinch to zoom</div>
+        <div>Drag to rotate</div>
+        <div>Use the menu button for more options</div>
     `;
     
     document.body.appendChild(hint);
@@ -15516,9 +15441,11 @@ function getNodeSize(node) {
 
 // Enhanced link coloring
 function getLinkColor3D(link) {
-    const sourceNode = typeof link.source === 'object' ? link.source : 
+    const sourceNode = typeof link.source === 'object' ? link.source :
                       graphData.nodes.find(n => n.id === link.source);
-    return sourceNode ? sourceNode.color : '#999999';
+    // Derive live (not the build-time node.color) so links follow the freshness
+    // palette when freshness view is on, matching the nodes.
+    return sourceNode ? getNodeColor3D(sourceNode) : '#999999';
 }
 
 // Create rich node labels
@@ -15544,8 +15471,13 @@ function createNodeLabel(node) {
 
 // Handle node interactions
 function handleNodeClick3D(node, event) {
+    // Clicking a collapsed node reveals its direct children (one level). Collapse
+    // again from the node panel or the right-click menu.
+    const revealIfCollapsed = () => {
+        if (node.children && node.children.length && isNodeCollapsed3D(node.id)) expandNode3D(node.id);
+    };
     if (isMobile3D) {
-        // On mobile, show details directly
+        revealIfCollapsed();
         showNodeDetails3D(node);
         focusOnNode3D(node, 1000);
     } else {
@@ -15555,6 +15487,7 @@ function handleNodeClick3D(node, event) {
                 window.open(node.url, '_blank');
             }
         } else {
+            revealIfCollapsed();
             focusOnNode3D(node);
             showNodeDetails3D(node);
         }
@@ -15566,9 +15499,18 @@ function handleNodeRightClick3D(node, event) {
     showNodeContextMenu3D(node, event);
 }
 
+let _lastHoverId3D = null;
 function handleNodeHover3D(node) {
-    document.getElementById('3d-graph-container').style.cursor = node ? 'pointer' : 'default';
-    
+    const cont = document.getElementById('3d-graph-container');
+    if (cont) cont.style.cursor = node ? 'pointer' : 'default';
+
+    // Only touch the graph when the hovered node actually changes. force-graph
+    // re-evaluates the colour/opacity accessors across EVERY node on each call, so
+    // firing this on every mousemove would refresh ~thousands of materials per frame.
+    const id = node ? node.id : null;
+    if (id === _lastHoverId3D) return;
+    _lastHoverId3D = id;
+
     if (node) {
         highlightConnectionsSubtle3D(node);
     } else {
@@ -16061,8 +16003,9 @@ body:not(.mobile) #3d-graph-container > div[style*="bottom"] {
                 <input type="text"
                        class="control-input"
                        id="search3d"
-                       placeholder="Search nodes..."
-                       onkeyup="search3D(this.value)"
+                       placeholder="Search nodes... (Enter = next, Esc = clear)"
+                       oninput="search3DInput(this.value)"
+                       onkeydown="search3DKey(event)"
                        style="flex:1;margin-bottom:0;">
                 <button id="search3d-prev" onclick="navigateSearch3D(-1)" title="Previous match"
                         style="display:none;padding:5px 7px;background:var(--color-bg-tertiary,#f0f0f0);border:1px solid var(--color-border-primary,#ddd);border-radius:4px;cursor:pointer;font-size:0.72rem;flex-shrink:0;">▲</button>
@@ -16078,6 +16021,9 @@ body:not(.mobile) #3d-graph-container > div[style*="bottom"] {
                 Show Only Categories
             </button>
             ` : ''}
+            <button class="control-btn" onclick="expandAll3D()">
+                Expand All
+            </button>
             <button class="control-btn" onclick="resetFilters3D()">
                 Reset Filters
             </button>
@@ -16498,6 +16444,28 @@ function flyThroughAnimation3D() {
 // Search and filter functions
 let _searchMatches = [];
 let _searchIdx = 0;
+let _search3DTimer = null;
+
+// Debounce typing: the raw search re-colours every node AND flies the camera to the
+// first match, so running it per keystroke lurched the view. Settle for 250ms first.
+function search3DInput(value) {
+    if (_search3DTimer) clearTimeout(_search3DTimer);
+    _search3DTimer = setTimeout(function () { search3D(value); }, 250);
+}
+
+// Enter jumps to the next match (or runs the search); Escape clears it.
+function search3DKey(event) {
+    if (_search3DTimer) { clearTimeout(_search3DTimer); _search3DTimer = null; }
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        if (_searchMatches && _searchMatches.length > 1) navigateSearch3D(1);
+        else search3D(event.target.value);
+    } else if (event.key === 'Escape') {
+        event.preventDefault();
+        resetFilters3D();
+        if (event.target && event.target.blur) event.target.blur();
+    }
+}
 
 function search3D(query) {
     if (!query) {
@@ -16594,10 +16562,9 @@ function resetFilters3D() {
         node.selected = false;
     });
 
-    Graph3D.nodeVisibility(true);
-    Graph3D.linkVisibility(true);
     Graph3D.nodeColor(node => getNodeColor3D(node));
     Graph3D.nodeOpacity(0.9);
+    applyCollapse3D();   // return to the collapsed default rather than the full ~3,700-node hairball
 
     // Clear search
     const searchInput = document.getElementById('search3d');
@@ -16745,7 +16712,7 @@ function showNodeDetails3D(node) {
           path.map((n, i) => {
               const label = n.name.length > 20 ? n.name.slice(0, 18) + '…' : n.name;
               if (i === path.length - 1) return `<span style="color:var(--color-text-secondary,#666);">${label}</span>`;
-              return `<span style="cursor:pointer;text-decoration:underline;color:var(--color-link,#007cb6);" onclick="focusOnNode3D(graphData.nodes.find(n=>n.id==='${n.id}'))">${label}</span>`;
+              return `<span style="cursor:pointer;text-decoration:underline;color:var(--color-link,#007cb6);" onclick="focusOnNode3D(graphData.nodes.find(n=>n.id===${n.id}))">${label}</span>`;
           }).join(' › ') +
           `</div>`
         : '';
@@ -16763,11 +16730,25 @@ function showNodeDetails3D(node) {
         </div>`;
     })() : '';
 
-    // Isolate subtree button
-    const isolateBtn = `<button onclick="isolateSubtree3D(graphData.nodes.find(n=>n.id==='${node.id}'))"
-        style="width:100%;padding:6px;background:var(--color-bg-tertiary,#f0f0f0);border:1px solid var(--color-border-primary,#ddd);border-radius:5px;cursor:pointer;font-size:0.75rem;color:var(--color-text-primary,#333);margin-top:4px;">
-        Focus on subtree
-    </button>`;
+    // Live metrics + action row (variable name kept as isolateBtn so both the mobile and
+    // desktop layouts below render it via ${isolateBtn}). Metrics fill in async after append.
+    const nid = node.id;
+    const _u = node.url ? node.url.replace(/'/g, "\\'") : '';
+    const openBtnHTML = node.url
+        ? `<button onclick="window.open('${_u}','_blank')" style="flex:1;padding:6px;background:var(--color-bg-tertiary,#f0f0f0);border:1px solid var(--color-border-primary,#ddd);border-radius:5px;cursor:pointer;font-size:0.72rem;color:var(--color-text-primary,#333);">Open page</button>`
+        : '';
+    const _hasKids3D = !!(node.children && node.children.length);
+    const _isColl3D = _hasKids3D && isNodeCollapsed3D(node.id);
+    const expandBtnHTML = _hasKids3D
+        ? `<button onclick="${_isColl3D ? 'expandBranch3D' : 'collapseBranch3D'}(${nid});showNodeDetails3D(graphData.nodes.find(n=>n.id===${nid}))" style="width:100%;margin-top:6px;padding:6px;background:var(--color-bg-tertiary,#f0f0f0);border:1px solid var(--color-border-primary,#ddd);border-radius:5px;cursor:pointer;font-size:0.72rem;color:var(--color-text-primary,#333);">${_isColl3D ? 'Expand branch' : 'Collapse branch'}</button>`
+        : '';
+    const isolateBtn = `<div id="nd3d-metrics" style="margin-top:8px;"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+            ${openBtnHTML}
+            <button onclick="isolateSubtree3D(graphData.nodes.find(n=>n.id===${nid}))" style="flex:1;padding:6px;background:var(--color-bg-tertiary,#f0f0f0);border:1px solid var(--color-border-primary,#ddd);border-radius:5px;cursor:pointer;font-size:0.72rem;color:var(--color-text-primary,#333);">Focus subtree</button>
+            <button onclick="askAboutNode3D(${nid})" style="flex:1;padding:6px;background:var(--primary);border:none;border-radius:5px;cursor:pointer;font-size:0.72rem;color:#fff;font-weight:600;">Ask</button>
+        </div>
+        ${expandBtnHTML}`;
 
     if (isMobile) {
         details.innerHTML = `
@@ -16793,7 +16774,7 @@ function showNodeDetails3D(node) {
             }).filter(Boolean);
             if (childNodes.length > 0) {
                 const chips = childNodes.map(cn =>
-                    `<span onclick="focusOnNode3D(graphData.nodes.find(n=>n.id==='${cn.id}'))"
+                    `<span onclick="focusOnNode3D(graphData.nodes.find(n=>n.id===${cn.id}))"
                            style="display:inline-block;padding:2px 8px;background:var(--color-bg-secondary,#f0f0f0);border:1px solid var(--color-border-primary,#ddd);border-radius:10px;font-size:0.7rem;cursor:pointer;color:var(--color-link,#007cb6);"
                            title="${cn.name}">${cn.name.length > 16 ? cn.name.slice(0, 14) + '…' : cn.name}</span>`
                 ).join(' ');
@@ -16831,6 +16812,7 @@ function showNodeDetails3D(node) {
     }
 
     container.appendChild(details);
+    _fill3DMetrics(node);
 
     // Auto-dismiss on mobile after tap outside
     if (isMobile) {
@@ -16845,6 +16827,55 @@ function showNodeDetails3D(node) {
             document.addEventListener('click', dismissHandler);
         }, 100);
     }
+}
+
+// Open the Ask panel scoped to this node (page -> page_summary, section -> section_summary).
+function askAboutNode3D(nodeId) {
+    const node = (graphData && graphData.nodes) ? graphData.nodes.find(n => n.id === nodeId) : null;
+    if (!node) return;
+    if (!window.SVRollup || typeof window.SVRollup.askWithPlan !== 'function') {
+        try { showToast('Ask needs traffic data first — connect Google or load a sitemap with data.', 'warning'); } catch (e) {}
+        return;
+    }
+    const isPage = !!node.url && (node.isLeaf || !node.children || node.children.length === 0);
+    const plan = isPage ? { intent: 'page_summary', url: node.url } : { intent: 'section_summary', category: node.name };
+    try { window.SVRollup.askWithPlan(plan, 'How is ' + node.name + ' doing?'); } catch (e) {}
+}
+
+// Fill the node panel's metrics slot with GA4/GSC numbers (async, only when connected).
+function _fill3DMetrics(node) {
+    const box = document.getElementById('nd3d-metrics');
+    if (!box || !node || !node.url) { if (box) box.innerHTML = ''; return; }   // sections/root have no page URL
+    const gscOn = window.GSCIntegration && window.GSCIntegration.isConnected && window.GSCIntegration.isConnected();
+    const ga4On = window.GA4Integration && window.GA4Integration.isConnected && window.GA4Integration.isConnected();
+    if (!gscOn && !ga4On) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div style="font-size:0.7rem;color:var(--color-text-muted,#999);">Loading traffic…</div>';
+    const url = node.url;
+    Promise.allSettled([
+        (gscOn && window.GSCIntegration.fetchNodeData) ? window.GSCIntegration.fetchNodeData({ url: url }) : Promise.resolve(null),
+        (ga4On && window.GA4Integration.fetchData) ? window.GA4Integration.fetchData(url) : Promise.resolve(null)
+    ]).then(function (res) {
+        const live = document.getElementById('nd3d-metrics');
+        if (!live) return;   // panel closed/replaced while awaiting
+        const gsc = res[0].status === 'fulfilled' ? res[0].value : null;
+        const ga4 = res[1].status === 'fulfilled' ? res[1].value : null;
+        const num = v => (typeof v === 'number' && isFinite(v)) ? Math.round(v).toLocaleString() : null;
+        const cells = [];
+        if (gsc && !gsc.noDataFound) {
+            if (num(gsc.clicks) !== null) cells.push(['Clicks', num(gsc.clicks)]);
+            if (num(gsc.impressions) !== null) cells.push(['Impressions', num(gsc.impressions)]);
+        }
+        if (ga4 && !ga4.noDataFound) {
+            if (num(ga4.pageViews) !== null) cells.push(['Views', num(ga4.pageViews)]);
+            if (num(ga4.users) !== null) cells.push(['Users', num(ga4.users)]);
+        }
+        if (!cells.length) { live.innerHTML = '<div style="font-size:0.7rem;color:var(--color-text-muted,#999);">No traffic data for this page.</div>'; return; }
+        live.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + cells.map(function (c) {
+            return '<div style="flex:1;min-width:62px;background:var(--color-bg-secondary,#f5f5f5);border:1px solid var(--color-border-primary,#e5e7eb);border-radius:6px;padding:6px 8px;text-align:center;">' +
+                '<div style="font-size:0.56rem;text-transform:uppercase;letter-spacing:0.4px;color:var(--color-text-secondary,#666);">' + c[0] + '</div>' +
+                '<div style="font-size:0.95rem;font-weight:700;color:var(--color-text-heading,#111);">' + c[1] + '</div></div>';
+        }).join('') + '</div>';
+    });
 }
 
 function highlightConnections3D(node) {
@@ -16882,12 +16913,13 @@ function highlightConnections3D(node) {
 
 function clearHighlights3D() {
     if (!Graph3D) return;
-    
-    // Reset to default values
+
+    // Undo ONLY the hover highlight (opacity + colour). Do NOT reset visibility here:
+    // isolateSubtree3D and the show-only filters own node/link visibility, and clearing
+    // it on every hover-out would silently cancel an active isolation or filter.
     Graph3D.nodeOpacity(0.9);
+    Graph3D.nodeColor(getNodeColor3D);
     Graph3D.linkOpacity(0.3);
-    Graph3D.nodeVisibility(true); // Ensure all nodes are visible
-    Graph3D.linkVisibility(true); // Ensure all links are visible
 }
 
 // Performance optimization
@@ -17155,7 +17187,13 @@ function resetViewport() {
 }
 
 // Keyboard navigation system
+let keyboardNav3DInited = false;
 function initKeyboardNavigation() {
+    // The handler is global and self-guards on is3DViewActive, so add it exactly once.
+    // (show3DView runs on every entry to 3D; without this the listener stacked and
+    // Escape/zoom fired once per past visit.)
+    if (keyboardNav3DInited) return;
+    keyboardNav3DInited = true;
     document.addEventListener('keydown', (event) => {
         if (!is3DViewActive) return;
         
@@ -17422,13 +17460,92 @@ function showNodeContextMenu3D(node, event) {
     }, 10);
 }  // <-- This closing brace was missing!
 
-// Branch operations
-function expandBranch3D(nodeId) {
-    // Implementation for expanding a branch
+// ── Collapse / expand subsystem ─────────────────────────────────────────────
+// The 3D graph opens collapsed to the top levels (root + first tier) instead of
+// dumping ~3,700 nodes at once. Visibility is derived from a set of collapsed node
+// ids: a node is hidden if ANY ancestor is collapsed. The force layout is unchanged
+// (all nodes still have positions) - we only toggle what is drawn.
+let _collapsed3D = null;
+let _parentOf3D = null;
+const COLLAPSE_START_DEPTH_3D = 1;   // initially show depth 0 (root) + depth 1 (top categories)
+
+function _buildParentMap3D() {
+    _parentOf3D = new Map();
+    graphData.nodes.forEach(n => {
+        (n.children || []).forEach(cid => {
+            _parentOf3D.set(typeof cid === 'object' ? cid.id : cid, n.id);
+        });
+    });
 }
 
+function _isNodeVisible3D(node) {
+    if (!_collapsed3D) return true;
+    let p = _parentOf3D.get(node.id);
+    while (p !== undefined && p !== null) {
+        if (_collapsed3D.has(p)) return false;
+        p = _parentOf3D.get(p);
+    }
+    return true;
+}
+
+function applyCollapse3D() {
+    if (!Graph3D) return;
+    if (!_collapsed3D) { Graph3D.nodeVisibility(true); Graph3D.linkVisibility(true); return; }
+    const vis = new Set();
+    graphData.nodes.forEach(n => { if (_isNodeVisible3D(n)) vis.add(n.id); });
+    Graph3D.nodeVisibility(n => vis.has(n.id));
+    Graph3D.linkVisibility(l => {
+        const s = typeof l.source === 'object' ? l.source.id : l.source;
+        const t = typeof l.target === 'object' ? l.target.id : l.target;
+        return vis.has(s) && vis.has(t);
+    });
+}
+
+function initCollapse3D() {
+    if (!graphData || !graphData.nodes) return;
+    _buildParentMap3D();
+    _collapsed3D = new Set();
+    graphData.nodes.forEach(n => {
+        if (n.depth >= COLLAPSE_START_DEPTH_3D && n.children && n.children.length) _collapsed3D.add(n.id);
+    });
+    applyCollapse3D();
+}
+
+function isNodeCollapsed3D(nodeId) {
+    return !!(_collapsed3D && _collapsed3D.has(nodeId));
+}
+
+// Reveal ONE level: a collapsed node's direct children (which themselves stay collapsed).
+function expandNode3D(nodeId) {
+    if (!_collapsed3D) return;
+    _collapsed3D.delete(nodeId);
+    applyCollapse3D();
+}
+
+// Reveal a node's WHOLE subtree.
+function expandBranch3D(nodeId) {
+    if (!_collapsed3D) return;
+    const stack = [nodeId];
+    while (stack.length) {
+        const id = stack.pop();
+        _collapsed3D.delete(id);
+        const n = graphData.nodes.find(x => x.id === id);
+        if (n && n.children) n.children.forEach(c => stack.push(typeof c === 'object' ? c.id : c));
+    }
+    applyCollapse3D();
+}
+
+// Hide a node's subtree (collapse it).
 function collapseBranch3D(nodeId) {
-    // Implementation for collapsing a branch
+    if (!_collapsed3D) _collapsed3D = new Set();
+    _collapsed3D.add(nodeId);
+    applyCollapse3D();
+}
+
+// Show everything.
+function expandAll3D() {
+    if (_collapsed3D) _collapsed3D.clear();
+    applyCollapse3D();
 }
 
 function isolateBranch3D(nodeId) {

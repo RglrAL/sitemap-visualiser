@@ -2188,7 +2188,7 @@
     // Canonical intent -> interpretation-chip label registry (one source; used by ask()).
     // Build stamp (C1): every answer carries it, so a paste can be traced to the exact build - fixes were landing mid-run
     // and verdicts could not be tied to a version. BUMP THIS with the index.html ?v= each deploy.
-    const _BUILD = '20260906z58';
+    const _BUILD = '20261009z60';
     const _ILBL = { rank_categories: 'rank categories', section_summary: 'category summary', top_pages: 'top pages', low_ctr: 'low-CTR pages', stale: 'stale pages', movers: 'movers', site_summary: 'site summary', compare: 'compare categories', opportunities: 'search opportunities', top_queries: 'top search queries', international_queries: 'searches from abroad', top_countries: 'top countries', trend: 'trend over time', diagnose: 'page diagnosis', questions: 'questions asked', language_gap: 'English vs Irish', cannibalisation: 'page cannibalisation', briefing: 'priorities', page_queries: 'queries for a page', digest: 'weekly digest', dead_pages: 'zero-traffic pages', page_summary: 'page performance', content_gaps: 'content gaps', section_movers: 'category movers', emerging: 'emerging searches', recently_updated: 'recently updated', abandoned: 'low engagement', seasonal: 'seasonality (vs last year)', traffic_sources: 'traffic sources', ai_impact: 'AI impact', ai_exposed: 'AI exposure', compare_periods: 'period comparison', artifact_pages: 'tracking artifacts', freshness: 'content freshness', structure: 'site structure', orphan_pages: 'orphan traffic', redirects: 'redirect list', language_coverage: 'Irish coverage', structure_change: 'structural changes', breadcrumb: 'page location' };
     // Ancestry path of a page in the sitemap tree, top content section -> page, as [{name,url}]. Drops the structural roots
     // (tree root, language nodes /en /ga) so the breadcrumb starts at a real section. Pure/testable (keyed by _langKey).
@@ -6428,9 +6428,77 @@
         const _fname = 'CI Pageview Stats ' + _RPT_MONTHS[month - 1] + ' ' + year + '.xlsx';
         await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), _fname, { summary: { dataBars: summary.dataBars, colorScales: summary.colorScales, kpiCells: summary.kpiCells, sparkline: summary.sparkline } });   // write + inject formatting/tables/sparkline
     }
+    // ── Section pages report (.xlsx) ─────────────────────────────────────────────
+    // An INVENTORY, not a movers list: every English page in each curated section for one month,
+    // ranked by views with active users alongside - zero-traffic pages stay in (that is the point).
+    // Sheets: Sections (page counts + views per section) + All Pages (site-wide ranking) + one tab
+    // per section. Reuses the monthly report's GA4 fetch, curation (_RPT_CATS) and xlsx helpers.
+    // Pageviews only (owner's call). Period = one month, a whole past year, or the current year to date.
+    function _sectionRange(year, month) {                     // month 1-12, or 0 = whole year / year to date
+        if (month) { const r = _monthRange(year, month); return { start: r.start, end: r.end, label: _RPT_MONTHS[month - 1] + ' ' + year }; }
+        const now = new Date();
+        if (year < now.getFullYear()) return { start: year + '-01-01', end: year + '-12-31', label: String(year) };
+        const yd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);   // yesterday = last complete day (GA4 lags)
+        const iso = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+        const end = yd.getFullYear() === year ? iso(yd) : year + '-01-01';
+        return { start: year + '-01-01', end: end, label: year + ' to date (to ' + end + ')' };
+    }
+    async function buildSectionPagesReport(range) {
+        const tree = window.treeData;
+        if (!tree) { alert('Load a sitemap first.'); return; }
+        const ga4 = window.GA4Integration;
+        if (!(ga4 && ga4.isConnected && ga4.isConnected())) { alert('Connect GA4 first - this report is GA4-based.'); return; }
+        if (typeof XLSX === 'undefined') { alert('Spreadsheet library not loaded. Hard-refresh (index.html must include xlsx.full.min.js).'); return; }
+        const label = range.label;
+        let curBy;
+        try { curBy = await _fetchGA4Range(tree, range.start, range.end); }
+        catch (e) { alert('Could not fetch GA4 data: ' + (e && e.message ? e.message : String(e))); return; }
+        const toPath = (typeof ga4.urlToPath === 'function') ? ga4.urlToPath : function (u) { return u; };
+        const rc = build(tree, { statsFor: statsForMaps({}, curBy) });   // categories, merged by name
+        build(tree);                                                     // restore current-period annotations
+        const catOrder = {};
+        _RPT_CATS.forEach(function (name, i) { catOrder[String(name).toLowerCase()] = i; });
+        const rows = [], seen = Object.create(null);                     // seen: a page reachable twice in the tree is listed once
+        rc.categories.forEach(function (cat) {
+            const ord = catOrder[String(cat.name || '').toLowerCase()];
+            if (ord === undefined) return;                               // excludes non-content / uncurated sections
+            (cat.nodes || []).forEach(function (top) {
+                (function walk(n) {
+                    if (n.url) {
+                        const p = toPath(n.url), k = normUrl(n.url);
+                        if (p.indexOf('/en/') === 0 && !seen[k]) {       // English pages only, same rule as the monthly report
+                            seen[k] = true;
+                            const a = curBy[k];
+                            rows.push({ category: cat.name, order: ord, title: n.name || '', path: p, views: a ? (a.pageViews || 0) : 0 });
+                        }
+                    }
+                    (n.children || n._children || []).forEach(walk);
+                })(top);
+            });
+        });
+        if (!rows.length) { alert('No English pages found in the curated sections - is the right sitemap loaded?'); return; }
+        if (!rows.some(function (r) { return r.views > 0; })) { alert('No GA4 page data for ' + label + '. (GA4 retention is ~2-14 months; the month may be out of range.)'); return; }
+        const byViews = function (a, b) { return (b.views - a.views) || String(a.title).localeCompare(String(b.title)); };
+        const secMap = {};
+        rows.forEach(function (r) {
+            const x = secMap[r.category] || (secMap[r.category] = { section: r.category, order: r.order, pages: 0, withViews: 0, views: 0 });
+            x.pages += 1; if (r.views > 0) x.withViews += 1; x.views += r.views;
+        });
+        const secRows = Object.keys(secMap).map(function (k) { return secMap[k]; }).sort(function (a, b) { return a.order - b.order; });
+        const wb = XLSX.utils.book_new();
+        const secH = [{ key: 'section', label: 'Section' }, { key: 'pages', label: 'Pages' }, { key: 'withViews', label: 'Pages with views' }, { key: 'views', label: 'Views' }];
+        XLSX.utils.book_append_sheet(wb, _reportWs(secH, secRows, []), 'Sections');
+        const pageH = [{ key: 'category', label: 'Section' }, { key: 'title', label: 'Page title' }, { key: 'path', label: 'Page path' }, { key: 'views', label: 'Views' }];
+        XLSX.utils.book_append_sheet(wb, _reportWs(pageH, rows.slice().sort(byViews), []), 'All Pages');
+        secRows.forEach(function (x) {                                   // one tab per section, curated order, views desc
+            const cr = rows.filter(function (r) { return r.category === x.section; }).sort(byViews);
+            XLSX.utils.book_append_sheet(wb, _reportWs(pageH.slice(1), cr, []), _xlSheetName(x.section));
+        });
+        await _decorateXlsx(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }), 'CI Section Pages ' + label + '.xlsx');
+    }
     // Month picker modal for the .xlsx report: year stepper + a 4-col month grid. Future (incomplete)
     // months are disabled; clicking a month generates the report. Replaces the old YYYY-MM prompt().
-    function promptMonthlyReport() {
+    function _promptMonth(cfg) {
         if (typeof XLSX === 'undefined') { alert('Spreadsheet library not loaded. Hard-refresh (index.html must include xlsx.full.min.js).'); return; }
         if (typeof ensureDDStyle === 'function') ensureDDStyle();
         const now = new Date();
@@ -6463,21 +6531,34 @@
                     ' style="padding:10px 0;border:1px solid ' + bd + ';border-radius:8px;background:' + bg + ';color:' + fg + ';font-size:0.8rem;font-weight:600;cursor:' + (fut ? 'not-allowed' : 'pointer') + ';opacity:' + (fut ? '0.4' : '1') + ';transition:border-color 0.12s,color 0.12s;">' + name.slice(0, 3) + '</button>';
             }).join('');
             modal.innerHTML =
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><div style="font-weight:800;font-size:1.05rem;color:var(--color-text-heading);">Monthly pageview report</div><button id="sv-mp-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div>' +
-                '<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-bottom:16px;">Pick a month to generate the spreadsheet. GA4 data covers roughly the last 14 months.</div>' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><div style="font-weight:800;font-size:1.05rem;color:var(--color-text-heading);">' + cfg.title + '</div><button id="sv-mp-close" style="background:none;border:none;font-size:22px;color:var(--color-text-muted);cursor:pointer;line-height:1;">×</button></div>' +
+                '<div style="font-size:0.72rem;color:var(--color-text-secondary);margin-bottom:16px;">' + cfg.subtitle + '</div>' +
                 '<div style="display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:14px;">' +
                     stepBtn('sv-mp-prev', '‹', viewY <= minY) +
                     '<div style="font-weight:800;font-size:1.15rem;color:var(--color-text-heading);min-width:64px;text-align:center;">' + viewY + '</div>' +
                     stepBtn('sv-mp-next', '›', viewY >= maxY) +
                 '</div>' +
+                (cfg.onPickYear ? '<button id="sv-mp-year" style="display:block;width:100%;margin-bottom:10px;padding:10px 0;border:1px solid var(--color-border-primary);border-radius:8px;background:var(--color-bg-primary);color:var(--color-text-primary);font-size:0.8rem;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor=\'var(--primary)\';this.style.color=\'var(--primary)\'" onmouseout="this.style.borderColor=\'var(--color-border-primary)\';this.style.color=\'var(--color-text-primary)\'">' + (viewY < curY ? 'Whole year ' + viewY : viewY + ' to date') + '</button>' : '') +
                 '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">' + btns + '</div>';
             modal.querySelector('#sv-mp-close').addEventListener('click', close);
+            const yb = modal.querySelector('#sv-mp-year'); if (yb) yb.addEventListener('click', function () { close(); cfg.onPickYear(viewY); });
             const pv = modal.querySelector('#sv-mp-prev'); if (pv && viewY > minY) pv.addEventListener('click', function () { viewY--; render(); });
             const nx = modal.querySelector('#sv-mp-next'); if (nx && viewY < maxY) nx.addEventListener('click', function () { viewY++; render(); });
-            modal.querySelectorAll('.sv-mp-m').forEach(function (b) { if (!b.disabled) b.addEventListener('click', function () { const m = parseInt(b.getAttribute('data-m'), 10); close(); buildMonthlyReport(viewY, m); }); });
+            modal.querySelectorAll('.sv-mp-m').forEach(function (b) { if (!b.disabled) b.addEventListener('click', function () { const m = parseInt(b.getAttribute('data-m'), 10); close(); cfg.onPick(viewY, m); }); });
         };
         render();
         overlay.appendChild(modal); document.body.appendChild(overlay);
+    }
+    function promptMonthlyReport() {
+        _promptMonth({ title: 'Monthly pageview report', subtitle: 'Pick a month to generate the spreadsheet. GA4 data covers roughly the last 14 months.', onPick: buildMonthlyReport });
+    }
+    function promptSectionPagesReport() {
+        _promptMonth({
+            title: 'Section pages report',
+            subtitle: 'Pick a month, or take the whole year. One tab per section listing every English page, ranked by pageviews.',
+            onPick: function (y, m) { buildSectionPagesReport(_sectionRange(y, m)); },
+            onPickYear: function (y) { buildSectionPagesReport(_sectionRange(y, 0)); }
+        });
     }
 
     // ── Site-level AI Impact report (Phase 1) ────────────────────────────────────
@@ -6830,6 +6911,8 @@
         showAIImpact: showAIImpact,
         buildMonthlyReport: buildMonthlyReport,
         downloadMonthlyReport: promptMonthlyReport,
+        buildSectionPagesReport: buildSectionPagesReport,
+        downloadSectionPagesReport: promptSectionPagesReport,
         statsForUrl: statsForUrl,
         prefetchGA4: prefetchGA4,
         prefetchGSC: prefetchGSC,
@@ -6850,6 +6933,7 @@
     window.showCategoryPerformance = showPanel;
     window.showAskData = showAsk;
     window.downloadMonthlyReport = promptMonthlyReport;
+    window.downloadSectionPagesReport = promptSectionPagesReport;
     window.showAIImpact = function () { showAIImpact(); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _ensureAskFab);
     else _ensureAskFab();
